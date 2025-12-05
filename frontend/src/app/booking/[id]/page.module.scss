@@ -1,0 +1,850 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+// ============================================
+// Page Réservation - Mobile-First Responsive
+// ============================================
+
+.bookingPage {
+  min-height: calc(100vh - 80px);
+  background-color: $gray-50;
+  overflow-x: hidden;
+
+  // Mobile (base)
+  padding: $spacing-md 0;
+
+  @include tablet-up {
+    padding: $spacing-lg 0;
+  }
+
+  @include desktop {
+    padding: $spacing-xl 0;
+  }
+}
+
+.backLink {
+  display: inline-block;
+  color: $primary-color;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  transition: color $transition-normal;
+
+  // Mobile (base)
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    margin-bottom: $spacing-lg;
+    font-size: $font-size-base;
+  }
+
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+.bookingContainer {
+  max-width: 100%;
+  margin: 0 auto;
+
+  @include tablet-up {
+    max-width: 600px;
+  }
+
+  @include desktop {
+    max-width: 800px;
+  }
+}
+
+.serviceImage {
+  width: 100%;
+  object-fit: cover;
+  border-radius: $radius-lg $radius-lg 0 0;
+
+  // Mobile (base)
+  height: 150px;
+
+  @include tablet-up {
+    height: 200px;
+  }
+
+  @include desktop {
+    height: 250px;
+  }
+}
+
+.serviceDetails {
+  background: $white;
+  border-bottom: 1px solid $gray-200;
+
+  // Mobile (base)
+  padding: $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-lg;
+  }
+}
+
+.serviceTitle {
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0 0 $spacing-xs;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+  }
+
+  @include desktop {
+    font-size: $font-size-xl;
+  }
+}
+
+.serviceDescription {
+  display: none;
+
+  @include tablet-up {
+    display: block;
+    font-size: $font-size-sm;
+    color: $gray-600;
+    line-height: 1.5;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.serviceMeta {
+  display: flex;
+  align-items: center;
+
+  // Mobile (base)
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+
+  @include tablet-up {
+    gap: $spacing-md;
+  }
+}
+
+.servicePrice {
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+  }
+}
+
+.serviceDuration {
+  color: $gray-600;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.bookingForm {
+  background: $white;
+  border-radius: 0 0 $radius-lg $radius-lg;
+  box-shadow: $shadow-md;
+
+  // Mobile (base)
+  padding: $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-lg;
+  }
+
+  @include desktop {
+    padding: $spacing-xl;
+  }
+}
+
+.title {
+  font-weight: $font-weight-semibold;
+  color: $black;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    font-size: $font-size-xl;
+  }
+}
+
+.biddingNotice {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: $radius-md;
+  color: white;
+
+  // Mobile (base)
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: $spacing-xs;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+
+  p {
+    margin: 0;
+    opacity: 0.95;
+    line-height: 1.5;
+
+    // Mobile (base)
+    font-size: $font-size-xs;
+
+    @include tablet-up {
+      font-size: $font-size-sm;
+    }
+  }
+}
+
+.errorAlert {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  text-align: center;
+
+  // Mobile (base)
+  padding: $spacing-xs;
+  margin-bottom: $spacing-sm;
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    padding: $spacing-sm;
+    margin-bottom: $spacing-md;
+    font-size: $font-size-sm;
+  }
+}
+
+.formGroup {
+  // Mobile (base)
+  margin-bottom: $spacing-sm;
+
+  @include tablet-up {
+    margin-bottom: $spacing-md;
+  }
+}
+
+.hint {
+  color: $gray-600;
+  font-style: italic;
+  margin-top: $spacing-xs;
+
+  // Mobile (base)
+  font-size: 10px;
+
+  @include tablet-up {
+    font-size: $font-size-xs;
+  }
+}
+
+.label {
+  display: block;
+  font-weight: $font-weight-medium;
+  color: $gray-800;
+  margin-bottom: $spacing-xs;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.required {
+  color: $error;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-sm;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+
+  @include tablet-up {
+    min-height: 100px;
+  }
+}
+
+.summary {
+  background: $gray-50;
+  border-radius: $radius-md;
+
+  // Mobile (base)
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+
+  h3 {
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-sm;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+}
+
+.summaryItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $gray-200;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+  flex-direction: column;
+  gap: 2px;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+    flex-direction: row;
+    gap: 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  span:first-child {
+    color: $gray-600;
+    flex-shrink: 0;
+  }
+
+  span:last-child {
+    font-weight: $font-weight-medium;
+    color: $black;
+
+    @include tablet-up {
+      text-align: right;
+    }
+  }
+}
+
+.summaryDivider {
+  height: 1px;
+  background: $gray-300;
+  margin: $spacing-sm 0;
+}
+
+.summaryTotal {
+  margin-top: $spacing-xs;
+
+  span:first-child {
+    font-weight: $font-weight-bold;
+    color: $black;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+
+  span:last-child {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+
+    // Mobile (base)
+    font-size: $font-size-base;
+
+    @include tablet-up {
+      font-size: $font-size-lg;
+    }
+  }
+}
+
+.addressText {
+  word-wrap: break-word;
+  line-height: 1.4;
+
+  // Mobile (base)
+  max-width: 100%;
+
+  @include tablet-up {
+    max-width: 200px;
+  }
+}
+
+.positive {
+  color: $success !important;
+}
+
+.negative {
+  color: $error !important;
+}
+
+.formulaTag {
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
+
+  // Mobile (base)
+  padding: 2px 6px;
+  font-size: 10px;
+
+  @include tablet-up {
+    padding: 2px 8px;
+    font-size: $font-size-xs;
+  }
+}
+
+.commissionText {
+  color: $gray-500;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.loading {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  padding: $spacing-xl;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $gray-300;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto $spacing-md;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  text-align: center;
+
+  // Mobile (base)
+  padding: $spacing-xl;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+  }
+
+  h2 {
+    margin-bottom: $spacing-lg;
+
+    // Mobile (base)
+    font-size: $font-size-lg;
+
+    @include tablet-up {
+      font-size: $font-size-xl;
+    }
+  }
+}
+
+.success {
+  text-align: center;
+  background: $white;
+  box-shadow: $shadow-md;
+
+  // Mobile (base)
+  padding: $spacing-xl;
+  border-radius: $radius-lg;
+  max-width: 100%;
+  margin: $spacing-lg auto;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+    border-radius: $radius-xl;
+    max-width: 500px;
+    margin: $spacing-2xl auto;
+  }
+
+  h2 {
+    font-weight: $font-weight-bold;
+    color: $success;
+    margin-bottom: $spacing-sm;
+
+    // Mobile (base)
+    font-size: $font-size-xl;
+
+    @include tablet-up {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  p {
+    color: $gray-600;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.successIcon {
+  background: rgba($success, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $success;
+  margin: 0 auto $spacing-lg;
+
+  // Mobile (base)
+  width: 60px;
+  height: 60px;
+  font-size: 2rem;
+
+  @include tablet-up {
+    width: 80px;
+    height: 80px;
+    font-size: 2.5rem;
+  }
+}
+
+// Options de paiement
+.paymentOptions {
+  display: flex;
+  flex-direction: column;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+  }
+}
+
+.paymentOption {
+  display: flex;
+  align-items: flex-start;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+  background: $white;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+    padding: $spacing-md;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.02);
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.05);
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+}
+
+.radio {
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.paymentContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.paymentHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+
+  strong {
+    color: $black;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+}
+
+.paymentIcon {
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-xl;
+  }
+}
+
+.paymentDescription {
+  color: $gray-600;
+  line-height: 1.4;
+  margin: 0;
+
+  // Mobile (base)
+  font-size: 10px;
+
+  @include tablet-up {
+    font-size: $font-size-xs;
+  }
+}
+
+.totalItem {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm !important;
+  border-top: 2px solid $gray-300;
+
+  span:first-child {
+    font-weight: $font-weight-semibold;
+    color: $black;
+  }
+}
+
+.totalPrice {
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+  }
+}
+
+// Bouton toggle prestataires
+.toggleProvidersBtn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
+  border: 2px dashed $primary-color;
+  border-radius: $radius-lg;
+  color: $primary-color;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    font-size: $font-size-base;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($primary-color, 0.1), rgba($secondary-color, 0.1));
+    border-style: solid;
+  }
+
+  .btnIcon {
+    // Mobile (base)
+    font-size: $font-size-base;
+
+    @include tablet-up {
+      font-size: $font-size-lg;
+    }
+  }
+
+  .chevron {
+    margin-left: auto;
+    font-size: $font-size-xs;
+    transition: transform $transition-fast;
+
+    &.open {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.providersSection {
+  border: 1px solid $gray-200;
+
+  // Mobile (base)
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  background: $gray-50;
+
+  @include tablet-up {
+    margin-top: $spacing-md;
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+  }
+}
+
+.selectedProviderBanner {
+  display: flex;
+  align-items: center;
+  background: rgba($success, 0.1);
+  border: 1px solid rgba($success, 0.3);
+
+  // Mobile (base)
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  flex-wrap: wrap;
+
+  @include tablet-up {
+    gap: $spacing-md;
+    margin-top: $spacing-md;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    flex-wrap: nowrap;
+  }
+
+  .checkIcon {
+    background: $success;
+    color: $white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $font-weight-bold;
+    flex-shrink: 0;
+
+    // Mobile (base)
+    width: 24px;
+    height: 24px;
+    font-size: $font-size-xs;
+
+    @include tablet-up {
+      width: 32px;
+      height: 32px;
+      font-size: $font-size-sm;
+    }
+  }
+
+  .providerInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong {
+      color: $black;
+
+      // Mobile (base)
+      font-size: $font-size-sm;
+
+      @include tablet-up {
+        font-size: $font-size-base;
+      }
+    }
+
+    span {
+      color: $gray-600;
+
+      // Mobile (base)
+      font-size: $font-size-xs;
+
+      @include tablet-up {
+        font-size: $font-size-sm;
+      }
+    }
+  }
+
+  .changeBtn {
+    background: transparent;
+    border: 1px solid $gray-400;
+    border-radius: $radius-md;
+    color: $gray-600;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    // Mobile (base)
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
+
+    @include tablet-up {
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-size-sm;
+    }
+
+    &:hover {
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+  }
+}

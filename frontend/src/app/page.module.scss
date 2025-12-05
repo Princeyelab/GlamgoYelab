@@ -1,0 +1,405 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+// ============================================
+// Page Accueil - Mobile-First Responsive
+// ============================================
+
+.hero {
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white;
+  text-align: center;
+  @include slide-up;
+
+  // Mobile (base)
+  padding: $spacing-2xl $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-3xl $spacing-lg;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl $spacing-lg;
+  }
+}
+
+.heroTitle {
+  font-weight: $font-weight-extrabold;
+  margin-bottom: $spacing-md;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+  // Mobile (base)
+  font-size: $font-size-2xl;
+  line-height: 1.2;
+
+  @include tablet-up {
+    font-size: $font-size-4xl;
+    margin-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    font-size: $font-size-5xl;
+  }
+}
+
+.heroSubtitle {
+  opacity: 0.95;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+  margin-bottom: $spacing-lg;
+  padding: 0 $spacing-sm;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-xl;
+    padding: 0;
+  }
+
+  @include desktop {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-2xl;
+  }
+}
+
+.searchBar {
+  margin: 0 auto;
+  @include flex-center;
+  background-color: $white;
+  box-shadow: $shadow-xl;
+
+  // Mobile (base)
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-lg;
+  max-width: 100%;
+
+  @include tablet-up {
+    flex-direction: row;
+    border-radius: $radius-xl;
+    max-width: 500px;
+  }
+
+  @include desktop {
+    max-width: 600px;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+
+    // Mobile (base)
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-base;
+
+    @include tablet-up {
+      padding: $spacing-md;
+    }
+
+    &::placeholder {
+      color: $gray-500;
+    }
+  }
+}
+
+.section {
+  // Mobile (base)
+  padding: $spacing-2xl 0;
+
+  @include tablet-up {
+    padding: $spacing-3xl 0;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl 0;
+  }
+}
+
+.sectionHeader {
+  text-align: center;
+
+  // Mobile (base)
+  margin-bottom: $spacing-xl;
+  padding: 0 $spacing-md;
+
+  @include tablet-up {
+    margin-bottom: $spacing-2xl;
+    padding: 0;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-3xl;
+  }
+}
+
+.sectionTitle {
+  font-weight: $font-weight-bold;
+  color: $black;
+
+  // Mobile (base)
+  font-size: $font-size-xl;
+  margin-bottom: $spacing-sm;
+
+  @include tablet-up {
+    font-size: $font-size-3xl;
+    margin-bottom: $spacing-md;
+  }
+
+  @include desktop {
+    font-size: $font-size-4xl;
+  }
+}
+
+.sectionSubtitle {
+  color: $gray-600;
+
+  // Mobile (base)
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    font-size: $font-size-base;
+  }
+
+  @include desktop {
+    font-size: $font-size-lg;
+  }
+}
+
+.categoriesGrid {
+  // Mobile (base) - 2 colonnes
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+
+  @include tablet-up {
+    // Tablet - 3 colonnes
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  @include desktop {
+    // Desktop - 3 colonnes
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
+    margin-bottom: $spacing-3xl;
+  }
+}
+
+.servicesGrid {
+  // Mobile (base) - 1 colonne
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+
+  @include tablet-up {
+    // Tablet - 2 colonnes
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+  }
+
+  @include desktop {
+    // Desktop - 3 colonnes
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
+  }
+}
+
+.loading {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  padding: $spacing-2xl;
+
+  @include tablet-up {
+    padding: $spacing-3xl;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl;
+  }
+
+  .spinner {
+    @include spinner;
+    margin: 0 auto $spacing-lg;
+  }
+}
+
+.error {
+  text-align: center;
+  color: $error;
+  background-color: rgba($error, 0.1);
+  border-radius: $radius-lg;
+
+  // Mobile (base)
+  padding: $spacing-lg;
+  margin: $spacing-md 0;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+    margin: $spacing-lg 0;
+    font-size: $font-size-base;
+  }
+
+  @include desktop {
+    padding: $spacing-3xl;
+    margin: $spacing-xl 0;
+  }
+}
+
+.howItWorks {
+  background-color: $gray-100;
+}
+
+.steps {
+  // Mobile (base) - 1 colonne
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-xl;
+  margin-top: $spacing-xl;
+
+  @include tablet-up {
+    // Tablet - 2 colonnes
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-xl;
+    margin-top: $spacing-2xl;
+  }
+
+  @include desktop {
+    // Desktop - 4 colonnes
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-2xl;
+    margin-top: $spacing-3xl;
+  }
+}
+
+.step {
+  text-align: center;
+  @include slide-up;
+
+  &:nth-child(1) { animation-delay: 0.1s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.3s; }
+  &:nth-child(4) { animation-delay: 0.4s; }
+}
+
+.stepIcon {
+  margin: 0 auto;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  border-radius: $radius-full;
+  @include flex-center;
+  color: $white;
+  box-shadow: $shadow-lg;
+
+  // Mobile (base)
+  width: 60px;
+  height: 60px;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-2xl;
+
+  @include tablet-up {
+    width: 70px;
+    height: 70px;
+    margin-bottom: $spacing-lg;
+    font-size: $font-size-3xl;
+  }
+
+  @include desktop {
+    width: 80px;
+    height: 80px;
+    font-size: $font-size-4xl;
+  }
+}
+
+.stepTitle {
+  font-weight: $font-weight-semibold;
+  color: $black;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+  margin-bottom: $spacing-xs;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-sm;
+  }
+
+  @include desktop {
+    font-size: $font-size-xl;
+  }
+}
+
+.stepDescription {
+  color: $gray-600;
+  line-height: 1.6;
+
+  // Mobile (base)
+  font-size: $font-size-sm;
+  padding: 0 $spacing-sm;
+
+  @include tablet-up {
+    font-size: $font-size-base;
+    padding: 0;
+  }
+}
+
+.cta {
+  text-align: center;
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white;
+
+  // Mobile (base)
+  padding: $spacing-xl $spacing-md;
+  border-radius: $radius-lg;
+  margin: 0 $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-2xl $spacing-lg;
+    border-radius: $radius-xl;
+    margin: 0;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl $spacing-lg;
+    border-radius: $radius-2xl;
+  }
+
+  h2 {
+    // Mobile (base)
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-md;
+
+    @include tablet-up {
+      font-size: $font-size-3xl;
+      margin-bottom: $spacing-lg;
+    }
+
+    @include desktop {
+      font-size: $font-size-4xl;
+    }
+  }
+
+  p {
+    opacity: 0.95;
+
+    // Mobile (base)
+    font-size: $font-size-base;
+    margin-bottom: $spacing-lg;
+
+    @include tablet-up {
+      font-size: $font-size-lg;
+      margin-bottom: $spacing-xl;
+    }
+
+    @include desktop {
+      font-size: $font-size-xl;
+      margin-bottom: $spacing-2xl;
+    }
+  }
+}

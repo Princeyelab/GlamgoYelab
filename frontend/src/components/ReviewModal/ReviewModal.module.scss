@@ -1,0 +1,262 @@
+@use '../../styles/variables' as *;
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba($black, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: $spacing-md;
+}
+
+.modalContent {
+  background: $white;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: $shadow-lg;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $gray-200;
+
+  h2 {
+    margin: 0;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+  }
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: $font-size-xl;
+  color: $gray-500;
+  cursor: pointer;
+  padding: $spacing-xs;
+  line-height: 1;
+
+  &:hover {
+    color: $gray-700;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.modalBody {
+  padding: $spacing-lg;
+}
+
+.orderInfo {
+  background: $gray-50;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+
+  .serviceName {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .providerName {
+    font-size: $font-size-sm;
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+.mainRating {
+  text-align: center;
+  margin-bottom: $spacing-lg;
+
+  label {
+    display: block;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $black;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.starsContainer {
+  display: flex;
+  justify-content: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.star {
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  color: $gray-300;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &.filled {
+    color: #fbbf24; // Gold color
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+.ratingText {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin: 0;
+  min-height: 20px;
+}
+
+.detailedRatings {
+  margin-bottom: $spacing-lg;
+
+  h4 {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $gray-700;
+    margin: 0 0 $spacing-md;
+  }
+}
+
+.ratingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $gray-100;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  span {
+    font-size: $font-size-sm;
+    color: $gray-700;
+  }
+}
+
+.smallStars {
+  display: flex;
+  gap: 2px;
+}
+
+.smallStar {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: $gray-300;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+
+  &.filled {
+    color: #fbbf24;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+.commentSection {
+  position: relative;
+
+  label {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $gray-700;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.commentInput {
+  width: 100%;
+  padding: $spacing-sm;
+  border: 1px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color $transition-normal;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &:disabled {
+    background: $gray-50;
+  }
+}
+
+.charCount {
+  position: absolute;
+  bottom: $spacing-xs;
+  right: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $gray-400;
+}
+
+.error {
+  background: rgba($error, 0.1);
+  color: $error;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  margin-top: $spacing-md;
+  text-align: center;
+}
+
+.modalFooter {
+  display: flex;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: $gray-50;
+  border-top: 1px solid $gray-200;
+  justify-content: flex-end;
+}

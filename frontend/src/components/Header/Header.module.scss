@@ -1,0 +1,832 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// ============================================
+// Header - Mobile-First Responsive
+// ============================================
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  background-color: $white;
+  box-shadow: $shadow-md;
+}
+
+.headerContainer {
+  @include container;
+  @include flex-between;
+
+  // Mobile (base)
+  padding-top: $spacing-sm;
+  padding-bottom: $spacing-sm;
+
+  @include tablet-up {
+    padding-top: $spacing-md;
+    padding-bottom: $spacing-md;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  text-decoration: none;
+  transition: transform $transition-fast;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.logoIcon {
+  // Mobile (base)
+  font-size: $font-size-2xl;
+
+  @include tablet-up {
+    font-size: $font-size-3xl;
+  }
+}
+
+.logoImage {
+  width: auto;
+  object-fit: contain;
+
+  // Mobile (base)
+  height: 32px;
+
+  @include tablet-up {
+    height: 40px;
+  }
+
+  @include desktop {
+    height: 50px;
+  }
+}
+
+.logoText {
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+  }
+
+  @include desktop {
+    font-size: $font-size-xl;
+  }
+}
+
+.nav {
+  // Mobile (base) - hidden
+  display: none;
+
+  // Tablette - visible avec espacement réduit
+  @include tablet-up {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  @include desktop {
+    gap: $spacing-md;
+  }
+}
+
+// Navigation supplémentaire - visible uniquement sur desktop
+.desktopNavExtra {
+  display: none;
+
+  @include desktop {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+}
+
+.navLink {
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+  transition: color $transition-fast;
+  position: relative;
+  white-space: nowrap;
+
+  // Mobile (base) - for mobile menu
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+
+  @include desktop {
+    font-size: $font-size-base;
+  }
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &.active {
+    color: $primary-color;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: $primary-color;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+  }
+
+  @include desktop {
+    gap: $spacing-md;
+  }
+}
+
+.messagesIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-600;
+  border-radius: 50%;
+  transition: all $transition-fast;
+
+  // Mobile (base)
+  width: 36px;
+  height: 36px;
+  font-size: $font-size-lg;
+
+  @include tablet-up {
+    width: 40px;
+    height: 40px;
+    font-size: $font-size-xl;
+  }
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.1);
+  }
+}
+
+// Éléments visibles sur mobile, tablette et desktop (messages, notifications)
+.tabletActions {
+  display: flex;
+  align-items: center;
+
+  // Mobile (base)
+  gap: 2px;
+
+  @include tablet-up {
+    gap: $spacing-xs;
+  }
+
+  @include desktop {
+    gap: $spacing-sm;
+  }
+}
+
+// Actions visibles sur desktop uniquement (connexion, profil, etc.)
+// Sur tablette, ces actions sont dans le menu hamburger
+.desktopOnly {
+  // Mobile & Tablette - hidden (in hamburger)
+  display: none;
+
+  @include desktop {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+}
+
+// Hamburger button - visible on mobile & tablet
+.mobileMenuBtn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  gap: 5px;
+  z-index: $z-modal + 10;
+
+  // Mobile (base)
+  width: 40px;
+  height: 40px;
+  padding: $spacing-xs;
+
+  // Hide only on desktop
+  @include desktop {
+    display: none;
+  }
+
+  .hamburgerLine {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: $gray-700;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  &.open {
+    .hamburgerLine:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    .hamburgerLine:nth-child(2) {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    .hamburgerLine:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+  }
+}
+
+// Overlay - visible on mobile & tablet
+.mobileOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba($black, 0.5);
+  z-index: $z-modal - 1;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  // Hide only on desktop
+  @include desktop {
+    display: none;
+  }
+}
+
+// Mobile menu slide-in - visible on mobile & tablet
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background-color: $white;
+  z-index: $z-modal;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+
+  // Mobile (base)
+  width: 280px;
+  max-width: 80vw;
+
+  // Tablet - slightly wider
+  @include tablet {
+    width: 320px;
+  }
+
+  &.open {
+    transform: translateX(0);
+  }
+
+  // Hide only on desktop
+  @include desktop {
+    display: none;
+  }
+}
+
+.mobileMenuHeader {
+  padding: $spacing-lg;
+  border-bottom: 1px solid $gray-200;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+}
+
+.mobileMenuTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $white;
+}
+
+.mobileMenuContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.mobileNavLink {
+  display: block;
+  padding: $spacing-md;
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+
+  &:hover {
+    background-color: $gray-100;
+    color: $primary-color;
+  }
+
+  &.active {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+// Section utilisateur mobile
+.mobileUserSection {
+  margin-top: auto;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-200;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.mobileUserInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-sm;
+
+  span {
+    font-weight: $font-weight-semibold;
+    color: $gray-800;
+  }
+}
+
+.mobileUserIcon {
+  font-size: 32px;
+  color: $primary-color;
+}
+
+.mobileLogoutBtn {
+  display: block;
+  width: 100%;
+  padding: $spacing-md;
+  background: none;
+  border: 2px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  font-weight: $font-weight-medium;
+  font-size: $font-size-base;
+  cursor: pointer;
+  transition: all $transition-fast;
+  margin-top: $spacing-sm;
+
+  &:hover {
+    background-color: $error;
+    color: $white;
+  }
+}
+
+.mobileAuthBtn {
+  display: block;
+  width: 100%;
+  padding: $spacing-md;
+  text-align: center;
+  border: 2px solid $primary-color;
+  border-radius: $radius-md;
+  color: $primary-color;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+
+  &.primary {
+    background-color: $primary-color;
+    color: $white;
+
+    &:hover {
+      background-color: $primary-dark;
+    }
+  }
+}
+
+.mobileProviderLink {
+  display: block;
+  width: 100%;
+  padding: $spacing-md;
+  text-align: center;
+  background: linear-gradient(135deg, $secondary-color, $secondary-dark);
+  border-radius: $radius-md;
+  color: $white;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  transition: all $transition-fast;
+  margin-top: $spacing-xs;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+}
+
+.userMenu {
+  position: relative;
+}
+
+.userMenuBtn {
+  @include flex-center;
+  gap: $spacing-sm;
+  background: none;
+  border: none;
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $gray-100;
+  }
+}
+
+.userIcon {
+  font-size: 36px;
+  color: $primary-color;
+}
+
+.chevronIcon {
+  font-size: 12px;
+  color: $gray-600;
+  transition: transform $transition-fast;
+
+  .userMenuBtn:hover & {
+    transform: translateY(2px);
+  }
+}
+
+.userMenuBtn span {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+}
+
+// Ancien style conservé pour compatibilité
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-full;
+  background-color: $primary-color;
+  color: $white;
+  @include flex-center;
+  font-weight: $font-weight-bold;
+}
+
+.userDropdown {
+  position: absolute;
+  top: calc(100% + $spacing-sm);
+  right: 0;
+  min-width: 200px;
+  background-color: $white;
+  border-radius: $radius-md;
+  box-shadow: $shadow-xl;
+  padding: $spacing-sm;
+  z-index: $z-dropdown;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  text-align: left;
+  color: $gray-700;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $gray-100;
+    color: $primary-color;
+  }
+}
+
+.providerLink {
+  color: $secondary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  // Mobile (base)
+  padding: $spacing-xs;
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-sm;
+  }
+
+  &:hover {
+    background-color: rgba($secondary-color, 0.1);
+    color: $secondary-dark;
+  }
+}
+
+// Alerte onboarding
+.onboardingAlert {
+  background: linear-gradient(90deg, #fff3cd 0%, #ffeaa7 100%);
+  border-bottom: 2px solid #ffc107;
+  animation: slideDown 0.3s ease-out;
+
+  // Mobile (base)
+  padding: $spacing-sm 0;
+
+  @include tablet-up {
+    padding: $spacing-md 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboardingAlertContent {
+  @include container;
+  display: flex;
+  align-items: center;
+
+  // Mobile (base)
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+
+  @include tablet-up {
+    gap: $spacing-md;
+    flex-wrap: nowrap;
+  }
+}
+
+.onboardingAlertIcon {
+  flex-shrink: 0;
+
+  // Mobile (base)
+  font-size: $font-size-xl;
+
+  @include tablet-up {
+    font-size: $font-size-2xl;
+  }
+}
+
+.onboardingAlertText {
+  flex: 1;
+
+  // Mobile (base)
+  min-width: 150px;
+
+  @include tablet-up {
+    min-width: 200px;
+  }
+
+  strong {
+    display: block;
+    color: #856404;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-xs;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: #856404;
+
+    // Mobile (base)
+    font-size: $font-size-xs;
+
+    @include tablet-up {
+      font-size: $font-size-sm;
+    }
+  }
+}
+
+.onboardingAlertButton {
+  background-color: #ffc107;
+  color: #212529;
+  border-radius: $radius-md;
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  // Mobile (base)
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  width: 100%;
+  text-align: center;
+
+  @include tablet-up {
+    padding: $spacing-sm $spacing-lg;
+    font-size: $font-size-sm;
+    width: auto;
+  }
+
+  &:hover {
+    background-color: #ffb300;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Dropdown Navigation "Comment ça marche"
+.navDropdown {
+  position: relative;
+}
+
+.navDropdownBtn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+}
+
+.dropdownChevron {
+  font-size: 10px;
+  transition: transform $transition-fast;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.navDropdownMenu {
+  position: absolute;
+  top: calc(100% + $spacing-md);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 280px;
+  background-color: $white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  padding: $spacing-sm;
+  z-index: $z-dropdown;
+  animation: fadeIn 0.2s ease-out;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid $white;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.navDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+  text-decoration: none;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.08);
+  }
+
+  .dropdownIcon {
+    font-size: $font-size-2xl;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba($primary-color, 0.1), rgba($secondary-color, 0.1));
+    border-radius: $radius-md;
+  }
+
+  div {
+    flex: 1;
+  }
+
+  strong {
+    display: block;
+    color: $gray-800;
+    font-weight: $font-weight-semibold;
+    margin-bottom: 2px;
+  }
+
+  small {
+    color: $gray-500;
+    font-size: $font-size-sm;
+  }
+}
+
+// Section navigation mobile - cachée sur tablette car déjà visible dans le header
+.mobileNavSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  // Tablette - cacher car navigation visible dans le header
+  @include tablet {
+    display: none;
+  }
+}
+
+// Mobile dropdown section
+.mobileDropdownSection {
+  border-top: 1px solid $gray-200;
+  padding-top: $spacing-md;
+  margin-top: $spacing-sm;
+
+  // Sur tablette, pas de bordure car mobileNavSection est caché
+  @include tablet {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+}
+
+.mobileDropdownTitle {
+  display: block;
+  color: $gray-500;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: $spacing-xs $spacing-sm;
+  margin-bottom: $spacing-xs;
+}
+
+.mobileSubLink {
+  padding-left: $spacing-lg;
+  font-size: $font-size-sm;
+}
+

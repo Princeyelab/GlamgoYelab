@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Models\Order;
+use App\Models\Notification;
+use App\Helpers\AutoPayment;
+
+class ProviderOrderController extends Controller
+{
+    private Order $orderModel;
+    private Notification $notificationModel;
+
+    public function __construct()
+    {
+        $this->orderModel = new Order();
+        $this->notificationModel = new Notification();
+    }
+
+    /**
+     * Liste les commandes du prestataire
+     */
+    public function index(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $queryParams = $this->getQueryParams();
+
+        $status = $queryParams['status'] ?? null;
+        $orders = $this->orderModel->getProviderOrders($providerId, $status);
+
+        $this->success($orders);
+    }
+
+    /**
+     * Recupere les details d'une commande du prestataire
+     */
+    public function show(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $order = $this->orderModel->getDetailedOrder((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvee', 404);
+        }
+
+        // Verifier que la commande appartient au prestataire
+        // Soit le prestataire est assigne, soit la commande est en attente (bidding)
+        if ($order['provider_id'] != $providerId && $order['status'] !== 'pending') {
+            $this->error('Acces refuse', 403);
+        }
+
+        $this->success($order);
+    }
+
+    /**
+     * Accepte une commande
+     */
+    public function accept(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        $order = $this->orderModel->find((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['status'] !== 'pending') {
+            $this->error('Cette commande ne peut plus être acceptée', 400);
+        }
+
+        // Assigner le prestataire et changer le statut
+        $this->orderModel->assignProvider((int)$orderId, $providerId);
+
+        $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+
+        // Notifier le client
+        $this->notificationModel->notifyUserOrderStatusChange($updatedOrder, 'accepted');
+
+        $this->success($updatedOrder, 'Commande acceptée');
+    }
+
+    /**
+     * Indique que le prestataire est en route
+     */
+    public function start(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        $order = $this->orderModel->find((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['provider_id'] != $providerId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        if ($order['status'] !== 'accepted') {
+            $this->error('La commande doit être acceptée avant de commencer', 400);
+        }
+
+        $this->orderModel->updateStatus((int)$orderId, 'on_way');
+
+        // Notifier le client
+        $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+        $this->notificationModel->notifyUserOrderStatusChange($updatedOrder, 'on_way');
+
+        $this->success(null, 'Statut mis à jour : en route');
+    }
+
+    /**
+     * Marque la commande comme terminée et déclenche le paiement automatique
+     */
+    public function complete(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        $order = $this->orderModel->find((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['provider_id'] != $providerId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        if (!in_array($order['status'], ['on_way', 'in_progress'])) {
+            $this->error('Impossible de terminer cette commande', 400);
+        }
+
+        // Mettre à jour le statut
+        $this->orderModel->updateStatus((int)$orderId, 'completed');
+
+        // Déclencher le paiement automatique
+        $paymentResult = AutoPayment::processPayment((int)$orderId);
+
+        // Notifier le client
+        $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+        $this->notificationModel->notifyUserOrderStatusChange($updatedOrder, 'completed');
+
+        // Ajouter notification de paiement si succès
+        if ($paymentResult['success'] && isset($paymentResult['data']['amount'])) {
+            $paymentMethod = $paymentResult['data']['payment_method'] ?? 'card';
+            $amount = $paymentResult['data']['amount'];
+
+            if ($paymentMethod === 'card') {
+                $this->notificationModel->createNotification([
+                    "recipient_type" => "user",
+                    "recipient_id" => $order["user_id"],
+                    "order_id" => (int)$orderId,
+                    "notification_type" => "payment_completed",
+                    "title" => "Paiement effectué",
+                    "message" => "Le paiement de {$amount} MAD a été effectué automatiquement."
+                ]);
+            }
+        }
+
+        $this->success([
+            'order' => $updatedOrder,
+            'payment' => $paymentResult
+        ], 'Commande terminée' . ($paymentResult['success'] ? ' - ' . $paymentResult['message'] : ''));
+    }
+
+    /**
+     * Annule une commande acceptée par le prestataire
+     * Calcule les frais d'annulation et recherche un remplacement
+     */
+    public function cancel(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        $order = $this->orderModel->find((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['provider_id'] != $providerId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        // Seules les commandes acceptées ou en route peuvent être annulées par le prestataire
+        if (!in_array($order['status'], ['accepted', 'on_way'])) {
+            $this->error('Impossible d\'annuler cette commande', 400);
+        }
+
+        $reason = $data['reason'] ?? 'Non spécifié';
+        $cancellationFee = $data['cancellation_fee'] ?? 0;
+
+        // Enregistrer l'annulation avec les détails
+        $cancellationData = [
+            'provider_cancelled' => 1,
+            'provider_cancel_reason' => $reason,
+            'provider_cancel_fee' => $cancellationFee,
+            'provider_cancelled_at' => date('Y-m-d H:i:s'),
+            'previous_provider_id' => $providerId,
+            'provider_id' => null, // Libérer la commande
+            'status' => 'pending'  // Remettre en attente pour un autre prestataire
+        ];
+
+        $this->orderModel->update((int)$orderId, $cancellationData);
+
+        // Récupérer les détails complets de la commande
+        $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+
+        // Notifier le client de l'annulation
+        $this->notificationModel->notifyUserProviderCancellation($updatedOrder, $reason, $cancellationFee);
+
+        // Notifier les autres prestataires disponibles (re-diffuser la commande)
+        $this->notificationModel->notifyProvidersForNewOrder($updatedOrder);
+
+        // Incrémenter le compteur d'annulations du prestataire (pour tracking)
+        $this->incrementProviderCancellations($providerId);
+
+        $this->success([
+            'order' => $updatedOrder,
+            'cancellation_fee' => $cancellationFee,
+            'message' => 'Commande annulée. Un autre prestataire sera recherché.'
+        ], 'Annulation enregistrée');
+    }
+
+    /**
+     * Incrémente le compteur d'annulations d'un prestataire
+     */
+    private function incrementProviderCancellations(int $providerId): void
+    {
+        try {
+            $db = \App\Core\Database::getInstance();
+            $stmt = $db->prepare(
+                "UPDATE providers SET cancellation_count = COALESCE(cancellation_count, 0) + 1 WHERE id = ?"
+            );
+            $stmt->execute([$providerId]);
+        } catch (\Exception $e) {
+            // Ignorer les erreurs si la colonne n'existe pas encore
+            error_log("Note: cancellation_count column may not exist: " . $e->getMessage());
+        }
+    }
+}

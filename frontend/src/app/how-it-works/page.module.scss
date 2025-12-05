@@ -1,0 +1,493 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.howItWorksPage {
+  min-height: 100vh;
+  padding-bottom: $spacing-4xl;
+}
+
+.hero {
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white;
+  padding: $spacing-3xl $spacing-lg;
+  text-align: center;
+  margin-bottom: $spacing-4xl;
+
+  @include md {
+    padding: $spacing-2xl $spacing-lg;
+    margin-bottom: $spacing-3xl;
+  }
+}
+
+.title {
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-extrabold;
+  margin-bottom: $spacing-md;
+
+  @include md {
+    font-size: $font-size-3xl;
+  }
+}
+
+.subtitle {
+  font-size: $font-size-lg;
+  opacity: 0.95;
+}
+
+.stepsSection {
+  margin-bottom: $spacing-4xl;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $spacing-2xl;
+
+  @include md {
+    gap: $spacing-xl;
+  }
+}
+
+.stepCard {
+  position: relative;
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-2xl;
+  box-shadow: $shadow-md;
+  transition: $transition-normal;
+  @include slide-up;
+
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  &:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $shadow-xl;
+  }
+}
+
+.stepNumber {
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  border-radius: $radius-full;
+  @include flex-center;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  box-shadow: $shadow-md;
+}
+
+.stepIcon {
+  font-size: $font-size-4xl;
+  margin: $spacing-lg 0;
+  text-align: center;
+}
+
+.stepTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-md;
+  text-align: center;
+}
+
+.stepDescription {
+  color: $gray-600;
+  line-height: 1.6;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+}
+
+.stepDetails {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    padding: $spacing-sm 0;
+    padding-left: $spacing-lg;
+    position: relative;
+    color: $gray-700;
+    font-size: $font-size-sm;
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: $success;
+      font-weight: $font-weight-bold;
+    }
+  }
+}
+
+.benefitsSection {
+  background: $gray-100;
+  padding: $spacing-4xl $spacing-lg;
+  margin: 0 -#{$spacing-lg};
+  margin-bottom: $spacing-4xl;
+
+  @include md {
+    padding: $spacing-3xl $spacing-lg;
+  }
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-3xl;
+
+  @include md {
+    font-size: $font-size-2xl;
+  }
+}
+
+.benefitsGrid {
+  @include grid-auto-fit(250px, $spacing-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.benefitCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-sm;
+  transition: $transition-normal;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+    transform: translateY(-3px);
+  }
+}
+
+.benefitIcon {
+  font-size: $font-size-4xl;
+  margin-bottom: $spacing-md;
+}
+
+.benefitTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: $spacing-sm;
+}
+
+.benefitDescription {
+  color: $gray-600;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.faqSection {
+  margin-bottom: $spacing-4xl;
+}
+
+.faqList {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-sm;
+  transition: $transition-normal;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+.faqQuestion {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: flex-start;
+
+  &::before {
+    content: 'Q: ';
+    color: $primary-color;
+    margin-right: $spacing-xs;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.faqAnswer {
+  color: $gray-700;
+  line-height: 1.6;
+  padding-left: $spacing-lg;
+  position: relative;
+
+  &::before {
+    content: 'R: ';
+    position: absolute;
+    left: 0;
+    color: $secondary-color;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.ctaSection {
+  margin-top: $spacing-4xl;
+}
+
+.cta {
+  text-align: center;
+  padding: $spacing-4xl $spacing-lg;
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white;
+  border-radius: $radius-2xl;
+
+  h2 {
+    font-size: $font-size-3xl;
+    margin-bottom: $spacing-md;
+
+    @include md {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  p {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-2xl;
+    opacity: 0.95;
+  }
+}
+
+.ctaButtons {
+  @include flex-center;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+// Hero Tabs for Client/Provider switch
+.heroTabs {
+  display: flex;
+  justify-content: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+}
+
+.heroTab {
+  padding: $spacing-sm $spacing-xl;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-full;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: $white;
+  }
+
+  &.active {
+    background: $white;
+    color: $primary-color;
+    border-color: $white;
+  }
+}
+
+// Section subtitle
+.sectionSubtitle {
+  text-align: center;
+  color: $gray-600;
+  font-size: $font-size-lg;
+  margin-top: -$spacing-2xl;
+  margin-bottom: $spacing-2xl;
+}
+
+// Pricing Section (Client page)
+.pricingSection {
+  margin-bottom: $spacing-4xl;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-xl;
+  max-width: 900px;
+  margin: 0 auto $spacing-xl;
+}
+
+.pricingCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-md;
+  border: 2px solid transparent;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $primary-color;
+    transform: translateY(-3px);
+  }
+
+  h3 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    color: $gray-600;
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-md;
+  }
+}
+
+.pricingModifier {
+  display: inline-block;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+}
+
+.pricingNote {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+  background: $gray-100;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+
+  strong {
+    display: block;
+    color: $black;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    color: $gray-600;
+    margin: 0;
+    font-size: $font-size-sm;
+  }
+}
+
+// Earnings Section (Provider page)
+.earningsSection {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  padding: $spacing-4xl $spacing-lg;
+  margin: 0 -#{$spacing-lg};
+  margin-bottom: $spacing-4xl;
+  border-top: 3px solid #22c55e;
+  border-bottom: 3px solid #22c55e;
+}
+
+.earningsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-xl;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.earningCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-md;
+
+  h3 {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $gray-700;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    color: $gray-600;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.earningValue {
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-extrabold;
+  color: #22c55e;
+  margin-bottom: $spacing-sm;
+}
+
+// Cancellation Section (Provider page)
+.cancellationSection {
+  margin-bottom: $spacing-4xl;
+}
+
+.cancellationGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-lg;
+  max-width: 900px;
+  margin: 0 auto $spacing-xl;
+}
+
+.cancellationCard {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-sm;
+  border-left: 4px solid;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cancellationDelay {
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+}
+
+.cancellationFee {
+  font-weight: $font-weight-bold;
+  font-size: $font-size-lg;
+}
+
+.cancellationNote {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+  background: #fef3c7;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  border: 1px solid #fbbf24;
+
+  p {
+    color: #92400e;
+    margin: 0;
+    font-size: $font-size-sm;
+  }
+}

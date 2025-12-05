@@ -1,0 +1,166 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.locationPicker {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.addressField {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-800;
+}
+
+.required {
+  color: $error;
+}
+
+.textarea {
+  padding: $spacing-sm;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+  resize: vertical;
+  min-height: 80px;
+
+  &:focus {
+    outline: none;
+    border-color: $secondary-color;
+    box-shadow: 0 0 0 3px rgba($secondary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+}
+
+.gpsSection {
+  background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
+  border: 2px solid rgba($secondary-color, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.gpsHeader {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: flex-start;
+}
+
+.gpsIcon {
+  font-size: $font-size-2xl;
+  flex-shrink: 0;
+}
+
+.gpsInfo {
+  flex: 1;
+
+  strong {
+    display: block;
+    font-size: $font-size-base;
+    color: $gray-900;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.hint {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.gpsButton {
+  width: 100%;
+  justify-content: center;
+}
+
+.gpsActive {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $radius-md;
+  border: 2px solid rgba($success, 0.3);
+
+  @include md {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.gpsDetails {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.successIcon {
+  font-size: $font-size-xl;
+  flex-shrink: 0;
+}
+
+.coords {
+  flex: 1;
+
+  strong {
+    display: block;
+    font-size: $font-size-sm;
+    color: $success;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.coordsText {
+  font-size: $font-size-xs;
+  color: $gray-700;
+  font-family: monospace;
+  margin: 0 0 $spacing-xs 0;
+}
+
+.accuracy {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin: 0;
+}
+
+.clearButton {
+  align-self: flex-start;
+
+  @include md {
+    align-self: center;
+  }
+}
+
+.error {
+  background: rgba($error, 0.1);
+  border: 1px solid rgba($error, 0.3);
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $error;
+  line-height: 1.5;
+}
+
+.permissionHelp {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $gray-600;
+  font-style: italic;
+}

@@ -1,0 +1,478 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.formulasPage {
+  min-height: calc(100vh - 80px);
+  background-color: $gray-50;
+  padding: $spacing-xl 0 $spacing-2xl;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: $spacing-2xl;
+}
+
+.backLink {
+  display: inline-block;
+  color: $primary-color;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacing-lg;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+.title {
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-sm;
+
+  @include md {
+    font-size: $font-size-2xl;
+  }
+}
+
+.subtitle {
+  font-size: $font-size-lg;
+  color: $gray-600;
+  margin: 0;
+}
+
+// Selecteur de formules
+.formulaSelector {
+  display: flex;
+  gap: $spacing-sm;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-xl;
+}
+
+.formulaTab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md $spacing-lg;
+  background: $white;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: all $transition-normal;
+  min-width: 120px;
+
+  &:hover {
+    border-color: var(--formula-color);
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    border-color: var(--formula-color);
+    background: rgba(var(--formula-color), 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  @include sm {
+    min-width: 100px;
+    padding: $spacing-sm $spacing-md;
+  }
+}
+
+.formulaIcon {
+  font-size: 1.5rem;
+}
+
+.formulaName {
+  font-weight: $font-weight-semibold;
+  color: $black;
+  font-size: $font-size-sm;
+}
+
+.formulaModifier {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  background: $gray-100;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+}
+
+// Detail formule
+.formulaDetail {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  margin-bottom: $spacing-2xl;
+}
+
+.formulaHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  padding: $spacing-xl;
+  background: linear-gradient(135deg, var(--formula-color), color-mix(in srgb, var(--formula-color) 70%, black));
+  color: $white;
+
+  @include md {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+.formulaIconLarge {
+  font-size: 3rem;
+  background: rgba(255, 255, 255, 0.2);
+  width: 80px;
+  height: 80px;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formulaInfo {
+  flex: 1;
+}
+
+.formulaTitle {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+}
+
+.formulaDescription {
+  opacity: 0.9;
+  margin: 0;
+}
+
+.formulaModifierBadge {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-lg;
+}
+
+.formulaContent {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-xl;
+  padding: $spacing-xl;
+
+  @include md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formulaSection {
+  h3 {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-sm;
+    border-bottom: 2px solid $gray-100;
+  }
+}
+
+.advantagesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    padding: $spacing-sm 0;
+    color: $gray-700;
+    font-size: $font-size-sm;
+  }
+}
+
+.checkIcon {
+  color: $success;
+  font-weight: $font-weight-bold;
+}
+
+.conditionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.conditionItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+}
+
+.conditionLabel {
+  font-size: 1.2rem;
+}
+
+// Exemple de prix
+.priceExample {
+  background: $gray-50;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.priceRow {
+  display: flex;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid $gray-200;
+  font-size: $font-size-sm;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.totalRow {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-md;
+  border-top: 2px solid $gray-300;
+  font-weight: $font-weight-bold;
+}
+
+.discount {
+  color: $success;
+}
+
+.surcharge {
+  color: $error;
+}
+
+.totalPrice {
+  font-size: $font-size-lg;
+  color: $primary-color;
+}
+
+// Tableau comparatif
+.comparisonSection {
+  margin-bottom: $spacing-2xl;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.comparisonTable {
+  background: $white;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: $spacing-md;
+    text-align: left;
+    border-bottom: 1px solid $gray-200;
+  }
+
+  th {
+    background: $gray-50;
+    font-weight: $font-weight-semibold;
+    color: $gray-700;
+    font-size: $font-size-sm;
+  }
+
+  td {
+    font-size: $font-size-sm;
+    color: $gray-800;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  @include md {
+    overflow-x: auto;
+
+    table {
+      min-width: 600px;
+    }
+  }
+}
+
+.formulaBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-full;
+  color: $white;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+// Frais supplementaires
+.additionalFeesSection {
+  margin-bottom: $spacing-2xl;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.feeCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-lg;
+
+  @include md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feeCard {
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-md;
+  transition: transform $transition-normal;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
+.feeIcon {
+  font-size: 2.5rem;
+  margin-bottom: $spacing-md;
+}
+
+.feeCard h3 {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $spacing-sm;
+}
+
+.feeCard p {
+  color: $gray-600;
+  margin-bottom: $spacing-md;
+}
+
+.feeExample {
+  background: $gray-50;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $gray-700;
+}
+
+// FAQ
+.faqSection {
+  margin-bottom: $spacing-2xl;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.faqList {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  background: $white;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+
+  &[open] {
+    .faqQuestion::after {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.faqQuestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg;
+  cursor: pointer;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  list-style: none;
+
+  &::after {
+    content: '▼';
+    font-size: $font-size-xs;
+    color: $gray-500;
+    transition: transform $transition-normal;
+  }
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.faqAnswer {
+  padding: 0 $spacing-lg $spacing-lg;
+  color: $gray-600;
+  line-height: 1.6;
+  margin: 0;
+}
+
+// CTA
+.ctaSection {
+  text-align: center;
+  background: linear-gradient(135deg, $primary-color, $primary-dark);
+  border-radius: $radius-xl;
+  padding: $spacing-2xl;
+  color: $white;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    opacity: 0.9;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.ctaButton {
+  display: inline-block;
+  background: $white;
+  color: $primary-color;
+  padding: $spacing-md $spacing-xl;
+  border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+  transition: all $transition-normal;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+}

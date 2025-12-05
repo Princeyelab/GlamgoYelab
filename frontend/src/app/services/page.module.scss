@@ -1,0 +1,339 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// ============================================
+// Page Liste Services - Mobile-First Responsive
+// ============================================
+
+.servicesPage {
+  min-height: 100vh;
+
+  // Mobile (base)
+  padding-bottom: $spacing-2xl;
+
+  @include tablet-up {
+    padding-bottom: $spacing-3xl;
+  }
+
+  @include desktop {
+    padding-bottom: $spacing-4xl;
+  }
+}
+
+.hero {
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white;
+  text-align: center;
+
+  // Mobile (base)
+  padding: $spacing-xl $spacing-md;
+  margin-bottom: $spacing-xl;
+
+  @include tablet-up {
+    padding: $spacing-2xl $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  @include desktop {
+    padding: $spacing-3xl $spacing-lg;
+    margin-bottom: $spacing-3xl;
+  }
+}
+
+.title {
+  font-weight: $font-weight-extrabold;
+
+  // Mobile (base)
+  font-size: $font-size-xl;
+  margin-bottom: $spacing-sm;
+
+  @include tablet-up {
+    font-size: $font-size-3xl;
+    margin-bottom: $spacing-md;
+  }
+
+  @include desktop {
+    font-size: $font-size-4xl;
+  }
+}
+
+.subtitle {
+  opacity: 0.95;
+
+  // Mobile (base)
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    font-size: $font-size-base;
+  }
+
+  @include desktop {
+    font-size: $font-size-lg;
+  }
+}
+
+.formulasLink {
+  display: inline-block;
+  background: rgba($white, 0.2);
+  color: $white;
+  border: 1px solid rgba($white, 0.4);
+  border-radius: $radius-full;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  margin-top: $spacing-sm;
+  padding: $spacing-xs $spacing-md;
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    margin-top: $spacing-md;
+    padding: $spacing-sm $spacing-lg;
+    font-size: $font-size-sm;
+  }
+
+  &:hover {
+    background: rgba($white, 0.3);
+    border-color: rgba($white, 0.6);
+    transform: translateY(-2px);
+  }
+}
+
+.filters {
+  // Mobile (base)
+  margin-bottom: $spacing-xl;
+  padding: 0 $spacing-md;
+
+  @include tablet-up {
+    margin-bottom: $spacing-2xl;
+    padding: 0;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-3xl;
+  }
+}
+
+.searchBox {
+  // Mobile (base)
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    margin-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.searchInput {
+  width: 100%;
+  border: 2px solid $gray-300;
+  border-radius: $radius-lg;
+  outline: none;
+  transition: $transition-normal;
+
+  // Mobile (base)
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-base;
+  max-width: 100%;
+
+  @include tablet-up {
+    padding: $spacing-md $spacing-lg;
+    max-width: 500px;
+  }
+
+  @include desktop {
+    max-width: 600px;
+  }
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-500;
+  }
+}
+
+.categoryFilters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  // Mobile (base)
+  gap: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+  }
+
+  @include desktop {
+    gap: $spacing-md;
+  }
+}
+
+.categoryBtn {
+  background-color: $white;
+  border: 2px solid $gray-300;
+  border-radius: $radius-full;
+  font-weight: $font-weight-medium;
+  color: $gray-700;
+  cursor: pointer;
+  transition: $transition-normal;
+
+  // Mobile (base)
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-sm;
+  }
+
+  @include desktop {
+    padding: $spacing-sm $spacing-lg;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    border-color: transparent;
+    color: $white;
+  }
+}
+
+.resultsCount {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    margin-bottom: $spacing-lg;
+    font-size: $font-size-base;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.servicesGrid {
+  // Mobile (base) - 1 colonne
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+  padding: 0 $spacing-md;
+
+  @include tablet-up {
+    // Tablet - 2 colonnes
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+    padding: 0;
+  }
+
+  @include desktop {
+    // Desktop - 3 colonnes
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
+  }
+}
+
+.loading {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  padding: $spacing-2xl;
+
+  @include tablet-up {
+    padding: $spacing-3xl;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl;
+  }
+
+  .spinner {
+    @include spinner;
+    margin: 0 auto $spacing-lg;
+  }
+}
+
+.error {
+  text-align: center;
+  color: $error;
+  background-color: rgba($error, 0.1);
+  border-radius: $radius-lg;
+
+  // Mobile (base)
+  padding: $spacing-lg;
+  margin: $spacing-md;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+    margin: $spacing-lg 0;
+    font-size: $font-size-base;
+  }
+
+  @include desktop {
+    padding: $spacing-3xl;
+    margin: $spacing-xl 0;
+  }
+}
+
+.noResults {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  padding: $spacing-2xl $spacing-md;
+
+  @include tablet-up {
+    padding: $spacing-3xl;
+  }
+
+  @include desktop {
+    padding: $spacing-4xl;
+  }
+
+  p {
+    font-weight: $font-weight-semibold;
+
+    // Mobile (base)
+    font-size: $font-size-base;
+    margin-bottom: $spacing-xs;
+
+    @include tablet-up {
+      font-size: $font-size-lg;
+      margin-bottom: $spacing-sm;
+    }
+
+    @include desktop {
+      font-size: $font-size-xl;
+    }
+  }
+
+  .noResultsHint {
+    font-weight: $font-weight-normal;
+    color: $gray-500;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+}

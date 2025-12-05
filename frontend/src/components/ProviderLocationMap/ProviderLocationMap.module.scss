@@ -1,0 +1,390 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.providerLocationMap {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  overflow-anchor: none; // Empêcher le scroll anchoring
+  scroll-margin: 0;
+  scroll-padding: 0;
+  contain: layout style; // Isolation du layout
+
+  // Empêcher tout scroll sur ce composant
+  * {
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+    scroll-margin: 0;
+    scroll-padding: 0;
+  }
+
+  // Désactiver le comportement de scroll automatique au focus
+  button, a, [tabindex] {
+    scroll-margin: 0;
+    scroll-padding: 0;
+  }
+}
+
+.loading, .errorState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-3xl;
+  gap: $spacing-md;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid $gray-200;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorIcon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.errorState {
+  text-align: center;
+
+  h3 {
+    font-size: $font-size-xl;
+    color: $gray-800;
+    margin: 0 0 $spacing-sm 0;
+  }
+
+  p {
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+.hint {
+  font-size: $font-size-sm;
+  font-style: italic;
+  margin-top: $spacing-md !important;
+}
+
+.header {
+  background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+  padding: $spacing-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-md;
+
+  @include md {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.headerContent {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  flex: 1;
+}
+
+.icon {
+  font-size: $font-size-3xl;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $white;
+  margin: 0 0 $spacing-xs 0;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: rgba($white, 0.9);
+  margin: 0;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: $white;
+  color: $primary-color;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  background: $success;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+.distanceInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background: $gray-50;
+}
+
+.distanceCard {
+  background: $white;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  box-shadow: $shadow-sm;
+}
+
+.distanceIcon {
+  font-size: $font-size-3xl;
+}
+
+.distanceValue {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  line-height: 1;
+}
+
+.distanceLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-top: $spacing-xs;
+}
+
+.mapContainer {
+  padding: $spacing-lg;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.simpleMap {
+  background: $gray-50;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.mapInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  user-select: none;
+}
+
+.locationItem {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-start;
+  box-shadow: $shadow-sm;
+  user-select: text;
+
+  strong {
+    display: block;
+    font-size: $font-size-base;
+    color: $gray-900;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.markerProvider, .markerClient {
+  font-size: $font-size-2xl;
+  flex-shrink: 0;
+}
+
+.coords {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  font-family: monospace;
+  margin: 0;
+}
+
+.address {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  margin: 0 0 $spacing-xs 0;
+}
+
+.mapActions {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.mapButton {
+  flex: 1;
+  min-width: 200px;
+  background: $white;
+  border: 2px solid $primary-color;
+  color: $primary-color;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  scroll-margin: 0;
+  scroll-padding: 0;
+
+  &:hover {
+    background: $primary-color;
+    color: $white;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+// Carte avec iframe
+.mapWrapper {
+  position: relative;
+  background: $gray-100;
+  min-height: 350px;
+  height: 350px; // Hauteur fixe pour éviter les layout shifts
+  overflow: hidden;
+  overflow-anchor: none;
+  contain: strict; // Isolation complète pour l'iframe
+}
+
+.mapIframe {
+  width: 100%;
+  height: 300px;
+  border: none;
+  display: block;
+  overflow-anchor: none;
+  pointer-events: auto;
+
+  // Empêcher l'iframe de voler le focus et causer un scroll
+  &:focus {
+    outline: none;
+  }
+}
+
+.mapOverlay {
+  padding: $spacing-md $spacing-lg;
+  background: $white;
+}
+
+.locationCards {
+  display: flex;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.locationCard {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-md;
+  border: 1px solid $gray-200;
+
+  strong {
+    display: block;
+    font-size: $font-size-sm;
+    color: $gray-800;
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $gray-600;
+  }
+}
+
+.locationIcon {
+  font-size: $font-size-xl;
+}
+
+.mapActions {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  padding: $spacing-md $spacing-lg;
+}
+
+// Bouton toggle pour afficher/masquer la carte
+.mapToggle {
+  padding: $spacing-md $spacing-lg;
+  background: $gray-50;
+  border-top: 1px solid $gray-200;
+}
+
+.toggleButton {
+  width: 100%;
+  background: $white;
+  border: 2px dashed $primary-color;
+  color: $primary-color;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($primary-color, 0.1);
+    border-style: solid;
+  }
+}
+
+.refreshInfo {
+  background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($primary-color, 0.05));
+  border-top: 2px solid $gray-200;
+  padding: $spacing-md;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+}
+

@@ -1,0 +1,450 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.providerCard {
+  position: relative;
+  background: $white;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    border: 3px solid $primary-color !important;
+    box-shadow: 0 0 0 4px rgba($primary-color, 0.15), $shadow-md;
+    background: rgba($primary-color, 0.02);
+  }
+
+  &.nearest {
+    border-color: $warning;
+    background: linear-gradient(to bottom, rgba($warning, 0.05), $white);
+
+    &:hover {
+      border-color: darken($warning, 10%);
+    }
+  }
+
+  &.compact {
+    padding: $spacing-sm;
+
+    .header {
+      margin-bottom: $spacing-sm;
+    }
+
+    .details {
+      margin-bottom: $spacing-sm;
+    }
+  }
+}
+
+// Badge le plus proche
+.nearestBadge {
+  position: absolute;
+  top: -10px;
+  left: $spacing-md;
+  background: linear-gradient(135deg, $warning, darken($warning, 10%));
+  color: $white;
+  padding: 4px $spacing-sm;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: $shadow-sm;
+
+  .badgeIcon {
+    font-size: 0.75rem;
+  }
+}
+
+// En-tête
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.avatarContainer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatar {
+  border-radius: $radius-full;
+  object-fit: cover;
+}
+
+.avatarPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: $radius-full;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+
+  .compact & {
+    width: 48px;
+    height: 48px;
+    font-size: $font-size-lg;
+  }
+}
+
+.statusDot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid $white;
+
+  &.online {
+    background: $success;
+  }
+
+  &.scheduled {
+    background: $warning;
+  }
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.businessName {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin: 0 0 $spacing-xs;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.stars {
+  display: flex;
+}
+
+.starFull {
+  color: $warning;
+}
+
+.starHalf {
+  color: $warning;
+  opacity: 0.6;
+}
+
+.starEmpty {
+  color: $gray-300;
+}
+
+.ratingValue {
+  font-weight: $font-weight-semibold;
+  color: $black;
+  font-size: $font-size-sm;
+}
+
+.reviewCount {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+// Détails
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $gray-100;
+}
+
+// Section distance avec frais
+.distanceSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.distance {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.distanceIcon {
+  font-size: $font-size-base;
+}
+
+.distanceText {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+}
+
+.extraFee {
+  font-size: $font-size-xs;
+  color: $warning;
+  background: rgba($warning, 0.1);
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+}
+
+// Badge "Dans le rayon" (pas de frais)
+.inRadiusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $font-size-xs;
+  color: $success;
+  background: rgba($success, 0.1);
+  padding: 4px 10px;
+  border-radius: $radius-full;
+  width: fit-content;
+}
+
+// Badge frais de déplacement (cliquable pour ouvrir le modal)
+.distanceFeeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $font-size-xs;
+  color: $warning;
+  background: rgba($warning, 0.1);
+  border: 1px solid rgba($warning, 0.2);
+  padding: 4px 10px;
+  border-radius: $radius-full;
+  width: fit-content;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba($warning, 0.15);
+    border-color: rgba($warning, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.infoLink {
+  font-size: 10px;
+  color: $primary-color;
+  text-decoration: underline;
+  margin-left: 4px;
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.badgeIconSmall {
+  font-size: 12px;
+}
+
+.distanceFeeAmount {
+  font-weight: $font-weight-semibold;
+}
+
+// Détails des frais de distance
+.distanceFeeDetails {
+  background: #fff3cd;
+  border: 1px solid rgba($warning, 0.3);
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  margin-top: $spacing-xs;
+}
+
+.feeBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: $font-size-xs;
+  color: #856404;
+
+  span {
+    display: flex;
+    align-items: center;
+
+    &::before {
+      content: "•";
+      color: $warning;
+      margin-right: 8px;
+      font-weight: bold;
+    }
+  }
+}
+
+.availability {
+  font-size: $font-size-sm;
+}
+
+.availableNow {
+  color: $success;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.availableLater {
+  color: $warning;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.unavailable {
+  color: $error;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.availIcon {
+  font-size: 0.7rem;
+}
+
+.warning {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $warning;
+  background: rgba($warning, 0.1);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+}
+
+.warningIcon {
+  font-size: 0.9rem;
+}
+
+// Section prix
+.priceSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.priceMain {
+  display: flex;
+  flex-direction: column;
+}
+
+.priceLabel {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.priceValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.breakdownToggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: none;
+  border: 1px solid $gray-300;
+  border-radius: $radius-md;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  color: $gray-600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+}
+
+.chevron {
+  font-size: 0.6rem;
+  transition: transform $transition-fast;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+// Breakdown
+.breakdownContainer {
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $radius-md;
+}
+
+// Durée
+.duration {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-bottom: $spacing-md;
+}
+
+.durationIcon {
+  font-size: $font-size-base;
+}
+
+// Bouton de sélection
+.selectButton {
+  width: 100%;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+
+  &.selectedBtn {
+    background: $success;
+  }
+}

@@ -1,0 +1,398 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.nearbyProviders {
+  margin-bottom: $spacing-xl;
+}
+
+// En-tête
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.titleSection {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0;
+}
+
+.count {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  background: $gray-100;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+}
+
+.mapToggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background: $white;
+  border: 1px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $gray-600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &.active {
+    background: rgba($primary-color, 0.1);
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+}
+
+.mapIcon {
+  font-size: $font-size-base;
+}
+
+// Filtres
+.filters {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+
+  @include sm {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  label {
+    font-size: $font-size-sm;
+    color: $gray-600;
+    font-weight: $font-weight-medium;
+  }
+
+  select {
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $gray-300;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    background: $white;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+}
+
+// Carte
+.mapContainer {
+  height: 400px;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-md;
+
+  @include md {
+    height: 300px;
+  }
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.mapLoading {
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: $gray-50;
+  border-radius: $radius-xl;
+  gap: $spacing-md;
+  color: $gray-600;
+
+  @include md {
+    height: 300px;
+  }
+}
+
+.mapPlaceholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $gray-100;
+  color: $gray-500;
+}
+
+// Markers personnalisés
+.customMarker {
+  background: transparent;
+  border: none;
+}
+
+.clientMarker {
+  background: transparent;
+  border: none;
+}
+
+// Popups
+.popupContent {
+  padding: $spacing-xs;
+  min-width: 200px;
+}
+
+.popupHeader {
+  margin-bottom: $spacing-sm;
+
+  h4 {
+    margin: 0 0 4px;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.nearestTag {
+  display: inline-block;
+  background: $warning;
+  color: $white;
+  font-size: $font-size-xs;
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+  margin-bottom: 4px;
+}
+
+.popupRating {
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+.popupDetails {
+  margin-bottom: $spacing-sm;
+}
+
+.popupDistance {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  margin-bottom: 4px;
+}
+
+.popupAvailability {
+  font-size: $font-size-xs;
+
+  .available {
+    color: $success;
+  }
+
+  .scheduled {
+    color: $warning;
+  }
+}
+
+.popupPrice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1px solid $gray-200;
+}
+
+.priceLabel {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.priceValue {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.distanceFee {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  width: 100%;
+}
+
+.popupButton {
+  width: 100%;
+  padding: $spacing-xs;
+  background: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $primary-dark;
+  }
+}
+
+// Liste des prestataires
+.providersList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-lg;
+  padding: $spacing-sm $spacing-xs;
+}
+
+// États
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-3xl;
+  color: $gray-600;
+  gap: $spacing-md;
+}
+
+.loadingOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba($white, 0.9);
+  border-radius: $radius-md;
+  margin-bottom: $spacing-md;
+  color: $gray-600;
+}
+
+.spinner {
+  @include spinner;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba($error, 0.1);
+  border: 1px solid rgba($error, 0.3);
+  border-radius: $radius-md;
+  margin-bottom: $spacing-md;
+  color: $error;
+
+  button {
+    margin-left: auto;
+    padding: $spacing-xs $spacing-md;
+    background: $error;
+    color: $white;
+    border: none;
+    border-radius: $radius-md;
+    cursor: pointer;
+  }
+}
+
+.errorIcon {
+  font-size: $font-size-xl;
+}
+
+// Localisation erreur
+.locationError {
+  text-align: center;
+  padding: $spacing-3xl;
+  background: $gray-50;
+  border-radius: $radius-xl;
+
+  h3 {
+    margin: $spacing-md 0 $spacing-sm;
+    color: $black;
+  }
+
+  p {
+    color: $gray-600;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.locationOptions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+// Pas de résultats
+.noResults {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: $spacing-3xl;
+  background: $gray-50;
+  border-radius: $radius-xl;
+
+  h3 {
+    margin: $spacing-md 0 $spacing-sm;
+    color: $black;
+  }
+
+  p {
+    color: $gray-600;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.noResultsIcon {
+  font-size: 3rem;
+}
+
+// Boutons
+.btnPrimary {
+  padding: $spacing-md $spacing-xl;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  border: none;
+  border-radius: $radius-lg;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+}
+
+.btnSecondary {
+  padding: $spacing-md $spacing-xl;
+  background: $white;
+  color: $primary-color;
+  border: 2px solid $primary-color;
+  border-radius: $radius-lg;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($primary-color, 0.05);
+  }
+}

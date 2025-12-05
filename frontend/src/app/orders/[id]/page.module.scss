@@ -1,0 +1,1303 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.orderDetailPage {
+  min-height: calc(100vh - 80px);
+  background-color: $gray-50;
+  padding: $spacing-xl 0;
+}
+
+.backLink {
+  display: inline-block;
+  color: $primary-color;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacing-lg;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xl;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+
+  @include sm {
+    font-size: $font-size-2xl;
+  }
+
+  @include md {
+    font-size: $font-size-3xl;
+  }
+}
+
+.status {
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.statusPending {
+  background-color: rgba($warning, 0.1);
+  color: darken($warning, 20%);
+}
+
+.statusAccepted {
+  background-color: rgba($info, 0.1);
+  color: darken($info, 20%);
+}
+
+.statusOnWay {
+  background-color: rgba($secondary-color, 0.1);
+  color: $secondary-dark;
+}
+
+.statusInProgress {
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-dark;
+}
+
+.statusCompleted {
+  background-color: rgba($success, 0.1);
+  color: darken($success, 20%);
+}
+
+.statusCancelled {
+  background-color: rgba($error, 0.1);
+  color: $error;
+}
+
+.orderContent {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+}
+
+.serviceSection {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+
+  @include md {
+    grid-template-columns: 1fr 2fr;
+    gap: $spacing-lg;
+  }
+}
+
+.serviceImage {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+
+  @include sm {
+    height: 220px;
+  }
+
+  @include md {
+    height: 300px;
+  }
+}
+
+.serviceInfo {
+  padding: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  @include sm {
+    padding: $spacing-lg;
+  }
+}
+
+.serviceName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+
+  @include sm {
+    font-size: $font-size-xl;
+  }
+
+  @include md {
+    font-size: $font-size-2xl;
+  }
+}
+
+.categoryName {
+  display: inline-block;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background-color: rgba($secondary-color, 0.1);
+  color: $secondary-dark;
+  border-radius: $radius-full;
+  margin-bottom: $spacing-sm;
+}
+
+.serviceDescription {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  line-height: 1.6;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+  padding: $spacing-md;
+
+  @include sm {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+  }
+}
+
+.detailCard {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-xs;
+    border-bottom: 2px solid $primary-color;
+  }
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $gray-200;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.detailLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.detailValue {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $black;
+  text-align: right;
+}
+
+.totalPrice {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.notes {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  line-height: 1.6;
+}
+
+.cancellationReason {
+  font-size: $font-size-sm;
+  color: $error;
+  line-height: 1.6;
+}
+
+.locationSharingSection {
+  padding: $spacing-lg;
+  border-top: 1px solid $gray-200;
+  overflow-anchor: none;
+}
+
+.trackingSection {
+  padding: $spacing-lg;
+  border-top: 1px solid $gray-200;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  overflow-anchor: none; // Empêcher le scroll anchoring automatique
+  touch-action: pan-y;
+  contain: layout style; // Isoler le layout de cette section
+
+  // Empêcher le scroll sur tous les éléments enfants
+  * {
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+  }
+}
+
+.chatSection {
+  padding: $spacing-lg;
+  border-top: 1px solid $gray-200;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-top: 1px solid $gray-200;
+
+  @include sm {
+    flex-direction: row;
+    gap: $spacing-md;
+    padding: $spacing-lg;
+    justify-content: flex-end;
+  }
+
+  // Boutons full-width sur mobile
+  > * {
+    width: 100%;
+
+    @include sm {
+      width: auto;
+    }
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: $spacing-2xl;
+  color: $gray-600;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $gray-300;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto $spacing-md;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorPage {
+  text-align: center;
+  padding: $spacing-2xl;
+
+  h2 {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+// Bidding styles
+.biddingBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-full;
+  white-space: nowrap;
+}
+
+.bidsSection {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-md;
+  margin-top: $spacing-md;
+
+  @include sm {
+    border-radius: $radius-xl;
+    padding: $spacing-xl;
+    margin-top: $spacing-lg;
+  }
+}
+
+.bidsSectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 2px solid $gray-200;
+
+  @include sm {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: $black;
+
+    @include sm {
+      font-size: $font-size-2xl;
+    }
+  }
+}
+
+.noBids {
+  text-align: center;
+  padding: $spacing-2xl;
+  color: $gray-600;
+
+  .noBidsIcon {
+    font-size: 4rem;
+    margin-bottom: $spacing-md;
+  }
+
+  h3 {
+    color: $gray-800;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    margin-bottom: $spacing-xs;
+  }
+
+  .expiryInfo {
+    margin-top: $spacing-md;
+    padding: $spacing-sm;
+    background: $gray-100;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    color: $gray-700;
+  }
+}
+
+.bidsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.bidCard {
+  background: $gray-50;
+  border: 2px solid $gray-200;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  transition: all $transition-normal;
+
+  @include sm {
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: $shadow-sm;
+  }
+
+  &.accepted {
+    border-color: #28a745;
+    background: #d4edda;
+  }
+
+  &.rejected {
+    border-color: #dc3545;
+    background: #f8d7da;
+    opacity: 0.7;
+  }
+}
+
+.bidHeader {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $gray-300;
+
+  @include sm {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.bidProvider {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  h4 {
+    margin: 0;
+    font-size: $font-size-base;
+    color: $black;
+  }
+
+  .rating {
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+}
+
+.providerAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-lg;
+  text-transform: uppercase;
+}
+
+.bidPrice {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.bidDetails {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.bidDetail {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $gray-700;
+
+  span:first-child {
+    font-size: $font-size-base;
+  }
+}
+
+.bidMessage {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: $white;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $gray-800;
+
+  strong {
+    color: $black;
+  }
+}
+
+.bidActions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  @include sm {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  button {
+    width: 100%;
+
+    @include sm {
+      width: auto;
+    }
+  }
+}
+
+.acceptedBadge {
+  display: inline-block;
+  padding: $spacing-xs $spacing-md;
+  background: #28a745;
+  color: white;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.rejectedBadge {
+  display: inline-block;
+  padding: $spacing-xs $spacing-md;
+  background: #dc3545;
+  color: white;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+// Section prestation en cours
+.inProgressSection {
+  margin: $spacing-sm;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, rgba($primary-color, 0.1), rgba($secondary-color, 0.1));
+  border: 2px solid $primary-color;
+  border-radius: $radius-lg;
+
+  @include sm {
+    margin: $spacing-lg;
+    padding: $spacing-lg;
+    border-radius: $radius-xl;
+  }
+}
+
+.inProgressHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  @include sm {
+    flex-direction: row;
+    text-align: left;
+    gap: $spacing-md;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: $primary-dark;
+
+    @include sm {
+      font-size: $font-size-xl;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+}
+
+.inProgressIcon {
+  font-size: 2.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.inProgressInfo {
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $radius-md;
+
+  p {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+  }
+}
+
+// Section prestataire en route
+.arrivalSection {
+  margin: $spacing-sm;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, rgba($secondary-color, 0.1), rgba($info, 0.1));
+  border: 2px solid $secondary-color;
+  border-radius: $radius-lg;
+
+  @include sm {
+    margin: $spacing-lg;
+    padding: $spacing-lg;
+    border-radius: $radius-xl;
+  }
+}
+
+.arrivalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  @include sm {
+    flex-direction: row;
+    text-align: left;
+    gap: $spacing-md;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: $secondary-dark;
+
+    @include sm {
+      font-size: $font-size-xl;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+}
+
+.arrivalIcon {
+  font-size: 2.5rem;
+  animation: drive 1s ease-in-out infinite alternate;
+}
+
+@keyframes drive {
+  0% { transform: translateX(-5px); }
+  100% { transform: translateX(5px); }
+}
+
+.arrivalInfo {
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $radius-md;
+
+  p {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+  }
+}
+
+.confirmButton {
+  width: 100%;
+  margin-top: $spacing-sm;
+}
+
+.paymentAction {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $gray-200;
+}
+
+.paymentInfo {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background-color: rgba($info, 0.1);
+  border: 1px solid $info;
+  border-radius: $radius-md;
+
+  p {
+    margin: 0;
+    color: darken($info, 20%);
+    font-size: $font-size-sm;
+    text-align: center;
+  }
+}
+
+// Statut en attente d'evaluation
+.statusPendingReview {
+  background-color: rgba(#ff9800, 0.15);
+  color: darken(#ff9800, 20%);
+  border: 1px dashed #ff9800;
+}
+
+// Section satisfaction / evaluation
+.satisfactionSection {
+  margin: $spacing-sm $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, rgba(#ff9800, 0.1), rgba(#ffc107, 0.1));
+  border: 1px solid #ff9800;
+  border-radius: $radius-lg;
+}
+
+.satisfactionHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-base;
+    color: darken(#ff9800, 15%);
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $gray-600;
+  }
+}
+
+.satisfactionIcon {
+  font-size: 1.2rem;
+}
+
+.satisfactionInfo {
+  padding: $spacing-xs $spacing-sm;
+  background: $white;
+  border-radius: $radius-sm;
+
+  p {
+    margin: 0 0 $spacing-xs 0;
+    font-size: $font-size-xs;
+    color: $gray-700;
+    line-height: 1.4;
+  }
+}
+
+.satisfactionButton {
+  width: 100%;
+  background: linear-gradient(135deg, #ff9800, #ffc107);
+  border: none;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  padding: $spacing-xs $spacing-md;
+
+  &:hover {
+    background: linear-gradient(135deg, darken(#ff9800, 10%), darken(#ffc107, 10%));
+  }
+}
+
+// Message de succès
+.successMessage {
+  margin: $spacing-sm;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, rgba($success, 0.1), rgba(#28a745, 0.15));
+  border: 2px solid $success;
+  border-radius: $radius-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing-sm;
+  animation: slideIn 0.3s ease-out;
+
+  @include sm {
+    flex-direction: row;
+    text-align: left;
+    margin: $spacing-lg;
+    padding: $spacing-lg;
+    border-radius: $radius-xl;
+    gap: $spacing-md;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: darken($success, 15%);
+
+    @include sm {
+      font-size: $font-size-xl;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+  }
+}
+
+.successIcon {
+  font-size: 2.5rem;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Modal de confirmation
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($black, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-md;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContent {
+  background: $white;
+  border-radius: $radius-lg;
+  max-width: 100%;
+  width: 100%;
+  margin: $spacing-sm;
+  box-shadow: $shadow-xl;
+  animation: scaleIn 0.2s ease-out;
+  overflow: hidden;
+
+  @include sm {
+    border-radius: $radius-xl;
+    max-width: 450px;
+    margin: 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modalHeader {
+  background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+  color: $white;
+  padding: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  @include sm {
+    padding: $spacing-lg;
+    gap: $spacing-md;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+
+    @include sm {
+      font-size: $font-size-xl;
+    }
+  }
+}
+
+.modalIcon {
+  font-size: 2rem;
+}
+
+.modalBody {
+  padding: $spacing-md;
+
+  @include sm {
+    padding: $spacing-xl;
+  }
+
+  p {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    line-height: 1.6;
+
+    @include sm {
+      font-size: $font-size-base;
+    }
+
+    strong {
+      color: $primary-color;
+    }
+  }
+}
+
+.modalHint {
+  font-size: $font-size-sm !important;
+  color: $gray-600 !important;
+  background: $gray-50;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  margin-top: $spacing-md !important;
+}
+
+.modalActions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+
+  @include sm {
+    flex-direction: row;
+    gap: $spacing-md;
+    padding: 0 $spacing-xl $spacing-xl;
+    justify-content: flex-end;
+  }
+
+  button {
+    width: 100%;
+
+    @include sm {
+      width: auto;
+      min-width: 120px;
+    }
+  }
+}
+
+// ========== Toast notifications ==========
+
+.toast {
+  position: fixed;
+  bottom: $spacing-xl;
+  right: $spacing-xl;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 3000;
+  animation: slideInRight 0.3s ease;
+  max-width: 400px;
+
+  @include sm {
+    left: $spacing-md;
+    right: $spacing-md;
+    bottom: $spacing-md;
+    max-width: none;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast.success {
+  background: #22c55e;
+  color: $white;
+}
+
+.toast.error {
+  background: $error;
+  color: $white;
+}
+
+.toast.warning {
+  background: #f59e0b;
+  color: $white;
+}
+
+.toastIcon {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba($white, 0.2);
+  border-radius: $radius-full;
+  flex-shrink: 0;
+}
+
+.toastMessage {
+  flex: 1;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.4;
+}
+
+.toastClose {
+  background: none;
+  border: none;
+  color: rgba($white, 0.8);
+  font-size: $font-size-lg;
+  cursor: pointer;
+  padding: $spacing-xs;
+  line-height: 1;
+  transition: color $transition-fast;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $white;
+  }
+}
+
+// ========== Provider Card with Photo (Uber-style) ==========
+
+.providerCard {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $black;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-xs;
+    border-bottom: 2px solid $primary-color;
+  }
+}
+
+.providerProfile {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.providerAvatarLarge {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.providerAvatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid $primary-color;
+  box-shadow: $shadow-md;
+}
+
+.providerAvatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 15%) 100%);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  border: 3px solid $primary-color;
+  box-shadow: $shadow-md;
+}
+
+.providerRatingBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: $white;
+  color: $black;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  padding: 2px 6px;
+  border-radius: $radius-full;
+  box-shadow: $shadow-sm;
+  border: 2px solid $primary-color;
+}
+
+.providerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.providerName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.providerVerified {
+  font-size: $font-size-sm;
+  color: $success;
+  font-weight: $font-weight-medium;
+}
+
+// ========== Provider Arriving Section (Uber-style) ==========
+
+.providerArriving {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-md;
+
+  @include sm {
+    flex-direction: row;
+    text-align: left;
+    gap: $spacing-lg;
+  }
+}
+
+.providerArrivingAvatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+
+  @include sm {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.arrivingAvatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid $secondary-color;
+  box-shadow: $shadow-lg;
+}
+
+.arrivingAvatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $secondary-color 0%, darken($secondary-color, 15%) 100%);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  border: 4px solid $secondary-color;
+  box-shadow: $shadow-lg;
+}
+
+.arrivingPulse {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  border: 3px solid $secondary-color;
+  animation: arrivingPulse 2s ease-out infinite;
+}
+
+@keyframes arrivingPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.providerArrivingInfo {
+  flex: 1;
+
+  h3 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin: 0 0 $spacing-xs 0;
+  }
+}
+
+.arrivingStatus {
+  font-size: $font-size-base;
+  color: $secondary-color;
+  font-weight: $font-weight-medium;
+  margin: 0 0 $spacing-xs 0;
+}
+
+.arrivingRating {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  font-weight: $font-weight-medium;
+}
+
+// ========== Provider Verification in Modal ==========
+
+.verifyProvider {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-md;
+}
+
+.verifyAvatar {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.verifyAvatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid $primary-color;
+  box-shadow: $shadow-md;
+}
+
+.verifyAvatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 15%) 100%);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  border: 3px solid $primary-color;
+  box-shadow: $shadow-md;
+}
+
+.verifyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.verifyName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.verifyLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.verifyQuestion {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  text-align: center;
+  margin: $spacing-md 0 !important;
+}

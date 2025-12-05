@@ -1,0 +1,36 @@
+{
+  "name": "glamgo-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbo",
+    "dev:3001": "next dev --turbo -p 3001",
+    "dev:3002": "next dev --turbo -p 3002",
+    "dev:full": "bash start-dev.sh",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "axios": "^1.6.0",
+    "leaflet": "^1.9.4",
+    "next": "^15.0.0",
+    "nsfwjs": "^4.2.1",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-icons": "^5.5.0",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.0.0",
+    "sass": "^1.69.0"
+  }
+}

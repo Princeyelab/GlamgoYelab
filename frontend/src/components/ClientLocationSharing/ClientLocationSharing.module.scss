@@ -1,0 +1,151 @@
+@use '../../styles/variables' as *;
+
+.clientLocationSharing {
+  background: $white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+}
+
+.header {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $white;
+}
+
+.icon {
+  font-size: 1.5rem;
+}
+
+.headerText {
+  h3 {
+    margin: 0 0 $spacing-xs 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    opacity: 0.9;
+  }
+}
+
+.content {
+  padding: $spacing-lg;
+}
+
+.description {
+  color: $gray-600;
+  font-size: $font-size-sm;
+  margin: 0 0 $spacing-lg 0;
+  line-height: 1.5;
+}
+
+.shareButton {
+  width: 100%;
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: $white;
+  border: none;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
+  }
+}
+
+.error {
+  background: #ffebee;
+  color: #c62828;
+  padding: $spacing-md;
+  font-size: $font-size-sm;
+}
+
+.sharingActive {
+  padding: $spacing-lg;
+  text-align: center;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: $spacing-md;
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  background: #4caf50;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+.positionInfo {
+  background: $gray-50;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  text-align: left;
+
+  p {
+    margin: 0 0 $spacing-xs 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.accuracy, .updates {
+  color: $gray-500 !important;
+  font-size: $font-size-xs !important;
+}
+
+.stopButton {
+  width: 100%;
+  background: $white;
+  color: #c62828;
+  border: 2px solid #c62828;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: #ffebee;
+  }
+}

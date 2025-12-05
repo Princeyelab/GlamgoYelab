@@ -1,0 +1,336 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.servicesPage {
+  min-height: 100vh;
+  background: $gray-50;
+}
+
+.header {
+  background: $secondary-color;
+  padding: $spacing-md 0;
+  box-shadow: $shadow-md;
+}
+
+.headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $white;
+  text-decoration: none;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+}
+
+.providerBadge {
+  background: rgba($white, 0.2);
+  padding: 2px $spacing-xs;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.backLink {
+  color: $white;
+  text-decoration: none;
+  font-size: $font-size-sm;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.2);
+  }
+}
+
+.profileLink {
+  color: $white;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.2);
+    text-decoration: underline;
+  }
+}
+
+.logoutBtn {
+  background: rgba($white, 0.2);
+  border: none;
+  color: $white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  transition: background-color $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.3);
+  }
+}
+
+.main {
+  padding: $spacing-xl 0;
+
+  @include md {
+    padding: $spacing-lg 0;
+  }
+}
+
+.pageHeader {
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin-bottom: $spacing-xs;
+
+    @include md {
+      font-size: $font-size-2xl;
+    }
+  }
+}
+
+.subtitle {
+  font-size: $font-size-base;
+  color: $gray-600;
+}
+
+.loading {
+  @include flex-center;
+  flex-direction: column;
+  min-height: 100vh;
+  gap: $spacing-md;
+
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid $gray-200;
+    border-top-color: $primary-color;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorAlert {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+  font-size: $font-size-sm;
+}
+
+.successAlert {
+  background-color: rgba($success, 0.1);
+  border: 1px solid $success;
+  border-radius: $radius-md;
+  color: $success;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+  font-size: $font-size-sm;
+}
+
+.tabs {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xl;
+  border-bottom: 2px solid $gray-200;
+
+  @include md {
+    overflow-x: auto;
+  }
+}
+
+.tab {
+  padding: $spacing-sm $spacing-lg;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $gray-600;
+  cursor: pointer;
+  transition: all $transition-normal;
+  white-space: nowrap;
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+  }
+}
+
+.tabContent {
+  min-height: 400px;
+}
+
+.servicesSection {
+  width: 100%;
+}
+
+.emptyState {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-3xl $spacing-xl;
+  text-align: center;
+  gap: $spacing-md;
+
+  .emptyIcon {
+    font-size: 64px;
+    margin-bottom: $spacing-md;
+  }
+
+  h3 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $gray-800;
+  }
+
+  p {
+    font-size: $font-size-base;
+    color: $gray-600;
+    max-width: 500px;
+  }
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: $spacing-lg;
+
+  @include md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.serviceCard {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+  transition: all $transition-normal;
+
+  &:hover {
+    box-shadow: $shadow-xl;
+    transform: translateY(-4px);
+  }
+}
+
+.serviceImage {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.serviceContent {
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.serviceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-sm;
+}
+
+.serviceName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0;
+  flex: 1;
+}
+
+.categoryBadge {
+  background: rgba($primary-color, 0.1);
+  color: $primary-color;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  white-space: nowrap;
+}
+
+.serviceDescription {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.serviceDetails {
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-md;
+  border: 1px solid $gray-200;
+}
+
+// Mode Prix Fixe
+.fixedPriceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.priceDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.duration {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $gray-700;
+}
+
+.durationIcon {
+  font-size: $font-size-lg;
+}
+
+.serviceActions {
+  margin-top: auto;
+}

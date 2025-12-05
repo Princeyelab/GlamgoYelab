@@ -1,0 +1,491 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.biddingPage {
+  min-height: 100vh;
+  background: $gray-50;
+}
+
+.pageHeader {
+  background: $secondary-color;
+  padding: $spacing-md 0;
+  box-shadow: $shadow-md;
+}
+
+.headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $white;
+  text-decoration: none;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+}
+
+.providerBadge {
+  background: rgba($white, 0.2);
+  padding: 2px $spacing-xs;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.backLink {
+  color: $white;
+  text-decoration: none;
+  font-size: $font-size-sm;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.2);
+  }
+}
+
+.profileLink {
+  color: $white;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.2);
+    text-decoration: underline;
+  }
+}
+
+.logoutBtn {
+  background: rgba($white, 0.2);
+  border: none;
+  color: $white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  transition: background-color $transition-normal;
+
+  &:hover {
+    background: rgba($white, 0.3);
+  }
+}
+
+.main {
+  padding: $spacing-xl 0;
+
+  @include md {
+    padding: $spacing-lg 0;
+  }
+}
+
+.titleSection {
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin-bottom: $spacing-xs;
+
+    @include md {
+      font-size: $font-size-2xl;
+    }
+  }
+}
+
+.subtitle {
+  font-size: $font-size-base;
+  color: $gray-600;
+}
+
+.alert {
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-lg;
+  font-weight: $font-weight-medium;
+
+  &.error {
+    background-color: rgba($error, 0.1);
+    border: 1px solid $error;
+    color: $error;
+  }
+
+  &.success {
+    background-color: rgba($success, 0.1);
+    border: 1px solid $success;
+    color: $success;
+  }
+}
+
+.section {
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-md;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin-bottom: $spacing-lg;
+    border-bottom: 2px solid $gray-200;
+    padding-bottom: $spacing-md;
+  }
+
+  button {
+    margin-bottom: $spacing-md;
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: $spacing-2xl;
+  color: $gray-600;
+  font-style: italic;
+}
+
+.ordersList,
+.bidsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.orderCard {
+  background: $gray-50;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: $shadow-sm;
+  }
+
+  &.incompatible {
+    background: rgba($error, 0.05);
+    border-color: rgba($error, 0.3);
+    opacity: 0.85;
+
+    &:hover {
+      border-color: rgba($error, 0.5);
+    }
+  }
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $gray-300;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: $black;
+  }
+}
+
+.badges {
+  display: flex;
+  gap: $spacing-xs;
+  align-items: center;
+}
+
+.badge {
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+
+  &.pending {
+    background: #ffc107;
+    color: #856404;
+  }
+
+  &.accepted {
+    background: #28a745;
+    color: white;
+  }
+
+  &.rejected {
+    background: #dc3545;
+    color: white;
+  }
+
+  &.warning {
+    background: rgba($error, 0.15);
+    color: $error;
+    border: 1px solid $error;
+    font-size: $font-size-xs;
+  }
+}
+
+.orderDetails {
+  margin-bottom: $spacing-md;
+
+  p {
+    margin: $spacing-xs 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+
+    strong {
+      color: $black;
+    }
+  }
+}
+
+.bidForm {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: flex-end;
+  margin-top: $spacing-md;
+}
+
+.formGroup {
+  flex: 1;
+
+  label {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $gray-800;
+    margin-bottom: $spacing-xs;
+  }
+
+  input {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 2px solid $gray-300;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    transition: border-color $transition-normal;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+
+    &:disabled {
+      background-color: $gray-100;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+}
+
+.warningMessage {
+  background: rgba($error, 0.1);
+  border: 1px solid rgba($error, 0.3);
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  color: $error;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.pendingValidation {
+  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+  border: 2px solid #ffc107;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-lg;
+
+  h3 {
+    color: #856404;
+    font-size: $font-size-xl;
+    margin: 0 0 $spacing-md 0;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  p {
+    color: $gray-700;
+    line-height: 1.6;
+    margin-bottom: $spacing-md;
+  }
+
+  .note {
+    background: rgba(#ffc107, 0.2);
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+    border-left: 4px solid #ffc107;
+    margin-top: $spacing-md;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.validationSteps {
+  display: flex;
+  gap: $spacing-md;
+  margin: $spacing-lg 0;
+  justify-content: space-around;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: $white;
+  border-radius: $radius-lg;
+  border: 2px solid #28a745;
+  font-weight: $font-weight-medium;
+  color: $gray-800;
+
+  &.pending {
+    border-color: #ffc107;
+    animation: pulse 2s infinite;
+  }
+
+  .stepIcon {
+    font-size: $font-size-xl;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.debugInfo {
+  background: rgba(#2196F3, 0.1);
+  border: 2px solid #2196F3;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+  font-size: $font-size-sm;
+
+  h4 {
+    margin: 0 0 $spacing-xs 0;
+    color: #2196F3;
+    font-size: $font-size-base;
+  }
+
+  p {
+    margin: $spacing-xs 0;
+    font-family: monospace;
+    color: $gray-800;
+  }
+}
+
+.bidCard {
+  background: $gray-50;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  transition: all $transition-normal;
+
+  &.pending {
+    border-left: 4px solid #ffc107;
+  }
+
+  &.accepted {
+    border-left: 4px solid #28a745;
+    background: #d4edda;
+  }
+
+  &.rejected {
+    border-left: 4px solid #dc3545;
+    background: #f8d7da;
+    opacity: 0.7;
+  }
+}
+
+.bidHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $gray-300;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-base;
+    color: $black;
+  }
+}
+
+.bidPrice {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.bidDetails {
+  margin-bottom: $spacing-md;
+
+  p {
+    margin: $spacing-xs 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+
+    strong {
+      color: $black;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .logo {
+    font-size: $font-size-lg;
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .backLink {
+    font-size: $font-size-xs;
+  }
+
+  .titleSection h1 {
+    font-size: $font-size-2xl;
+  }
+
+  .section {
+    padding: $spacing-md;
+  }
+
+  .bidForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

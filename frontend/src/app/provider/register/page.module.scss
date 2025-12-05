@@ -1,0 +1,799 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.registerPage {
+  min-height: calc(100vh - 80px);
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  @include flex-center;
+  padding: $spacing-lg $spacing-md;
+  position: relative;
+}
+
+.languageSwitcherContainer {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  z-index: 10;
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+}
+
+.formCard {
+  background: $white;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-2xl;
+  padding: $spacing-lg;
+
+  @include md {
+    padding: $spacing-md;
+  }
+}
+
+.backLink {
+  margin-bottom: $spacing-md;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $gray-600;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: all $transition-normal;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+    transform: translateX(-2px);
+
+    svg {
+      transform: translateX(-2px);
+    }
+  }
+
+  svg {
+    transition: transform $transition-normal;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+  text-align: center;
+
+  @include md {
+    font-size: $font-size-xl;
+  }
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-bottom: $spacing-md;
+  text-align: center;
+}
+
+.successAlert {
+  background-color: rgba(#10b981, 0.1);
+  border: 1px solid #10b981;
+  border-radius: $radius-md;
+  color: #10b981;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.errorAlert {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.section {
+  border: 1px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  background: $gray-50;
+}
+
+.sectionTitle {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $primary-color;
+  margin-bottom: $spacing-sm;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-sm;
+
+  @include md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+// Photo de profil upload
+.profilePhotoUpload {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-lg;
+  border: 2px dashed $gray-300;
+}
+
+.photoPreview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: $gray-200;
+  flex-shrink: 0;
+  border: 3px solid $white;
+  box-shadow: $shadow-md;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &.photoError {
+    border-color: $error;
+  }
+}
+
+.photoPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $gray-500;
+  font-size: $font-size-xs;
+
+  .photoIcon {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+}
+
+.photoUploadInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.photoUploadBtn {
+  display: inline-block;
+  padding: $spacing-xs $spacing-md;
+  background: $primary-color;
+  color: $white;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-normal;
+  text-align: center;
+
+  &:hover {
+    background: darken($primary-color, 10%);
+    transform: translateY(-1px);
+  }
+}
+
+.photoHint {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $gray-800;
+}
+
+.required {
+  color: $error;
+}
+
+.optional {
+  color: $gray-400;
+  font-weight: $font-weight-normal;
+  font-size: $font-size-xs;
+}
+
+.input {
+  padding: $spacing-xs $spacing-sm;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &.inputError {
+    border-color: $error;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($error, 0.1);
+    }
+  }
+}
+
+.textarea {
+  padding: $spacing-xs $spacing-sm;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+  resize: vertical;
+  min-height: 100px;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &.inputError {
+    border-color: $error;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($error, 0.1);
+    }
+  }
+}
+
+.error {
+  font-size: $font-size-xs;
+  color: $error;
+  margin-top: -$spacing-xs;
+}
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .input {
+    padding-right: 45px;
+    width: 100%;
+    flex: 1;
+  }
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs;
+  color: $gray-500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-color;
+  }
+}
+
+.footer {
+  margin-top: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $gray-600;
+
+  p {
+    margin-bottom: $spacing-xs;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.link {
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+.hint {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: -$spacing-xs;
+  font-style: italic;
+}
+
+select.input {
+  cursor: pointer;
+  background-color: $white;
+
+  &[multiple] {
+    min-height: 120px;
+    padding: $spacing-xs;
+  }
+
+  option {
+    padding: $spacing-xs;
+
+    &:checked {
+      background: linear-gradient(to right, $primary-color 0%, $primary-color 100%);
+      color: $white;
+    }
+  }
+}
+
+.termsSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin: $spacing-md 0;
+  padding: $spacing-md;
+  background-color: rgba($primary-color, 0.03);
+  border: 2px solid $primary-color;
+  border-radius: $radius-lg;
+}
+
+.termsLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  cursor: pointer;
+  user-select: none;
+}
+
+.termsCheckbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  cursor: pointer;
+  accent-color: $primary-color;
+  margin-top: 2px;
+}
+
+.termsText {
+  font-size: $font-size-sm;
+  color: $gray-800;
+  line-height: 1.6;
+  font-weight: $font-weight-medium;
+}
+
+.termsLink {
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// Styles pour les champs de téléchargement de fichiers
+.fileInputWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-sm;
+  border: 2px dashed $gray-300;
+  border-radius: $radius-md;
+  background: $white;
+  cursor: pointer;
+  transition: all $transition-normal;
+  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.02);
+
+    .fileInputIcon {
+      color: $primary-color;
+      transform: scale(1.1);
+    }
+  }
+
+  &.hasFile {
+    border-color: $success;
+    background: rgba($success, 0.05);
+    border-style: solid;
+  }
+
+  &.hasError {
+    border-color: $error;
+    background: rgba($error, 0.02);
+  }
+}
+
+.fileInputContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  text-align: center;
+}
+
+.fileInputIcon {
+  width: 40px;
+  height: 40px;
+  color: $gray-400;
+  transition: all $transition-normal;
+}
+
+.fileInputText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-sm;
+  }
+
+  span {
+    color: $gray-500;
+    font-size: $font-size-xs;
+  }
+}
+
+.fileInputHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.filePreview {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: rgba($success, 0.1);
+  border: 1px solid $success;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  color: $gray-800;
+  position: relative;
+
+  svg {
+    color: $success;
+    min-width: 20px;
+  }
+}
+
+.filePreviewName {
+  flex: 1;
+  font-weight: $font-weight-medium;
+  word-break: break-word;
+}
+
+.fileRemoveButton {
+  background: none;
+  border: none;
+  color: $error;
+  cursor: pointer;
+  padding: $spacing-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  transition: all $transition-normal;
+  min-width: 24px;
+
+  &:hover {
+    background: rgba($error, 0.1);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Indicateur d'étapes
+.stepsIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+  gap: $spacing-xs;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.stepNumber {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $gray-200;
+  color: $gray-500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
+  transition: all $transition-normal;
+}
+
+.stepLabel {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
+
+  @include md {
+    display: none;
+  }
+}
+
+.stepLine {
+  width: 30px;
+  height: 2px;
+  background: $gray-200;
+  margin-bottom: $spacing-md;
+
+  @include md {
+    width: 20px;
+  }
+}
+
+.stepActive {
+  .stepNumber {
+    background: $primary-color;
+    color: $white;
+  }
+
+  .stepLabel {
+    color: $primary-color;
+  }
+}
+
+.stepCompleted {
+  .stepNumber {
+    background: $success;
+    color: $white;
+  }
+}
+
+// Slider / Range input
+.rangeInput {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  background: $gray-200;
+  border-radius: $radius-lg;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: $primary-color;
+    cursor: pointer;
+    transition: all $transition-normal;
+    box-shadow: $shadow-md;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: $primary-color;
+    cursor: pointer;
+    border: none;
+    box-shadow: $shadow-md;
+  }
+}
+
+.rangeLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: $spacing-xs;
+}
+
+// Grille des disponibilités
+.availabilityGrid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.availabilityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm;
+  background: $white;
+  border-radius: $radius-md;
+  border: 1px solid $gray-200;
+
+  @include md {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+  }
+}
+
+.availabilityDay {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-width: 120px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: $primary-color;
+    cursor: pointer;
+  }
+
+  span {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $gray-800;
+  }
+}
+
+.availabilityTimes {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.timeInput {
+  padding: $spacing-xs;
+  border: 1px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+// Boutons d'action
+.buttonRow {
+  display: flex;
+  gap: $spacing-sm;
+  justify-content: space-between;
+  margin-top: $spacing-md;
+
+  button {
+    flex: 1;
+  }
+}
+
+// Étape paiement
+.paymentStep {
+  padding: $spacing-md 0;
+}
+
+.paymentInfo {
+  background: rgba($primary-color, 0.05);
+  border: 1px solid rgba($primary-color, 0.2);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  p {
+    font-size: $font-size-sm;
+    color: $gray-700;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+.sectionHint {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-bottom: $spacing-sm;
+}

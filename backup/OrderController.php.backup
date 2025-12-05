@@ -1,0 +1,147 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Models\Order;
+use App\Models\Service;
+use App\Models\Provider;
+use App\Models\Notification;
+
+class OrderController extends Controller
+{
+    private Order $orderModel;
+    private Service $serviceModel;
+    private Provider $providerModel;
+    private Notification $notificationModel;
+
+    public function __construct()
+    {
+        $this->orderModel = new Order();
+        $this->serviceModel = new Service();
+        $this->providerModel = new Provider();
+        $this->notificationModel = new Notification();
+    }
+
+    /**
+     * Crée une nouvelle commande
+     */
+    public function create(): void
+    {
+        $userId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        // Valider les données
+        if (empty($data['service_id'])) {
+            $this->error('Le service est requis', 422);
+        }
+
+        // Vérifier que le service existe
+        $service = $this->serviceModel->find($data['service_id']);
+        if (!$service) {
+            $this->error('Service non trouvé', 404);
+        }
+
+        // Gérer l'adresse
+        $addressId = null;
+        if (!empty($data['address_id'])) {
+            $addressId = $data['address_id'];
+        } elseif (!empty($data['address'])) {
+            // Créer une nouvelle adresse temporaire
+            $db = \App\Core\Database::getInstance();
+            $stmt = $db->prepare(
+                "INSERT INTO user_addresses (user_id, label, address_line, city) VALUES (?, ?, ?, ?)"
+            );
+            $stmt->execute([$userId, 'Réservation', $data['address'], 'Marrakech']);
+            $addressId = $db->lastInsertId();
+        } else {
+            $this->error('L\'adresse est requise', 422);
+        }
+
+        // Créer la commande
+        $orderData = [
+            'user_id' => $userId,
+            'service_id' => $data['service_id'],
+            'address_id' => $addressId,
+            'status' => 'pending',
+            'scheduled_at' => $data['scheduled_at'] ?? null,
+            'price' => $service['price'],
+            'total' => $service['price'],
+            'notes' => $data['notes'] ?? null
+        ];
+
+        $orderId = $this->orderModel->create($orderData);
+
+        // Récupérer les détails de la commande
+        $order = $this->orderModel->getDetailedOrder($orderId);
+
+        // Notifier les prestataires disponibles
+        $this->notificationModel->notifyProvidersForNewOrder($order);
+
+        $this->success($order, 'Commande créée', 201);
+    }
+
+    /**
+     * Liste les commandes de l'utilisateur
+     */
+    public function index(): void
+    {
+        $userId = $_SERVER['USER_ID'];
+        $queryParams = $this->getQueryParams();
+
+        $status = $queryParams['status'] ?? null;
+        $orders = $this->orderModel->getUserOrders($userId, $status);
+
+        $this->success($orders);
+    }
+
+    /**
+     * Récupère une commande détaillée
+     */
+    public function show(string $id): void
+    {
+        $userId = $_SERVER['USER_ID'];
+        $order = $this->orderModel->getDetailedOrder((int)$id);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        // Vérifier que la commande appartient à l'utilisateur
+        if ($order['user_id'] != $userId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        $this->success($order);
+    }
+
+    /**
+     * Annule une commande
+     */
+    public function cancel(string $id): void
+    {
+        $userId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        $order = $this->orderModel->find((int)$id);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['user_id'] != $userId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        // On ne peut annuler que si la commande est en attente ou acceptée
+        if (!in_array($order['status'], ['pending', 'accepted'])) {
+            $this->error('Cette commande ne peut plus être annulée', 400);
+        }
+
+        $this->orderModel->updateStatus((int)$id, 'cancelled', [
+            'cancellation_reason' => $data['reason'] ?? null
+        ]);
+
+        $this->success(null, 'Commande annulée');
+    }
+}

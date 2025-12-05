@@ -1,0 +1,283 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <!-- Fond dégradé élégant -->
+  <defs>
+    <linearGradient id="bg-salon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#16213e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f3460;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="spotlight" cx="50%" cy="40%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+    </radialGradient>
+    <linearGradient id="skin-man" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4A574;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C89968;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skin-woman" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5D5C0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8C4A8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dress-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#DC143C;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#B22222;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B0000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fond -->
+  <rect width="400" height="300" fill="url(#bg-salon)"/>
+
+  <!-- Projecteur -->
+  <ellipse cx="200" cy="130" rx="160" ry="120" fill="url(#spotlight)"/>
+
+  <!-- Sol brillant avec reflet -->
+  <rect x="0" y="250" width="400" height="50" fill="#1a1a2e" opacity="0.5"/>
+  <ellipse cx="200" cy="252" rx="80" ry="8" fill="white" opacity="0.1"/>
+
+  <!-- Couple dansant en position de valse -->
+  <g transform="translate(200, 155)">
+
+    <!-- HOMME (à gauche) -->
+    <g transform="translate(-40, 0)">
+
+      <!-- Jambe gauche -->
+      <g>
+        <path d="M -10 30 Q -12 45 -14 65 L -16 90"
+              stroke="#000" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <ellipse cx="-16" cy="93" rx="9" ry="4" fill="#000"/>
+      </g>
+
+      <!-- Jambe droite -->
+      <g>
+        <path d="M 6 30 Q 10 45 12 65 L 18 90"
+              stroke="#000" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <ellipse cx="18" cy="93" rx="9" ry="4" fill="#000"/>
+      </g>
+
+      <!-- Corps - Costume noir élégant -->
+      <g>
+        <!-- Veste -->
+        <path d="M -18 -20 L -22 10 L -20 30 L 20 30 L 22 10 L 18 -20 Z"
+              fill="#0a0a0a"/>
+        <!-- Revers de veste -->
+        <path d="M -18 -20 L -12 -10 L -10 0" fill="#1a1a1a"/>
+        <path d="M 18 -20 L 12 -10 L 10 0" fill="#1a1a1a"/>
+        <!-- Chemise blanche visible -->
+        <path d="M -8 -18 L -8 0 L 8 0 L 8 -18 Z" fill="#f5f5f5"/>
+        <!-- Nœud papillon -->
+        <path d="M -6 -18 L -8 -15 L -2 -15 L 0 -18 L 2 -15 L 8 -15 L 6 -18 Z" fill="#000"/>
+        <rect x="-1" y="-17" width="2" height="4" fill="#000"/>
+        <!-- Boutons -->
+        <circle cx="0" cy="-8" r="1.5" fill="#C0C0C0"/>
+        <circle cx="0" cy="2" r="1.5" fill="#C0C0C0"/>
+      </g>
+
+      <!-- Cou -->
+      <rect x="-7" y="-32" width="14" height="12" fill="url(#skin-man)" rx="2"/>
+
+      <!-- Tête détaillée -->
+      <g>
+        <!-- Visage -->
+        <ellipse cx="0" cy="-46" rx="15" ry="18" fill="url(#skin-man)"/>
+        <!-- Oreille gauche -->
+        <ellipse cx="-14" cy="-45" rx="3" ry="5" fill="url(#skin-man)"/>
+        <!-- Oreille droite -->
+        <ellipse cx="14" cy="-45" rx="3" ry="5" fill="url(#skin-man)"/>
+
+        <!-- Cheveux courts noirs -->
+        <path d="M -15 -52 Q -12 -60 0 -62 Q 12 -60 15 -52 L 14 -46 Q 10 -54 0 -56 Q -10 -54 -14 -46 Z"
+              fill="#2C1810"/>
+
+        <!-- Yeux -->
+        <ellipse cx="-5" cy="-48" rx="2" ry="3" fill="#1a0a00"/>
+        <ellipse cx="5" cy="-48" rx="2" ry="3" fill="#1a0a00"/>
+        <circle cx="-5" cy="-49" r="0.8" fill="white"/>
+        <circle cx="5" cy="-49" r="0.8" fill="white"/>
+
+        <!-- Sourcils -->
+        <path d="M -9 -53 Q -5 -54 -1 -53" stroke="#2C1810" stroke-width="1.2" fill="none"/>
+        <path d="M 1 -53 Q 5 -54 9 -53" stroke="#2C1810" stroke-width="1.2" fill="none"/>
+
+        <!-- Nez -->
+        <path d="M 0 -48 L 1 -42" stroke="#B8936A" stroke-width="1.5" fill="none"/>
+        <path d="M 1 -42 L -1 -41 M 1 -42 L 3 -41" stroke="#B8936A" stroke-width="1"/>
+
+        <!-- Bouche souriante -->
+        <path d="M -4 -38 Q 0 -36 4 -38" stroke="#8B4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+        <!-- Mâchoire légère -->
+        <path d="M -12 -42 L -10 -36" stroke="#B8936A" stroke-width="0.8" opacity="0.5"/>
+        <path d="M 12 -42 L 10 -36" stroke="#B8936A" stroke-width="0.8" opacity="0.5"/>
+      </g>
+
+      <!-- Bras gauche tendu (tenant la main de la femme) -->
+      <g>
+        <path d="M -18 -12 Q -38 -18 -52 -22"
+              stroke="#0a0a0a" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <!-- Main -->
+        <ellipse cx="-56" cy="-22" rx="6" ry="8" fill="url(#skin-man)" transform="rotate(-10 -56 -22)"/>
+        <!-- Manchette blanche -->
+        <rect x="-50" y="-24" width="8" height="4" fill="#f5f5f5" rx="1"/>
+      </g>
+
+      <!-- Bras droit sur la taille de la femme -->
+      <g>
+        <path d="M 18 -8 Q 38 -2 52 5"
+              stroke="#0a0a0a" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <!-- Main -->
+        <ellipse cx="56" cy="6" rx="7" ry="6" fill="url(#skin-man)" transform="rotate(20 56 6)"/>
+        <!-- Manchette blanche -->
+        <rect x="47" y="3" width="8" height="4" fill="#f5f5f5" rx="1"/>
+      </g>
+    </g>
+
+    <!-- FEMME (à droite) -->
+    <g transform="translate(40, 0)">
+
+      <!-- Jambes sous la robe -->
+      <g opacity="0.6">
+        <path d="M -8 40 L -10 70 L -12 88" stroke="url(#skin-woman)" stroke-width="7"/>
+        <path d="M 6 40 L 5 70 L 4 88" stroke="url(#skin-woman)" stroke-width="7"/>
+        <!-- Chaussures à talons dorées -->
+        <ellipse cx="-12" cy="90" rx="8" ry="3" fill="#B8860B"/>
+        <ellipse cx="4" cy="90" rx="8" ry="3" fill="#B8860B"/>
+        <!-- Talons -->
+        <rect x="-14" y="90" width="2" height="6" fill="#B8860B"/>
+        <rect x="2" y="90" width="2" height="6" fill="#B8860B"/>
+      </g>
+
+      <!-- Robe rouge élégante qui flotte -->
+      <g>
+        <path d="M -20 -15 L -18 5 Q -25 25 -35 50 Q -38 65 -32 85 L -18 88 L -12 85 Q -8 55 -5 35 L 0 20 L 5 35 Q 8 55 12 85 L 18 88 L 32 85 Q 38 65 35 50 Q 25 25 18 5 L 20 -15 L 12 -20 Q 8 -15 0 -15 Q -8 -15 -12 -20 Z"
+              fill="url(#dress-red)"/>
+        <!-- Plis de la robe -->
+        <path d="M -10 10 Q -15 30 -20 50" stroke="#8B0000" stroke-width="1" opacity="0.3" fill="none"/>
+        <path d="M 0 10 Q 0 35 0 55" stroke="#8B0000" stroke-width="1" opacity="0.3" fill="none"/>
+        <path d="M 10 10 Q 15 30 20 50" stroke="#8B0000" stroke-width="1" opacity="0.3" fill="none"/>
+        <!-- Effet de mouvement -->
+        <path d="M -32 70 Q -40 75 -42 82" stroke="#DC143C" stroke-width="2" opacity="0.4" fill="none"/>
+        <path d="M 32 70 Q 40 75 42 82" stroke="#DC143C" stroke-width="2" opacity="0.4" fill="none"/>
+      </g>
+
+      <!-- Bustier doré -->
+      <g>
+        <path d="M -20 -18 Q -22 -10 -20 -5 L -18 0 L -12 -5 Q -8 -8 0 -8 Q 8 -8 12 -5 L 18 0 L 20 -5 Q 22 -10 20 -18 L 12 -23 Q 8 -25 0 -25 Q -8 -25 -12 -23 Z"
+              fill="#B8860B"/>
+        <!-- Bretelles -->
+        <path d="M -10 -23 L -8 -32" stroke="#B8860B" stroke-width="3"/>
+        <path d="M 10 -23 L 8 -32" stroke="#B8860B" stroke-width="3"/>
+        <!-- Ornements -->
+        <circle cx="-8" cy="-12" r="2" fill="#FFD700"/>
+        <circle cx="0" cy="-14" r="2.5" fill="#FFD700"/>
+        <circle cx="8" cy="-12" r="2" fill="#FFD700"/>
+      </g>
+
+      <!-- Cou élégant -->
+      <rect x="-6" y="-35" width="12" height="13" fill="url(#skin-woman)" rx="2"/>
+      <!-- Collier -->
+      <ellipse cx="0" cy="-33" rx="8" ry="2" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+      <circle cx="0" cy="-32" r="2" fill="#DC143C"/>
+
+      <!-- Tête détaillée -->
+      <g>
+        <!-- Visage féminin -->
+        <ellipse cx="0" cy="-48" rx="14" ry="17" fill="url(#skin-woman)"/>
+        <!-- Oreille gauche -->
+        <ellipse cx="-13" cy="-47" rx="3" ry="5" fill="url(#skin-woman)"/>
+        <!-- Boucle d'oreille -->
+        <circle cx="-13" cy="-44" r="3" fill="#FFD700" opacity="0.9"/>
+        <circle cx="-13" cy="-48" r="1" fill="#FFD700"/>
+        <!-- Oreille droite -->
+        <ellipse cx="13" cy="-47" rx="3" ry="5" fill="url(#skin-woman)"/>
+        <!-- Boucle d'oreille -->
+        <circle cx="13" cy="-44" r="3" fill="#FFD700" opacity="0.9"/>
+        <circle cx="13" cy="-48" r="1" fill="#FFD700"/>
+
+        <!-- Cheveux longs attachés en chignon -->
+        <ellipse cx="0" cy="-58" rx="16" ry="10" fill="#4A2511"/>
+        <!-- Chignon -->
+        <ellipse cx="-2" cy="-62" rx="10" ry="8" fill="#4A2511"/>
+        <circle cx="-2" cy="-62" r="3" fill="#B8860B"/>
+        <!-- Mèches sur les côtés -->
+        <path d="M -14 -52 Q -18 -48 -16 -40" stroke="#4A2511" stroke-width="3" fill="none"/>
+        <path d="M 14 -52 Q 18 -48 16 -40" stroke="#4A2511" stroke-width="3" fill="none"/>
+
+        <!-- Yeux expressifs -->
+        <ellipse cx="-5" cy="-49" rx="2.5" ry="3.5" fill="#2C1810"/>
+        <ellipse cx="5" cy="-49" rx="2.5" ry="3.5" fill="#2C1810"/>
+        <circle cx="-5" cy="-50" r="1" fill="white"/>
+        <circle cx="5" cy="-50" r="1" fill="white"/>
+
+        <!-- Cils -->
+        <path d="M -7 -52 L -8 -54" stroke="#2C1810" stroke-width="0.8"/>
+        <path d="M -3 -52 L -3 -54" stroke="#2C1810" stroke-width="0.8"/>
+        <path d="M 3 -52 L 3 -54" stroke="#2C1810" stroke-width="0.8"/>
+        <path d="M 7 -52 L 8 -54" stroke="#2C1810" stroke-width="0.8"/>
+
+        <!-- Sourcils arqués -->
+        <path d="M -9 -54 Q -5 -56 -1 -54.5" stroke="#4A2511" stroke-width="1.2" fill="none"/>
+        <path d="M 1 -54.5 Q 5 -56 9 -54" stroke="#4A2511" stroke-width="1.2" fill="none"/>
+
+        <!-- Nez délicat -->
+        <path d="M 0 -49 L 1 -44" stroke="#E0B09A" stroke-width="1.2" fill="none"/>
+
+        <!-- Lèvres rouges souriantes -->
+        <path d="M -4 -40 Q 0 -38 4 -40" stroke="#8B0000" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M -3 -40 Q 0 -39.5 3 -40" fill="#DC143C" opacity="0.6"/>
+
+        <!-- Fard à joues -->
+        <ellipse cx="-8" cy="-44" rx="3" ry="2" fill="#FFB6C1" opacity="0.4"/>
+        <ellipse cx="8" cy="-44" rx="3" ry="2" fill="#FFB6C1" opacity="0.4"/>
+      </g>
+
+      <!-- Bras gauche sur l'épaule de l'homme -->
+      <g>
+        <path d="M -18 -10 Q -35 -8 -48 -5"
+              stroke="url(#skin-woman)" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <!-- Main délicate -->
+        <ellipse cx="-52" cy="-5" rx="5" ry="7" fill="url(#skin-woman)" transform="rotate(-20 -52 -5)"/>
+        <!-- Bracelet -->
+        <ellipse cx="-42" cy="-7" rx="4" ry="3" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+        <circle cx="-42" cy="-9" r="1.5" fill="#DC143C"/>
+      </g>
+
+      <!-- Bras droit levé (tenant la main de l'homme) -->
+      <g>
+        <path d="M 18 -12 Q 38 -18 52 -22"
+              stroke="url(#skin-woman)" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <!-- Main délicate -->
+        <ellipse cx="56" cy="-22" rx="5" ry="7" fill="url(#skin-woman)" transform="rotate(10 56 -22)"/>
+        <!-- Bracelet -->
+        <ellipse cx="47" cy="-20" rx="4" ry="3" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+        <circle cx="47" cy="-22" r="1.5" fill="#DC143C"/>
+      </g>
+    </g>
+
+    <!-- Connexion des mains en haut -->
+    <line x1="-92" y1="-22" x2="-16" y2="-22" stroke="url(#skin-man)" stroke-width="2" opacity="0.7"/>
+  </g>
+
+  <!-- Notes de musique flottantes -->
+  <g fill="#FFD700" opacity="0.7">
+    <text x="60" y="90" font-family="serif" font-size="32" font-weight="bold">♪</text>
+    <text x="330" y="110" font-family="serif" font-size="28" font-weight="bold">♫</text>
+    <text x="90" y="210" font-family="serif" font-size="22" font-weight="bold">♪</text>
+    <text x="320" y="200" font-family="serif" font-size="30" font-weight="bold">♬</text>
+    <text x="50" y="160" font-family="serif" font-size="20" font-weight="bold">♩</text>
+  </g>
+
+  <!-- Étoiles brillantes -->
+  <g fill="#FFD700" opacity="0.8">
+    <circle cx="100" cy="50" r="2"/>
+    <circle cx="300" cy="70" r="3"/>
+    <circle cx="150" cy="45" r="1.5"/>
+    <circle cx="320" cy="50" r="2.5"/>
+    <circle cx="80" cy="100" r="1.5"/>
+    <circle cx="340" cy="150" r="2"/>
+  </g>
+
+  <!-- Texte -->
+  <text x="200" y="285" font-family="Arial, sans-serif" font-size="22" font-weight="bold"
+        fill="white" text-anchor="middle" opacity="0.95">Danse de Salon</text>
+</svg>

@@ -1,0 +1,629 @@
+/**
+ * SatisfactionModal Styles
+ * Modal de questionnaire de satisfaction post-prestation
+ *
+ * GlamGo - Marrakech
+ * @since 2025-11-28
+ */
+
+// Variables
+$primary-color: #e91e63;
+$primary-hover: #c2185b;
+$success-color: #4caf50;
+$error-color: #f44336;
+$text-color: #333;
+$text-light: #666;
+$border-color: #ddd;
+$bg-light: #f8f9fa;
+$star-color: #ffc107;
+$star-empty: #e0e0e0;
+
+// Overlay
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+// Modal principal
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Header
+.header {
+  background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+  color: white;
+  padding: 1rem;
+  position: relative;
+  text-align: center;
+
+  h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.8rem;
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+// Stepper
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background: $bg-light;
+  border-bottom: 1px solid $border-color;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.stepNumber {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: $border-color;
+  color: $text-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.3s;
+
+  .active & {
+    background: $primary-color;
+    color: white;
+  }
+
+  .completed & {
+    background: $success-color;
+    color: white;
+  }
+}
+
+.stepLabel {
+  font-size: 0.7rem;
+  color: $text-light;
+  font-weight: 500;
+
+  .active & {
+    color: $primary-color;
+    font-weight: 600;
+  }
+
+  .completed & {
+    color: $success-color;
+  }
+}
+
+.stepLine {
+  width: 30px;
+  height: 2px;
+  background: $border-color;
+  margin: 0 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+// Contenu
+.content {
+  padding: 1rem;
+}
+
+.stepContent {
+  h3 {
+    text-align: center;
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: $text-color;
+    font-weight: 500;
+  }
+}
+
+// Star Rating
+.starRating {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+
+  &.large .star {
+    font-size: 2rem;
+  }
+
+  &.small .star {
+    font-size: 1.25rem;
+  }
+
+  &.normal .star {
+    font-size: 1.5rem;
+  }
+}
+
+.star {
+  color: $star-empty;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+
+  &.filled {
+    color: $star-color;
+  }
+
+  &:hover:not(.disabled) {
+    transform: scale(1.2);
+  }
+
+  &.disabled {
+    cursor: default;
+  }
+}
+
+.ratingContainer {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.ratingLabel {
+  margin-top: 0.5rem;
+  color: $text-light;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+// Questions
+.question {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: $text-color;
+    font-size: 0.9rem;
+  }
+}
+
+.radioGroup {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.radioBtn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid $border-color;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+    font-weight: 500;
+  }
+}
+
+.radioIcon {
+  font-weight: bold;
+}
+
+// Textarea
+.textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 70px;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+
+  &::placeholder {
+    color: #aaa;
+  }
+}
+
+.charCount {
+  display: block;
+  text-align: right;
+  font-size: 0.8rem;
+  color: $text-light;
+  margin-top: 0.25rem;
+}
+
+// File input
+.fileInput {
+  width: 100%;
+  padding: 0.5rem;
+  border: 2px dashed $border-color;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $primary-color;
+  }
+}
+
+.photoList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.photoItem {
+  background: $bg-light;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.removePhoto {
+  background: none;
+  border: none;
+  color: $error-color;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+// Boutons
+.stepActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btnBack {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 2px solid $border-color;
+  border-radius: 6px;
+  background: white;
+  color: $text-color;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: $text-light;
+    background: $bg-light;
+  }
+}
+
+.btnNext {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: $primary-color;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: $primary-hover;
+  }
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+}
+
+.btnSubmit {
+  @extend .btnNext;
+  flex: 2;
+  background: $success-color;
+
+  &:hover:not(:disabled) {
+    background: darken($success-color, 10%);
+  }
+}
+
+// Erreur
+.error {
+  background: rgba($error-color, 0.1);
+  color: $error-color;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+// Resume commande
+.orderSummary {
+  background: $bg-light;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid $border-color;
+
+  h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    color: $text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.summaryItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+
+  span:first-child {
+    color: $text-light;
+  }
+
+  span:last-child {
+    font-weight: 500;
+    color: $text-color;
+  }
+}
+
+// Section Pourboire
+.tipSection {
+  background: linear-gradient(135deg, #fff9f0 0%, #fff5e6 100%);
+  border: 1px solid #ffd699;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.tipHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+
+  label {
+    margin-bottom: 0.15rem;
+    font-weight: 600;
+    color: $text-color;
+  }
+}
+
+.tipIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.tipHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: $text-light;
+}
+
+.tipOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tipOption {
+  flex: 1;
+  min-width: 70px;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: $text-color;
+  transition: all 0.2s;
+  text-align: center;
+
+  &:hover {
+    border-color: #ffb347;
+    background: #fff9f0;
+  }
+
+  &.selected {
+    border-color: #ff9800;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #e65100;
+    font-weight: 600;
+  }
+
+  &.tipCustom {
+    flex: 0 0 auto;
+    min-width: 60px;
+  }
+}
+
+.customTipContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.customTipInput {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #ff9800;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  background: white;
+
+  &:focus {
+    border-color: #e65100;
+    box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
+  }
+
+  &::placeholder {
+    color: #bbb;
+    font-weight: 400;
+  }
+
+  // Masquer les spinners du champ number
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+.currency {
+  font-weight: 600;
+  color: $text-light;
+  font-size: 0.9rem;
+}
+
+.tipConfirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 8px;
+  border: 1px solid #81c784;
+}
+
+.tipAmount {
+  font-size: 1rem;
+  color: #2e7d32;
+
+  strong {
+    font-size: 1.1rem;
+  }
+}
+
+.tipMessage {
+  font-size: 0.75rem;
+  color: #558b2f;
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .modal {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .header {
+    padding: 1rem;
+
+    h2 {
+      font-size: 1.2rem;
+    }
+  }
+
+  .stepper {
+    padding: 1rem 0.5rem;
+  }
+
+  .stepLabel {
+    font-size: 0.7rem;
+  }
+
+  .stepLine {
+    width: 20px;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .starRating.large .star {
+    font-size: 2rem;
+  }
+
+  .radioGroup {
+    flex-direction: column;
+  }
+}

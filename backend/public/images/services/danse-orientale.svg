@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <!-- Fond dégradé élégant -->
+  <defs>
+    <linearGradient id="bg-oriental" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4789;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D946A6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6B9D;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skin-tone" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4A574;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C89968;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="costume-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="spotlight">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Fond -->
+  <rect width="400" height="300" fill="url(#bg-oriental)"/>
+
+  <!-- Projecteur -->
+  <ellipse cx="200" cy="150" rx="180" ry="140" fill="url(#spotlight)"/>
+
+  <!-- Motifs orientaux décoratifs -->
+  <g opacity="0.15" stroke="white" fill="none" stroke-width="2">
+    <circle cx="60" cy="60" r="25"/>
+    <circle cx="340" cy="240" r="30"/>
+    <path d="M 200 30 Q 215 45 200 60 Q 185 45 200 30"/>
+    <path d="M 350 180 Q 365 195 350 210 Q 335 195 350 180"/>
+  </g>
+
+  <!-- Danseuse orientale détaillée -->
+  <g transform="translate(200, 155)">
+
+    <!-- Jambe gauche -->
+    <g>
+      <path d="M -12 35 Q -15 50 -18 70 L -22 100"
+            stroke="url(#skin-tone)" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <ellipse cx="-22" cy="103" rx="10" ry="4" fill="#B8860B"/>
+    </g>
+
+    <!-- Jambe droite (pliée) -->
+    <g>
+      <path d="M 8 35 Q 12 50 10 70 L 8 95"
+            stroke="url(#skin-tone)" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <ellipse cx="8" cy="98" rx="10" ry="4" fill="#B8860B"/>
+    </g>
+
+    <!-- Jupe fluide avec détails -->
+    <g opacity="0.85">
+      <path d="M -28 15 Q -45 25 -55 45 Q -50 50 -40 48 L -20 30 L -10 40 L 0 25 L 10 40 L 20 30 L 40 48 Q 50 50 55 45 Q 45 25 28 15 L 0 20 Z"
+            fill="url(#costume-gold)"/>
+      <!-- Paillettes sur la jupe -->
+      <circle cx="-35" cy="35" r="2" fill="#FFD700"/>
+      <circle cx="-15" cy="32" r="2" fill="#FFD700"/>
+      <circle cx="15" cy="32" r="2" fill="#FFD700"/>
+      <circle cx="35" cy="35" r="2" fill="#FFD700"/>
+      <circle cx="0" cy="28" r="2" fill="#FFD700"/>
+    </g>
+
+    <!-- Torse et bustier -->
+    <g>
+      <!-- Taille fine -->
+      <path d="M -15 0 L -18 15 L -20 30 L 20 30 L 18 15 L 15 0 Z" fill="url(#skin-tone)"/>
+      <!-- Bustier doré orné -->
+      <path d="M -20 -10 Q -22 -5 -20 0 L -15 0 L -10 -5 L 0 -3 L 10 -5 L 15 0 L 20 0 Q 22 -5 20 -10 L 15 -18 Q 10 -22 0 -22 Q -10 -22 -15 -18 Z"
+            fill="url(#costume-gold)"/>
+      <!-- Ornements sur le bustier -->
+      <circle cx="0" cy="-10" r="3" fill="#DC143C"/>
+      <circle cx="-8" cy="-8" r="2" fill="#FFD700"/>
+      <circle cx="8" cy="-8" r="2" fill="#FFD700"/>
+      <!-- Bretelles -->
+      <path d="M -12 -18 L -10 -35" stroke="url(#costume-gold)" stroke-width="4"/>
+      <path d="M 12 -18 L 10 -35" stroke="url(#costume-gold)" stroke-width="4"/>
+    </g>
+
+    <!-- Ceinture ornée de pièces -->
+    <g>
+      <ellipse cx="0" cy="30" rx="22" ry="5" fill="#B8860B"/>
+      <circle cx="-15" cy="30" r="3" fill="#FFD700"/>
+      <circle cx="-8" cy="29" r="3" fill="#FFD700"/>
+      <circle cx="0" cy="28" r="3" fill="#FFD700"/>
+      <circle cx="8" cy="29" r="3" fill="#FFD700"/>
+      <circle cx="15" cy="30" r="3" fill="#FFD700"/>
+      <!-- Perles qui pendent -->
+      <circle cx="-10" cy="35" r="1.5" fill="#FFD700"/>
+      <circle cx="0" cy="36" r="1.5" fill="#FFD700"/>
+      <circle cx="10" cy="35" r="1.5" fill="#FFD700"/>
+    </g>
+
+    <!-- Cou -->
+    <rect x="-6" y="-35" width="12" height="13" fill="url(#skin-tone)" rx="2"/>
+
+    <!-- Tête avec détails -->
+    <g>
+      <!-- Visage -->
+      <ellipse cx="0" cy="-50" rx="16" ry="20" fill="url(#skin-tone)"/>
+      <!-- Oreille gauche -->
+      <ellipse cx="-15" cy="-48" rx="4" ry="6" fill="url(#skin-tone)"/>
+      <!-- Boucle d'oreille -->
+      <circle cx="-15" cy="-45" r="3" fill="#FFD700" opacity="0.8"/>
+      <!-- Oreille droite -->
+      <ellipse cx="15" cy="-48" rx="4" ry="6" fill="url(#skin-tone)"/>
+      <!-- Boucle d'oreille -->
+      <circle cx="15" cy="-45" r="3" fill="#FFD700" opacity="0.8"/>
+
+      <!-- Cheveux noirs longs -->
+      <ellipse cx="0" cy="-60" rx="18" ry="12" fill="#1a0a00"/>
+      <path d="M -16 -55 Q -20 -45 -18 -35 L -15 -35 Q -17 -45 -16 -55" fill="#1a0a00"/>
+      <path d="M 16 -55 Q 20 -45 18 -35 L 15 -35 Q 17 -45 16 -55" fill="#1a0a00"/>
+      <!-- Raie centrale -->
+      <path d="M 0 -62 L 0 -55" stroke="#0a0500" stroke-width="1"/>
+
+      <!-- Yeux -->
+      <ellipse cx="-6" cy="-52" rx="2" ry="3" fill="#1a0a00"/>
+      <ellipse cx="6" cy="-52" rx="2" ry="3" fill="#1a0a00"/>
+      <circle cx="-6" cy="-53" r="0.8" fill="white"/>
+      <circle cx="6" cy="-53" r="0.8" fill="white"/>
+
+      <!-- Sourcils -->
+      <path d="M -10 -57 Q -6 -58 -2 -57" stroke="#1a0a00" stroke-width="1" fill="none"/>
+      <path d="M 2 -57 Q 6 -58 10 -57" stroke="#1a0a00" stroke-width="1" fill="none"/>
+
+      <!-- Nez -->
+      <path d="M 0 -52 L 1 -46" stroke="url(#skin-tone)" stroke-width="1.5" fill="none"/>
+
+      <!-- Bouche souriante -->
+      <path d="M -4 -43 Q 0 -41 4 -43" stroke="#8B4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Voile sur la tête -->
+      <path d="M -18 -58 Q -25 -52 -28 -40 L -26 -38 Q -23 -48 -18 -56" fill="#FF1493" opacity="0.6"/>
+      <!-- Bijou de front -->
+      <circle cx="0" cy="-60" r="2.5" fill="#FFD700"/>
+      <circle cx="0" cy="-60" r="1" fill="#DC143C"/>
+    </g>
+
+    <!-- Bras gauche levé avec bracelet -->
+    <g>
+      <path d="M -12 -20 Q -35 -30 -48 -55"
+            stroke="url(#skin-tone)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <!-- Main -->
+      <ellipse cx="-50" cy="-58" rx="6" ry="8" fill="url(#skin-tone)" transform="rotate(-20 -50 -58)"/>
+      <!-- Doigts -->
+      <path d="M -50 -62 L -52 -68" stroke="url(#skin-tone)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M -48 -64 L -49 -70" stroke="url(#skin-tone)" stroke-width="2" stroke-linecap="round"/>
+      <!-- Bracelet -->
+      <ellipse cx="-42" cy="-48" rx="6" ry="4" fill="none" stroke="#FFD700" stroke-width="2"/>
+    </g>
+
+    <!-- Bras droit tendu avec bracelet -->
+    <g>
+      <path d="M 12 -15 Q 35 -8 58 -5"
+            stroke="url(#skin-tone)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <!-- Main -->
+      <ellipse cx="62" cy="-5" rx="8" ry="6" fill="url(#skin-tone)" transform="rotate(10 62 -5)"/>
+      <!-- Doigts -->
+      <path d="M 68 -6 L 74 -8" stroke="url(#skin-tone)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 68 -4 L 74 -4" stroke="url(#skin-tone)" stroke-width="2" stroke-linecap="round"/>
+      <!-- Bracelet -->
+      <ellipse cx="52" cy="-6" rx="6" ry="4" fill="none" stroke="#FFD700" stroke-width="2"/>
+    </g>
+
+    <!-- Voile qui flotte -->
+    <g opacity="0.5">
+      <path d="M -45 -50 Q -70 -45 -85 -30 Q -90 -15 -85 0 Q -75 -10 -65 -20 Q -55 -35 -45 -48"
+            fill="#FF69B4"/>
+      <path d="M 55 -2 Q 75 5 90 15 Q 95 25 90 35 Q 80 25 70 15 Q 60 5 55 -1"
+            fill="#FFB6C1"/>
+    </g>
+  </g>
+
+  <!-- Étoiles décoratives dorées -->
+  <g fill="#FFD700" opacity="0.7">
+    <circle cx="80" cy="80" r="2"/>
+    <circle cx="320" cy="90" r="3"/>
+    <circle cx="100" cy="200" r="2"/>
+    <circle cx="330" cy="210" r="2"/>
+    <circle cx="60" cy="150" r="1.5"/>
+  </g>
+
+  <!-- Texte -->
+  <text x="200" y="285" font-family="Arial, sans-serif" font-size="22" font-weight="bold"
+        fill="white" text-anchor="middle" opacity="0.95">Danse Orientale</text>
+</svg>

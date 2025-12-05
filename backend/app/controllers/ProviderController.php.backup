@@ -1,0 +1,155 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Models\Provider;
+use App\Helpers\JWT;
+use App\Helpers\Password;
+
+class ProviderController extends Controller
+{
+    private Provider $providerModel;
+
+    public function __construct()
+    {
+        $this->providerModel = new Provider();
+    }
+
+    /**
+     * Connexion d'un prestataire
+     */
+    public function login(): void
+    {
+        $data = $this->getJsonInput();
+
+        $errors = $this->validate($data, [
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if (!empty($errors)) {
+            $this->error('Erreurs de validation', 422, $errors);
+        }
+
+        $provider = $this->providerModel->findByEmail($data['email']);
+
+        if (!$provider || !Password::verify($data['password'], $provider['password'])) {
+            $this->error('Email ou mot de passe incorrect', 401);
+        }
+
+        // Générer le token JWT
+        $token = JWT::encode([
+            'user_id' => $provider['id'],
+            'user_type' => 'provider',
+            'email' => $provider['email']
+        ]);
+
+        unset($provider['password']);
+
+        $this->success([
+            'token' => $token,
+            'provider' => $provider
+        ], 'Connexion réussie');
+    }
+
+    /**
+     * Inscription d'un prestataire
+     */
+    public function register(): void
+    {
+        $data = $this->getJsonInput();
+
+        $errors = $this->validate($data, [
+            'email' => 'required|email',
+            'password' => 'required|min:6',
+            'first_name' => 'required|min:2',
+            'last_name' => 'required|min:2',
+            'phone' => 'required'
+        ]);
+
+        if (!empty($errors)) {
+            $this->error('Erreurs de validation', 422, $errors);
+        }
+
+        // Vérifier si l'email existe déjà
+        if ($this->providerModel->findByEmail($data['email'])) {
+            $this->error('Cet email est déjà utilisé', 409);
+        }
+
+        // Créer le prestataire
+        $providerId = $this->providerModel->create([
+            'email' => $data['email'],
+            'password' => Password::hash($data['password']),
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'phone' => $data['phone'],
+            'is_verified' => 0,
+            'is_available' => 0
+        ]);
+
+        // Générer le token JWT
+        $token = JWT::encode([
+            'user_id' => $providerId,
+            'user_type' => 'provider',
+            'email' => $data['email']
+        ]);
+
+        $provider = $this->providerModel->find($providerId);
+        unset($provider['password']);
+
+        $this->success([
+            'token' => $token,
+            'provider' => $provider
+        ], 'Inscription réussie', 201);
+    }
+
+    /**
+     * Récupère le profil du prestataire
+     */
+    public function profile(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $provider = $this->providerModel->find($providerId);
+
+        if (!$provider) {
+            $this->error('Prestataire non trouvé', 404);
+        }
+
+        unset($provider['password']);
+
+        // Ajouter les services
+        $provider['services'] = $this->providerModel->getServices($providerId);
+
+        $this->success($provider);
+    }
+
+    /**
+     * Met à jour le profil du prestataire
+     */
+    public function updateProfile(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        $allowedFields = ['first_name', 'last_name', 'phone', 'is_available'];
+        $updateData = [];
+
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+            }
+        }
+
+        if (empty($updateData)) {
+            $this->error('Aucune donnée à mettre à jour', 400);
+        }
+
+        $this->providerModel->update($providerId, $updateData);
+
+        $provider = $this->providerModel->find($providerId);
+        unset($provider['password']);
+
+        $this->success($provider, 'Profil mis à jour');
+    }
+}

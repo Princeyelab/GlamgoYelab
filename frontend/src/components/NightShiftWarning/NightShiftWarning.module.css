@@ -1,0 +1,260 @@
+/* NightShiftWarning.module.css */
+
+/* Container principal */
+.nightWarning {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #0f3460;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #e8e8e8;
+}
+
+.nightWarning.highSeverity {
+  border-color: #e94560;
+  box-shadow: 0 0 20px rgba(233, 69, 96, 0.2);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.iconContainer {
+  background: rgba(255, 215, 0, 0.15);
+  padding: 0.5rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moonIcon {
+  font-size: 1.5rem;
+}
+
+.headerText {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* Contenu */
+.content {
+  padding-left: 2.75rem;
+}
+
+.explanation {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+/* Badge plusieurs nuits */
+.multiNightBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.4);
+  border-radius: 20px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+  color: #ff6b8a;
+  margin-bottom: 0.75rem;
+}
+
+.badgeIcon {
+  font-size: 0.9rem;
+}
+
+/* Périodes nocturnes */
+.periodsSection {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.periodsTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.periodsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.periodItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  padding: 0.25rem 0;
+}
+
+.periodIcon {
+  font-size: 0.8rem;
+}
+
+/* Affichage des frais */
+.feeDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.feeLabel {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.feeAmount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+/* Info box */
+.infoBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+}
+
+.infoIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.infoText {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* Mode compact */
+.compactWarning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #0f3460;
+  border-radius: 20px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+  color: #ffd700;
+}
+
+.compactIcon {
+  font-size: 0.9rem;
+}
+
+.compactText {
+  font-weight: 500;
+}
+
+.nightsBadge {
+  background: rgba(233, 69, 96, 0.3);
+  border-radius: 10px;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.7rem;
+  color: #ff6b8a;
+  margin-left: 0.25rem;
+}
+
+/* Badge inline */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: #ffd700;
+}
+
+.badgeMoon {
+  font-size: 0.8rem;
+}
+
+.badgeNights {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+/* Indicateur simple */
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.indicator.night {
+  background: rgba(26, 26, 46, 0.8);
+  color: #ffd700;
+  border: 1px solid #0f3460;
+}
+
+.indicator.day {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .nightWarning {
+    padding: 0.875rem;
+  }
+
+  .content {
+    padding-left: 0;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .feeDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}

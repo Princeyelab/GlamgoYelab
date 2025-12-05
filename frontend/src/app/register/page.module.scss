@@ -1,0 +1,530 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// ============================================
+// Page Inscription - Mobile-First Responsive
+// ============================================
+
+.registerPage {
+  min-height: calc(100vh - 80px);
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  @include flex-center;
+  overflow-x: hidden;
+
+  // Mobile (base)
+  padding: $spacing-sm;
+
+  @include tablet-up {
+    padding: $spacing-md;
+  }
+
+  @include desktop {
+    padding: $spacing-lg;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  @include tablet-up {
+    max-width: 500px;
+  }
+}
+
+.formCard {
+  background: $white;
+  box-shadow: $shadow-2xl;
+
+  // Mobile (base)
+  border-radius: $radius-xl;
+  padding: $spacing-md;
+
+  @include tablet-up {
+    border-radius: $radius-2xl;
+    padding: $spacing-lg;
+  }
+}
+
+.backLink {
+  // Mobile (base)
+  margin-bottom: $spacing-sm;
+
+  @include tablet-up {
+    margin-bottom: $spacing-md;
+  }
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  color: $gray-600;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: all $transition-normal;
+  border-radius: $radius-md;
+
+  // Mobile (base)
+  gap: 2px;
+  font-size: $font-size-xs;
+  padding: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-xs;
+    font-size: $font-size-sm;
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+    transform: translateX(-2px);
+
+    svg {
+      transform: translateX(-2px);
+    }
+  }
+
+  svg {
+    transition: transform $transition-normal;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.title {
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+  text-align: center;
+
+  // Mobile (base)
+  font-size: $font-size-xl;
+
+  @include tablet-up {
+    font-size: $font-size-2xl;
+  }
+}
+
+.subtitle {
+  color: $gray-600;
+  text-align: center;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+  margin-bottom: $spacing-sm;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-md;
+  }
+}
+
+.successAlert {
+  background-color: rgba(#10b981, 0.1);
+  border: 1px solid #10b981;
+  border-radius: $radius-md;
+  color: #10b981;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.errorAlert {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.formRow {
+  display: grid;
+  gap: $spacing-sm;
+
+  // Mobile (base) - stack vertically
+  grid-template-columns: 1fr;
+
+  @include tablet-up {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  font-weight: $font-weight-medium;
+  color: $gray-800;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.required {
+  color: $error;
+}
+
+.input {
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+  width: 100%;
+  box-sizing: border-box;
+
+  // Mobile (base)
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-sm;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &.inputError {
+    border-color: $error;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($error, 0.1);
+    }
+  }
+}
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .input {
+    padding-right: 45px;
+    width: 100%;
+    flex: 1;
+  }
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs;
+  color: $gray-500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &:focus {
+    outline: none;
+    color: $primary-color;
+  }
+}
+
+.error {
+  font-size: $font-size-xs;
+  color: $error;
+  margin-top: -$spacing-xs;
+}
+
+.footer {
+  margin-top: $spacing-sm;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+.link {
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+.hint {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: -$spacing-xs;
+  font-style: italic;
+}
+
+.divider {
+  margin: $spacing-xs 0;
+  color: $gray-400;
+}
+
+.termsSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  // Mobile (base)
+  margin: $spacing-xs 0;
+
+  @include tablet-up {
+    margin: $spacing-sm 0;
+  }
+}
+
+.termsLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  cursor: pointer;
+  user-select: none;
+}
+
+.termsCheckbox {
+  cursor: pointer;
+  accent-color: $primary-color;
+  margin-top: 2px;
+  flex-shrink: 0;
+
+  // Mobile (base)
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+
+  @include tablet-up {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+}
+
+.termsText {
+  color: $gray-700;
+  line-height: 1.5;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.termsLink {
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-weight: $font-weight-semibold;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// Indicateur d'étapes (4 étapes)
+.stepsIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  // Mobile (base)
+  margin-bottom: $spacing-md;
+  padding: 0;
+
+  @include tablet-up {
+    margin-bottom: $spacing-lg;
+    padding: 0 $spacing-sm;
+  }
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+
+  // Mobile (base)
+  gap: 2px;
+
+  @include tablet-up {
+    gap: $spacing-xs;
+  }
+
+  .stepNumber {
+    border-radius: $radius-full;
+    background: $gray-200;
+    color: $gray-500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $font-weight-semibold;
+    transition: all $transition-normal;
+
+    // Mobile (base)
+    width: 28px;
+    height: 28px;
+    font-size: $font-size-xs;
+
+    @include tablet-up {
+      width: 32px;
+      height: 32px;
+      font-size: $font-size-sm;
+    }
+  }
+
+  .stepLabel {
+    color: $gray-500;
+    font-weight: $font-weight-medium;
+    transition: color $transition-normal;
+    text-align: center;
+
+    // Mobile (base) - hide on mobile
+    display: none;
+
+    @include tablet-up {
+      display: block;
+      font-size: $font-size-xs;
+    }
+  }
+
+  &.stepActive {
+    .stepNumber {
+      background: $primary-color;
+      color: $white;
+    }
+
+    .stepLabel {
+      color: $primary-color;
+    }
+  }
+
+  &.stepCompleted {
+    .stepNumber {
+      background: $success;
+      color: $white;
+    }
+
+    .stepLabel {
+      color: $success;
+    }
+  }
+}
+
+.stepLine {
+  flex: 1;
+  height: 2px;
+  background: $gray-200;
+
+  // Mobile (base)
+  margin: 0 4px;
+  max-width: 20px;
+  min-width: 10px;
+
+  @include tablet-up {
+    margin: 0 $spacing-xs;
+    max-width: 40px;
+  }
+}
+
+// Boutons en ligne (Retour / Continuer)
+.buttonRow {
+  display: flex;
+  margin-top: $spacing-md;
+
+  // Mobile (base) - stack on mobile
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  @include tablet-up {
+    flex-direction: row;
+    gap: $spacing-sm;
+  }
+
+  > button {
+    flex: 1;
+  }
+}
+
+// Étape paiement
+.paymentStep {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.paymentInfo {
+  background: rgba($info, 0.1);
+  border: 1px solid $info;
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+    text-align: center;
+    line-height: 1.5;
+  }
+}
+
+// Étape préférences
+.preferencesIntro {
+  text-align: center;
+  margin-bottom: $spacing-sm;
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+}

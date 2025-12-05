@@ -1,0 +1,170 @@
+@use '../../styles/variables' as *;
+
+.notificationDropdown {
+  position: relative;
+}
+
+.notificationButton {
+  position: relative;
+  background: none;
+  border: none;
+  padding: $spacing-xs;
+  cursor: pointer;
+  color: $white;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: rgba($white, 0.8);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: $error;
+  color: $white;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + $spacing-sm);
+  right: 0;
+  width: 380px;
+  background: $white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 1000;
+  overflow: hidden;
+
+  @media (max-width: 480px) {
+    width: calc(100vw - 32px);
+    right: -100px;
+  }
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md;
+  border-bottom: 1px solid $gray-200;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    margin: 0;
+    color: $black;
+  }
+}
+
+.markAllRead {
+  background: none;
+  border: none;
+  color: $primary-color;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.dropdownContent {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.loading,
+.empty {
+  padding: $spacing-lg;
+  text-align: center;
+  color: $gray-500;
+  font-size: $font-size-sm;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: flex-start;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $gray-100;
+  cursor: pointer;
+  transition: background-color $transition-normal;
+
+  &:hover {
+    background-color: $gray-50;
+  }
+
+  &.unread {
+    background-color: rgba($secondary-color, 0.1);
+
+    &:hover {
+      background-color: rgba($secondary-color, 0.15);
+    }
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.icon {
+  font-size: $font-size-lg;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.notificationContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: 2px;
+}
+
+.notificationMessage {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notificationTime {
+  font-size: 10px;
+  color: $gray-500;
+}
+
+.dropdownFooter {
+  padding: $spacing-sm $spacing-md;
+  border-top: 1px solid $gray-200;
+  text-align: center;
+
+  a {
+    color: $primary-color;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

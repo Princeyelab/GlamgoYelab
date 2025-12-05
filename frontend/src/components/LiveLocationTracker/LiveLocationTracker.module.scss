@@ -1,0 +1,298 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.liveLocationTracker {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, $secondary-color, darken($secondary-color, 10%));
+  padding: $spacing-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-md;
+
+  @include md {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.headerContent {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  flex: 1;
+}
+
+.icon {
+  font-size: $font-size-3xl;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $white;
+  margin: 0 0 $spacing-xs 0;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: rgba($white, 0.9);
+  margin: 0;
+}
+
+.actionButton {
+  flex-shrink: 0;
+
+  @include md {
+    width: 100%;
+  }
+}
+
+.error {
+  background: rgba($error, 0.1);
+  border: 2px solid $error;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin: $spacing-md;
+  color: $error;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.trackingInfo {
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: linear-gradient(135deg, $success, darken($success, 10%));
+  color: $white;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  align-self: flex-start;
+  box-shadow: $shadow-md;
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  background: $white;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-md;
+}
+
+.statItem {
+  background: $gray-50;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  border: 2px solid $gray-200;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  text-transform: uppercase;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  font-size: $font-size-base;
+  color: $gray-900;
+  font-weight: $font-weight-bold;
+  font-family: monospace;
+}
+
+.info {
+  background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
+  border: 2px solid rgba($secondary-color, 0.2);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+    line-height: 1.6;
+  }
+}
+
+.instructions {
+  padding: $spacing-lg;
+  background: $gray-50;
+
+  h4 {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin: 0 0 $spacing-md 0;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    li {
+      font-size: $font-size-sm;
+      color: $gray-700;
+      line-height: 1.6;
+    }
+  }
+}
+
+// Section client et navigation
+.clientSection {
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($primary-color, 0.05));
+  border-top: 2px solid $gray-200;
+}
+
+.clientTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $gray-900;
+  margin: 0 0 $spacing-md 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.clientInfo {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-sm;
+}
+
+.clientAddress,
+.clientCoords {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+
+  strong {
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+
+  span {
+    font-size: $font-size-base;
+    color: $gray-900;
+  }
+}
+
+.coords {
+  font-family: monospace;
+  font-size: $font-size-sm !important;
+  color: $gray-700 !important;
+}
+
+.distanceInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-200;
+}
+
+.distanceItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $radius-md;
+}
+
+.distanceIcon {
+  font-size: $font-size-2xl;
+}
+
+.distanceLabel {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  margin-bottom: $spacing-xs;
+}
+
+.distanceValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.navigationButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-sm;
+}
+
+.navButton {
+  padding: $spacing-md;
+  background: $white;
+  border: 2px solid $primary-color;
+  color: $primary-color;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+
+  &:hover {
+    background: $primary-color;
+    color: $white;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}

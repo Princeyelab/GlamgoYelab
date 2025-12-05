@@ -1,0 +1,493 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// ============================================
+// Page Profil - Mobile-First Responsive
+// ============================================
+
+.profilePage {
+  min-height: calc(100vh - 80px);
+  background-color: $gray-50;
+
+  // Mobile (base)
+  padding: $spacing-md 0;
+
+  @include tablet-up {
+    padding: $spacing-lg 0;
+  }
+
+  @include desktop {
+    padding: $spacing-xl 0;
+  }
+}
+
+.header {
+  text-align: center;
+
+  // Mobile (base)
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    margin-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.title {
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+
+  // Mobile (base)
+  font-size: $font-size-xl;
+
+  @include tablet-up {
+    font-size: $font-size-2xl;
+  }
+
+  @include desktop {
+    font-size: $font-size-3xl;
+  }
+}
+
+.subtitle {
+  color: $gray-600;
+
+  // Mobile (base)
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    font-size: $font-size-base;
+  }
+}
+
+.error {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  text-align: center;
+
+  // Mobile (base)
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.success {
+  background-color: rgba($success, 0.1);
+  border: 1px solid $success;
+  border-radius: $radius-md;
+  color: darken($success, 20%);
+  text-align: center;
+
+  // Mobile (base)
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.loading {
+  text-align: center;
+  color: $gray-600;
+
+  // Mobile (base)
+  padding: $spacing-xl;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $gray-300;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto $spacing-md;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.profileCard {
+  background: $white;
+  box-shadow: $shadow-sm;
+
+  // Mobile (base)
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    border-radius: $radius-xl;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    padding: $spacing-xl;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid $gray-200;
+
+  // Mobile (base)
+  flex-direction: column;
+  text-align: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+
+  @include tablet-up {
+    flex-direction: row;
+    text-align: left;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-lg;
+  }
+
+  @include desktop {
+    margin-bottom: $spacing-xl;
+    padding-bottom: $spacing-lg;
+  }
+}
+
+.avatarWrapper {
+  overflow: hidden;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+
+  // Mobile (base)
+  width: 70px;
+  height: 70px;
+
+  @include tablet-up {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+.avatar {
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $font-weight-bold;
+  color: $white;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  width: 70px;
+  height: 70px;
+  font-size: $font-size-2xl;
+
+  @include tablet-up {
+    width: 80px;
+    height: 80px;
+    font-size: $font-size-3xl;
+  }
+
+  &.avatarEditable {
+    cursor: pointer;
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+.avatarImage {
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatarInitial {
+  position: relative;
+  z-index: 1;
+}
+
+.avatarOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba($black, 0.7);
+  color: $white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 0 0 50% 50%;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  padding: 2px;
+  height: 28px;
+
+  @include tablet-up {
+    padding: $spacing-xs;
+    height: 35px;
+  }
+
+  &:hover {
+    background: rgba($black, 0.85);
+  }
+}
+
+.cameraIcon {
+  line-height: 1;
+
+  // Mobile (base)
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    font-size: $font-size-base;
+  }
+}
+
+.uploadText {
+  font-weight: $font-weight-medium;
+
+  // Mobile (base)
+  font-size: 0.55rem;
+  margin-top: 1px;
+
+  @include tablet-up {
+    font-size: 0.65rem;
+    margin-top: 2px;
+  }
+}
+
+.fileInput {
+  display: none;
+}
+
+.userInfo {
+  flex: 1;
+}
+
+.userName {
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+
+  // Mobile (base)
+  font-size: $font-size-lg;
+
+  @include tablet-up {
+    font-size: $font-size-xl;
+  }
+
+  @include desktop {
+    font-size: $font-size-2xl;
+  }
+}
+
+.userRole {
+  color: $gray-600;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.profileForm {
+  width: 100%;
+}
+
+.formGrid {
+  display: grid;
+
+  // Mobile (base)
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  @include tablet-up {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  font-weight: $font-weight-medium;
+  color: $gray-700;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.input {
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  color: $gray-900;
+  transition: all $transition-normal;
+  background: $white;
+
+  // Mobile (base)
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-sm;
+
+  @include tablet-up {
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-base;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &:disabled {
+    background-color: $gray-100;
+    color: $gray-700;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+}
+
+.formActions {
+  display: flex;
+  border-top: 1px solid $gray-200;
+
+  // Mobile (base)
+  flex-direction: column;
+  gap: $spacing-sm;
+  justify-content: stretch;
+  padding-top: $spacing-md;
+
+  @include tablet-up {
+    flex-direction: row;
+    gap: $spacing-md;
+    justify-content: flex-end;
+    padding-top: $spacing-lg;
+  }
+
+  button {
+    // Mobile (base)
+    width: 100%;
+
+    @include tablet-up {
+      width: auto;
+    }
+  }
+}
+
+.infoCards {
+  display: grid;
+
+  // Mobile (base)
+  grid-template-columns: 1fr;
+  gap: $spacing-sm;
+
+  @include tablet-up {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-md;
+  }
+
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.infoCard {
+  background: $white;
+  box-shadow: $shadow-sm;
+  text-align: center;
+  transition: all $transition-normal;
+
+  // Mobile (base)
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+
+  @include tablet-up {
+    border-radius: $radius-xl;
+    padding: $spacing-lg;
+  }
+
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+}
+
+.infoIcon {
+  margin-bottom: $spacing-sm;
+
+  // Mobile (base)
+  font-size: 1.5rem;
+
+  @include tablet-up {
+    font-size: 2rem;
+  }
+}
+
+.infoTitle {
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+
+  // Mobile (base)
+  font-size: $font-size-base;
+
+  @include tablet-up {
+    font-size: $font-size-lg;
+  }
+}
+
+.infoText {
+  color: $gray-600;
+
+  // Mobile (base)
+  font-size: $font-size-xs;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+  }
+}

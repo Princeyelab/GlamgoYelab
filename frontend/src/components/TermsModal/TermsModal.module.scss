@@ -1,0 +1,176 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: $spacing-md;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  background: $white;
+  border-radius: $radius-xl;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-2xl;
+  animation: slideUp 0.3s ease-out;
+
+  @include md {
+    max-height: 85vh;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md;
+  border-bottom: 2px solid $gray-200;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: 0;
+
+  @include md {
+    font-size: $font-size-lg;
+  }
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs;
+  color: $gray-600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  transition: all $transition-normal;
+
+  &:hover {
+    background-color: $gray-100;
+    color: $error;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.modalBody {
+  padding: $spacing-md;
+  overflow-y: auto;
+  flex: 1;
+
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $gray-100;
+    border-radius: $radius-md;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $gray-400;
+    border-radius: $radius-md;
+
+    &:hover {
+      background: $gray-500;
+    }
+  }
+}
+
+.termsText {
+  font-family: $font-family-primary;
+  font-size: $font-size-sm;
+  line-height: 1.8;
+  color: $gray-800;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+
+  @include md {
+    font-size: $font-size-xs;
+    line-height: 1.6;
+  }
+}
+
+.modalFooter {
+  padding: $spacing-md;
+  border-top: 2px solid $gray-200;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.acceptButton {
+  background: $primary-color;
+  color: $white;
+  border: none;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background: $primary-dark;
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  @include md {
+    width: 100%;
+  }
+}

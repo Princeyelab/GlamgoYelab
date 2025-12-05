@@ -1,0 +1,155 @@
+<?php
+
+/**
+ * Routes API pour GlamGo
+ */
+
+use App\Middlewares\AuthMiddleware;
+
+// =====================================================
+// Routes publiques (pas d'authentification requise)
+// =====================================================
+
+// Santé de l'API
+$router->get('/api/health', 'HealthController', 'check');
+
+// Migration (à supprimer après utilisation)
+$router->get('/api/migrate', 'MigrationController', 'run');
+$router->get('/api/debug', 'MigrationController', 'debug');
+$router->get('/api/activate-providers', 'MigrationController', 'activateProviders');
+
+// Authentification
+$router->post('/api/auth/register', 'AuthController', 'register');
+$router->post('/api/auth/login', 'AuthController', 'login');
+$router->post('/api/auth/logout', 'AuthController', 'logout');
+$router->post('/api/auth/forgot-password', 'AuthController', 'forgotPassword');
+$router->post('/api/auth/reset-password', 'AuthController', 'resetPassword');
+
+// OAuth (routes à implémenter)
+$router->get('/api/auth/google', 'OAuthController', 'redirectToGoogle');
+$router->get('/api/auth/google/callback', 'OAuthController', 'handleGoogleCallback');
+$router->get('/api/auth/facebook', 'OAuthController', 'redirectToFacebook');
+$router->get('/api/auth/facebook/callback', 'OAuthController', 'handleFacebookCallback');
+
+// Catégories et Services (consultation publique)
+$router->get('/api/categories', 'CategoryController', 'index');
+$router->get('/api/categories/{id}', 'CategoryController', 'show');
+$router->get('/api/categories/{id}/services', 'CategoryController', 'services');
+$router->get('/api/services', 'ServiceController', 'index');
+$router->get('/api/services/{id}', 'ServiceController', 'show');
+
+// =====================================================
+// Routes protégées (authentification requise)
+// =====================================================
+
+// Profil utilisateur
+$router->get('/api/user/profile', 'UserController', 'profile')
+    ->middleware([AuthMiddleware::class]);
+$router->put('/api/user/profile', 'UserController', 'updateProfile')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/user/avatar', 'UserController', 'uploadAvatar')
+    ->middleware([AuthMiddleware::class]);
+
+// Adresses
+$router->get('/api/user/addresses', 'AddressController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/user/addresses', 'AddressController', 'create')
+    ->middleware([AuthMiddleware::class]);
+$router->put('/api/user/addresses/{id}', 'AddressController', 'update')
+    ->middleware([AuthMiddleware::class]);
+$router->delete('/api/user/addresses/{id}', 'AddressController', 'delete')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/user/addresses/{id}/default', 'AddressController', 'setDefault')
+    ->middleware([AuthMiddleware::class]);
+
+// Parrainage
+$router->get('/api/user/referral-code', 'ReferralController', 'getCode')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/user/apply-referral', 'ReferralController', 'applyCode')
+    ->middleware([AuthMiddleware::class]);
+
+// Commandes
+$router->post('/api/orders', 'OrderController', 'create')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/orders', 'OrderController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/orders/{id}', 'OrderController', 'show')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/orders/{id}/cancel', 'OrderController', 'cancel')
+    ->middleware([AuthMiddleware::class]);
+
+// Évaluations
+$router->post('/api/orders/{id}/review', 'ReviewController', 'create')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/orders/{id}/review', 'ReviewController', 'getOrderReview')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/orders/{id}/can-review', 'ReviewController', 'canReview')
+    ->middleware([AuthMiddleware::class]);
+
+// Avis prestataires (public)
+$router->get('/api/providers/{id}/reviews', 'ReviewController', 'getProviderReviews');
+$router->get('/api/providers/{id}/stats', 'ReviewController', 'getProviderStats');
+
+// Géolocalisation (suivi en temps réel)
+$router->get('/api/orders/{id}/location', 'LocationController', 'getProviderLocation')
+    ->middleware([AuthMiddleware::class]);
+
+// Chat
+$router->get('/api/orders/{id}/messages', 'ChatController', 'getMessages')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/orders/{id}/messages', 'ChatController', 'sendMessage')
+    ->middleware([AuthMiddleware::class]);
+
+// Notifications utilisateur
+$router->get('/api/notifications', 'NotificationController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/notifications/{id}/read', 'NotificationController', 'markAsRead')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/notifications/read-all', 'NotificationController', 'markAllAsRead')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/notifications/unread-count', 'NotificationController', 'unreadCount')
+    ->middleware([AuthMiddleware::class]);
+
+// =====================================================
+// Routes Prestataires (à implémenter)
+// =====================================================
+
+// Profil prestataire
+$router->post('/api/provider/register', 'ProviderController', 'register');
+$router->post('/api/provider/login', 'ProviderController', 'login');
+$router->get('/api/provider/profile', 'ProviderController', 'profile')
+    ->middleware([AuthMiddleware::class]);
+$router->put('/api/provider/profile', 'ProviderController', 'updateProfile')
+    ->middleware([AuthMiddleware::class]);
+
+// Services proposés par le prestataire
+$router->get('/api/provider/services', 'ProviderServiceController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/provider/services', 'ProviderServiceController', 'add')
+    ->middleware([AuthMiddleware::class]);
+$router->delete('/api/provider/services/{id}', 'ProviderServiceController', 'remove')
+    ->middleware([AuthMiddleware::class]);
+
+// Commandes reçues par le prestataire
+$router->get('/api/provider/orders', 'ProviderOrderController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/orders/{id}/accept', 'ProviderOrderController', 'accept')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/orders/{id}/start', 'ProviderOrderController', 'start')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/orders/{id}/complete', 'ProviderOrderController', 'complete')
+    ->middleware([AuthMiddleware::class]);
+
+// Mise à jour de localisation
+$router->post('/api/provider/location', 'LocationController', 'updateLocation')
+    ->middleware([AuthMiddleware::class]);
+
+// Notifications prestataire
+$router->get('/api/provider/notifications', 'ProviderNotificationController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/notifications/{id}/read', 'ProviderNotificationController', 'markAsRead')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/notifications/read-all', 'ProviderNotificationController', 'markAllAsRead')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/provider/notifications/unread-count', 'ProviderNotificationController', 'unreadCount')
+    ->middleware([AuthMiddleware::class]);

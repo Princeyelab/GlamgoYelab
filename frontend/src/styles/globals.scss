@@ -1,0 +1,373 @@
+// ============================================
+// Styles globaux - GlamGo
+// ============================================
+
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Reset CSS
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: $font-family-primary;
+  font-size: $font-size-base;
+  line-height: 1.6;
+  color: $black;
+  background-color: $gray-100;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Headings
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: $spacing-md;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+h1 {
+  @include heading-1;
+}
+
+h2 {
+  @include heading-2;
+}
+
+h3 {
+  @include heading-3;
+}
+
+// Links
+a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+// Images
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// Buttons
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+// Lists
+ul, ol {
+  list-style: none;
+}
+
+// Container
+.container {
+  @include container;
+}
+
+// Section spacing
+.section {
+  padding: $spacing-3xl 0;
+
+  @include md {
+    padding: $spacing-2xl 0;
+  }
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: $spacing-xs; }
+.mt-2 { margin-top: $spacing-sm; }
+.mt-3 { margin-top: $spacing-md; }
+.mt-4 { margin-top: $spacing-lg; }
+.mt-5 { margin-top: $spacing-xl; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: $spacing-xs; }
+.mb-2 { margin-bottom: $spacing-sm; }
+.mb-3 { margin-bottom: $spacing-md; }
+.mb-4 { margin-bottom: $spacing-lg; }
+.mb-5 { margin-bottom: $spacing-xl; }
+
+.pt-0 { padding-top: 0; }
+.pt-1 { padding-top: $spacing-xs; }
+.pt-2 { padding-top: $spacing-sm; }
+.pt-3 { padding-top: $spacing-md; }
+.pt-4 { padding-top: $spacing-lg; }
+.pt-5 { padding-top: $spacing-xl; }
+
+.pb-0 { padding-bottom: 0; }
+.pb-1 { padding-bottom: $spacing-xs; }
+.pb-2 { padding-bottom: $spacing-sm; }
+.pb-3 { padding-bottom: $spacing-md; }
+.pb-4 { padding-bottom: $spacing-lg; }
+.pb-5 { padding-bottom: $spacing-xl; }
+
+// Loading spinner
+.spinner {
+  @include spinner;
+  margin: $spacing-xl auto;
+}
+
+// Status badges
+.badge {
+  @include badge($gray-600);
+
+  &.badge-success {
+    @include badge($success);
+  }
+
+  &.badge-warning {
+    @include badge($warning, $black);
+  }
+
+  &.badge-error {
+    @include badge($error);
+  }
+
+  &.badge-info {
+    @include badge($info);
+  }
+}
+
+// Google Places Autocomplete styles
+.pac-container {
+  border-radius: 0.5rem;
+  border: 2px solid #ff6b6b;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  margin-top: 0.25rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  z-index: 10000;
+}
+
+.pac-container::after {
+  display: none;
+}
+
+.pac-item {
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid #e9ecef;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  transition: background-color 0.3s ease;
+}
+
+.pac-item:first-child {
+  border-top: none;
+}
+
+.pac-item:hover {
+  background-color: rgba(255, 107, 107, 0.1);
+}
+
+.pac-item-selected {
+  background-color: rgba(255, 107, 107, 0.15);
+}
+
+.pac-icon {
+  margin-top: 4px;
+  margin-right: 0.25rem;
+}
+
+.pac-item-query {
+  font-weight: 600;
+  color: #212529;
+}
+
+.pac-matched {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+// ============================================
+// RTL (Right-to-Left) Support - Arabic
+// ============================================
+
+// Bouton de changement de langue flottant
+.language-switcher-floating {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  z-index: 999;
+
+  @media (max-width: 768px) {
+    bottom: 80px;
+    right: 15px;
+  }
+}
+
+// Styles RTL globaux
+body.rtl {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Noto Sans Arabic', 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  // Inverser les marges et paddings directionnels
+  .text-left {
+    text-align: right;
+  }
+
+  .text-right {
+    text-align: left;
+  }
+
+  // Bouton flottant à gauche en RTL
+  .language-switcher-floating {
+    right: auto;
+    left: 20px;
+
+    @media (max-width: 768px) {
+      left: 15px;
+    }
+  }
+
+  // Flexbox inversé
+  .flex-row {
+    flex-direction: row-reverse;
+  }
+
+  // Icons et emojis
+  .icon-left {
+    margin-left: 8px;
+    margin-right: 0;
+  }
+
+  .icon-right {
+    margin-right: 8px;
+    margin-left: 0;
+  }
+
+  // Input placeholders
+  input,
+  textarea {
+    text-align: right;
+
+    &::placeholder {
+      text-align: right;
+    }
+  }
+
+  // Select dropdowns
+  select {
+    text-align: right;
+    padding-left: 30px;
+    padding-right: 12px;
+    background-position: left 10px center;
+  }
+
+  // Boutons avec icones
+  button {
+    .btn-icon-left {
+      margin-left: 8px;
+      margin-right: 0;
+    }
+
+    .btn-icon-right {
+      margin-right: 8px;
+      margin-left: 0;
+    }
+  }
+
+  // Listes
+  ul, ol {
+    padding-right: 0;
+    padding-left: 0;
+
+    li {
+      &::before {
+        margin-left: 8px;
+        margin-right: 0;
+      }
+    }
+  }
+
+  // Cards et containers
+  .card {
+    text-align: right;
+  }
+
+  // Navigation
+  nav ul {
+    flex-direction: row-reverse;
+  }
+
+  // Badges
+  .badge {
+    margin-left: 8px;
+    margin-right: 0;
+  }
+
+  // Modals
+  .modal-close {
+    left: 16px;
+    right: auto;
+  }
+
+  // Tables
+  table {
+    text-align: right;
+
+    th, td {
+      text-align: right;
+    }
+  }
+
+  // Formulaires
+  label {
+    text-align: right;
+  }
+
+  .form-group {
+    text-align: right;
+  }
+
+  // Messages
+  .message-sent {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .message-received {
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  // Transitions pour les changements de direction
+  * {
+    transition: direction 0s, text-align 0s;
+  }
+}
+
+// Import police arabe
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+

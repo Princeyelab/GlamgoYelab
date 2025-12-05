@@ -1,0 +1,165 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.forgotPasswordPage {
+  min-height: calc(100vh - 80px);
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  @include flex-center;
+  padding: $spacing-md $spacing-md;
+}
+
+.container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.formCard {
+  background: $white;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-2xl;
+  padding: $spacing-xl;
+
+  @include md {
+    padding: $spacing-lg;
+  }
+}
+
+.title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+  text-align: center;
+
+  @include md {
+    font-size: $font-size-xl;
+  }
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+}
+
+.errorAlert {
+  background-color: rgba($error, 0.1);
+  border: 1px solid $error;
+  border-radius: $radius-md;
+  color: $error;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $gray-800;
+}
+
+.required {
+  color: $error;
+}
+
+.input {
+  padding: $spacing-sm;
+  border: 2px solid $gray-300;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-family: $font-family-primary;
+  transition: all $transition-normal;
+  width: 100%;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &::placeholder {
+    color: $gray-400;
+  }
+}
+
+.footer {
+  margin-top: $spacing-md;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+.link {
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+// Success state styles
+.successIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+  color: $success;
+
+  svg {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+.message {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  text-align: center;
+  margin-bottom: $spacing-sm;
+  line-height: 1.6;
+
+  strong {
+    color: $black;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.note {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+  font-style: italic;
+}
+
+.backLink {
+  display: block;
+  text-align: center;
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  font-size: $font-size-sm;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}

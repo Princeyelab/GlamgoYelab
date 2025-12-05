@@ -1,0 +1,313 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.priceBreakdown {
+  background: $white;
+  border: 1px solid $gray-200;
+  border-radius: $radius-lg;
+  overflow: hidden;
+}
+
+.header {
+  padding: $spacing-md;
+  border-bottom: 1px solid $gray-200;
+  background: $gray-50;
+}
+
+.title {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin: 0 0 $spacing-xs;
+}
+
+.serviceName {
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.formulaBadge {
+  display: inline-block;
+  margin-left: $spacing-sm;
+  padding: 2px $spacing-sm;
+  background: rgba($primary-color, 0.1);
+  color: $primary-color;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-sm;
+  text-transform: capitalize;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  color: $gray-600;
+  font-size: $font-size-sm;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid $gray-300;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  padding: $spacing-md;
+  background: rgba($error, 0.1);
+  color: $error;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.breakdownList {
+  padding: $spacing-md;
+}
+
+.breakdownItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+  font-size: $font-size-sm;
+
+  &.commission {
+    color: $gray-500;
+    font-size: $font-size-xs;
+  }
+
+  &.totalRow {
+    padding-top: $spacing-sm;
+  }
+
+  &.providerRow {
+    padding-top: $spacing-xs;
+    color: $gray-600;
+    font-size: $font-size-xs;
+  }
+}
+
+.itemLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $gray-700;
+}
+
+.itemIcon {
+  font-size: $font-size-base;
+}
+
+.itemValue {
+  font-weight: $font-weight-medium;
+  color: $black;
+
+  &.positive {
+    color: $error;
+  }
+
+  &.negative {
+    color: $success;
+  }
+}
+
+.divider {
+  height: 1px;
+  background: $gray-200;
+  margin: $spacing-sm 0;
+}
+
+.totalValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.providerValue {
+  font-weight: $font-weight-medium;
+  color: $success;
+}
+
+.nightIndicator {
+  padding: $spacing-sm $spacing-md;
+  background: rgba(#1f2937, 0.05);
+  border-top: 1px solid $gray-200;
+  font-size: $font-size-xs;
+  color: $gray-600;
+  text-align: center;
+}
+
+// Section nuit avec détails
+.nightSection {
+  margin: $spacing-xs 0;
+  background: linear-gradient(135deg, rgba(#1a1a2e, 0.08) 0%, rgba(#16213e, 0.08) 100%);
+  border: 1px solid rgba(#0f3460, 0.3);
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+}
+
+.nightItem {
+  padding-bottom: $spacing-xs !important;
+  border-bottom: 1px dashed rgba(#0f3460, 0.3);
+  margin-bottom: $spacing-xs;
+}
+
+.nightsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(#e94560, 0.15);
+  color: #e94560;
+  font-size: $font-size-xs;
+  padding: 2px 6px;
+  border-radius: $radius-full;
+  margin-left: $spacing-xs;
+  font-weight: $font-weight-medium;
+}
+
+.nightsBadgeDetail {
+  display: inline;
+  color: #94a3b8;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  margin-left: 4px;
+}
+
+.nightExplanation {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: $font-size-xs;
+  color: #64748b;
+  line-height: 1.4;
+  padding-top: 4px;
+}
+
+.nightExplanationIcon {
+  flex-shrink: 0;
+}
+
+// Section distance avec détails
+.distanceSection {
+  margin: $spacing-xs 0;
+  background: rgba(#f59e0b, 0.05);
+  border: 1px solid rgba(#f59e0b, 0.2);
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+}
+
+.distanceItem {
+  padding-bottom: $spacing-xs !important;
+  border-bottom: 1px dashed rgba(#f59e0b, 0.3);
+  margin-bottom: $spacing-xs;
+}
+
+.distanceExplanation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.distanceRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: #856404;
+
+  span:first-child {
+    &::before {
+      content: "•";
+      color: #f59e0b;
+      margin-right: 6px;
+    }
+  }
+}
+
+.included {
+  color: $success !important;
+  font-size: $font-size-xs;
+}
+
+// Vue compacte
+.compact {
+  background: $gray-50;
+  border: none;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.compactView {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.compactRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-sm;
+  color: $gray-600;
+
+  span:last-child {
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  &.total {
+    padding-top: $spacing-sm;
+    margin-top: $spacing-xs;
+    border-top: 1px solid $gray-300;
+    font-weight: $font-weight-semibold;
+
+    span:first-child {
+      color: $black;
+    }
+
+    span:last-child {
+      font-size: $font-size-base;
+      color: $primary-color;
+    }
+  }
+
+  .positive {
+    color: $error !important;
+  }
+
+  .negative {
+    color: $success !important;
+  }
+}
+
+.distanceDetail {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: normal;
+}
+
+.inRadius {
+  color: $success;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: "✅";
+    font-size: 12px;
+  }
+}
+
+.freeLabel {
+  color: $success !important;
+  font-size: $font-size-xs;
+}

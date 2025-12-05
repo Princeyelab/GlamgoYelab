@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Système d'Enchères GlamGo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .token-display {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .token-label {
+            font-weight: bold;
+            color: #856404;
+        }
+
+        .bid-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .bid-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .bid-card.accepted {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .bid-card.rejected {
+            border-color: #dc3545;
+            background: #f8d7da;
+            opacity: 0.7;
+        }
+
+        .bid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bid-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .bid-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #ffc107;
+            color: #856404;
+        }
+
+        .status-accepted {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-rejected {
+            background: #dc3545;
+            color: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .step:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test Système d'Enchères GlamGo</h1>
+
+        <div class="info-box">
+            <h3>📋 Instructions</h3>
+            <p><strong>Flux de test:</strong></p>
+            <ol style="margin-left: 20px; margin-top: 10px;">
+                <li>Créer un compte utilisateur et un compte prestataire</li>
+                <li>L'utilisateur crée une commande en mode enchères</li>
+                <li>Le prestataire consulte les commandes disponibles</li>
+                <li>Le prestataire crée une offre</li>
+                <li>L'utilisateur consulte les offres et accepte la meilleure</li>
+            </ol>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">Créer Comptes</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">Commande Bidding</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">Créer Offres</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-text">Accepter Offre</div>
+            </div>
+        </div>
+
+        <!-- SECTION 1: AUTHENTIFICATION -->
+        <div class="section">
+            <h2>👤 Étape 1: Créer les Comptes</h2>
+
+            <div class="grid">
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Utilisateur</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="userEmail" value="user@test.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Mot de passe</label>
+                        <input type="password" id="userPassword" value="Test123!">
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="userFirstName" value="Ahmed">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="userLastName" value="Bennani">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="text" id="userPhone" value="0612345678">
+                    </div>
+                    <button onclick="registerUser()">📝 Créer Utilisateur</button>
+                    <button onclick="loginUser()">🔑 Se Connecter</button>
+                    <div id="userTokenDisplay"></div>
+                    <div id="userResponse"></div>
+                </div>
+
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 15px;">Prestataire</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="providerEmail" value="provider@test.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Mot de passe</label>
+                        <input type="password" id="providerPassword" value="Test123!">
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="providerFirstName" value="Youssef">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="providerLastName" value="Alaoui">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="text" id="providerPhone" value="0687654321">
+                    </div>
+                    <div class="form-group">
+                        <label>Entreprise</label>
+                        <input type="text" id="providerCompany" value="Beauty Pro">
+                    </div>
+                    <button onclick="registerProvider()">📝 Créer Prestataire</button>
+                    <button onclick="loginProvider()">🔑 Se Connecter</button>
+                    <div id="providerTokenDisplay"></div>
+                    <div id="providerResponse"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: SERVICES -->
+        <div class="section">
+            <h2>💈 Étape 2: Services et Préparation</h2>
+
+            <button onclick="getServices()">📋 Récupérer Services</button>
+            <button onclick="addServiceToProvider()">➕ Ajouter Service au Prestataire</button>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Service ID (sélectionné automatiquement)</label>
+                <input type="number" id="serviceId" placeholder="Sera rempli après récupération">
+            </div>
+
+            <div id="servicesResponse"></div>
+        </div>
+
+        <!-- SECTION 3: CRÉER COMMANDE BIDDING -->
+        <div class="section">
+            <h2>🎯 Étape 3: Créer Commande en Mode Enchères (Utilisateur)</h2>
+
+            <div class="form-group">
+                <label>Service ID</label>
+                <input type="number" id="orderServiceId" placeholder="Copier depuis ci-dessus">
+            </div>
+
+            <div class="form-group">
+                <label>Prix Proposé (MAD)</label>
+                <input type="number" id="proposedPrice" value="100" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Adresse</label>
+                <input type="text" id="address" value="123 Avenue Mohammed V, Marrakech">
+            </div>
+
+            <div class="form-group">
+                <label>Notes (optionnel)</label>
+                <textarea id="notes" rows="3">Besoin urgent d'une prestation de qualité</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Durée des enchères (heures)</label>
+                <input type="number" id="bidExpiry" value="24">
+            </div>
+
+            <button onclick="createBiddingOrder()">🎯 Créer Commande Enchères</button>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Order ID (créé automatiquement)</label>
+                <input type="number" id="orderId" placeholder="Sera rempli après création">
+            </div>
+
+            <div id="orderResponse"></div>
+        </div>
+
+        <!-- SECTION 4: PRESTATAIRE - VOIR COMMANDES -->
+        <div class="section">
+            <h2>👀 Étape 4: Consulter Commandes Disponibles (Prestataire)</h2>
+
+            <button onclick="getAvailableOrders()">📋 Voir Commandes Disponibles</button>
+
+            <div id="availableOrdersResponse"></div>
+        </div>
+
+        <!-- SECTION 5: CRÉER OFFRE -->
+        <div class="section">
+            <h2>💰 Étape 5: Créer une Offre (Prestataire)</h2>
+
+            <div class="form-group">
+                <label>Order ID</label>
+                <input type="number" id="bidOrderId" placeholder="Copier depuis ci-dessus">
+            </div>
+
+            <div class="form-group">
+                <label>Prix Offert (MAD)</label>
+                <input type="number" id="bidPrice" value="85" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Temps d'arrivée estimé (minutes)</label>
+                <input type="number" id="estimatedArrival" value="30">
+            </div>
+
+            <div class="form-group">
+                <label>Message (optionnel)</label>
+                <textarea id="bidMessage" rows="3">Je peux vous fournir un service de qualité supérieure. J'ai 5 ans d'expérience.</textarea>
+            </div>
+
+            <button onclick="createBid()">💰 Créer Offre</button>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Bid ID (créé automatiquement)</label>
+                <input type="number" id="bidId" placeholder="Sera rempli après création">
+            </div>
+
+            <div id="bidResponse"></div>
+        </div>
+
+        <!-- SECTION 6: VOIR OFFRES ET ACCEPTER -->
+        <div class="section">
+            <h2>✅ Étape 6: Consulter et Accepter Offres (Utilisateur)</h2>
+
+            <div class="form-group">
+                <label>Order ID</label>
+                <input type="number" id="viewBidsOrderId" placeholder="Copier Order ID">
+            </div>
+
+            <button onclick="getOrderBids()">👀 Voir Toutes les Offres</button>
+
+            <div id="bidsContainer"></div>
+
+            <div style="margin-top: 20px;">
+                <div class="form-group">
+                    <label>Bid ID à accepter</label>
+                    <input type="number" id="acceptBidId" placeholder="Choisir une offre">
+                </div>
+                <button onclick="acceptBid()">✅ Accepter Cette Offre</button>
+            </div>
+
+            <div id="acceptResponse"></div>
+        </div>
+
+        <!-- SECTION 7: VÉRIFICATION -->
+        <div class="section">
+            <h2>🔍 Étape 7: Vérification Finale</h2>
+
+            <button onclick="verifyOrder()">🔍 Vérifier Statut Commande</button>
+            <button onclick="getProviderBids()">📊 Voir Mes Offres (Prestataire)</button>
+
+            <div id="verifyResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api';
+        let userToken = '';
+        let providerToken = '';
+
+        // ============================================
+        // UTILITAIRES
+        // ============================================
+
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const className = isError ? 'response error' : 'response success';
+            element.innerHTML = `<div class="${className}">${JSON.stringify(data, null, 2)}</div>`;
+        }
+
+        function displayToken(elementId, token, label) {
+            const element = document.getElementById(elementId);
+            if (token) {
+                element.innerHTML = `<div class="token-display"><span class="token-label">${label}:</span><br>${token}</div>`;
+            }
+        }
+
+        async function apiCall(endpoint, method = 'GET', body = null, token = null) {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const options = {
+                method,
+                headers
+            };
+
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                const data = await response.json();
+
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data
+                };
+            } catch (error) {
+                return {
+                    ok: false,
+                    status: 0,
+                    data: { error: error.message }
+                };
+            }
+        }
+
+        // ============================================
+        // AUTHENTIFICATION
+        // ============================================
+
+        async function registerUser() {
+            const body = {
+                email: document.getElementById('userEmail').value,
+                password: document.getElementById('userPassword').value,
+                first_name: document.getElementById('userFirstName').value,
+                last_name: document.getElementById('userLastName').value,
+                phone: document.getElementById('userPhone').value
+            };
+
+            const result = await apiCall('/auth/register', 'POST', body);
+            displayResponse('userResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.token) {
+                userToken = result.data.data.token;
+                displayToken('userTokenDisplay', userToken, 'Token Utilisateur');
+            }
+        }
+
+        async function loginUser() {
+            const body = {
+                email: document.getElementById('userEmail').value,
+                password: document.getElementById('userPassword').value
+            };
+
+            const result = await apiCall('/auth/login', 'POST', body);
+            displayResponse('userResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.token) {
+                userToken = result.data.data.token;
+                displayToken('userTokenDisplay', userToken, 'Token Utilisateur');
+            }
+        }
+
+        async function registerProvider() {
+            const body = {
+                email: document.getElementById('providerEmail').value,
+                password: document.getElementById('providerPassword').value,
+                first_name: document.getElementById('providerFirstName').value,
+                last_name: document.getElementById('providerLastName').value,
+                phone: document.getElementById('providerPhone').value,
+                company_name: document.getElementById('providerCompany').value
+            };
+
+            const result = await apiCall('/provider/register', 'POST', body);
+            displayResponse('providerResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.token) {
+                providerToken = result.data.data.token;
+                displayToken('providerTokenDisplay', providerToken, 'Token Prestataire');
+            }
+        }
+
+        async function loginProvider() {
+            const body = {
+                email: document.getElementById('providerEmail').value,
+                password: document.getElementById('providerPassword').value
+            };
+
+            const result = await apiCall('/provider/login', 'POST', body);
+            displayResponse('providerResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.token) {
+                providerToken = result.data.data.token;
+                displayToken('providerTokenDisplay', providerToken, 'Token Prestataire');
+            }
+        }
+
+        // ============================================
+        // SERVICES
+        // ============================================
+
+        async function getServices() {
+            const result = await apiCall('/services');
+            displayResponse('servicesResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.length > 0) {
+                // Prendre le premier service qui autorise le bidding
+                const biddingService = result.data.data.find(s => s.allow_bidding);
+                if (biddingService) {
+                    document.getElementById('serviceId').value = biddingService.id;
+                    document.getElementById('orderServiceId').value = biddingService.id;
+                }
+            }
+        }
+
+        async function addServiceToProvider() {
+            const serviceId = document.getElementById('serviceId').value;
+
+            if (!serviceId) {
+                alert('Veuillez d\'abord récupérer les services');
+                return;
+            }
+
+            if (!providerToken) {
+                alert('Veuillez d\'abord vous connecter en tant que prestataire');
+                return;
+            }
+
+            const body = {
+                service_id: parseInt(serviceId)
+            };
+
+            const result = await apiCall('/provider/services', 'POST', body, providerToken);
+            displayResponse('servicesResponse', result.data, !result.ok);
+        }
+
+        // ============================================
+        // COMMANDE BIDDING
+        // ============================================
+
+        async function createBiddingOrder() {
+            if (!userToken) {
+                alert('Veuillez d\'abord vous connecter en tant qu\'utilisateur');
+                return;
+            }
+
+            const body = {
+                service_id: parseInt(document.getElementById('orderServiceId').value),
+                user_proposed_price: parseFloat(document.getElementById('proposedPrice').value),
+                address: document.getElementById('address').value,
+                notes: document.getElementById('notes').value,
+                bid_expiry_hours: parseInt(document.getElementById('bidExpiry').value)
+            };
+
+            const result = await apiCall('/orders/bidding', 'POST', body, userToken);
+            displayResponse('orderResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.id) {
+                document.getElementById('orderId').value = result.data.data.id;
+                document.getElementById('bidOrderId').value = result.data.data.id;
+                document.getElementById('viewBidsOrderId').value = result.data.data.id;
+            }
+        }
+
+        // ============================================
+        // OFFRES (BIDS)
+        // ============================================
+
+        async function getAvailableOrders() {
+            if (!providerToken) {
+                alert('Veuillez d\'abord vous connecter en tant que prestataire');
+                return;
+            }
+
+            const result = await apiCall('/provider/available-orders', 'GET', null, providerToken);
+            displayResponse('availableOrdersResponse', result.data, !result.ok);
+        }
+
+        async function createBid() {
+            if (!providerToken) {
+                alert('Veuillez d\'abord vous connecter en tant que prestataire');
+                return;
+            }
+
+            const body = {
+                order_id: parseInt(document.getElementById('bidOrderId').value),
+                proposed_price: parseFloat(document.getElementById('bidPrice').value),
+                estimated_arrival_minutes: parseInt(document.getElementById('estimatedArrival').value),
+                message: document.getElementById('bidMessage').value
+            };
+
+            const result = await apiCall('/bids', 'POST', body, providerToken);
+            displayResponse('bidResponse', result.data, !result.ok);
+
+            if (result.ok && result.data.data?.id) {
+                document.getElementById('bidId').value = result.data.data.id;
+            }
+        }
+
+        async function getOrderBids() {
+            if (!userToken) {
+                alert('Veuillez d\'abord vous connecter en tant qu\'utilisateur');
+                return;
+            }
+
+            const orderId = document.getElementById('viewBidsOrderId').value;
+            const result = await apiCall(`/orders/${orderId}/bids`, 'GET', null, userToken);
+
+            const container = document.getElementById('bidsContainer');
+
+            if (!result.ok) {
+                displayResponse('bidsContainer', result.data, true);
+                return;
+            }
+
+            const bids = result.data.data?.bids || [];
+
+            if (bids.length === 0) {
+                container.innerHTML = '<div class="response">Aucune offre pour le moment</div>';
+                return;
+            }
+
+            let html = '<h3 style="margin-top: 20px; margin-bottom: 15px;">📋 Offres Reçues</h3>';
+
+            bids.forEach(bid => {
+                const statusClass = `status-${bid.status}`;
+                const cardClass = bid.status !== 'pending' ? bid.status : '';
+
+                html += `
+                    <div class="bid-card ${cardClass}">
+                        <div class="bid-header">
+                            <div>
+                                <div class="bid-price">${bid.proposed_price} MAD</div>
+                                <div style="color: #666; font-size: 14px;">
+                                    ${bid.first_name} ${bid.last_name}
+                                </div>
+                            </div>
+                            <span class="bid-status ${statusClass}">${bid.status}</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>⏱️ ETA:</strong> ${bid.estimated_arrival_minutes || 'N/A'} minutes<br>
+                            <strong>📱 Téléphone:</strong> ${bid.phone}<br>
+                            <strong>⭐ Note:</strong> ${bid.rating || 'Nouveau'}/5<br>
+                            ${bid.message ? `<strong>💬 Message:</strong> ${bid.message}<br>` : ''}
+                            <strong>🆔 Bid ID:</strong> ${bid.id}
+                        </div>
+                        ${bid.status === 'pending' ? `
+                            <button style="margin-top: 10px;" onclick="document.getElementById('acceptBidId').value=${bid.id}">
+                                ✅ Sélectionner cette offre
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function acceptBid() {
+            if (!userToken) {
+                alert('Veuillez d\'abord vous connecter en tant qu\'utilisateur');
+                return;
+            }
+
+            const bidId = document.getElementById('acceptBidId').value;
+            const result = await apiCall(`/bids/${bidId}/accept`, 'PUT', null, userToken);
+            displayResponse('acceptResponse', result.data, !result.ok);
+
+            if (result.ok) {
+                // Rafraîchir la liste des offres
+                setTimeout(() => getOrderBids(), 1000);
+            }
+        }
+
+        async function getProviderBids() {
+            if (!providerToken) {
+                alert('Veuillez d\'abord vous connecter en tant que prestataire');
+                return;
+            }
+
+            const result = await apiCall('/provider/my-bids', 'GET', null, providerToken);
+            displayResponse('verifyResponse', result.data, !result.ok);
+        }
+
+        async function verifyOrder() {
+            if (!userToken) {
+                alert('Veuillez d\'abord vous connecter en tant qu\'utilisateur');
+                return;
+            }
+
+            const orderId = document.getElementById('orderId').value;
+            const result = await apiCall(`/orders/${orderId}`, 'GET', null, userToken);
+            displayResponse('verifyResponse', result.data, !result.ok);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+@use '../../styles/variables' as *;
+
+.currencySelector {
+  position: relative;
+}
+
+.selectorButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: $gray-100;
+  border: 1px solid $gray-300;
+  color: $gray-700;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: $gray-200;
+    border-color: $gray-400;
+  }
+}
+
+.currencyCode {
+  font-weight: $font-weight-semibold;
+  color: $primary-color;
+}
+
+.currencySymbol {
+  color: $gray-600;
+}
+
+.arrow {
+  font-size: 0.6rem;
+  color: $gray-500;
+}
+
+.dropdown {
+  background: $white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+
+  // Mobile (base) - position fixe pour éviter débordement
+  position: fixed;
+  top: 55px;
+  left: $spacing-sm;
+  right: $spacing-sm;
+  min-width: auto;
+
+  // Tablet+
+  @media (min-width: 768px) {
+    position: absolute;
+    top: calc(100% + $spacing-xs);
+    left: auto;
+    right: 0;
+    min-width: 280px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownHeader {
+  padding: $spacing-sm $spacing-md;
+  background: $gray-50;
+  border-bottom: 1px solid $gray-200;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-700;
+}
+
+.currencyList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.currencyOption {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color $transition-normal;
+  gap: $spacing-sm;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  &.active {
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+}
+
+.optionCode {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  min-width: 40px;
+  color: $black;
+
+  .active & {
+    color: $primary-color;
+  }
+}
+
+.optionName {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $gray-600;
+
+  .active & {
+    color: $primary-dark;
+  }
+}
+
+.optionSymbol {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  min-width: 40px;
+  text-align: right;
+
+  .active & {
+    color: $primary-color;
+  }
+}
+
+.dropdownFooter {
+  padding: $spacing-sm $spacing-md;
+  background: $gray-50;
+  border-top: 1px solid $gray-200;
+}
+
+.showOriginal {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $gray-600;
+  cursor: pointer;
+
+  input {
+    cursor: pointer;
+  }
+
+  span {
+    user-select: none;
+  }
+}

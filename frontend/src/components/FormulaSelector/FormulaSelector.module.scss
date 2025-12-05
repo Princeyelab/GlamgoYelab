@@ -1,0 +1,247 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.formulaSelector {
+  margin-bottom: $spacing-lg;
+}
+
+.header {
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  margin-bottom: $spacing-xs;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin: 0;
+}
+
+.learnMoreLink {
+  margin-left: $spacing-sm;
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-md;
+  color: $gray-600;
+  font-size: $font-size-sm;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid $gray-300;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  padding: $spacing-md;
+  background: rgba($error, 0.1);
+  border: 1px solid rgba($error, 0.3);
+  border-radius: $radius-md;
+  color: $error;
+  font-size: $font-size-sm;
+}
+
+.formulaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-sm;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formulaCard {
+  position: relative;
+  background: $white;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
+  padding: $spacing-xs $spacing-sm;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $gray-400;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &.selected {
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+  }
+
+  // Couleurs par type de formule
+  &.blue {
+    &.selected {
+      border-color: $primary-color;
+      background: rgba($primary-color, 0.03);
+    }
+    .formulaBadge {
+      background: rgba($primary-color, 0.1);
+      color: $primary-color;
+    }
+  }
+
+  &.green {
+    &.selected {
+      border-color: $success;
+      background: rgba($success, 0.03);
+    }
+    .formulaBadge {
+      background: rgba($success, 0.1);
+      color: $success;
+    }
+  }
+
+  &.purple {
+    &.selected {
+      border-color: #8b5cf6;
+      background: rgba(#8b5cf6, 0.03);
+    }
+    .formulaBadge {
+      background: rgba(#8b5cf6, 0.1);
+      color: #8b5cf6;
+    }
+  }
+
+  &.red {
+    &.selected {
+      border-color: $error;
+      background: rgba($error, 0.03);
+    }
+    .formulaBadge {
+      background: rgba($error, 0.1);
+      color: $error;
+    }
+  }
+
+  &.dark {
+    &.selected {
+      border-color: #374151;
+      background: rgba(#374151, 0.03);
+    }
+    .formulaBadge {
+      background: rgba(#374151, 0.1);
+      color: #374151;
+    }
+  }
+}
+
+.formulaIcon {
+  font-size: 1.3rem;
+  margin-bottom: $spacing-xs;
+}
+
+.formulaContent {
+  flex: 1;
+}
+
+.formulaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.formulaName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $black;
+}
+
+.formulaBadge {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+}
+
+.formulaDescription {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  line-height: 1.4;
+  margin: 0 0 $spacing-xs;
+}
+
+.formulaPrice {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+}
+
+.priceValue {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.recommendation {
+  margin-top: $spacing-xs;
+  padding: $spacing-xs;
+  background: rgba($warning, 0.1);
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $warning;
+}
+
+.selectedIndicator {
+  position: absolute;
+  top: $spacing-xs;
+  right: $spacing-xs;
+  width: 18px;
+  height: 18px;
+  background: $primary-color;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $white;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+}
+
+.specialRulesInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-md;
+  padding: $spacing-sm;
+  background: rgba($info, 0.1);
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $info;
+
+  .infoIcon {
+    flex-shrink: 0;
+  }
+}
