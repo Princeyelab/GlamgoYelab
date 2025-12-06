@@ -12,8 +12,11 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Installation des extensions PHP
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# Installation des dépendances PostgreSQL
+RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
+
+# Installation des extensions PHP (MySQL + PostgreSQL)
+RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
 # Configuration du répertoire de travail
 WORKDIR /var/www/html

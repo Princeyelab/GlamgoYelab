@@ -3,11 +3,13 @@
 return [
     // Configuration de la base de données
     'database' => [
+        'driver' => getenv('DB_CONNECTION') ?: 'mysql',
         'host' => getenv('DB_HOST') ?: 'mysql-db',
-        'name' => getenv('DB_NAME') ?: 'glamgo',
-        'user' => getenv('DB_USER') ?: 'glamgo_user',
+        'port' => getenv('DB_PORT') ?: '3306',
+        'name' => getenv('DB_DATABASE') ?: (getenv('DB_NAME') ?: 'glamgo'),
+        'user' => getenv('DB_USERNAME') ?: (getenv('DB_USER') ?: 'glamgo_user'),
         'password' => getenv('DB_PASSWORD') ?: 'glamgo_password',
-        'charset' => 'utf8mb4'
+        'charset' => 'utf8'
     ],
 
     // Configuration de l'application
