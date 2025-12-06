@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Autoloader simple
+// Autoloader simple (compatible Linux - casse des dossiers)
 spl_autoload_register(function ($class) {
     $prefix = 'App\\';
 
@@ -34,8 +34,15 @@ spl_autoload_register(function ($class) {
     }
 
     $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
 
+    // Convertir le namespace en chemin (minuscules pour les dossiers)
+    $parts = explode('\\', $relativeClass);
+    $className = array_pop($parts); // Garder le nom de classe original
+    $path = '';
+    foreach ($parts as $part) {
+        $path .= strtolower($part) . '/';
+    }
+    $file = $baseDir . $path . $className . '.php';
 
     if (file_exists($file)) {
         require $file;
