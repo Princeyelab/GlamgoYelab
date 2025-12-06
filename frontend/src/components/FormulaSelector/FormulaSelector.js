@@ -15,8 +15,9 @@ export default function FormulaSelector({
   scheduledTime,
   className
 }) {
-  const { t } = useLanguage();
+  const { t, language, translateDynamicBatch } = useLanguage();
   const [formulas, setFormulas] = useState([]);
+  const [translatedDescriptions, setTranslatedDescriptions] = useState({});
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +37,22 @@ export default function FormulaSelector({
     }
   }, [serviceId]);
 
+  // Retraduire quand la langue change
+  useEffect(() => {
+    if (language === 'ar' && formulas.length > 0) {
+      const descriptions = formulas.map(f => f.description || '');
+      translateDynamicBatch(descriptions).then(translated => {
+        const mapping = {};
+        formulas.forEach((f, i) => {
+          mapping[f.formula_type] = translated[i];
+        });
+        setTranslatedDescriptions(mapping);
+      }).catch(console.error);
+    } else if (language === 'fr') {
+      setTranslatedDescriptions({});
+    }
+  }, [language, formulas, translateDynamicBatch]);
+
   const fetchFormulas = async () => {
     try {
       setLoading(true);
@@ -43,15 +60,28 @@ export default function FormulaSelector({
       const response = await apiClient.getServiceFormulas(serviceId);
 
       if (response.success) {
-        setFormulas(response.data?.formulas || response.formulas || []);
+        const loadedFormulas = response.data?.formulas || response.formulas || [];
+        setFormulas(loadedFormulas);
         setService(response.data?.service || response.service || null);
 
         // Sélectionner standard par défaut si pas de sélection
-        if (!selectedFormula && response.data?.formulas?.length > 0) {
-          const standardFormula = response.data.formulas.find(f => f.formula_type === 'standard');
+        if (!selectedFormula && loadedFormulas.length > 0) {
+          const standardFormula = loadedFormulas.find(f => f.formula_type === 'standard');
           if (standardFormula) {
             onFormulaChange?.(standardFormula.formula_type, standardFormula);
           }
+        }
+
+        // Traduire les descriptions avec DeepL si en arabe
+        if (language === 'ar' && loadedFormulas.length > 0) {
+          const descriptions = loadedFormulas.map(f => f.description || '');
+          translateDynamicBatch(descriptions).then(translated => {
+            const mapping = {};
+            loadedFormulas.forEach((f, i) => {
+              mapping[f.formula_type] = translated[i];
+            });
+            setTranslatedDescriptions(mapping);
+          }).catch(console.error);
         }
       } else {
         setError(response.message || 'Erreur lors du chargement des formules');
@@ -154,7 +184,7 @@ export default function FormulaSelector({
                 </div>
 
                 <p className={styles.formulaDescription}>
-                  {formula.description}
+                  {translatedDescriptions[formula.formula_type] || formula.description}
                 </p>
 
                 <div className={styles.formulaPrice}>

@@ -7,6 +7,7 @@ import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getServiceImageUrl } from '@/lib/serviceImages';
 import { fixEncoding } from '@/lib/textUtils';
 import Price from '@/components/Price';
@@ -24,11 +25,16 @@ export default function BookingPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+  const { t, language, translateDynamicBatch } = useLanguage();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Textes traduits via DeepL
+  const [translatedName, setTranslatedName] = useState('');
+  const [translatedDesc, setTranslatedDesc] = useState('');
 
   // Mode bidding désactivé - Toujours en mode classique
   const isBiddingMode = false;
@@ -93,6 +99,27 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       fetchService();
     }
   }, [params.id]);
+
+  // Traduire le nom et description du service avec DeepL
+  useEffect(() => {
+    if (!service) return;
+
+    const name = fixEncoding(service.name);
+    const desc = fixEncoding(service.description);
+
+    if (language === 'ar') {
+      translateDynamicBatch([name, desc]).then(([tName, tDesc]) => {
+        setTranslatedName(tName);
+        setTranslatedDesc(tDesc);
+      }).catch(() => {
+        setTranslatedName(name);
+        setTranslatedDesc(desc);
+      });
+    } else {
+      setTranslatedName(name);
+      setTranslatedDesc(desc);
+    }
+  }, [service, language, translateDynamicBatch]);
 
   const fetchService = async () => {
     try {
@@ -221,7 +248,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('bookingPage.loading')}</p>
       </div>
     );
   }
@@ -233,9 +260,9 @@ const [selectedFormula, setSelectedFormula] = useState(null);
   if (!service) {
     return (
       <div className={styles.error}>
-        <h2>Service non trouvé</h2>
+        <h2>{t('bookingPage.serviceNotFound')}</h2>
         <Link href="/services">
-          <Button variant="primary">Retour aux services</Button>
+          <Button variant="primary">{t('bookingPage.backToServices')}</Button>
         </Link>
       </div>
     );
@@ -245,13 +272,13 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     return (
       <div className={styles.success}>
         <div className={styles.successIcon}>✓</div>
-        <h2>{isBiddingMode ? 'Demande d\'offres créée !' : 'Réservation confirmée !'}</h2>
+        <h2>{isBiddingMode ? t('bookingPage.requestCreated') : t('bookingPage.bookingConfirmed')}</h2>
         <p>
           {isBiddingMode
-            ? 'Votre demande d\'offres a été créée. Les prestataires vont commencer à vous envoyer leurs propositions.'
-            : 'Votre réservation a été enregistrée avec succès.'}
+            ? t('bookingPage.requestCreatedDesc')
+            : t('bookingPage.bookingConfirmedDesc')}
         </p>
-        <p>Vous allez être redirigé vers vos commandes...</p>
+        <p>{t('bookingPage.redirecting')}</p>
       </div>
     );
   }
@@ -264,21 +291,21 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     <div className={styles.bookingPage}>
       <div className="container">
         <Link href={`/services/${params.id}`} className={styles.backLink}>
-          ← Retour au service
+          ← {t('bookingPage.backToService')}
         </Link>
 
         <div className={styles.bookingContainer}>
           {/* Image service en haut */}
           <img
             src={imageUrl}
-            alt={fixEncoding(service.name)}
+            alt={translatedName || fixEncoding(service.name)}
             className={styles.serviceImage}
           />
 
           {/* Infos service */}
           <div className={styles.serviceDetails}>
-            <h1 className={styles.serviceTitle}>{fixEncoding(service.name)}</h1>
-            <p className={styles.serviceDescription}>{fixEncoding(service.description)}</p>
+            <h1 className={styles.serviceTitle}>{translatedName || fixEncoding(service.name)}</h1>
+            <p className={styles.serviceDescription}>{translatedDesc || fixEncoding(service.description)}</p>
             <div className={styles.serviceMeta}>
               <span className={styles.servicePrice}>
                 <Price amount={displayPrice} />
@@ -302,13 +329,13 @@ const [selectedFormula, setSelectedFormula] = useState(null);
           {/* Formulaire */}
           <div className={styles.bookingForm}>
             <h2 className={styles.title}>
-              {isBiddingMode ? '💰 Demander des offres' : 'Finaliser la réservation'}
+              {isBiddingMode ? t('bookingPage.requestOffers') : t('bookingPage.finalizeBooking')}
             </h2>
 
             {isBiddingMode && (
               <div className={styles.biddingNotice}>
-                <strong>🎯 Mode enchères</strong>
-                <p>Proposez votre prix et recevez des offres de plusieurs prestataires. Vous pourrez ensuite choisir la meilleure offre.</p>
+                <strong>{t('bookingPage.biddingMode')}</strong>
+                <p>{t('bookingPage.biddingModeDesc')}</p>
               </div>
             )}
 
@@ -320,10 +347,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                 <>
                   <div className={styles.formGroup}>
                     <label htmlFor="user_proposed_price" className={styles.label}>
-                      Votre prix proposé (MAD) <span className={styles.required}>*</span>
+                      {t('bookingPage.yourProposedPrice')} <span className={styles.required}>*</span>
                     </label>
                     <p className={styles.hint}>
-                      Prix minimum: {service.price} MAD (sans limite maximale)
+                      {t('bookingPage.minPrice')} {service.price} MAD ({t('bookingPage.noMaxLimit')})
                     </p>
                     <input
                       type="number"
@@ -341,7 +368,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                   <div className={styles.formGroup}>
                     <label htmlFor="date" className={styles.label}>
-                      Date du service <span className={styles.required}>*</span>
+                      {t('bookingPage.serviceDate')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="date"
@@ -358,7 +385,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                   <div className={styles.formGroup}>
                     <label htmlFor="time" className={styles.label}>
-                      Heure du service <span className={styles.required}>*</span>
+                      {t('bookingPage.serviceTime')} <span className={styles.required}>*</span>
                     </label>
                     <select
                       id="time"
@@ -368,8 +395,8 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       className={styles.input}
                       required
                     >
-                      <option value="">Sélectionnez une heure</option>
-                      <optgroup label="Journée">
+                      <option value="">{t('bookingPage.selectTime')}</option>
+                      <optgroup label={t('bookingPage.daytime')}>
                         <option value="08:00">08:00</option>
                         <option value="09:00">09:00</option>
                         <option value="10:00">10:00</option>
@@ -384,22 +411,22 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                         <option value="20:00">20:00</option>
                         <option value="21:00">21:00</option>
                       </optgroup>
-                      <optgroup label="🌙 Nuit (supplément)">
-                        <option value="22:00">22:00 🌙</option>
-                        <option value="23:00">23:00 🌙</option>
-                        <option value="00:00">00:00 🌙</option>
-                        <option value="01:00">01:00 🌙</option>
-                        <option value="02:00">02:00 🌙</option>
-                        <option value="03:00">03:00 🌙</option>
-                        <option value="04:00">04:00 🌙</option>
-                        <option value="05:00">05:00 🌙</option>
+                      <optgroup label={t('bookingPage.nighttime')}>
+                        <option value="22:00">22:00</option>
+                        <option value="23:00">23:00</option>
+                        <option value="00:00">00:00</option>
+                        <option value="01:00">01:00</option>
+                        <option value="02:00">02:00</option>
+                        <option value="03:00">03:00</option>
+                        <option value="04:00">04:00</option>
+                        <option value="05:00">05:00</option>
                       </optgroup>
                     </select>
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="bid_expiry_hours" className={styles.label}>
-                      Durée des enchères (heures)
+                      {t('bookingPage.biddingDuration')}
                     </label>
                     <select
                       id="bid_expiry_hours"
@@ -408,16 +435,16 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       onChange={handleChange}
                       className={styles.input}
                     >
-                      <option value="12">12 heures</option>
-                      <option value="24">24 heures (recommandé)</option>
-                      <option value="48">48 heures</option>
-                      <option value="72">72 heures</option>
+                      <option value="12">{t('bookingPage.hours12')}</option>
+                      <option value="24">{t('bookingPage.hours24')}</option>
+                      <option value="48">{t('bookingPage.hours48')}</option>
+                      <option value="72">{t('bookingPage.hours72')}</option>
                     </select>
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="address" className={styles.label}>
-                      Adresse <span className={styles.required}>*</span>
+                      {t('bookingPage.address')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="text"
@@ -446,7 +473,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                   <div className={styles.formGroup}>
                     <label htmlFor="date" className={styles.label}>
-                      Date <span className={styles.required}>*</span>
+                      {t('bookingPage.date')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="date"
@@ -463,7 +490,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                   <div className={styles.formGroup}>
                     <label htmlFor="time" className={styles.label}>
-                      Heure <span className={styles.required}>*</span>
+                      {t('bookingPage.time')} <span className={styles.required}>*</span>
                     </label>
                     <select
                       id="time"
@@ -473,8 +500,8 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       className={styles.input}
                       required
                     >
-                      <option value="">Sélectionnez une heure</option>
-                      <optgroup label="Journée">
+                      <option value="">{t('bookingPage.selectTime')}</option>
+                      <optgroup label={t('bookingPage.daytime')}>
                         <option value="08:00">08:00</option>
                         <option value="09:00">09:00</option>
                         <option value="10:00">10:00</option>
@@ -489,15 +516,15 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                         <option value="20:00">20:00</option>
                         <option value="21:00">21:00</option>
                       </optgroup>
-                      <optgroup label="🌙 Nuit (supplément)">
-                        <option value="22:00">22:00 🌙</option>
-                        <option value="23:00">23:00 🌙</option>
-                        <option value="00:00">00:00 🌙</option>
-                        <option value="01:00">01:00 🌙</option>
-                        <option value="02:00">02:00 🌙</option>
-                        <option value="03:00">03:00 🌙</option>
-                        <option value="04:00">04:00 🌙</option>
-                        <option value="05:00">05:00 🌙</option>
+                      <optgroup label={t('bookingPage.nighttime')}>
+                        <option value="22:00">22:00</option>
+                        <option value="23:00">23:00</option>
+                        <option value="00:00">00:00</option>
+                        <option value="01:00">01:00</option>
+                        <option value="02:00">02:00</option>
+                        <option value="03:00">03:00</option>
+                        <option value="04:00">04:00</option>
+                        <option value="05:00">05:00</option>
                       </optgroup>
                     </select>
 
@@ -520,7 +547,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                         }}>
                           <span>🌙</span>
                           <span style={{ fontWeight: 600 }}>
-                            Supplément nuit : +{nightFee > 0 ? nightFee : 30} MAD
+                            {t('bookingPage.nightSurcharge')} : +{nightFee > 0 ? nightFee : 30} MAD
                           </span>
                           {nightsCount > 1 && (
                             <span style={{
@@ -531,7 +558,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                               color: '#ff6b8a',
                               marginLeft: '0.25rem'
                             }}>
-                              {nightsCount} nuits
+                              {nightsCount} {t('bookingPage.nights')}
                             </span>
                           )}
                         </div>
@@ -543,7 +570,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                           gap: '0.25rem'
                         }}>
                           <span>💡</span>
-                          <span>Sélectionnez la formule <strong style={{ color: '#ffd700' }}>Nuit</strong> pour inclure ce supplément</span>
+                          <span>{t('bookingPage.selectFormula')} <strong style={{ color: '#ffd700' }}>{t('bookingPage.night')}</strong> {t('bookingPage.toIncludeSupplement')}</span>
                         </div>
                       </div>
                     )}
@@ -564,7 +591,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       }}>
                         <span>🌙</span>
                         <span style={{ fontWeight: 500 }}>
-                          Formule nuit - supplément inclus
+                          {t('bookingPage.nightFormulaIncluded')}
                         </span>
                       </div>
                     )}
@@ -572,7 +599,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                   <div className={styles.formGroup}>
                     <label htmlFor="address" className={styles.label}>
-                      Adresse <span className={styles.required}>*</span>
+                      {t('bookingPage.address')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="text"
@@ -594,7 +621,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       onClick={toggleProvidersView}
                     >
                       <span className={styles.btnIcon}>📍</span>
-                      {showProviders ? 'Masquer les prestataires' : 'Voir les prestataires à proximité'}
+                      {showProviders ? t('bookingPage.hideProviders') : t('bookingPage.showNearbyProviders')}
                       <span className={`${styles.chevron} ${showProviders ? styles.open : ''}`}>▼</span>
                     </button>
 
@@ -626,7 +653,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                           className={styles.changeBtn}
                           onClick={() => setShowProviders(true)}
                         >
-                          Changer
+                          {t('bookingPage.change')}
                         </button>
                       </div>
                     )}
@@ -637,7 +664,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
               {/* Sélection du mode de paiement */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  Mode de paiement <span className={styles.required}>*</span>
+                  {t('bookingPage.paymentMethod')} <span className={styles.required}>*</span>
                 </label>
                 <div className={styles.paymentOptions}>
                   <div
@@ -656,10 +683,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     <div className={styles.paymentContent}>
                       <div className={styles.paymentHeader}>
                         <span className={styles.paymentIcon}>💳</span>
-                        <strong>Carte bancaire</strong>
+                        <strong>{t('bookingPage.cardPayment')}</strong>
                       </div>
                       <p className={styles.paymentDescription}>
-                        Le paiement sera automatiquement effectué à la fin du service. Commission GlamGo : 20%
+                        {t('bookingPage.cardPaymentDesc')}
                       </p>
                     </div>
                   </div>
@@ -680,10 +707,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     <div className={styles.paymentContent}>
                       <div className={styles.paymentHeader}>
                         <span className={styles.paymentIcon}>💵</span>
-                        <strong>Espèces</strong>
+                        <strong>{t('bookingPage.cashPayment')}</strong>
                       </div>
                       <p className={styles.paymentDescription}>
-                        Payez en espèces au prestataire. La commission GlamGo (20%) sera prélevée sur sa carte
+                        {t('bookingPage.cashPaymentDesc')}
                       </p>
                     </div>
                   </div>
@@ -692,7 +719,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
               <div className={styles.formGroup}>
                 <label htmlFor="notes" className={styles.label}>
-                  Notes supplémentaires
+                  {t('bookingPage.additionalNotes')}
                 </label>
                 <textarea
                   id="notes"
@@ -700,41 +727,41 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                   value={formData.notes}
                   onChange={handleChange}
                   className={styles.textarea}
-                  placeholder="Instructions spéciales, accès, etc."
+                  placeholder={t('bookingPage.notesPlaceholder')}
                   rows={3}
                 />
               </div>
 
               <div className={styles.summary}>
-                <h3>Récapitulatif</h3>
+                <h3>{t('bookingPage.summary')}</h3>
                 <div className={styles.summaryItem}>
-                  <span>Service</span>
-                  <span>{fixEncoding(service.name)}</span>
+                  <span>{t('bookingPage.service')}</span>
+                  <span>{translatedName || fixEncoding(service.name)}</span>
                 </div>
 
                 {isBiddingMode ? (
                   <>
                     {formData.user_proposed_price && (
                       <div className={styles.summaryItem}>
-                        <span>Votre prix proposé</span>
+                        <span>{t('bookingPage.proposedPrice')}</span>
                         <span><Price amount={parseFloat(formData.user_proposed_price)} /></span>
                       </div>
                     )}
                     {formData.date && (
                       <div className={styles.summaryItem}>
-                        <span>Date du service</span>
-                        <span>{new Date(formData.date).toLocaleDateString('fr-FR')}</span>
+                        <span>{t('bookingPage.serviceDate')}</span>
+                        <span>{new Date(formData.date).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR')}</span>
                       </div>
                     )}
                     {formData.time && (
                       <div className={styles.summaryItem}>
-                        <span>Heure</span>
+                        <span>{t('bookingPage.time')}</span>
                         <span>{formData.time}</span>
                       </div>
                     )}
                     <div className={styles.summaryItem}>
-                      <span>Durée des enchères</span>
-                      <span>{formData.bid_expiry_hours} heures</span>
+                      <span>{t('bookingPage.biddingDuration')}</span>
+                      <span>{formData.bid_expiry_hours} {t('bookingPage.hours12').replace('12 ', '')}</span>
                     </div>
                   </>
                 ) : (
@@ -742,13 +769,13 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Date et heure */}
                     {formData.date && (
                       <div className={styles.summaryItem}>
-                        <span>Date</span>
-                        <span>{new Date(formData.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span>{t('bookingPage.date')}</span>
+                        <span>{new Date(formData.date).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                       </div>
                     )}
                     {formData.time && (
                       <div className={styles.summaryItem}>
-                        <span>Heure</span>
+                        <span>{t('bookingPage.time')}</span>
                         <span>{formData.time}</span>
                       </div>
                     )}
@@ -756,7 +783,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Adresse */}
                     {formData.address && (
                       <div className={styles.summaryItem}>
-                        <span>Adresse</span>
+                        <span>{t('bookingPage.address')}</span>
                         <span className={styles.addressText}>{formData.address}</span>
                       </div>
                     )}
@@ -764,7 +791,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Prestataire sélectionné */}
                     {selectedProvider && (
                       <div className={styles.summaryItem}>
-                        <span>Prestataire</span>
+                        <span>{t('bookingPage.provider')}</span>
                         <span>{selectedProvider.name} ({selectedProvider.distance_formatted || `${selectedProvider.distance?.toFixed(1)} km`})</span>
                       </div>
                     )}
@@ -772,26 +799,26 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Durée estimée */}
                     {displayDuration && (
                       <div className={styles.summaryItem}>
-                        <span>Durée estimée</span>
+                        <span>{t('bookingPage.estimatedDuration')}</span>
                         <span>{displayDuration}</span>
                       </div>
                     )}
 
                     {/* Mode de paiement */}
                     <div className={styles.summaryItem}>
-                      <span>Paiement</span>
-                      <span>{formData.payment_method === 'card' ? '💳 Carte bancaire' : '💵 Espèces'}</span>
+                      <span>{t('bookingPage.payment')}</span>
+                      <span>{formData.payment_method === 'card' ? `💳 ${t('bookingPage.cardPayment')}` : `💵 ${t('bookingPage.cashPayment')}`}</span>
                     </div>
 
                     {/* Formule choisie */}
                     <div className={styles.summaryItem}>
-                      <span>Formule</span>
+                      <span>{t('bookingPage.formula')}</span>
                       <span className={styles.formulaTag}>
-                        {formData.formula_type === 'standard' && '⚡ Standard'}
-                        {formData.formula_type === 'recurring' && '🔄 Récurrent'}
-                        {formData.formula_type === 'premium' && '⭐ Premium'}
-                        {formData.formula_type === 'urgent' && '🚨 Urgence'}
-                        {formData.formula_type === 'night' && '🌙 Nuit'}
+                        {formData.formula_type === 'standard' && `⚡ ${t('bookingPage.standard')}`}
+                        {formData.formula_type === 'recurring' && `🔄 ${t('bookingPage.recurring')}`}
+                        {formData.formula_type === 'premium' && `⭐ ${t('bookingPage.premium')}`}
+                        {formData.formula_type === 'urgent' && `🚨 ${t('bookingPage.urgent')}`}
+                        {formData.formula_type === 'night' && `🌙 ${t('bookingPage.night')}`}
                       </span>
                     </div>
 
@@ -800,7 +827,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
                     {/* Prix de base */}
                     <div className={styles.summaryItem}>
-                      <span>Prix de base</span>
+                      <span>{t('bookingPage.basePrice')}</span>
                       <span><Price amount={priceBreakdown?.base_price || service.price || service.base_price} /></span>
                     </div>
 
@@ -809,11 +836,11 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                      (selectedFormula?.price_modifier_value && selectedFormula.price_modifier_value !== 0) ? (
                       <div className={styles.summaryItem}>
                         <span>
-                          {formData.formula_type === 'recurring' && '🔄 Réduction récurrent'}
-                          {formData.formula_type === 'premium' && '⭐ Supplément premium'}
-                          {formData.formula_type === 'urgent' && '🚨 Supplément urgence'}
-                          {formData.formula_type === 'night' && '🌙 Supplément nuit'}
-                          {formData.formula_type === 'standard' && 'Formule standard'}
+                          {formData.formula_type === 'recurring' && `🔄 ${t('bookingPage.recurringDiscount')}`}
+                          {formData.formula_type === 'premium' && `⭐ ${t('bookingPage.premiumSupplement')}`}
+                          {formData.formula_type === 'urgent' && `🚨 ${t('bookingPage.urgentSupplement')}`}
+                          {formData.formula_type === 'night' && `🌙 ${t('bookingPage.nightSupplement')}`}
+                          {formData.formula_type === 'standard' && t('bookingPage.standardFormula')}
                         </span>
                         <span className={
                           (priceBreakdown?.formula_modifier > 0 || selectedFormula?.price_modifier_value > 0)
@@ -833,7 +860,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Frais de distance */}
                     {priceBreakdown?.distance_fee > 0 && (
                       <div className={styles.summaryItem}>
-                        <span>🚗 Frais de distance</span>
+                        <span>🚗 {t('bookingPage.distanceFee')}</span>
                         <span className={styles.positive}>+<Price amount={priceBreakdown.distance_fee} /></span>
                       </div>
                     )}
@@ -841,7 +868,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Supplément nuit (si heure de nuit et formule NON nuit) */}
                     {(priceBreakdown?.night_fee > 0 || (isSelectedTimeNight && formData.formula_type !== 'night')) && (
                       <div className={styles.summaryItem}>
-                        <span>🌙 Supplément nuit</span>
+                        <span>🌙 {t('bookingPage.nightSupplement')}</span>
                         <span className={styles.positive}>
                           +<Price amount={priceBreakdown?.night_fee || nightFee || 30} />
                         </span>
@@ -851,13 +878,13 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Sous-total */}
                     <div className={styles.summaryDivider}></div>
                     <div className={styles.summaryItem}>
-                      <span>Sous-total</span>
+                      <span>{t('bookingPage.subtotal')}</span>
                       <span><Price amount={priceBreakdown?.subtotal || selectedFormula?.calculated_price || displayPrice} /></span>
                     </div>
 
                     {/* Commission GlamGo */}
                     <div className={styles.summaryItem}>
-                      <span>🏷️ Commission GlamGo (20%)</span>
+                      <span>🏷️ {t('bookingPage.commission')}</span>
                       <span className={styles.commissionText}>
                         <Price amount={priceBreakdown?.commission_glamgo || (displayPrice * 0.2)} />
                       </span>
@@ -866,7 +893,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {/* Total */}
                     <div className={styles.summaryDivider}></div>
                     <div className={`${styles.summaryItem} ${styles.summaryTotal}`}>
-                      <span>Total à payer</span>
+                      <span>{t('bookingPage.totalToPay')}</span>
                       <span><Price amount={priceBreakdown?.total || selectedFormula?.calculated_price || displayPrice} /></span>
                     </div>
                   </>
@@ -882,8 +909,8 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                 disabled={submitting}
               >
                 {submitting
-                  ? (isBiddingMode ? 'Création en cours...' : 'Réservation en cours...')
-                  : (isBiddingMode ? '💰 Créer la demande d\'offres' : 'Confirmer la réservation')}
+                  ? (isBiddingMode ? t('bookingPage.creating') : t('bookingPage.booking'))
+                  : (isBiddingMode ? `💰 ${t('bookingPage.createRequest')}` : t('bookingPage.confirmBooking'))}
               </Button>
             </form>
           </div>

@@ -12,6 +12,10 @@ export default function UnreadBadge() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    // Ne charger que si un token existe
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return;
+
     loadUnreadCount();
 
     // Rafraichir toutes les 10 secondes
@@ -20,6 +24,10 @@ export default function UnreadBadge() {
   }, []);
 
   const loadUnreadCount = async () => {
+    // Vérifier le token avant l'appel
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return;
+
     try {
       const response = await apiClient.get('/chat/unread-count');
       if (response.success && response.data?.unread_count !== undefined) {

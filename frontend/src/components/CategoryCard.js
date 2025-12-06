@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './CategoryCard.module.scss';
 import { fixEncoding } from '@/lib/textUtils';
@@ -54,9 +54,35 @@ const CATEGORY_IMAGES = {
 };
 
 export default function CategoryCard({ category }) {
-  const { t } = useLanguage();
+  const { t, language, translateDynamicBatch } = useLanguage();
   const { id, name, slug, description, services_count, image_url } = category;
+
   const [imageError, setImageError] = useState(false);
+
+  // Textes originaux
+  const fixedName = fixEncoding(name);
+  const fixedDesc = fixEncoding(description);
+
+  // États pour les traductions DeepL
+  const [translatedName, setTranslatedName] = useState(fixedName);
+  const [translatedDesc, setTranslatedDesc] = useState(fixedDesc);
+
+  // Utiliser DeepL pour traduire en arabe
+  useEffect(() => {
+    if (language !== 'ar') {
+      setTranslatedName(fixedName);
+      setTranslatedDesc(fixedDesc);
+      return;
+    }
+
+    const textsToTranslate = [fixedName, fixedDesc].filter(Boolean);
+    translateDynamicBatch(textsToTranslate).then(translations => {
+      if (fixedName) setTranslatedName(translations[0]);
+      if (fixedDesc) setTranslatedDesc(translations[1] || translations[0]);
+    }).catch(err => {
+      console.error('DeepL translation failed:', err);
+    });
+  }, [language, fixedName, fixedDesc, translateDynamicBatch]);
 
   // Générer un slug à partir du nom si non fourni
   const getSlug = () => {
@@ -92,8 +118,8 @@ export default function CategoryCard({ category }) {
         <div className={styles.overlay}></div>
       </div>
       <div className={styles.content}>
-        <h3 className={styles.title}>{fixEncoding(name)}</h3>
-        <p className={styles.description}>{fixEncoding(description)}</p>
+        <h3 className={styles.title}>{translatedName}</h3>
+        <p className={styles.description}>{translatedDesc}</p>
         {services_count > 0 && (
           <p className={styles.count}>
             {t('card.servicesAvailable', { count: services_count })}

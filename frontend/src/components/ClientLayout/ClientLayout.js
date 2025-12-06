@@ -1,11 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import ChatBot from '@/components/ChatBot';
+import NavigationProgress from '@/components/NavigationProgress';
 
 /**
  * ClientLayout - Wrapper pour les composants clients
@@ -22,6 +24,9 @@ export default function ClientLayout({ children }) {
     <LanguageProvider>
       <AuthProvider>
         <CurrencyProvider>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
           {!isProviderPage && <Header />}
           <main>{children}</main>
           <ChatBot />

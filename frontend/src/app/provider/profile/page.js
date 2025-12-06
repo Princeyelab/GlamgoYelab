@@ -9,6 +9,7 @@ import apiClient from '@/lib/apiClient';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { mergeProviderData, saveProviderTempData } from '@/lib/providerDataHelper';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // URL de base pour les images
 const UPLOADS_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080';
@@ -24,15 +25,8 @@ const MOROCCAN_CITIES = [
   'Safi', 'Essaouira', 'El Jadida', 'Nador', 'Béni Mellal', 'Mohammedia'
 ];
 
-const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Lundi' },
-  { key: 'tuesday', label: 'Mardi' },
-  { key: 'wednesday', label: 'Mercredi' },
-  { key: 'thursday', label: 'Jeudi' },
-  { key: 'friday', label: 'Vendredi' },
-  { key: 'saturday', label: 'Samedi' },
-  { key: 'sunday', label: 'Dimanche' },
-];
+// Les labels des jours sont maintenant gérés via les traductions
+const DAYS_OF_WEEK_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const DEFAULT_AVAILABILITY = {
   monday: { available: true, start: '09:00', end: '18:00' },
@@ -46,6 +40,7 @@ const DEFAULT_AVAILABILITY = {
 
 export default function ProviderProfilePage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -202,31 +197,31 @@ export default function ProviderProfilePage() {
     const newErrors = {};
 
     if (!formData.first_name.trim()) {
-      newErrors.first_name = 'Le prénom est requis';
+      newErrors.first_name = t('providerProfile.firstNameRequired');
     }
     if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Le nom est requis';
+      newErrors.last_name = t('providerProfile.lastNameRequired');
     }
     if (!formData.email.trim()) {
-      newErrors.email = "L'email est requis";
+      newErrors.email = t('providerProfile.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "L'email n'est pas valide";
+      newErrors.email = t('providerProfile.emailInvalid');
     }
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Le téléphone est requis';
+      newErrors.phone = t('providerProfile.phoneRequired');
     } else if (!/^(06|07)[0-9]{8}$/.test(formData.phone)) {
-      newErrors.phone = 'Le téléphone doit commencer par 06 ou 07 (10 chiffres)';
+      newErrors.phone = t('providerProfile.phoneInvalid');
     }
     if (!formData.cin_number.trim()) {
-      newErrors.cin_number = 'Le numéro CIN est requis';
+      newErrors.cin_number = t('providerProfile.cinRequired');
     } else if (!/^[A-Z]{1,2}[0-9]{6,7}$/.test(formData.cin_number)) {
-      newErrors.cin_number = 'Format CIN invalide (ex: AB123456)';
+      newErrors.cin_number = t('providerProfile.cinInvalid');
     }
     if (!formData.city) {
-      newErrors.city = 'La ville est requise';
+      newErrors.city = t('providerProfile.cityRequired');
     }
     if (formData.starting_price && formData.starting_price < 0) {
-      newErrors.starting_price = 'Le prix de base ne peut pas être négatif';
+      newErrors.starting_price = t('providerProfile.priceNegative');
     }
 
     setErrors(newErrors);
@@ -267,16 +262,16 @@ export default function ProviderProfilePage() {
         // Fusionner les données du backend avec les nouvelles données
         const completeData = mergeProviderData(response.data);
 
-        setSuccess('Profil mis à jour avec succès');
+        setSuccess(t('providerProfile.profileUpdated'));
         setProvider(completeData);
         setIsEditing(false);
         // Scroll to top to show success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        setError(response.message || 'Erreur lors de la mise à jour');
+        setError(response.message || t('providerProfile.updateError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la mise à jour');
+      setError(err.message || t('providerProfile.updateError'));
     } finally {
       setSaving(false);
     }
@@ -301,13 +296,13 @@ export default function ProviderProfilePage() {
     // Validation du type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      setError('Format non autorisé. Utilisez JPG, PNG ou WEBP');
+      setError(t('providerProfile.invalidFormat'));
       return;
     }
 
     // Validation de la taille (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('Fichier trop volumineux (max 5 MB)');
+      setError(t('providerProfile.fileTooLarge'));
       return;
     }
 
@@ -326,13 +321,13 @@ export default function ProviderProfilePage() {
           ...prev,
           avatar: response.data.avatar
         }));
-        setSuccess('Photo de profil mise à jour');
+        setSuccess(t('providerProfile.photoUpdated'));
       } else {
-        setError(response.message || 'Erreur lors de l\'upload');
+        setError(response.message || t('providerProfile.uploadError'));
       }
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.message || 'Erreur lors de l\'upload de la photo');
+      setError(err.message || t('providerProfile.uploadError'));
     } finally {
       setUploadingPhoto(false);
       // Reset le file input
@@ -346,7 +341,7 @@ export default function ProviderProfilePage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('providerProfile.loading')}</p>
       </div>
     );
   }
@@ -356,21 +351,21 @@ export default function ProviderProfilePage() {
   }
 
   return (
-    <div className={styles.profilePage}>
+    <div className={styles.profilePage} dir={isRTL ? 'rtl' : 'ltr'}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <Link href="/provider/dashboard" className={styles.logo}>
             <span>GlamGo</span>
-            <span className={styles.providerBadge}>Prestataire</span>
+            <span className={styles.providerBadge}>{t('providerDashboard.provider')}</span>
           </Link>
 
           <div className={styles.headerActions}>
             <LanguageSwitcher compact />
             <Link href="/provider/dashboard" className={styles.backLink}>
-              ← Retour au dashboard
+              {isRTL ? '→' : '←'} {t('providerProfile.backToDashboard')}
             </Link>
             <button onClick={handleLogout} className={styles.logoutBtn}>
-              Déconnexion
+              {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -380,10 +375,10 @@ export default function ProviderProfilePage() {
         <div className="container">
           <div className={styles.profileContainer}>
             <div className={styles.profileHeader}>
-              <h1>Mon Profil</h1>
+              <h1>{t('providerProfile.title')}</h1>
               {!isEditing && (
                 <Button variant="primary" onClick={() => setIsEditing(true)}>
-                  Modifier le profil
+                  {t('providerProfile.editProfile')}
                 </Button>
               )}
             </div>
@@ -432,7 +427,7 @@ export default function ProviderProfilePage() {
                   />
                   <div className={styles.photoInfo}>
                     <h2>{provider.first_name} {provider.last_name}</h2>
-                    <p className={styles.photoHint}>Cliquez sur la photo pour la modifier</p>
+                    <p className={styles.photoHint}>{t('providerProfile.clickToModify')}</p>
                   </div>
                 </div>
 
@@ -440,54 +435,54 @@ export default function ProviderProfilePage() {
                 <div className={styles.statusBanner}>
                   <div className={styles.statusInfo}>
                     <span className={`${styles.statusBadge} ${provider.is_verified ? styles.verified : styles.pending}`}>
-                      {provider.is_verified ? '✓ Vérifié' : '⏳ En attente de vérification'}
+                      {provider.is_verified ? `✓ ${t('providerProfile.verified')}` : `⏳ ${t('providerProfile.pendingVerification')}`}
                     </span>
                     <span className={`${styles.statusBadge} ${provider.is_active ? styles.active : styles.inactive}`}>
-                      {provider.is_active ? '🟢 Actif' : '🔴 Inactif'}
+                      {provider.is_active ? `🟢 ${t('providerProfile.active')}` : `🔴 ${t('providerProfile.inactive')}`}
                     </span>
                   </div>
                   {provider.total_reviews > 0 && (
                     <div className={styles.reviewsInfo}>
                       <span>⭐ {parseFloat(provider.rating || 0).toFixed(1)}</span>
-                      <span className={styles.reviewCount}>({provider.total_reviews} avis)</span>
+                      <span className={styles.reviewCount}>({provider.total_reviews} {t('providerProfile.reviews')})</span>
                     </div>
                   )}
                 </div>
 
                 <section className={styles.section}>
-                  <h2>Informations personnelles</h2>
+                  <h2>{t('providerProfile.personalInfo')}</h2>
                   <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Nom complet:</span>
+                      <span className={styles.label}>{t('providerProfile.fullName')}:</span>
                       <span className={styles.value}>{provider.first_name} {provider.last_name}</span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Email:</span>
+                      <span className={styles.label}>{t('providerProfile.email')}:</span>
                       <span className={styles.value}>{provider.email}</span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Téléphone:</span>
+                      <span className={styles.label}>{t('providerProfile.phone')}:</span>
                       <span className={styles.value}>{provider.phone}</span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Date de naissance:</span>
+                      <span className={styles.label}>{t('providerProfile.birthDate')}:</span>
                       <span className={styles.value}>
                         {provider.date_of_birth
-                          ? new Date(provider.date_of_birth).toLocaleDateString('fr-FR', {
+                          ? new Date(provider.date_of_birth).toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
                               day: 'numeric',
                               month: 'long',
                               year: 'numeric'
                             })
-                          : 'Non renseignée'}
+                          : t('providerProfile.notSpecifiedFem')}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>CIN:</span>
-                      <span className={styles.value}>{provider.cin_number || 'Non renseigné'}</span>
+                      <span className={styles.label}>{t('providerProfile.cin')}:</span>
+                      <span className={styles.value}>{provider.cin_number || t('providerProfile.notSpecified')}</span>
                     </div>
                     {provider.professional_license && (
                       <div className={styles.infoItem}>
-                        <span className={styles.label}>Patente:</span>
+                        <span className={styles.label}>{t('providerProfile.tradeLicense')}:</span>
                         <span className={styles.value}>{provider.professional_license}</span>
                       </div>
                     )}
@@ -495,19 +490,19 @@ export default function ProviderProfilePage() {
                 </section>
 
                 <section className={styles.section}>
-                  <h2>Localisation</h2>
+                  <h2>{t('providerProfile.location')}</h2>
                   <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Ville:</span>
-                      <span className={styles.value}>{provider.city || 'Non renseignée'}</span>
+                      <span className={styles.label}>{t('providerProfile.city')}:</span>
+                      <span className={styles.value}>{provider.city || t('providerProfile.notSpecifiedFem')}</span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Adresse:</span>
-                      <span className={styles.value}>{provider.address || 'Non renseignée'}</span>
+                      <span className={styles.label}>{t('providerProfile.address')}:</span>
+                      <span className={styles.value}>{provider.address || t('providerProfile.notSpecifiedFem')}</span>
                     </div>
                     {provider.latitude && provider.longitude && (
                       <div className={styles.infoItem}>
-                        <span className={styles.label}>Coordonnées GPS:</span>
+                        <span className={styles.label}>{t('providerProfile.gpsCoordinates')}:</span>
                         <span className={styles.value}>
                           {parseFloat(provider.latitude).toFixed(6)}, {parseFloat(provider.longitude).toFixed(6)}
                         </span>
@@ -517,43 +512,43 @@ export default function ProviderProfilePage() {
                 </section>
 
                 <section className={styles.section}>
-                  <h2>Activité professionnelle</h2>
+                  <h2>{t('providerProfile.professionalActivity')}</h2>
                   <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Prix de base:</span>
+                      <span className={styles.label}>{t('providerProfile.basePrice')}:</span>
                       <span className={styles.value}>
-                        {provider.starting_price ? `${provider.starting_price} DH` : 'Non renseigné'}
+                        {provider.starting_price ? `${provider.starting_price} DH` : t('providerProfile.notSpecified')}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Rayon d'intervention:</span>
+                      <span className={styles.label}>{t('providerProfile.interventionRadius')}:</span>
                       <span className={styles.value}>
-                        {provider.intervention_radius ? `${provider.intervention_radius} km` : '10 km (par défaut)'}
+                        {provider.intervention_radius ? `${provider.intervention_radius} km` : `10 ${t('providerProfile.kmDefault')}`}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Années d'expérience:</span>
-                      <span className={styles.value}>{provider.experience_years || 'Non renseigné'}</span>
+                      <span className={styles.label}>{t('providerProfile.yearsExperience')}:</span>
+                      <span className={styles.value}>{provider.experience_years || t('providerProfile.notSpecified')}</span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Note moyenne:</span>
+                      <span className={styles.label}>{t('providerProfile.averageRating')}:</span>
                       <span className={styles.value}>
                         ⭐ {provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0'}
-                        {provider.total_reviews > 0 && ` (${provider.total_reviews} avis)`}
+                        {provider.total_reviews > 0 && ` (${provider.total_reviews} ${t('providerProfile.reviews')})`}
                       </span>
                     </div>
                   </div>
 
                   {provider.bio && (
                     <div className={styles.bioSection}>
-                      <span className={styles.label}>Biographie:</span>
+                      <span className={styles.label}>{t('providerProfile.biography')}:</span>
                       <p className={styles.bioText}>{provider.bio}</p>
                     </div>
                   )}
 
                   {provider.specialties && provider.specialties.length > 0 && (
                     <div className={styles.specialtiesSection}>
-                      <span className={styles.label}>Spécialités:</span>
+                      <span className={styles.label}>{t('providerProfile.specialties')}:</span>
                       <div className={styles.tags}>
                         {(typeof provider.specialties === 'string' ?
                           JSON.parse(provider.specialties) : provider.specialties).map((specialty, index) => (
@@ -565,7 +560,7 @@ export default function ProviderProfilePage() {
 
                   {provider.coverage_area && provider.coverage_area.length > 0 && (
                     <div className={styles.coverageSection}>
-                      <span className={styles.label}>Zones de couverture:</span>
+                      <span className={styles.label}>{t('providerProfile.coverageAreas')}:</span>
                       <div className={styles.tags}>
                         {(typeof provider.coverage_area === 'string' ?
                           JSON.parse(provider.coverage_area) : provider.coverage_area).map((city, index) => (
@@ -578,9 +573,9 @@ export default function ProviderProfilePage() {
 
                 {/* Section Disponibilités */}
                 <section className={styles.section}>
-                  <h2>Disponibilités</h2>
+                  <h2>{t('providerProfile.availability')}</h2>
                   <div className={styles.availabilityGrid}>
-                    {DAYS_OF_WEEK.map(({ key, label }) => {
+                    {DAYS_OF_WEEK_KEYS.map((key) => {
                       const schedule = provider.availability_schedule
                         ? (typeof provider.availability_schedule === 'string'
                           ? JSON.parse(provider.availability_schedule)
@@ -588,11 +583,11 @@ export default function ProviderProfilePage() {
                         : DEFAULT_AVAILABILITY[key];
                       return (
                         <div key={key} className={styles.availabilityItem}>
-                          <span className={styles.dayLabel}>{label}</span>
+                          <span className={styles.dayLabel}>{t(`providerProfile.${key}`)}</span>
                           <span className={`${styles.availabilityStatus} ${schedule?.available ? styles.available : styles.unavailable}`}>
                             {schedule?.available
                               ? `${schedule.start} - ${schedule.end}`
-                              : 'Indisponible'}
+                              : t('providerProfile.unavailable')}
                           </span>
                         </div>
                       );
@@ -604,10 +599,10 @@ export default function ProviderProfilePage() {
               // Mode édition
               <form onSubmit={handleSubmit} className={styles.profileForm}>
                 <section className={styles.formSection}>
-                  <h2>Informations personnelles</h2>
+                  <h2>{t('providerProfile.personalInfo')}</h2>
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                      <label htmlFor="first_name">Prénom <span className={styles.required}>*</span></label>
+                      <label htmlFor="first_name">{t('providerProfile.firstName')} <span className={styles.required}>*</span></label>
                       <input
                         type="text"
                         id="first_name"
@@ -620,7 +615,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="last_name">Nom <span className={styles.required}>*</span></label>
+                      <label htmlFor="last_name">{t('providerProfile.lastName')} <span className={styles.required}>*</span></label>
                       <input
                         type="text"
                         id="last_name"
@@ -633,7 +628,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="email">Email <span className={styles.required}>*</span></label>
+                      <label htmlFor="email">{t('providerProfile.email')} <span className={styles.required}>*</span></label>
                       <input
                         type="email"
                         id="email"
@@ -646,7 +641,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="phone">Téléphone <span className={styles.required}>*</span></label>
+                      <label htmlFor="phone">{t('providerProfile.phone')} <span className={styles.required}>*</span></label>
                       <input
                         type="tel"
                         id="phone"
@@ -660,7 +655,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="date_of_birth">Date de naissance</label>
+                      <label htmlFor="date_of_birth">{t('providerProfile.birthDate')}</label>
                       <input
                         type="date"
                         id="date_of_birth"
@@ -670,11 +665,11 @@ export default function ProviderProfilePage() {
                         max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                         className={styles.input}
                       />
-                      <span className={styles.hint}>Vous devez avoir au moins 18 ans</span>
+                      <span className={styles.hint}>{t('providerProfile.mustBe18')}</span>
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="cin_number">Numéro CIN <span className={styles.required}>*</span></label>
+                      <label htmlFor="cin_number">{t('providerProfile.cinNumber')} <span className={styles.required}>*</span></label>
                       <input
                         type="text"
                         id="cin_number"
@@ -688,14 +683,14 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="professional_license">Patente (optionnel)</label>
+                      <label htmlFor="professional_license">{t('providerProfile.tradeLicenseOptional')}</label>
                       <input
                         type="text"
                         id="professional_license"
                         name="professional_license"
                         value={formData.professional_license}
                         onChange={handleChange}
-                        placeholder="Numéro de patente"
+                        placeholder={t('providerProfile.tradeLicenseNumber')}
                         className={styles.input}
                       />
                     </div>
@@ -703,10 +698,10 @@ export default function ProviderProfilePage() {
                 </section>
 
                 <section className={styles.formSection}>
-                  <h2>Localisation</h2>
+                  <h2>{t('providerProfile.location')}</h2>
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                      <label htmlFor="city">Ville <span className={styles.required}>*</span></label>
+                      <label htmlFor="city">{t('providerProfile.city')} <span className={styles.required}>*</span></label>
                       <select
                         id="city"
                         name="city"
@@ -714,7 +709,7 @@ export default function ProviderProfilePage() {
                         onChange={handleChange}
                         className={`${styles.select} ${errors.city ? styles.inputError : ''}`}
                       >
-                        <option value="">Sélectionnez une ville</option>
+                        <option value="">{t('providerProfile.selectCity')}</option>
                         {MOROCCAN_CITIES.map(city => (
                           <option key={city} value={city}>{city}</option>
                         ))}
@@ -723,24 +718,24 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="address">Adresse</label>
+                      <label htmlFor="address">{t('providerProfile.address')}</label>
                       <AddressAutocomplete
                         id="address"
                         name="address"
                         value={formData.address}
                         onChange={(e) => handleChange(e)}
                         onPlaceSelected={handlePlaceSelected}
-                        placeholder="Tapez votre adresse..."
+                        placeholder={t('providerProfile.typeAddress')}
                         error={errors.address}
                       />
                       <span className={styles.hint}>
-                        L'autocomplétion permet d'obtenir vos coordonnées GPS automatiquement
+                        {t('providerProfile.autocompleteHint')}
                       </span>
                       {errors.address && <span className={styles.error}>{errors.address}</span>}
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="coverage_area">Zones de couverture</label>
+                      <label htmlFor="coverage_area">{t('providerProfile.coverageAreas')}</label>
                       <select
                         id="coverage_area"
                         name="coverage_area"
@@ -755,17 +750,17 @@ export default function ProviderProfilePage() {
                         ))}
                       </select>
                       <span className={styles.hint}>
-                        Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs villes
+                        {t('providerProfile.multiSelectHint')}
                       </span>
                     </div>
                   </div>
                 </section>
 
                 <section className={styles.formSection}>
-                  <h2>Activité professionnelle</h2>
+                  <h2>{t('providerProfile.professionalActivity')}</h2>
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                      <label htmlFor="starting_price">Prix de base (DH)</label>
+                      <label htmlFor="starting_price">{t('providerProfile.basePriceDH')}</label>
                       <input
                         type="number"
                         id="starting_price"
@@ -778,13 +773,13 @@ export default function ProviderProfilePage() {
                         className={`${styles.input} ${errors.starting_price ? styles.inputError : ''}`}
                       />
                       <span className={styles.hint}>
-                        Votre prix de départ pour les services
+                        {t('providerProfile.startingPriceHint')}
                       </span>
                       {errors.starting_price && <span className={styles.error}>{errors.starting_price}</span>}
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="intervention_radius">Rayon d'intervention (km)</label>
+                      <label htmlFor="intervention_radius">{t('providerProfile.interventionRadiusKm')}</label>
                       <input
                         type="number"
                         id="intervention_radius"
@@ -797,12 +792,12 @@ export default function ProviderProfilePage() {
                         className={styles.input}
                       />
                       <span className={styles.hint}>
-                        Distance maximale pour vos interventions (1-100 km)
+                        {t('providerProfile.maxDistanceHint')}
                       </span>
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="experience_years">Années d'expérience</label>
+                      <label htmlFor="experience_years">{t('providerProfile.yearsExperience')}</label>
                       <input
                         type="number"
                         id="experience_years"
@@ -816,7 +811,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label htmlFor="specialties">Spécialités</label>
+                      <label htmlFor="specialties">{t('providerProfile.specialties')}</label>
                       <select
                         id="specialties"
                         name="specialties"
@@ -837,23 +832,23 @@ export default function ProviderProfilePage() {
                         ))}
                       </select>
                       <span className={styles.hint}>
-                        Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs spécialités
+                        {t('providerProfile.multiSelectHint')}
                       </span>
                     </div>
 
                     <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                      <label htmlFor="bio">Biographie</label>
+                      <label htmlFor="bio">{t('providerProfile.biography')}</label>
                       <textarea
                         id="bio"
                         name="bio"
                         value={formData.bio}
                         onChange={handleChange}
-                        placeholder="Présentez votre parcours, vos compétences et votre passion..."
+                        placeholder={t('providerProfile.bioPlaceholder')}
                         rows="5"
                         className={styles.textarea}
                       />
                       <span className={styles.hint}>
-                        Une bonne biographie aide les clients à vous choisir
+                        {t('providerProfile.bioHint')}
                       </span>
                     </div>
                   </div>
@@ -861,12 +856,12 @@ export default function ProviderProfilePage() {
 
                 {/* Section Disponibilités */}
                 <section className={styles.formSection}>
-                  <h2>Disponibilités</h2>
+                  <h2>{t('providerProfile.availability')}</h2>
                   <p className={styles.sectionHint}>
-                    Définissez vos horaires de travail pour chaque jour de la semaine
+                    {t('providerProfile.defineSchedule')}
                   </p>
                   <div className={styles.availabilityForm}>
-                    {DAYS_OF_WEEK.map(({ key, label }) => (
+                    {DAYS_OF_WEEK_KEYS.map((key) => (
                       <div key={key} className={styles.availabilityRow}>
                         <div className={styles.dayToggle}>
                           <input
@@ -877,7 +872,7 @@ export default function ProviderProfilePage() {
                             className={styles.checkbox}
                           />
                           <label htmlFor={`available_${key}`} className={styles.dayName}>
-                            {label}
+                            {t(`providerProfile.${key}`)}
                           </label>
                         </div>
                         {formData.availability_schedule[key]?.available && (
@@ -888,7 +883,7 @@ export default function ProviderProfilePage() {
                               onChange={(e) => handleAvailabilityChange(key, 'start', e.target.value)}
                               className={styles.timeInput}
                             />
-                            <span className={styles.timeSeparator}>à</span>
+                            <span className={styles.timeSeparator}>{t('providerProfile.to')}</span>
                             <input
                               type="time"
                               value={formData.availability_schedule[key]?.end || '18:00'}
@@ -898,7 +893,7 @@ export default function ProviderProfilePage() {
                           </div>
                         )}
                         {!formData.availability_schedule[key]?.available && (
-                          <span className={styles.unavailableLabel}>Indisponible</span>
+                          <span className={styles.unavailableLabel}>{t('providerProfile.unavailable')}</span>
                         )}
                       </div>
                     ))}
@@ -917,7 +912,7 @@ export default function ProviderProfilePage() {
                     }}
                     disabled={saving}
                   >
-                    Annuler
+                    {t('providerProfile.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -925,7 +920,7 @@ export default function ProviderProfilePage() {
                     loading={saving}
                     disabled={saving}
                   >
-                    {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                    {saving ? t('providerProfile.saving') : t('providerProfile.saveChanges')}
                   </Button>
                 </div>
               </form>

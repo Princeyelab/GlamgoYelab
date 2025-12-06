@@ -7,6 +7,7 @@ import apiClient from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import Button from '@/components/Button';
 import { getToken } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Helper pour récupérer le token de n'importe où
 const getAnyToken = () => {
@@ -18,6 +19,7 @@ const getAnyToken = () => {
 };
 
 export default function BiddingTestPage() {
+  const { t, language } = useLanguage();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 

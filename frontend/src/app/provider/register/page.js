@@ -10,15 +10,16 @@ import TermsModal from '@/components/TermsModal';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import PaymentMethodSetup from '@/components/PaymentMethodSetup/PaymentMethodSetup';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Lundi' },
-  { key: 'tuesday', label: 'Mardi' },
-  { key: 'wednesday', label: 'Mercredi' },
-  { key: 'thursday', label: 'Jeudi' },
-  { key: 'friday', label: 'Vendredi' },
-  { key: 'saturday', label: 'Samedi' },
-  { key: 'sunday', label: 'Dimanche' },
+  { key: 'monday', labelKey: 'providerRegister.monday' },
+  { key: 'tuesday', labelKey: 'providerRegister.tuesday' },
+  { key: 'wednesday', labelKey: 'providerRegister.wednesday' },
+  { key: 'thursday', labelKey: 'providerRegister.thursday' },
+  { key: 'friday', labelKey: 'providerRegister.friday' },
+  { key: 'saturday', labelKey: 'providerRegister.saturday' },
+  { key: 'sunday', labelKey: 'providerRegister.sunday' },
 ];
 
 const DEFAULT_AVAILABILITY = {
@@ -33,6 +34,7 @@ const DEFAULT_AVAILABILITY = {
 
 export default function ProviderRegisterPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -140,27 +142,27 @@ export default function ProviderRegisterPage() {
     const newErrors = {};
 
     if (!formData.first_name.trim()) {
-      newErrors.first_name = 'Le prénom est requis';
+      newErrors.first_name = t('register.firstNameRequired');
     }
 
     if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Le nom est requis';
+      newErrors.last_name = t('register.lastNameRequired');
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = "L'email est requis";
+      newErrors.email = t('login.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "L'email n'est pas valide";
+      newErrors.email = t('login.emailInvalid');
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Le téléphone est requis';
+      newErrors.phone = t('register.phoneRequired');
     } else if (!/^(06|07)[0-9]{8}$/.test(formData.phone.replace(/[\s-]/g, ''))) {
-      newErrors.phone = 'Le numéro doit commencer par 06 ou 07 et contenir 10 chiffres';
+      newErrors.phone = t('register.phoneInvalid');
     }
 
     if (!formData.date_of_birth) {
-      newErrors.date_of_birth = 'La date de naissance est requise';
+      newErrors.date_of_birth = t('register.birthDateRequired');
     } else {
       const birthDate = new Date(formData.date_of_birth);
       const today = new Date();
@@ -169,40 +171,40 @@ export default function ProviderRegisterPage() {
       const dayDiff = today.getDate() - birthDate.getDate();
 
       if (age < 18 || (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
-        newErrors.date_of_birth = 'Vous devez avoir au moins 18 ans pour vous inscrire';
+        newErrors.date_of_birth = t('register.mustBe18');
       }
     }
 
     if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t('login.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+      newErrors.password = t('register.passwordMinLength');
     }
 
     if (!formData.password_confirmation) {
-      newErrors.password_confirmation = 'Veuillez confirmer votre mot de passe';
+      newErrors.password_confirmation = t('register.confirmPasswordRequired');
     } else if (formData.password !== formData.password_confirmation) {
-      newErrors.password_confirmation = 'Les mots de passe ne correspondent pas';
+      newErrors.password_confirmation = t('register.passwordsDontMatch');
     }
 
     if (!formData.bio.trim()) {
-      newErrors.bio = 'La description est requise';
+      newErrors.bio = t('providerRegister.bioRequired');
     } else if (formData.bio.length < 50) {
-      newErrors.bio = 'La description doit contenir au moins 50 caractères';
+      newErrors.bio = t('providerRegister.bioMinLength');
     }
 
     if (!formData.experience_years) {
-      newErrors.experience_years = "Les années d'expérience sont requises";
+      newErrors.experience_years = t('providerRegister.experienceRequired');
     } else if (isNaN(formData.experience_years) || formData.experience_years < 0) {
-      newErrors.experience_years = 'Veuillez entrer un nombre valide';
+      newErrors.experience_years = t('providerRegister.experienceInvalid');
     }
 
     if (!formData.profile_photo) {
-      newErrors.profile_photo = 'La photo de profil est obligatoire';
+      newErrors.profile_photo = t('providerRegister.photoRequired');
     }
 
     if (!acceptedTerms) {
-      newErrors.terms = 'Vous devez accepter les conditions générales pour continuer';
+      newErrors.terms = t('register.acceptTerms');
     }
 
     setErrors(newErrors);
@@ -213,19 +215,19 @@ export default function ProviderRegisterPage() {
     const newErrors = {};
 
     if (!formData.address.trim()) {
-      newErrors.address = "L'adresse est requise";
+      newErrors.address = t('register.addressRequired');
     }
 
     if (!formData.latitude || !formData.longitude) {
-      newErrors.address = 'Veuillez sélectionner une adresse avec géolocalisation';
+      newErrors.address = t('register.selectAddressWithGeo');
     }
 
     if (!formData.city.trim()) {
-      newErrors.city = 'La ville est requise';
+      newErrors.city = t('register.cityRequired');
     }
 
     if (!formData.intervention_radius || formData.intervention_radius < 5) {
-      newErrors.intervention_radius = 'Le rayon d\'intervention minimum est de 5 km';
+      newErrors.intervention_radius = t('providerRegister.radiusMinimum');
     }
 
     setErrors(newErrors);
@@ -236,9 +238,9 @@ export default function ProviderRegisterPage() {
     const newErrors = {};
 
     if (!formData.cin_number.trim()) {
-      newErrors.cin_number = 'Le numéro de CIN est requis';
+      newErrors.cin_number = t('providerRegister.cinRequired');
     } else if (!/^[A-Z]{1,2}[0-9]{6,7}$/.test(formData.cin_number.toUpperCase())) {
-      newErrors.cin_number = "Le numéro de CIN n'est pas valide (ex: AB123456)";
+      newErrors.cin_number = t('providerRegister.cinInvalid');
     }
 
     // Photos CIN optionnelles en phase de test
@@ -251,7 +253,7 @@ export default function ProviderRegisterPage() {
     // }
 
     if (!acceptedCharter) {
-      newErrors.charter = 'Vous devez accepter la charte prestataire';
+      newErrors.charter = t('providerRegister.charterRequired');
     }
 
     setErrors(newErrors);
@@ -365,7 +367,7 @@ export default function ProviderRegisterPage() {
         localStorage.setItem('provider_temp_data', JSON.stringify(providerTempData));
 
         setRegisteredSuccessfully(true);
-        setSuccessMessage('Inscription réussie ! Finalisez avec vos documents et paiement.');
+        setSuccessMessage(t('providerRegister.registrationSuccess'));
         setTimeout(() => {
           setCurrentStep(3);
           setSuccessMessage('');
@@ -434,14 +436,14 @@ export default function ProviderRegisterPage() {
       }
 
       // Passer à l'étape paiement
-      setSuccessMessage('Informations enregistrées ! Configurez votre paiement.');
+      setSuccessMessage(t('providerRegister.docsSuccess'));
       setTimeout(() => {
         setCurrentStep(4);
         setSuccessMessage('');
       }, 1000);
     } catch (error) {
       console.error('Documents error:', error);
-      setServerError('Erreur lors de l\'enregistrement');
+      setServerError(t('common.errorOccurred'));
     } finally {
       setLoading(false);
     }
@@ -460,21 +462,21 @@ export default function ProviderRegisterPage() {
   };
 
   const stepTitles = {
-    1: 'Informations personnelles',
-    2: 'Localisation & Disponibilités',
-    3: 'Documents officiels',
-    4: 'Informations de paiement'
+    1: t('providerRegister.personalInfo'),
+    2: t('providerRegister.locationAvailability'),
+    3: t('providerRegister.officialDocs'),
+    4: t('providerRegister.paymentInfo')
   };
 
   const stepSubtitles = {
-    1: 'Créez votre profil prestataire GlamGo',
-    2: 'Définissez votre zone d\'intervention',
-    3: 'Vérification de votre identité',
-    4: 'Pour recevoir vos paiements'
+    1: t('providerRegister.createProfile'),
+    2: t('providerRegister.defineZone'),
+    3: t('providerRegister.identityVerification'),
+    4: t('providerRegister.receivePayments')
   };
 
   return (
-    <div className={styles.registerPage}>
+    <div className={styles.registerPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={styles.languageSwitcherContainer}>
         <LanguageSwitcher />
       </div>
@@ -485,7 +487,7 @@ export default function ProviderRegisterPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
-              Retour à l'accueil
+              {t('login.backToHome')}
             </Link>
           </div>
 
@@ -493,22 +495,22 @@ export default function ProviderRegisterPage() {
           <div className={styles.stepsIndicator}>
             <div className={`${styles.step} ${currentStep >= 1 ? styles.stepActive : ''} ${currentStep > 1 ? styles.stepCompleted : ''}`}>
               <div className={styles.stepNumber}>{currentStep > 1 ? '✓' : '1'}</div>
-              <span className={styles.stepLabel}>Infos</span>
+              <span className={styles.stepLabel}>{t('providerRegister.stepInfo')}</span>
             </div>
             <div className={styles.stepLine}></div>
             <div className={`${styles.step} ${currentStep >= 2 ? styles.stepActive : ''} ${currentStep > 2 ? styles.stepCompleted : ''}`}>
               <div className={styles.stepNumber}>{currentStep > 2 ? '✓' : '2'}</div>
-              <span className={styles.stepLabel}>Zone</span>
+              <span className={styles.stepLabel}>{t('providerRegister.stepZone')}</span>
             </div>
             <div className={styles.stepLine}></div>
             <div className={`${styles.step} ${currentStep >= 3 ? styles.stepActive : ''} ${currentStep > 3 ? styles.stepCompleted : ''}`}>
               <div className={styles.stepNumber}>{currentStep > 3 ? '✓' : '3'}</div>
-              <span className={styles.stepLabel}>Documents</span>
+              <span className={styles.stepLabel}>{t('providerRegister.stepDocs')}</span>
             </div>
             <div className={styles.stepLine}></div>
             <div className={`${styles.step} ${currentStep >= 4 ? styles.stepActive : ''}`}>
               <div className={styles.stepNumber}>4</div>
-              <span className={styles.stepLabel}>Paiement</span>
+              <span className={styles.stepLabel}>{t('providerRegister.stepPayment')}</span>
             </div>
           </div>
 
@@ -527,12 +529,12 @@ export default function ProviderRegisterPage() {
           {currentStep === 1 && (
             <form onSubmit={(e) => { e.preventDefault(); handleNextStep(); }} className={styles.form}>
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Informations personnelles</h3>
+                <h3 className={styles.sectionTitle}>{t('providerRegister.personalInfo')}</h3>
 
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label htmlFor="first_name" className={styles.label}>
-                      Prénom <span className={styles.required}>*</span>
+                      {t('form.firstName')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="text"
@@ -541,14 +543,14 @@ export default function ProviderRegisterPage() {
                       value={formData.first_name}
                       onChange={handleChange}
                       className={`${styles.input} ${errors.first_name ? styles.inputError : ''}`}
-                      placeholder="Votre prénom"
+                      placeholder={t('register.yourFirstName')}
                     />
                     {errors.first_name && <span className={styles.error}>{errors.first_name}</span>}
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="last_name" className={styles.label}>
-                      Nom <span className={styles.required}>*</span>
+                      {t('form.lastName')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="text"
@@ -557,7 +559,7 @@ export default function ProviderRegisterPage() {
                       value={formData.last_name}
                       onChange={handleChange}
                       className={`${styles.input} ${errors.last_name ? styles.inputError : ''}`}
-                      placeholder="Votre nom"
+                      placeholder={t('register.yourLastName')}
                     />
                     {errors.last_name && <span className={styles.error}>{errors.last_name}</span>}
                   </div>
@@ -565,7 +567,7 @@ export default function ProviderRegisterPage() {
 
                 <div className={styles.formGroup}>
                   <label htmlFor="email" className={styles.label}>
-                    Email <span className={styles.required}>*</span>
+                    {t('form.email')} <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="email"
@@ -582,7 +584,7 @@ export default function ProviderRegisterPage() {
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label htmlFor="phone" className={styles.label}>
-                      Téléphone <span className={styles.required}>*</span>
+                      {t('form.phone')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="tel"
@@ -594,12 +596,12 @@ export default function ProviderRegisterPage() {
                       placeholder="0612345678"
                     />
                     {errors.phone && <span className={styles.error}>{errors.phone}</span>}
-                    <small className={styles.hint}>Utilisé pour les contacts clients et WhatsApp</small>
+                    <small className={styles.hint}>{t('providerRegister.phoneHint')}</small>
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="date_of_birth" className={styles.label}>
-                      Date de naissance <span className={styles.required}>*</span>
+                      {t('profile.birthDate')} <span className={styles.required}>*</span>
                     </label>
                     <input
                       type="date"
@@ -617,7 +619,7 @@ export default function ProviderRegisterPage() {
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label htmlFor="password" className={styles.label}>
-                      Mot de passe <span className={styles.required}>*</span>
+                      {t('form.password')} <span className={styles.required}>*</span>
                     </label>
                     <div className={styles.passwordWrapper}>
                       <input
@@ -627,7 +629,7 @@ export default function ProviderRegisterPage() {
                         value={formData.password}
                         onChange={handleChange}
                         className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-                        placeholder="Minimum 6 caractères"
+                        placeholder={t('register.minimum6Chars')}
                       />
                       <button
                         type="button"
@@ -642,7 +644,7 @@ export default function ProviderRegisterPage() {
 
                   <div className={styles.formGroup}>
                     <label htmlFor="password_confirmation" className={styles.label}>
-                      Confirmer <span className={styles.required}>*</span>
+                      {t('form.confirmPassword')} <span className={styles.required}>*</span>
                     </label>
                     <div className={styles.passwordWrapper}>
                       <input
@@ -652,7 +654,7 @@ export default function ProviderRegisterPage() {
                         value={formData.password_confirmation}
                         onChange={handleChange}
                         className={`${styles.input} ${errors.password_confirmation ? styles.inputError : ''}`}
-                        placeholder="Retapez le mot de passe"
+                        placeholder={t('register.retypePassword')}
                       />
                       <button
                         type="button"
@@ -668,11 +670,11 @@ export default function ProviderRegisterPage() {
               </div>
 
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Profil professionnel</h3>
+                <h3 className={styles.sectionTitle}>{t('providerRegister.professionalProfile')}</h3>
 
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
-                    Photo de profil <span className={styles.required}>*</span>
+                    {t('providerRegister.profilePhoto')} <span className={styles.required}>*</span>
                   </label>
                   <div className={styles.profilePhotoUpload}>
                     <div className={`${styles.photoPreview} ${errors.profile_photo ? styles.photoError : ''}`}>
@@ -681,13 +683,13 @@ export default function ProviderRegisterPage() {
                       ) : (
                         <div className={styles.photoPlaceholder}>
                           <span className={styles.photoIcon}>📷</span>
-                          <span>Votre photo</span>
+                          <span>{t('providerRegister.yourPhoto')}</span>
                         </div>
                       )}
                     </div>
                     <div className={styles.photoUploadInfo}>
                       <label htmlFor="profile_photo" className={styles.photoUploadBtn}>
-                        {formData.profile_photo ? 'Changer la photo' : 'Choisir une photo'}
+                        {formData.profile_photo ? t('providerRegister.changePhoto') : t('providerRegister.choosePhoto')}
                       </label>
                       <input
                         type="file"
@@ -698,8 +700,7 @@ export default function ProviderRegisterPage() {
                         style={{ display: 'none' }}
                       />
                       <p className={styles.photoHint}>
-                        Photo professionnelle, visage visible.<br/>
-                        Format JPG, PNG ou WEBP. Max 5 MB.
+                        {t('providerRegister.photoHint')}
                       </p>
                       {errors.profile_photo && <span className={styles.error}>{errors.profile_photo}</span>}
                     </div>
@@ -708,7 +709,7 @@ export default function ProviderRegisterPage() {
 
                 <div className={styles.formGroup}>
                   <label htmlFor="bio" className={styles.label}>
-                    Description de vos services <span className={styles.required}>*</span>
+                    {t('providerRegister.serviceDescription')} <span className={styles.required}>*</span>
                   </label>
                   <textarea
                     id="bio"
@@ -716,16 +717,16 @@ export default function ProviderRegisterPage() {
                     value={formData.bio}
                     onChange={handleChange}
                     className={`${styles.textarea} ${errors.bio ? styles.inputError : ''}`}
-                    placeholder="Décrivez vos compétences et ce qui vous distingue (minimum 50 caractères)"
+                    placeholder={t('providerRegister.descPlaceholder')}
                     rows={4}
                   />
                   {errors.bio && <span className={styles.error}>{errors.bio}</span>}
-                  <small className={styles.hint}>{formData.bio.length}/50 caractères minimum</small>
+                  <small className={styles.hint}>{formData.bio.length}/50 {t('providerRegister.minChars')}</small>
                 </div>
 
                 <div className={styles.formGroup}>
                   <label htmlFor="experience_years" className={styles.label}>
-                    Années d'expérience <span className={styles.required}>*</span>
+                    {t('providerRegister.experienceYears')} <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="number"
@@ -750,9 +751,9 @@ export default function ProviderRegisterPage() {
                     className={styles.termsCheckbox}
                   />
                   <span className={styles.termsText}>
-                    J'accepte les{' '}
+                    {t('register.iAccept')}{' '}
                     <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
-                      conditions générales
+                      {t('register.termsAndConditions')}
                     </button>
                     {' '}<span className={styles.required}>*</span>
                   </span>
@@ -761,7 +762,7 @@ export default function ProviderRegisterPage() {
               </div>
 
               <Button type="submit" variant="primary" size="large" fullWidth disabled={loading}>
-                Continuer
+                {t('register.continue')}
               </Button>
             </form>
           )}
@@ -770,11 +771,11 @@ export default function ProviderRegisterPage() {
           {currentStep === 2 && (
             <div className={styles.form}>
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Adresse professionnelle</h3>
+                <h3 className={styles.sectionTitle}>{t('providerRegister.professionalAddress')}</h3>
 
                 <div className={styles.formGroup}>
                   <label htmlFor="address" className={styles.label}>
-                    Adresse <span className={styles.required}>*</span>
+                    {t('register.completeAddress')} <span className={styles.required}>*</span>
                   </label>
                   <AddressAutocomplete
                     id="address"
@@ -782,7 +783,7 @@ export default function ProviderRegisterPage() {
                     value={formData.address}
                     onChange={handleChange}
                     onPlaceSelected={handlePlaceSelected}
-                    placeholder="Tapez votre adresse..."
+                    placeholder={t('register.startTypingAddress')}
                     className={styles.input}
                     error={errors.address}
                     required
@@ -792,7 +793,7 @@ export default function ProviderRegisterPage() {
 
                 <div className={styles.formGroup}>
                   <label htmlFor="city" className={styles.label}>
-                    Ville <span className={styles.required}>*</span>
+                    {t('form.city')} <span className={styles.required}>*</span>
                   </label>
                   <select
                     id="city"
@@ -801,7 +802,7 @@ export default function ProviderRegisterPage() {
                     onChange={handleChange}
                     className={`${styles.input} ${errors.city ? styles.inputError : ''}`}
                   >
-                    <option value="">Sélectionnez votre ville</option>
+                    <option value="">{t('register.selectCity')}</option>
                     <option value="Casablanca">Casablanca</option>
                     <option value="Rabat">Rabat</option>
                     <option value="Marrakech">Marrakech</option>
@@ -821,7 +822,7 @@ export default function ProviderRegisterPage() {
 
                 <div className={styles.formGroup}>
                   <label htmlFor="intervention_radius" className={styles.label}>
-                    Rayon d'intervention: <strong>{formData.intervention_radius} km</strong>
+                    {t('providerRegister.interventionRadius')}: <strong>{formData.intervention_radius} km</strong>
                   </label>
                   <input
                     type="range"
@@ -843,11 +844,11 @@ export default function ProviderRegisterPage() {
               </div>
 
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Disponibilités</h3>
-                <p className={styles.sectionHint}>Définissez vos horaires de travail habituels</p>
+                <h3 className={styles.sectionTitle}>{t('providerRegister.availability')}</h3>
+                <p className={styles.sectionHint}>{t('providerRegister.availabilityHint')}</p>
 
                 <div className={styles.availabilityGrid}>
-                  {DAYS_OF_WEEK.map(({ key, label }) => (
+                  {DAYS_OF_WEEK.map(({ key, labelKey }) => (
                     <div key={key} className={styles.availabilityRow}>
                       <label className={styles.availabilityDay}>
                         <input
@@ -855,7 +856,7 @@ export default function ProviderRegisterPage() {
                           checked={formData.availability_schedule[key].available}
                           onChange={(e) => handleAvailabilityChange(key, 'available', e.target.checked)}
                         />
-                        <span>{label}</span>
+                        <span>{t(labelKey)}</span>
                       </label>
                       {formData.availability_schedule[key].available && (
                         <div className={styles.availabilityTimes}>
@@ -865,7 +866,7 @@ export default function ProviderRegisterPage() {
                             onChange={(e) => handleAvailabilityChange(key, 'start', e.target.value)}
                             className={styles.timeInput}
                           />
-                          <span>à</span>
+                          <span>{t('providerRegister.to')}</span>
                           <input
                             type="time"
                             value={formData.availability_schedule[key].end}
@@ -881,7 +882,7 @@ export default function ProviderRegisterPage() {
 
               <div className={styles.buttonRow}>
                 <Button type="button" variant="outline" size="large" onClick={handlePrevStep}>
-                  Retour
+                  {t('register.back')}
                 </Button>
                 <Button
                   type="button"
@@ -891,7 +892,7 @@ export default function ProviderRegisterPage() {
                   loading={loading}
                   disabled={loading}
                 >
-                  {loading ? 'Inscription...' : 'Continuer'}
+                  {loading ? t('register.registering') : t('register.continue')}
                 </Button>
               </div>
             </div>
@@ -901,11 +902,11 @@ export default function ProviderRegisterPage() {
           {currentStep === 3 && (
             <div className={styles.form}>
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Carte d'identité nationale</h3>
+                <h3 className={styles.sectionTitle}>{t('providerRegister.nationalId')}</h3>
 
                 <div className={styles.formGroup}>
                   <label htmlFor="cin_number" className={styles.label}>
-                    Numéro de CIN <span className={styles.required}>*</span>
+                    {t('providerRegister.cinNumber')} <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="text"
@@ -922,7 +923,7 @@ export default function ProviderRegisterPage() {
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Photo recto CIN <span className={styles.optional}>(optionnel)</span>
+                      {t('providerRegister.cinFrontPhoto')} <span className={styles.optional}>({t('providerRegister.optional')})</span>
                     </label>
                     <div className={styles.fileInputWrapper}>
                       <label
@@ -932,7 +933,7 @@ export default function ProviderRegisterPage() {
                         <div className={styles.fileInputContent}>
                           <span className={styles.fileInputIcon}>📄</span>
                           <div className={styles.fileInputText}>
-                            <strong>{formData.cin_front ? formData.cin_front.name : 'Recto CIN'}</strong>
+                            <strong>{formData.cin_front ? formData.cin_front.name : t('providerRegister.frontCin')}</strong>
                             <span>JPG, PNG - max 5MB</span>
                           </div>
                         </div>
@@ -951,7 +952,7 @@ export default function ProviderRegisterPage() {
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Photo verso CIN <span className={styles.optional}>(optionnel)</span>
+                      {t('providerRegister.cinBackPhoto')} <span className={styles.optional}>({t('providerRegister.optional')})</span>
                     </label>
                     <div className={styles.fileInputWrapper}>
                       <label
@@ -961,7 +962,7 @@ export default function ProviderRegisterPage() {
                         <div className={styles.fileInputContent}>
                           <span className={styles.fileInputIcon}>📄</span>
                           <div className={styles.fileInputText}>
-                            <strong>{formData.cin_back ? formData.cin_back.name : 'Verso CIN'}</strong>
+                            <strong>{formData.cin_back ? formData.cin_back.name : t('providerRegister.backCin')}</strong>
                             <span>JPG, PNG - max 5MB</span>
                           </div>
                         </div>
@@ -992,7 +993,7 @@ export default function ProviderRegisterPage() {
                     className={styles.termsCheckbox}
                   />
                   <span className={styles.termsText}>
-                    Je m'engage à respecter la charte qualité GlamGo et à fournir un service professionnel{' '}
+                    {t('providerRegister.charterAccept')}{' '}
                     <span className={styles.required}>*</span>
                   </span>
                 </label>
@@ -1001,7 +1002,7 @@ export default function ProviderRegisterPage() {
 
               <div className={styles.buttonRow}>
                 <Button type="button" variant="outline" size="large" onClick={handlePrevStep}>
-                  Retour
+                  {t('register.back')}
                 </Button>
                 <Button
                   type="button"
@@ -1011,7 +1012,7 @@ export default function ProviderRegisterPage() {
                   loading={loading}
                   disabled={loading}
                 >
-                  {loading ? 'Envoi...' : 'Continuer'}
+                  {loading ? t('common.sending') : t('register.continue')}
                 </Button>
               </div>
             </div>
@@ -1022,8 +1023,7 @@ export default function ProviderRegisterPage() {
             <div className={styles.paymentStep}>
               <div className={styles.paymentInfo}>
                 <p>
-                  Configurez vos informations bancaires pour recevoir vos paiements.
-                  Vous pouvez également passer cette étape et la configurer plus tard.
+                  {t('providerRegister.paymentInfoText')}
                 </p>
               </div>
               <PaymentMethodSetup
@@ -1038,15 +1038,15 @@ export default function ProviderRegisterPage() {
           {currentStep === 1 && (
             <div className={styles.footer}>
               <p>
-                Vous avez déjà un compte ?{' '}
+                {t('providerRegister.haveAccount')}{' '}
                 <Link href="/provider/login" className={styles.link}>
-                  Connectez-vous
+                  {t('register.logIn')}
                 </Link>
               </p>
               <p>
-                Vous êtes un client ?{' '}
+                {t('providerRegister.areClient')}{' '}
                 <Link href="/register" className={styles.link}>
-                  Inscrivez-vous ici
+                  {t('providerRegister.registerHere')}
                 </Link>
               </p>
             </div>

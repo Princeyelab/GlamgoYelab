@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import { fixEncoding } from '@/lib/textUtils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import TranslatedText from '@/components/TranslatedText';
 
 export default function ReviewModal({ order, onClose, onSuccess }) {
   const { t } = useLanguage();
@@ -107,9 +108,7 @@ export default function ReviewModal({ order, onClose, onSuccess }) {
 
         <div className={styles.modalBody}>
           <div className={styles.orderInfo}>
-            <p className={styles.serviceName}>
-              {fixEncoding(order.service_name || t('review.service'))}
-            </p>
+            <TranslatedText as="p" className={styles.serviceName} text={order.service_name} fallback={t('review.service')} />
             <p className={styles.providerName}>
               {t('review.provider')}: {order.provider_name || t('provider.defaultName')}
             </p>

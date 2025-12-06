@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
@@ -10,14 +10,17 @@ import ProviderNotificationDropdown from '@/components/ProviderNotificationDropd
 import UnreadBadge from '@/components/UnreadBadge';
 import { fixEncoding } from '@/lib/textUtils';
 import Chat from '@/components/Chat';
+import TranslatedText from '@/components/TranslatedText';
 import LiveLocationTracker from '@/components/LiveLocationTracker';
 import WelcomePopupProvider from '@/components/WelcomePopup/WelcomePopupProvider';
 import EmergencyButtonProvider from '@/components/EmergencyButtonProvider';
 import ProviderPriorityBadge from '@/components/ProviderPriorityBadge';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +119,7 @@ export default function ProviderDashboardPage() {
       }
     } catch (err) {
       if (!silent) {
-        setError('Erreur lors du chargement des commandes');
+        setError(t('providerDashboard.errorLoadingOrders'));
       }
     } finally {
       if (!silent) {
@@ -130,13 +133,13 @@ export default function ProviderDashboardPage() {
     try {
       const response = await apiClient.acceptProviderOrder(orderId);
       if (response.success) {
-        showToast('Commande acceptée avec succès !', 'success');
+        showToast(t('providerDashboard.orderAccepted'), 'success');
         fetchOrders();
       } else {
-        showToast(response.message || 'Erreur lors de l\'acceptation', 'error');
+        showToast(response.message || t('providerDashboard.errorAccepting'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de l\'acceptation', 'error');
+      showToast(err.message || t('providerDashboard.errorAccepting'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`accept_${orderId}`]: false }));
     }
@@ -147,13 +150,13 @@ export default function ProviderDashboardPage() {
     try {
       const response = await apiClient.startProviderOrder(orderId);
       if (response.success) {
-        showToast('Vous êtes maintenant en route !', 'success');
+        showToast(t('providerDashboard.onTheWayNow'), 'success');
         fetchOrders();
       } else {
-        showToast(response.message || 'Erreur lors du démarrage', 'error');
+        showToast(response.message || t('providerDashboard.errorStarting'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors du démarrage', 'error');
+      showToast(err.message || t('providerDashboard.errorStarting'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`start_${orderId}`]: false }));
     }
@@ -164,13 +167,13 @@ export default function ProviderDashboardPage() {
     try {
       const response = await apiClient.beginProviderOrder(orderId);
       if (response.success) {
-        showToast('Prestation démarrée !', 'success');
+        showToast(t('providerDashboard.serviceStarted'), 'success');
         fetchOrders();
       } else {
-        showToast(response.message || 'Erreur lors du démarrage de la prestation', 'error');
+        showToast(response.message || t('providerDashboard.errorStartingService'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors du démarrage de la prestation', 'error');
+      showToast(err.message || t('providerDashboard.errorStartingService'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`begin_${orderId}`]: false }));
     }
@@ -202,12 +205,12 @@ export default function ProviderDashboardPage() {
       if (response.success) {
         fetchOrders();
         closeCompleteModal();
-        showToast('Prestation signalée comme terminée ! Le client va recevoir une demande d\'évaluation.', 'success');
+        showToast(t('providerDashboard.serviceCompletedReview'), 'success');
       } else {
-        showToast(response.message || 'Erreur lors de la complétion', 'error');
+        showToast(response.message || t('providerDashboard.errorCompleting'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de la complétion', 'error');
+      showToast(err.message || t('providerDashboard.errorCompleting'), 'error');
     } finally {
       setCompleting(false);
     }
@@ -230,27 +233,27 @@ export default function ProviderDashboardPage() {
    * Calcule les frais d'annulation selon le délai avant le RDV
    */
   const calculateCancellationFee = (order) => {
-    if (!order?.scheduled_at) return { fee: 0, level: 'free', message: 'Annulation gratuite' };
+    if (!order?.scheduled_at) return { fee: 0, level: 'free', message: t('providerDashboard.cancelFree') };
 
     const now = new Date();
     const scheduledTime = new Date(order.scheduled_at);
     const hoursUntilService = (scheduledTime - now) / (1000 * 60 * 60);
 
     if (hoursUntilService > 2) {
-      return { fee: 0, level: 'free', message: 'Annulation gratuite (plus de 2h avant le RDV)' };
+      return { fee: 0, level: 'free', message: t('providerDashboard.cancelFreeBefore2h') };
     } else if (hoursUntilService > 1) {
-      return { fee: 20, level: 'warning', message: 'Frais de 20 MAD (1-2h avant le RDV)' };
+      return { fee: 20, level: 'warning', message: t('providerDashboard.cancelFee1to2h') };
     } else if (hoursUntilService > 0) {
-      return { fee: 50, level: 'danger', message: 'Frais de 50 MAD (moins d\'1h avant le RDV)' };
+      return { fee: 50, level: 'danger', message: t('providerDashboard.cancelFeeLess1h') };
     } else {
-      return { fee: 100, level: 'critical', message: 'Frais de 100 MAD (No-Show)' };
+      return { fee: 100, level: 'critical', message: t('providerDashboard.cancelFeeNoShow') };
     }
   };
 
   const handleCancelOrder = async () => {
     if (!cancelModal.order) return;
     if (!cancelReason.trim()) {
-      showToast('Veuillez sélectionner une raison d\'annulation', 'warning');
+      showToast(t('providerDashboard.selectReasonWarning'), 'warning');
       return;
     }
 
@@ -269,15 +272,15 @@ export default function ProviderDashboardPage() {
         closeCancelModal();
         showToast(
           fee > 0
-            ? `Commande annulée. Des frais de ${fee} MAD seront prélevés.`
-            : 'Commande annulée. Le client sera notifié et nous rechercherons un prestataire de remplacement.',
+            ? t('providerDashboard.orderCancelledWithFee', { fee })
+            : t('providerDashboard.orderCancelledNoFee'),
           fee > 0 ? 'warning' : 'success'
         );
       } else {
-        showToast(response.message || 'Erreur lors de l\'annulation', 'error');
+        showToast(response.message || t('providerDashboard.errorCancelling'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de l\'annulation', 'error');
+      showToast(err.message || t('providerDashboard.errorCancelling'), 'error');
     } finally {
       setCancelling(false);
     }
@@ -301,9 +304,10 @@ export default function ProviderDashboardPage() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Non définie';
+    if (!dateString) return t('providerDashboard.notDefined');
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    const locale = isRTL ? 'ar-MA' : 'fr-FR';
+    return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -323,11 +327,11 @@ export default function ProviderDashboardPage() {
       if (response.success) {
         setProvider(prev => ({ ...prev, is_available: newStatus }));
       } else {
-        setError(response.message || 'Erreur lors du changement de statut');
+        setError(response.message || t('providerDashboard.errorStatusChange'));
       }
     } catch (err) {
       console.error('Toggle availability error:', err);
-      setError('Erreur lors du changement de statut');
+      setError(t('providerDashboard.errorStatusChange'));
     } finally {
       setTogglingAvailability(false);
     }
@@ -335,13 +339,13 @@ export default function ProviderDashboardPage() {
 
   const getStatusLabel = (status) => {
     const labels = {
-      pending: 'En attente',
-      accepted: 'Acceptee',
-      on_way: 'En route',
-      in_progress: 'En cours',
-      completed_pending_review: 'En attente evaluation',
-      completed: 'Terminee',
-      cancelled: 'Annulee'
+      pending: t('status.pending'),
+      accepted: t('status.accepted'),
+      on_way: t('status.on_way'),
+      in_progress: t('status.in_progress'),
+      completed_pending_review: t('status.completed_pending_review'),
+      completed: t('status.completed'),
+      cancelled: t('status.cancelled')
     };
     return labels[status] || status;
   };
@@ -377,7 +381,7 @@ export default function ProviderDashboardPage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -387,18 +391,18 @@ export default function ProviderDashboardPage() {
   }
 
   return (
-    <div className={styles.dashboardPage}>
+    <div className={styles.dashboardPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <WelcomePopupProvider />
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <Link href="/provider/dashboard" className={styles.logo}>
             <span>GlamGo</span>
-            <span className={styles.providerBadge}>Prestataire</span>
+            <span className={styles.providerBadge}>{t('providerDashboard.provider')}</span>
           </Link>
 
           <div className={styles.headerActions}>
             <LanguageSwitcher compact />
-            <div className={styles.messagesIcon} title="Messages non lus">
+            <div className={styles.messagesIcon} title={t('providerDashboard.unreadMessages')}>
               <UnreadBadge />
             </div>
             <ProviderNotificationDropdown />
@@ -407,7 +411,7 @@ export default function ProviderDashboardPage() {
                 {provider.first_name} {provider.last_name}
               </Link>
               <button onClick={handleLogout} className={styles.logoutBtn}>
-                Déconnexion
+                {t('nav.logout')}
               </button>
             </div>
           </div>
@@ -419,14 +423,14 @@ export default function ProviderDashboardPage() {
           <div className={styles.welcomeSection}>
             <div className={styles.welcomeHeader}>
               <div>
-                <h1>Bonjour, {provider.first_name} !</h1>
-                <p>Gérez vos commandes et suivez votre activité</p>
+                <h1>{t('providerDashboard.hello', { name: provider.first_name })}</h1>
+                <p>{t('providerDashboard.manageOrders')}</p>
               </div>
               <div className={styles.headerControls}>
                 <ProviderPriorityBadge provider={provider} showDetails={true} />
                 <div className={styles.availabilityToggle}>
                   <span className={styles.availabilityLabel}>
-                    {provider.is_available ? '🟢 Disponible' : '🔴 Indisponible'}
+                    {provider.is_available ? `🟢 ${t('providerDashboard.available')}` : `🔴 ${t('providerDashboard.unavailable')}`}
                   </span>
                   <button
                     onClick={toggleAvailability}
@@ -440,8 +444,7 @@ export default function ProviderDashboardPage() {
             </div>
             {!provider.is_available && (
               <div className={styles.availabilityWarning}>
-                ⚠️ Vous êtes actuellement <strong>indisponible</strong>. Les clients ne peuvent pas vous voir dans les recherches.
-                Activez votre disponibilité pour recevoir des commandes.
+                ⚠️ {t('providerDashboard.unavailableWarning')}
               </div>
             )}
           </div>
@@ -450,15 +453,15 @@ export default function ProviderDashboardPage() {
             <Link href="/provider/services" className={styles.quickActionCard}>
               <div className={styles.quickActionIcon}>📋</div>
               <div className={styles.quickActionContent}>
-                <h3>Mes Services</h3>
-                <p>Gérez vos services et tarifs</p>
+                <h3>{t('providerDashboard.myServices')}</h3>
+                <p>{t('providerDashboard.manageServicesRates')}</p>
               </div>
             </Link>
             <Link href="/provider/profile" className={styles.quickActionCard}>
               <div className={styles.quickActionIcon}>👤</div>
               <div className={styles.quickActionContent}>
-                <h3>Mon Profil</h3>
-                <p>Modifiez vos informations</p>
+                <h3>{t('providerDashboard.myProfile')}</h3>
+                <p>{t('providerDashboard.editInfo')}</p>
               </div>
             </Link>
           </div>
@@ -468,19 +471,19 @@ export default function ProviderDashboardPage() {
               <div className={styles.statValue}>
                 {orders.filter(o => o.status === 'pending' && !o.provider_id).length}
               </div>
-              <div className={styles.statLabel}>Commandes disponibles</div>
+              <div className={styles.statLabel}>{t('providerDashboard.availableOrders')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
                 {orders.filter(o => ['accepted', 'on_way', 'in_progress'].includes(o.status)).length}
               </div>
-              <div className={styles.statLabel}>Commandes en cours</div>
+              <div className={styles.statLabel}>{t('providerDashboard.activeOrders')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
                 {orders.filter(o => o.status === 'completed').length}
               </div>
-              <div className={styles.statLabel}>Commandes terminées</div>
+              <div className={styles.statLabel}>{t('providerDashboard.completedOrders')}</div>
             </div>
             <div className={`${styles.statCard} ${styles.earningsCard}`}>
               <div className={styles.statValue}>
@@ -495,13 +498,13 @@ export default function ProviderDashboardPage() {
                   }, 0)
                   .toFixed(0)} MAD
               </div>
-              <div className={styles.statLabel}>Vos gains (80%)</div>
+              <div className={styles.statLabel}>{t('providerDashboard.yourEarnings')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
                 {provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0'}
               </div>
-              <div className={styles.statLabel}>Note moyenne</div>
+              <div className={styles.statLabel}>{t('providerDashboard.averageRating')}</div>
             </div>
           </div>
 
@@ -511,66 +514,64 @@ export default function ProviderDashboardPage() {
                 className={`${styles.tab} ${activeTab === 'available' ? styles.active : ''}`}
                 onClick={() => setActiveTab('available')}
               >
-                Disponibles
+                {t('providerDashboard.tabAvailable')}
               </button>
               <button
                 className={`${styles.tab} ${activeTab === 'active' ? styles.active : ''}`}
                 onClick={() => setActiveTab('active')}
               >
-                En cours
+                {t('providerDashboard.tabActive')}
               </button>
               <button
                 className={`${styles.tab} ${activeTab === 'completed' ? styles.active : ''}`}
                 onClick={() => setActiveTab('completed')}
               >
-                Terminées
+                {t('providerDashboard.tabCompleted')}
               </button>
             </div>
 
             <div className={styles.ordersList}>
               {ordersLoading ? (
-                <div className={styles.ordersLoading}>Chargement...</div>
+                <div className={styles.ordersLoading}>{t('common.loading')}</div>
               ) : filteredOrders.length === 0 ? (
                 <div className={styles.noOrders}>
-                  {activeTab === 'available' && 'Aucune commande disponible pour le moment'}
-                  {activeTab === 'active' && 'Aucune commande en cours'}
-                  {activeTab === 'completed' && 'Aucune commande terminée'}
+                  {activeTab === 'available' && t('providerDashboard.noAvailableOrders')}
+                  {activeTab === 'active' && t('providerDashboard.noActiveOrders')}
+                  {activeTab === 'completed' && t('providerDashboard.noCompletedOrders')}
                 </div>
               ) : (
                 filteredOrders.map(order => (
                   <div key={order.id} className={styles.orderCard}>
                     <div className={styles.orderHeader}>
-                      <span className={styles.orderId}>Commande #{order.id}</span>
+                      <span className={styles.orderId}>{t('providerDashboard.orderNumber', { id: order.id })}</span>
                       <span className={`${styles.status} ${getStatusClass(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
                     </div>
 
                     <div className={styles.orderDetails}>
-                      <div className={styles.serviceName}>
-                        {fixEncoding(order.service_name || 'Service')}
-                      </div>
+                      <TranslatedText as="div" className={styles.serviceName} text={order.service_name} fallback="Service" />
                       <div className={styles.orderInfo}>
                         <div className={styles.infoItem}>
-                          <span className={styles.infoLabel}>Client:</span>
-                          <span>{order.user_name || 'Client'}</span>
+                          <span className={styles.infoLabel}>{t('providerDashboard.client')}:</span>
+                          <span>{order.user_name || t('providerDashboard.client')}</span>
                         </div>
                         <div className={styles.infoItem}>
-                          <span className={styles.infoLabel}>Date prévue:</span>
+                          <span className={styles.infoLabel}>{t('providerDashboard.scheduledDate')}:</span>
                           <span>{formatDate(order.scheduled_at)}</span>
                         </div>
                         <div className={styles.infoItem}>
-                          <span className={styles.infoLabel}>Adresse:</span>
-                          <span>{order.address_line || 'Non spécifiée'}</span>
+                          <span className={styles.infoLabel}>{t('providerDashboard.address')}:</span>
+                          <span>{order.address_line || t('providerDashboard.notSpecified')}</span>
                         </div>
                         <div className={styles.infoItem}>
-                          <span className={styles.infoLabel}>Total client:</span>
+                          <span className={styles.infoLabel}>{t('providerDashboard.clientTotal')}:</span>
                           <span className={styles.price}>
                             {(order.total || order.price) ? parseFloat(order.total || order.price).toFixed(0) : '0'} MAD
                           </span>
                         </div>
                         <div className={styles.infoItem}>
-                          <span className={styles.infoLabel}>Vos gains (80%):</span>
+                          <span className={styles.infoLabel}>{t('providerDashboard.yourEarnings')}:</span>
                           <span className={styles.earnings}>
                             {(() => {
                               const providerAmount = parseFloat(order.provider_amount);
@@ -584,7 +585,7 @@ export default function ProviderDashboardPage() {
                       </div>
                       {order.notes && (
                         <div className={styles.notes}>
-                          <strong>Notes:</strong> {order.notes}
+                          <strong>{t('providerDashboard.notes')}:</strong> {order.notes}
                         </div>
                       )}
                     </div>
@@ -610,7 +611,7 @@ export default function ProviderDashboardPage() {
                           onClick={() => handleAcceptOrder(order.id)}
                           disabled={actionLoading[`accept_${order.id}`]}
                         >
-                          {actionLoading[`accept_${order.id}`] ? 'Acceptation...' : 'Accepter'}
+                          {actionLoading[`accept_${order.id}`] ? t('providerDashboard.accepting') : t('providerDashboard.accept')}
                         </Button>
                       )}
                       {order.status === 'accepted' && (
@@ -621,7 +622,7 @@ export default function ProviderDashboardPage() {
                             onClick={() => handleStartOrder(order.id)}
                             disabled={actionLoading[`start_${order.id}`]}
                           >
-                            {actionLoading[`start_${order.id}`] ? 'Démarrage...' : 'En route'}
+                            {actionLoading[`start_${order.id}`] ? t('providerDashboard.starting') : t('providerDashboard.onTheWay')}
                           </Button>
                           <Button
                             variant="outline"
@@ -636,14 +637,14 @@ export default function ProviderDashboardPage() {
                             onClick={() => openCancelModal(order)}
                             className={styles.cancelBtn}
                           >
-                            Je ne peux pas assurer
+                            {t('providerDashboard.cannotProvide')}
                           </Button>
                         </>
                       )}
                       {order.status === 'on_way' && (
                         <>
                           <div className={styles.waitingClient}>
-                            ⏳ En attente de confirmation client
+                            ⏳ {t('providerDashboard.waitingClientConfirmation')}
                           </div>
                           <Button
                             variant="outline"
@@ -658,21 +659,21 @@ export default function ProviderDashboardPage() {
                             onClick={() => openCancelModal(order)}
                             className={styles.cancelBtn}
                           >
-                            Je ne peux pas assurer
+                            {t('providerDashboard.cannotProvide')}
                           </Button>
                         </>
                       )}
                       {order.status === 'in_progress' && (
                         <>
                           <div className={styles.inProgressStatus}>
-                            &#128295; Prestation en cours
+                            &#128295; {t('providerDashboard.serviceInProgress')}
                           </div>
                           <Button
                             variant="primary"
                             size="small"
                             onClick={() => openCompleteModal(order)}
                           >
-                            Marquer comme termine
+                            {t('providerDashboard.markAsComplete')}
                           </Button>
                           <Button
                             variant="outline"
@@ -687,8 +688,8 @@ export default function ProviderDashboardPage() {
                         <div className={styles.pendingReviewStatus}>
                           <div className={styles.pendingReviewIcon}>&#11088;</div>
                           <div className={styles.pendingReviewText}>
-                            <strong>En attente d evaluation</strong>
-                            <p>Le client doit evaluer le service pour finaliser la commande</p>
+                            <strong>{t('providerDashboard.pendingReview')}</strong>
+                            <p>{t('providerDashboard.clientMustReview')}</p>
                           </div>
                         </div>
                       )}
@@ -705,7 +706,7 @@ export default function ProviderDashboardPage() {
         <div className={styles.chatModal}>
           <div className={styles.chatModalContent}>
             <div className={styles.chatModalHeader}>
-              <h3>Chat - Commande #{selectedOrderForChat.id}</h3>
+              <h3>{t('providerDashboard.chatOrder', { id: selectedOrderForChat.id })}</h3>
               <button
                 className={styles.closeChat}
                 onClick={() => setSelectedOrderForChat(null)}
@@ -722,7 +723,7 @@ export default function ProviderDashboardPage() {
         <div className={styles.completeModal}>
           <div className={styles.completeModalContent}>
             <div className={styles.completeModalHeader}>
-              <h3>Terminer la commande</h3>
+              <h3>{t('providerDashboard.completeOrder')}</h3>
               <button
                 className={styles.closeModal}
                 onClick={closeCompleteModal}
@@ -735,38 +736,36 @@ export default function ProviderDashboardPage() {
             <div className={styles.completeModalBody}>
               <div className={styles.orderSummary}>
                 <p className={styles.orderId}>
-                  Commande #{completeModal.order.id}
+                  {t('providerDashboard.orderNumber', { id: completeModal.order.id })}
                 </p>
-                <p className={styles.serviceName}>
-                  {fixEncoding(completeModal.order.service_name || 'Service')}
-                </p>
+                <TranslatedText as="p" className={styles.serviceName} text={completeModal.order.service_name} fallback="Service" />
                 <p className={styles.clientName}>
-                  Client: {completeModal.order.user_name || 'Client'}
+                  {t('providerDashboard.client')}: {completeModal.order.user_name || t('providerDashboard.client')}
                 </p>
                 <p className={styles.orderTotal}>
-                  Total: {(completeModal.order.total || completeModal.order.price) ? parseFloat(completeModal.order.total || completeModal.order.price).toFixed(0) : '0'} MAD
+                  {t('providerDashboard.total')}: {(completeModal.order.total || completeModal.order.price) ? parseFloat(completeModal.order.total || completeModal.order.price).toFixed(0) : '0'} MAD
                 </p>
                 <p className={styles.orderEarnings}>
-                  Vos gains (80%): {(completeModal.order.total || completeModal.order.price) ? (parseFloat(completeModal.order.total || completeModal.order.price) * 0.8).toFixed(0) : '0'} MAD
+                  {t('providerDashboard.yourEarnings')}: {(completeModal.order.total || completeModal.order.price) ? (parseFloat(completeModal.order.total || completeModal.order.price) * 0.8).toFixed(0) : '0'} MAD
                 </p>
               </div>
 
               <div className={styles.confirmMessage}>
                 <div className={styles.checkIcon}>✓</div>
-                <p>Êtes-vous sûr d'avoir terminé ce service ?</p>
+                <p>{t('providerDashboard.confirmComplete')}</p>
                 <p className={styles.confirmHint}>
-                  Le client sera notifié et pourra laisser un avis.
+                  {t('providerDashboard.clientWillBeNotified')}
                 </p>
               </div>
 
               <div className={styles.noteSection}>
-                <label htmlFor="completeNote">Note (optionnelle) :</label>
+                <label htmlFor="completeNote">{t('providerDashboard.noteOptional')}:</label>
                 <textarea
                   id="completeNote"
                   className={styles.noteInput}
                   value={completeNote}
                   onChange={(e) => setCompleteNote(e.target.value)}
-                  placeholder="Ajoutez une note sur le service effectué..."
+                  placeholder={t('providerDashboard.addNotePlaceholder')}
                   rows={3}
                 />
               </div>
@@ -778,14 +777,14 @@ export default function ProviderDashboardPage() {
                 onClick={closeCompleteModal}
                 disabled={completing}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="primary"
                 onClick={handleCompleteOrder}
                 disabled={completing}
               >
-                {completing ? 'En cours...' : 'Confirmer'}
+                {completing ? t('providerDashboard.processing') : t('common.confirm')}
               </Button>
             </div>
           </div>
@@ -797,7 +796,7 @@ export default function ProviderDashboardPage() {
         <div className={styles.cancelModal}>
           <div className={styles.cancelModalContent}>
             <div className={styles.cancelModalHeader}>
-              <h3>Je ne peux pas assurer cette prestation</h3>
+              <h3>{t('providerDashboard.cannotProvideTitle')}</h3>
               <button
                 className={styles.closeModal}
                 onClick={closeCancelModal}
@@ -810,22 +809,23 @@ export default function ProviderDashboardPage() {
             <div className={styles.cancelModalBody}>
               <div className={styles.orderSummary}>
                 <p className={styles.orderId}>
-                  Commande #{cancelModal.order.id}
+                  {t('providerDashboard.orderNumber', { id: cancelModal.order.id })}
                 </p>
-                <p className={styles.serviceName}>
-                  {fixEncoding(cancelModal.order.service_name || 'Service')}
-                </p>
+                <TranslatedText as="p" className={styles.serviceName} text={cancelModal.order.service_name} fallback="Service" />
                 <p className={styles.clientName}>
-                  Client: {cancelModal.order.user_name || 'Client'}
+                  {t('providerDashboard.client')}: {cancelModal.order.user_name || t('providerDashboard.client')}
                 </p>
                 <p className={styles.scheduledAt}>
-                  Prévu: {formatDate(cancelModal.order.scheduled_at)}
+                  {t('providerDashboard.scheduled')}: {formatDate(cancelModal.order.scheduled_at)}
                 </p>
               </div>
 
               {/* Affichage des frais d'annulation */}
               {(() => {
-                const { fee, level, message } = calculateCancellationFee(cancelModal.order);
+                const { fee, level } = calculateCancellationFee(cancelModal.order);
+                const message = fee === 0
+                  ? t('providerDashboard.cancelFree')
+                  : t('providerDashboard.cancelFee', { fee });
                 return (
                   <div className={`${styles.cancellationFee} ${styles[level]}`}>
                     <div className={styles.feeIcon}>
@@ -834,10 +834,10 @@ export default function ProviderDashboardPage() {
                     <div className={styles.feeInfo}>
                       <strong>{message}</strong>
                       {fee > 0 && (
-                        <p>Ces frais seront prélevés sur votre solde prestataire.</p>
+                        <p>{t('providerDashboard.feeDeducted')}</p>
                       )}
                       {fee === 0 && (
-                        <p>Merci de prévenir à l'avance ! Aucun frais ne sera appliqué.</p>
+                        <p>{t('providerDashboard.noFeeApplied')}</p>
                       )}
                     </div>
                   </div>
@@ -845,23 +845,23 @@ export default function ProviderDashboardPage() {
               })()}
 
               <div className={styles.reasonSection}>
-                <label>Raison de l'annulation <span className={styles.required}>*</span></label>
+                <label>{t('providerDashboard.cancelReason')} <span className={styles.required}>*</span></label>
                 <select
                   className={styles.reasonSelect}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                 >
-                  <option value="">Sélectionnez une raison</option>
-                  <option value="urgence_personnelle">Urgence personnelle</option>
-                  <option value="probleme_sante">Problème de santé</option>
-                  <option value="probleme_transport">Problème de transport</option>
-                  <option value="conflit_horaire">Conflit d'horaire</option>
-                  <option value="autre">Autre raison</option>
+                  <option value="">{t('providerDashboard.selectReason')}</option>
+                  <option value="urgence_personnelle">{t('providerDashboard.personalEmergency')}</option>
+                  <option value="probleme_sante">{t('providerDashboard.healthIssue')}</option>
+                  <option value="probleme_transport">{t('providerDashboard.transportIssue')}</option>
+                  <option value="conflit_horaire">{t('providerDashboard.scheduleConflict')}</option>
+                  <option value="autre">{t('providerDashboard.otherReason')}</option>
                 </select>
               </div>
 
               <div className={styles.warningMessage}>
-                <p>⚠️ Le client sera immédiatement notifié et nous rechercherons un prestataire de remplacement.</p>
+                <p>⚠️ {t('providerDashboard.clientWillBeNotifiedCancel')}</p>
               </div>
             </div>
 
@@ -871,14 +871,14 @@ export default function ProviderDashboardPage() {
                 onClick={closeCancelModal}
                 disabled={cancelling}
               >
-                Retour
+                {t('common.back')}
               </Button>
               <Button
                 variant="danger"
                 onClick={handleCancelOrder}
                 disabled={cancelling || !cancelReason}
               >
-                {cancelling ? 'Annulation...' : 'Confirmer l\'annulation'}
+                {cancelling ? t('providerDashboard.cancelling') : t('providerDashboard.confirmCancel')}
               </Button>
             </div>
           </div>
@@ -910,7 +910,7 @@ export default function ProviderDashboardPage() {
           orderId={activeOrder.id}
           clientName={activeOrder.user_name}
           onEmergencyReported={(data) => {
-            showToast('Signalement envoye. Notre equipe vous contactera rapidement.', 'success');
+            showToast(t('providerDashboard.emergencyReported'), 'success');
           }}
         />
       ))}

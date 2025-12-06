@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Chat from '@/components/Chat';
 import Price from '@/components/Price';
+import TranslatedText from '@/components/TranslatedText';
 
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { t, isRTL } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,10 +29,39 @@ export default function OrdersPage() {
   const [confirmModal, setConfirmModal] = useState({ show: false, orderId: null });
 
   // Fonction pour afficher un toast
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
-  };
+  }, []);
+
+  const fetchOrders = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
+    try {
+      const response = await apiClient.getMyOrders();
+      if (response.success) {
+        let filteredOrders = response.data || [];
+        if (filter !== 'all') {
+          filteredOrders = filteredOrders.filter(order => order.status === filter);
+        }
+        // Éviter les re-renders inutiles en comparant les données
+        setOrders(prev => {
+          const prevIds = prev.map(o => `${o.id}-${o.status}`).join(',');
+          const newIds = filteredOrders.map(o => `${o.id}-${o.status}`).join(',');
+          return prevIds === newIds ? prev : filteredOrders;
+        });
+      } else {
+        setError('errorLoading');
+      }
+    } catch (err) {
+      setError(err.message || 'errorLoading');
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  }, [filter]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -56,41 +88,17 @@ export default function OrdersPage() {
         clearInterval(pollingIntervalRef.current);
       }
     };
-  }, [user, filter]);
-
-  const fetchOrders = async (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-    }
-    try {
-      const response = await apiClient.getMyOrders();
-      if (response.success) {
-        let filteredOrders = response.data || [];
-        if (filter !== 'all') {
-          filteredOrders = filteredOrders.filter(order => order.status === filter);
-        }
-        setOrders(filteredOrders);
-      } else {
-        setError('Erreur lors du chargement des commandes');
-      }
-    } catch (err) {
-      setError(err.message || 'Erreur lors du chargement des commandes');
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  };
+  }, [user, fetchOrders]);
 
   const getStatusLabel = (status) => {
     const labels = {
-      pending: 'En attente',
-      accepted: 'Acceptee',
-      on_way: 'En route',
-      in_progress: 'En cours',
-      completed_pending_review: 'A evaluer',
-      completed: 'Terminee',
-      cancelled: 'Annulee'
+      pending: t('status.pending'),
+      accepted: t('status.accepted'),
+      on_way: t('status.on_way'),
+      in_progress: t('status.in_progress'),
+      completed_pending_review: t('status.completed_pending_review'),
+      completed: t('status.completed'),
+      cancelled: t('status.cancelled')
     };
     return labels[status] || status;
   };
@@ -109,7 +117,7 @@ export default function OrdersPage() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Non planifiée';
+    if (!dateString) return t('ordersPage.notPlanned');
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -138,13 +146,13 @@ export default function OrdersPage() {
     try {
       const response = await apiClient.cancelOrder(orderId);
       if (response.success) {
-        showToast('Commande annulée avec succès', 'success');
+        showToast(t('ordersPage.cancelSuccess'), 'success');
         fetchOrders();
       } else {
-        showToast(response.message || 'Erreur lors de l\'annulation', 'error');
+        showToast(response.message || t('ordersPage.cancelError'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de l\'annulation', 'error');
+      showToast(err.message || t('ordersPage.cancelError'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`cancel_${orderId}`]: false }));
     }
@@ -154,7 +162,7 @@ export default function OrdersPage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -164,11 +172,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className={styles.ordersPage}>
+    <div className={styles.ordersPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="container">
         <div className={styles.header}>
-          <h1 className={styles.title}>Mes Commandes</h1>
-          <p className={styles.subtitle}>Gérez et suivez vos réservations</p>
+          <h1 className={styles.title}>{t('ordersPage.title')}</h1>
+          <p className={styles.subtitle}>{t('ordersPage.subtitle')}</p>
         </div>
 
         <div className={styles.filters}>
@@ -176,58 +184,58 @@ export default function OrdersPage() {
             className={`${styles.filterBtn} ${filter === 'all' ? styles.active : ''}`}
             onClick={() => setFilter('all')}
           >
-            Toutes
+            {t('ordersPage.tabs.all')}
           </button>
           <button
             className={`${styles.filterBtn} ${filter === 'pending' ? styles.active : ''}`}
             onClick={() => setFilter('pending')}
           >
-            En attente
+            {t('ordersPage.tabs.pending')}
           </button>
           <button
             className={`${styles.filterBtn} ${filter === 'in_progress' ? styles.active : ''}`}
             onClick={() => setFilter('in_progress')}
           >
-            En cours
+            {t('ordersPage.tabs.inProgress')}
           </button>
           <button
             className={`${styles.filterBtn} ${filter === 'completed_pending_review' ? styles.active : ''}`}
             onClick={() => setFilter('completed_pending_review')}
           >
-            À évaluer
+            {t('ordersPage.tabs.toEvaluate')}
           </button>
           <button
             className={`${styles.filterBtn} ${filter === 'completed' ? styles.active : ''}`}
             onClick={() => setFilter('completed')}
           >
-            Terminées
+            {t('ordersPage.tabs.completed')}
           </button>
           <button
             className={`${styles.filterBtn} ${filter === 'cancelled' ? styles.active : ''}`}
             onClick={() => setFilter('cancelled')}
           >
-            Annulées
+            {t('ordersPage.tabs.cancelled')}
           </button>
         </div>
 
         {error && (
           <div className={styles.error}>
-            {error}
+            {error === 'errorLoading' ? t('ordersPage.errorLoading') : error}
           </div>
         )}
 
         {loading ? (
           <div className={styles.loading}>
             <div className={styles.spinner}></div>
-            <p>Chargement des commandes...</p>
+            <p>{t('ordersPage.loadingOrders')}</p>
           </div>
         ) : orders.length === 0 ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>📦</div>
-            <h3>Aucune commande</h3>
-            <p>Vous n'avez pas encore passé de commande.</p>
+            <h3>{t('ordersPage.noOrders')}</h3>
+            <p>{t('ordersPage.noOrdersDesc')}</p>
             <Link href="/services">
-              <Button variant="primary">Découvrir nos services</Button>
+              <Button variant="primary">{t('ordersPage.discoverServices')}</Button>
             </Link>
           </div>
         ) : (
@@ -236,9 +244,9 @@ export default function OrdersPage() {
               <div key={order.id} className={styles.orderCard}>
                 <div className={styles.orderHeader}>
                   <div className={styles.orderHeaderLeft}>
-                    <span className={styles.orderId}>Commande #{order.id}</span>
+                    <span className={styles.orderId}>{t('ordersPage.orderNumber', { id: order.id })}</span>
                     {order.pricing_mode === 'bidding' && (
-                      <span className={styles.biddingBadge}>🎯 Mode enchères</span>
+                      <span className={styles.biddingBadge}>🎯 {t('ordersPage.biddingMode')}</span>
                     )}
                   </div>
                   <span className={`${styles.status} ${getStatusClass(order.status)}`}>
@@ -248,33 +256,33 @@ export default function OrdersPage() {
 
                 <div className={styles.orderContent}>
                   <div className={styles.serviceInfo}>
-                    <h3 className={styles.serviceName}>{order.service_name || 'Service'}</h3>
-                    <p className={styles.categoryName}>{order.category_name || ''}</p>
+                    <TranslatedText as="h3" className={styles.serviceName} text={order.service_name} fallback="Service" />
+                    <TranslatedText as="p" className={styles.categoryName} text={order.category_name} fallback="" />
                   </div>
 
                   <div className={styles.orderDetails}>
                     {order.pricing_mode === 'bidding' ? (
                       <>
                         <div className={styles.detail}>
-                          <span className={styles.detailLabel}>Votre prix proposé</span>
+                          <span className={styles.detailLabel}>{t('ordersPage.yourProposedPrice')}</span>
                           <span className={styles.detailValue}>
                             <Price amount={order.user_proposed_price} />
                           </span>
                         </div>
                         {order.bid_expiry_time && (
                           <div className={styles.detail}>
-                            <span className={styles.detailLabel}>Expiration enchères</span>
+                            <span className={styles.detailLabel}>{t('ordersPage.biddingExpiry')}</span>
                             <span className={styles.detailValue}>{formatDate(order.bid_expiry_time)}</span>
                           </div>
                         )}
                         {order.bids_count !== undefined && (
                           <div className={styles.detail}>
-                            <span className={styles.detailLabel}>Offres reçues</span>
+                            <span className={styles.detailLabel}>{t('ordersPage.offersReceived')}</span>
                             <span className={styles.detailValue}>
                               {order.bids_count > 0 ? (
-                                <strong style={{color: '#28a745'}}>{order.bids_count} offre{order.bids_count > 1 ? 's' : ''}</strong>
+                                <strong style={{color: '#28a745'}}>{order.bids_count} {order.bids_count > 1 ? t('ordersPage.offers') : t('ordersPage.offer')}</strong>
                               ) : (
-                                <span style={{color: '#6c757d'}}>Aucune offre</span>
+                                <span style={{color: '#6c757d'}}>{t('ordersPage.noOffers')}</span>
                               )}
                             </span>
                           </div>
@@ -283,11 +291,11 @@ export default function OrdersPage() {
                     ) : (
                       <>
                         <div className={styles.detail}>
-                          <span className={styles.detailLabel}>Date prévue</span>
+                          <span className={styles.detailLabel}>{t('ordersPage.scheduledDate')}</span>
                           <span className={styles.detailValue}>{formatDate(order.scheduled_at)}</span>
                         </div>
                         <div className={styles.detail}>
-                          <span className={styles.detailLabel}>Prix</span>
+                          <span className={styles.detailLabel}>{t('ordersPage.price')}</span>
                           <span className={styles.detailValue}>
                             <Price amount={order.total || order.price} />
                           </span>
@@ -296,7 +304,7 @@ export default function OrdersPage() {
                     )}
                     {order.provider_name && (
                       <div className={styles.detail}>
-                        <span className={styles.detailLabel}>Prestataire</span>
+                        <span className={styles.detailLabel}>{t('ordersPage.provider')}</span>
                         <span className={styles.detailValue}>{order.provider_name}</span>
                       </div>
                     )}
@@ -306,7 +314,7 @@ export default function OrdersPage() {
                 <div className={styles.orderActions}>
                   <Link href={`/orders/${order.id}`}>
                     <Button variant="outline" size="small">
-                      {order.pricing_mode === 'bidding' && order.bids_count > 0 ? '💰 Voir les offres' : 'Voir détails'}
+                      {order.pricing_mode === 'bidding' && order.bids_count > 0 ? '💰 ' + t('ordersPage.viewOffers') : t('ordersPage.viewDetails')}
                     </Button>
                   </Link>
                   {order.provider_id && ['accepted', 'on_way', 'in_progress'].includes(order.status) && (
@@ -321,12 +329,12 @@ export default function OrdersPage() {
                   {order.status === 'completed_pending_review' && (
                     <Link href={`/orders/${order.id}`}>
                       <Button variant="primary" size="small">
-                        ⭐ Évaluer maintenant
+                        ⭐ {t('ordersPage.rateNow')}
                       </Button>
                     </Link>
                   )}
                   {order.status === 'completed' && (
-                    <span className={styles.reviewedBadge}>✓ Terminée</span>
+                    <span className={styles.reviewedBadge}>✓ {t('status.completed')}</span>
                   )}
                   {(order.status === 'pending' || order.status === 'accepted') && (
                     <Button
@@ -335,7 +343,7 @@ export default function OrdersPage() {
                       onClick={() => openCancelModal(order.id)}
                       disabled={actionLoading[`cancel_${order.id}`]}
                     >
-                      {actionLoading[`cancel_${order.id}`] ? 'Annulation...' : 'Annuler'}
+                      {actionLoading[`cancel_${order.id}`] ? t('ordersPage.cancelling') : t('ordersPage.cancel')}
                     </Button>
                   )}
                 </div>
@@ -349,7 +357,7 @@ export default function OrdersPage() {
         <div className={styles.chatModal}>
           <div className={styles.chatModalContent}>
             <div className={styles.chatModalHeader}>
-              <h3>Chat - Commande #{selectedOrderForChat.id}</h3>
+              <h3>{t('ordersPage.chatOrder', { id: selectedOrderForChat.id })}</h3>
               <button
                 className={styles.closeChat}
                 onClick={() => setSelectedOrderForChat(null)}
@@ -368,18 +376,18 @@ export default function OrdersPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <span className={styles.modalIcon}>⚠️</span>
-              <h2>Annuler la commande</h2>
+              <h2>{t('ordersPage.cancelOrder')}</h2>
             </div>
             <div className={styles.modalBody}>
-              <p>Êtes-vous sûr de vouloir annuler cette commande ?</p>
-              <p className={styles.modalHint}>Cette action est irréversible.</p>
+              <p>{t('ordersPage.cancelConfirm')}</p>
+              <p className={styles.modalHint}>{t('ordersPage.cancelWarning')}</p>
             </div>
             <div className={styles.modalActions}>
               <Button variant="outline" onClick={closeCancelModal}>
-                Non, garder
+                {t('ordersPage.keepOrder')}
               </Button>
               <Button variant="danger" onClick={handleCancelOrder}>
-                Oui, annuler
+                {t('ordersPage.yesCancel')}
               </Button>
             </div>
           </div>

@@ -1,36 +1,73 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
-import { getServiceById } from '@/lib/serverApi';
+import apiClient from '@/lib/apiClient';
 import { getServiceImageUrl } from '@/lib/serviceImages';
 import { fixEncoding } from '@/lib/textUtils';
 import ServicePrice from '@/components/Price/ServicePrice';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslatedTexts } from '@/hooks/useDeepLTranslation';
 
-export const revalidate = 300; // 5 minutes
+export default function ServiceDetailPage() {
+  const params = useParams();
+  const { t, language } = useLanguage();
+  const [service, setService] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-export async function generateMetadata({ params }) {
-  const { id } = await params;
-  const service = await getServiceById(id);
-
-  if (!service) {
-    return {
-      title: 'Service introuvable - GlamGo',
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        const response = await apiClient.getService(params.id);
+        if (response.success) {
+          setService(response.data);
+        } else {
+          setError('Service non trouvé');
+        }
+      } catch (err) {
+        setError(err.message || 'Erreur lors du chargement');
+      } finally {
+        setLoading(false);
+      }
     };
+
+    if (params.id) {
+      fetchService();
+    }
+  }, [params.id]);
+
+  // Traduction DeepL du contenu dynamique
+  const { translated } = useTranslatedTexts({
+    name: service ? fixEncoding(service.name) : '',
+    description: service ? fixEncoding(service.description) : '',
+    category: service?.category_name ? fixEncoding(service.category_name) : '',
+  });
+
+  if (loading) {
+    return (
+      <div className={styles.serviceDetailPage}>
+        <div className="container">
+          <div className={styles.loading}>{t('message.loading')}</div>
+        </div>
+      </div>
+    );
   }
 
-  return {
-    title: `${service.name} - GlamGo`,
-    description: service.description,
-  };
-}
-
-export default async function ServiceDetailPage({ params }) {
-  const { id } = await params;
-  const service = await getServiceById(id);
-
-  if (!service) {
-    notFound();
+  if (error || !service) {
+    return (
+      <div className={styles.serviceDetailPage}>
+        <div className="container">
+          <Link href="/services" className={styles.backLink}>
+            ← {t('serviceDetail.backToServices')}
+          </Link>
+          <div className={styles.error}>{t('serviceDetail.notFound')}</div>
+        </div>
+      </div>
+    );
   }
 
   const {
@@ -43,38 +80,40 @@ export default async function ServiceDetailPage({ params }) {
     total_reviews,
     estimated_duration,
     duration_minutes,
-    allow_bidding,
-    min_suggested_price,
-    max_suggested_price,
   } = service;
 
   const imageUrl = getServiceImageUrl(service, '800x600');
   const displayPrice = price || base_price;
   const displayDuration = estimated_duration || (duration_minutes ? `${duration_minutes} min` : null);
 
-  // Mode enchères désactivé - Toujours utiliser le mode classique
+  // Utiliser les traductions DeepL
+  const translatedName = translated.name || fixEncoding(name);
+  const translatedDesc = translated.description || fixEncoding(description);
+  const translatedCategory = translated.category || (category_name ? fixEncoding(category_name) : null);
+
+  // Mode enchères désactivé
   const isBiddingEnabled = false;
 
   return (
     <div className={styles.serviceDetailPage}>
       <div className="container">
         <Link href="/services" className={styles.backLink}>
-          ← Retour aux services
+          ← {t('serviceDetail.backToServices')}
         </Link>
 
         <div className={styles.serviceDetail}>
           <div className={styles.imageSection}>
             <img
               src={imageUrl}
-              alt={fixEncoding(name)}
+              alt={translatedName}
               className={styles.image}
             />
           </div>
 
           <div className={styles.contentSection}>
-            {category_name && <span className={styles.category}>{fixEncoding(category_name)}</span>}
+            {translatedCategory && <span className={styles.category}>{translatedCategory}</span>}
 
-            <h1 className={styles.title}>{fixEncoding(name)}</h1>
+            <h1 className={styles.title}>{translatedName}</h1>
 
             {average_rating && (
               <div className={styles.rating}>
@@ -83,21 +122,21 @@ export default async function ServiceDetailPage({ params }) {
                   {parseFloat(average_rating).toFixed(1)}
                 </span>
                 <span className={styles.reviewsCount}>
-                  ({total_reviews || 0} avis)
+                  ({total_reviews || 0} {t('serviceDetail.reviews')})
                 </span>
               </div>
             )}
 
-            <p className={styles.description}>{fixEncoding(description)}</p>
+            <p className={styles.description}>{translatedDesc}</p>
 
             {isBiddingEnabled && (
               <div className={styles.biddingBanner}>
                 <div className={styles.biddingIcon}>🎯</div>
                 <div className={styles.biddingInfo}>
-                  <strong>Mode enchères disponible</strong>
-                  <p>Proposez votre prix et recevez des offres de plusieurs prestataires</p>
+                  <strong>{t('serviceDetail.biddingAvailable')}</strong>
+                  <p>{t('serviceDetail.biddingDesc')}</p>
                   <p className={styles.priceRange}>
-                    Prix à partir de: <ServicePrice amount={displayPrice} inline={true} /> (sans limite maximale)
+                    {t('serviceDetail.priceFrom')}: <ServicePrice amount={displayPrice} inline={true} /> ({t('serviceDetail.noMaxLimit')})
                   </p>
                 </div>
               </div>
@@ -105,21 +144,21 @@ export default async function ServiceDetailPage({ params }) {
 
             <div className={styles.details}>
               {!isBiddingEnabled && displayPrice && (
-                <ServicePrice amount={displayPrice} label="Prix de base" />
+                <ServicePrice amount={displayPrice} label={t('serviceDetail.basePrice')} />
               )}
 
               {displayDuration && (
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Durée estimée</span>
+                  <span className={styles.detailLabel}>{t('serviceDetail.estimatedDuration')}</span>
                   <span className={styles.detailValue}>⏱ {displayDuration}</span>
                 </div>
               )}
             </div>
 
             <div className={styles.actions}>
-              <Link href={`/booking/${id}${isBiddingEnabled ? '?mode=bidding' : ''}`}>
+              <Link href={`/booking/${params.id}${isBiddingEnabled ? '?mode=bidding' : ''}`}>
                 <Button variant="primary" size="large">
-                  {isBiddingEnabled ? '💰 Demander des offres' : 'Réserver maintenant'}
+                  {isBiddingEnabled ? t('serviceDetail.requestOffers') : t('serviceDetail.bookNow')}
                 </Button>
               </Link>
             </div>

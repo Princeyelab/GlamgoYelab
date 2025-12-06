@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import ServiceSelector from '@/components/ServiceSelector/ServiceSelector';
 import './onboarding-client.scss';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Page d'onboarding client simplifiée
@@ -12,6 +13,7 @@ import './onboarding-client.scss';
  * - Cette page permet uniquement de choisir les services préférés si non fait à l'inscription
  */
 export default function ClientOnboardingPage() {
+  const { t, language } = useLanguage();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -80,14 +82,14 @@ export default function ClientOnboardingPage() {
   };
 
   return (
-    <div className="onboarding-client">
+    <div className="onboarding-client" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="onboarding-container">
-        <h1>Bienvenue sur GlamGo !</h1>
-        <p className="subtitle">Une dernière étape pour personnaliser votre expérience</p>
+        <h1>{t('onboardingClient.welcome')}</h1>
+        <p className="subtitle">{t('onboardingClient.subtitle')}</p>
 
         <div className="step-content">
-          <h2>Quels services vous intéressent ?</h2>
-          <p>Sélectionnez vos services préférés pour des recommandations personnalisées</p>
+          <h2>{t('onboardingClient.servicesQuestion')}</h2>
+          <p>{t('onboardingClient.servicesDesc')}</p>
 
           <ServiceSelector
             services={services}
@@ -101,14 +103,14 @@ export default function ClientOnboardingPage() {
               onClick={handleSkip}
               disabled={loading}
             >
-              Passer cette étape
+              {t('onboardingClient.skip')}
             </button>
             <button
               className="btn-submit"
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Finalisation...' : 'Terminer'}
+              {loading ? t('onboardingClient.finalizing') : t('onboarding.finish')}
             </button>
           </div>
         </div>

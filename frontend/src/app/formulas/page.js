@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.scss';
 import Price from '@/components/Price';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Page informative sur les formules de tarification GlamGo
@@ -16,134 +17,135 @@ import Price from '@/components/Price';
  * - Nuit : +30 MAD pour horaires 22h-6h
  */
 export default function FormulasPage() {
+  const { t, language, isRTL } = useLanguage();
   const [activeFormula, setActiveFormula] = useState('standard');
 
   // Definitions des formules avec exemples
   const formulas = [
     {
       id: 'standard',
-      name: 'Standard',
+      name: t('formulasPage.standard'),
       icon: '⚡',
       color: '#3B82F6',
       modifier: '0%',
       modifierType: 'percentage',
-      description: 'Tarif de base pour une intervention ponctuelle',
+      description: t('formulasPage.standardDesc'),
       details: [
-        'Prix catalogue sans modification',
-        'Reservation 24h a l avance recommandee',
-        'Annulation gratuite jusqu a 4h avant',
-        'Ideal pour les besoins occasionnels'
+        t('formulasPage.standardDetail1'),
+        t('formulasPage.standardDetail2'),
+        t('formulasPage.standardDetail3'),
+        t('formulasPage.standardDetail4')
       ],
       conditions: {
-        notice: '24h de preavis recommande',
-        cancellation: 'Gratuite jusqu a 4h avant'
+        notice: t('formulasPage.conditionNotice24h'),
+        cancellation: t('formulasPage.conditionCancellation4h')
       },
       example: {
-        service: 'Coupe Femme',
+        service: t('formulasPage.exampleService'),
         basePrice: 150,
         finalPrice: 150
       }
     },
     {
       id: 'recurring',
-      name: 'Recurrent',
+      name: t('formulasPage.recurring'),
       icon: '🔄',
       color: '#10B981',
       modifier: '-10%',
       modifierType: 'percentage',
-      description: 'Economisez 10% avec un abonnement regulier',
+      description: t('formulasPage.recurringDesc'),
       details: [
-        'Reduction de 10% sur le prix de base',
-        'Engagement minimum de 4 reservations',
-        'Validite de 30 jours',
-        'Prestataire prefere assigne',
-        'Priorite de reservation'
+        t('formulasPage.recurringDetail1'),
+        t('formulasPage.recurringDetail2'),
+        t('formulasPage.recurringDetail3'),
+        t('formulasPage.recurringDetail4'),
+        t('formulasPage.recurringDetail5')
       ],
       conditions: {
-        minBookings: '4 reservations minimum',
-        validity: '30 jours',
-        notice: '24h de preavis'
+        minBookings: t('formulasPage.conditionMinBookings'),
+        validity: t('formulasPage.conditionValidity'),
+        notice: t('formulasPage.conditionNotice24h')
       },
       example: {
-        service: 'Coupe Femme',
+        service: t('formulasPage.exampleService'),
         basePrice: 150,
         finalPrice: 135
       }
     },
     {
       id: 'premium',
-      name: 'Premium',
+      name: t('formulasPage.premium'),
       icon: '⭐',
       color: '#8B5CF6',
       modifier: '+30%',
       modifierType: 'percentage',
-      description: 'Service haut de gamme avec produits premium',
+      description: t('formulasPage.premiumDesc'),
       details: [
-        'Produits professionnels haut de gamme inclus',
-        'Garantie satisfaction ou remboursement',
-        'Prestataires certifies Premium',
-        'Service personnalise',
-        'Suivi qualite renforce'
+        t('formulasPage.premiumDetail1'),
+        t('formulasPage.premiumDetail2'),
+        t('formulasPage.premiumDetail3'),
+        t('formulasPage.premiumDetail4'),
+        t('formulasPage.premiumDetail5')
       ],
       conditions: {
-        products: 'Produits premium inclus',
-        guarantee: 'Satisfaction garantie',
-        providers: 'Prestataires certifies uniquement'
+        products: t('formulasPage.conditionProducts'),
+        guarantee: t('formulasPage.conditionGuarantee'),
+        providers: t('formulasPage.conditionProviders')
       },
       example: {
-        service: 'Coupe Femme',
+        service: t('formulasPage.exampleService'),
         basePrice: 150,
         finalPrice: 195
       }
     },
     {
       id: 'urgent',
-      name: 'Urgent',
+      name: t('formulasPage.urgent'),
       icon: '🚨',
       color: '#EF4444',
       modifier: '+50 MAD',
       modifierType: 'fixed',
-      description: 'Intervention garantie en moins de 2 heures',
+      description: t('formulasPage.urgentDesc'),
       details: [
-        'Supplement fixe de 50 MAD',
-        'Prestataire disponible immediatement',
-        'Intervention garantie sous 2h',
-        'Disponible 7j/7',
-        'Confirmation instantanee'
+        t('formulasPage.urgentDetail1'),
+        t('formulasPage.urgentDetail2'),
+        t('formulasPage.urgentDetail3'),
+        t('formulasPage.urgentDetail4'),
+        t('formulasPage.urgentDetail5')
       ],
       conditions: {
-        delay: 'Sous 2 heures garanties',
-        availability: '7 jours sur 7',
-        confirmation: 'Instantanee'
+        delay: t('formulasPage.conditionDelay2h'),
+        availability: t('formulasPage.condition7days'),
+        confirmation: t('formulasPage.conditionInstant')
       },
       example: {
-        service: 'Coupe Femme',
+        service: t('formulasPage.exampleService'),
         basePrice: 150,
         finalPrice: 200
       }
     },
     {
       id: 'night',
-      name: 'Nuit',
+      name: t('formulasPage.night'),
       icon: '🌙',
       color: '#1E3A5F',
       modifier: '+30 MAD',
       modifierType: 'fixed',
-      description: 'Service disponible entre 22h et 6h',
+      description: t('formulasPage.nightDesc'),
       details: [
-        'Supplement fixe de 30 MAD',
-        'Disponible de 22h a 6h',
-        'Prestataires volontaires uniquement',
-        'Ideal pour evenements tardifs',
-        'Confirmation sous reserve de disponibilite'
+        t('formulasPage.nightDetail1'),
+        t('formulasPage.nightDetail2'),
+        t('formulasPage.nightDetail3'),
+        t('formulasPage.nightDetail4'),
+        t('formulasPage.nightDetail5')
       ],
       conditions: {
         hours: '22h00 - 06h00',
-        availability: 'Selon disponibilite prestataires',
-        notice: 'Reservation anticipee recommandee'
+        availability: t('formulasPage.conditionAvailability'),
+        notice: t('formulasPage.conditionAdvanceBooking')
       },
       example: {
-        service: 'Coupe Femme',
+        service: t('formulasPage.exampleService'),
         basePrice: 150,
         finalPrice: 180
       }
@@ -153,44 +155,44 @@ export default function FormulasPage() {
   // FAQ sur les formules
   const faq = [
     {
-      question: 'Comment est calculee la commission GlamGo ?',
-      answer: 'GlamGo preleve une commission de 20% sur le montant total de chaque prestation. Cette commission couvre les frais de mise en relation, la garantie de paiement et le support client.'
+      question: t('formulasPage.faq1Question'),
+      answer: t('formulasPage.faq1Answer')
     },
     {
-      question: 'Puis-je changer de formule apres avoir reserve ?',
-      answer: 'Vous pouvez modifier votre reservation jusqu a 4 heures avant le service. Les changements de formule peuvent entrainer une difference de prix qui sera ajustee automatiquement.'
+      question: t('formulasPage.faq2Question'),
+      answer: t('formulasPage.faq2Answer')
     },
     {
-      question: 'Comment fonctionne la formule Recurrent ?',
-      answer: 'La formule Recurrent vous offre 10% de reduction si vous vous engagez sur au moins 4 reservations en 30 jours. Le meme prestataire vous sera assigne en priorite pour assurer la continuite du service.'
+      question: t('formulasPage.faq3Question'),
+      answer: t('formulasPage.faq3Answer')
     },
     {
-      question: 'Qu est-ce qui est inclus dans la formule Premium ?',
-      answer: 'La formule Premium inclut des produits professionnels haut de gamme, une garantie satisfaction, et l acces a nos prestataires certifies Premium qui ont passe des tests de qualite supplementaires.'
+      question: t('formulasPage.faq4Question'),
+      answer: t('formulasPage.faq4Answer')
     },
     {
-      question: 'Les frais de deplacement sont-ils inclus ?',
-      answer: 'Les 5 premiers kilometres sont gratuits. Au-dela, un supplement de 2 MAD/km est applique. Ces frais s ajoutent au prix de la formule choisie.'
+      question: t('formulasPage.faq5Question'),
+      answer: t('formulasPage.faq5Answer')
     },
     {
-      question: 'Que se passe-t-il si le prestataire urgent n est pas disponible ?',
-      answer: 'En cas d indisponibilite pour une intervention urgente, vous serez rembourse du supplement urgent (50 MAD) et votre reservation sera basculee en formule Standard avec le prochain creneau disponible.'
+      question: t('formulasPage.faq6Question'),
+      answer: t('formulasPage.faq6Answer')
     }
   ];
 
   const activeFormulaData = formulas.find(f => f.id === activeFormula);
 
   return (
-    <div className={styles.formulasPage}>
+    <div className={styles.formulasPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="container">
         {/* Header */}
         <div className={styles.header}>
           <Link href="/services" className={styles.backLink}>
-            ← Retour aux services
+            {isRTL ? '→' : '←'} {t('formulasPage.backToServices')}
           </Link>
-          <h1 className={styles.title}>Nos formules de tarification</h1>
+          <h1 className={styles.title}>{t('formulasPage.pageTitle')}</h1>
           <p className={styles.subtitle}>
-            Choisissez la formule qui correspond le mieux a vos besoins
+            {t('formulasPage.pageSubtitle')}
           </p>
         </div>
 
@@ -216,7 +218,7 @@ export default function FormulasPage() {
             <div className={styles.formulaHeader}>
               <div className={styles.formulaIconLarge}>{activeFormulaData.icon}</div>
               <div className={styles.formulaInfo}>
-                <h2 className={styles.formulaTitle}>Formule {activeFormulaData.name}</h2>
+                <h2 className={styles.formulaTitle}>{t('formulasPage.formula')} {activeFormulaData.name}</h2>
                 <p className={styles.formulaDescription}>{activeFormulaData.description}</p>
               </div>
               <div className={styles.formulaModifierBadge}>
@@ -227,7 +229,7 @@ export default function FormulasPage() {
             <div className={styles.formulaContent}>
               {/* Avantages */}
               <div className={styles.formulaSection}>
-                <h3>Avantages</h3>
+                <h3>{t('formulasPage.advantages')}</h3>
                 <ul className={styles.advantagesList}>
                   {activeFormulaData.details.map((detail, index) => (
                     <li key={index}>
@@ -240,7 +242,7 @@ export default function FormulasPage() {
 
               {/* Conditions */}
               <div className={styles.formulaSection}>
-                <h3>Conditions</h3>
+                <h3>{t('formulasPage.conditions')}</h3>
                 <div className={styles.conditionsList}>
                   {Object.entries(activeFormulaData.conditions).map(([key, value]) => (
                     <div key={key} className={styles.conditionItem}>
@@ -265,15 +267,15 @@ export default function FormulasPage() {
 
               {/* Exemple de calcul */}
               <div className={styles.formulaSection}>
-                <h3>Exemple de calcul</h3>
+                <h3>{t('formulasPage.calculationExample')}</h3>
                 <div className={styles.priceExample}>
                   <div className={styles.priceRow}>
-                    <span>Service: {activeFormulaData.example.service}</span>
+                    <span>{t('formulasPage.service')}: {activeFormulaData.example.service}</span>
                     <span><Price amount={activeFormulaData.example.basePrice} /></span>
                   </div>
                   {activeFormulaData.modifierType === 'percentage' && activeFormulaData.modifier !== '0%' && (
                     <div className={styles.priceRow}>
-                      <span>Formule {activeFormulaData.name} ({activeFormulaData.modifier})</span>
+                      <span>{t('formulasPage.formula')} {activeFormulaData.name} ({activeFormulaData.modifier})</span>
                       <span className={activeFormulaData.modifier.startsWith('-') ? styles.discount : styles.surcharge}>
                         {activeFormulaData.modifier.startsWith('-') ? '' : '+'}
                         <Price amount={activeFormulaData.example.finalPrice - activeFormulaData.example.basePrice} />
@@ -282,14 +284,14 @@ export default function FormulasPage() {
                   )}
                   {activeFormulaData.modifierType === 'fixed' && (
                     <div className={styles.priceRow}>
-                      <span>Supplement {activeFormulaData.name}</span>
+                      <span>{t('formulasPage.supplement')} {activeFormulaData.name}</span>
                       <span className={styles.surcharge}>
                         {activeFormulaData.modifier}
                       </span>
                     </div>
                   )}
                   <div className={`${styles.priceRow} ${styles.totalRow}`}>
-                    <span>Total</span>
+                    <span>{t('formulasPage.total')}</span>
                     <span className={styles.totalPrice}>
                       <Price amount={activeFormulaData.example.finalPrice} />
                     </span>
@@ -302,47 +304,47 @@ export default function FormulasPage() {
 
         {/* Tableau comparatif */}
         <div className={styles.comparisonSection}>
-          <h2>Tableau comparatif</h2>
+          <h2>{t('formulasPage.comparisonTable')}</h2>
           <div className={styles.comparisonTable}>
             <table>
               <thead>
                 <tr>
-                  <th>Formule</th>
-                  <th>Modification prix</th>
-                  <th>Delai reservation</th>
-                  <th>Ideal pour</th>
+                  <th>{t('formulasPage.formula')}</th>
+                  <th>{t('formulasPage.priceModification')}</th>
+                  <th>{t('formulasPage.bookingDelay')}</th>
+                  <th>{t('formulasPage.idealFor')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><span className={styles.formulaBadge} style={{ background: '#3B82F6' }}>⚡ Standard</span></td>
-                  <td>Prix de base</td>
-                  <td>24h recommande</td>
-                  <td>Besoins ponctuels</td>
+                  <td><span className={styles.formulaBadge} style={{ background: '#3B82F6' }}>⚡ {t('formulasPage.standard')}</span></td>
+                  <td>{t('formulasPage.basePrice')}</td>
+                  <td>{t('formulasPage.recommended24h')}</td>
+                  <td>{t('formulasPage.occasionalNeeds')}</td>
                 </tr>
                 <tr>
-                  <td><span className={styles.formulaBadge} style={{ background: '#10B981' }}>🔄 Recurrent</span></td>
+                  <td><span className={styles.formulaBadge} style={{ background: '#10B981' }}>🔄 {t('formulasPage.recurring')}</span></td>
                   <td>-10%</td>
-                  <td>24h recommande</td>
-                  <td>Utilisation reguliere</td>
+                  <td>{t('formulasPage.recommended24h')}</td>
+                  <td>{t('formulasPage.regularUse')}</td>
                 </tr>
                 <tr>
-                  <td><span className={styles.formulaBadge} style={{ background: '#8B5CF6' }}>⭐ Premium</span></td>
+                  <td><span className={styles.formulaBadge} style={{ background: '#8B5CF6' }}>⭐ {t('formulasPage.premium')}</span></td>
                   <td>+30%</td>
-                  <td>24h recommande</td>
-                  <td>Qualite superieure</td>
+                  <td>{t('formulasPage.recommended24h')}</td>
+                  <td>{t('formulasPage.superiorQuality')}</td>
                 </tr>
                 <tr>
-                  <td><span className={styles.formulaBadge} style={{ background: '#EF4444' }}>🚨 Urgent</span></td>
+                  <td><span className={styles.formulaBadge} style={{ background: '#EF4444' }}>🚨 {t('formulasPage.urgent')}</span></td>
                   <td>+50 MAD</td>
-                  <td>Immediat</td>
-                  <td>Urgences</td>
+                  <td>{t('formulasPage.immediate')}</td>
+                  <td>{t('formulasPage.emergencies')}</td>
                 </tr>
                 <tr>
-                  <td><span className={styles.formulaBadge} style={{ background: '#1E3A5F' }}>🌙 Nuit</span></td>
+                  <td><span className={styles.formulaBadge} style={{ background: '#1E3A5F' }}>🌙 {t('formulasPage.night')}</span></td>
                   <td>+30 MAD</td>
-                  <td>Selon dispo</td>
-                  <td>Horaires tardifs</td>
+                  <td>{t('formulasPage.accordingAvailability')}</td>
+                  <td>{t('formulasPage.lateHours')}</td>
                 </tr>
               </tbody>
             </table>
@@ -351,30 +353,30 @@ export default function FormulasPage() {
 
         {/* Frais supplementaires */}
         <div className={styles.additionalFeesSection}>
-          <h2>Frais supplementaires</h2>
+          <h2>{t('formulasPage.additionalFees')}</h2>
           <div className={styles.feeCards}>
             <div className={styles.feeCard}>
               <div className={styles.feeIcon}>🚗</div>
-              <h3>Frais de deplacement</h3>
-              <p>5 km gratuits, puis 2 MAD/km</p>
+              <h3>{t('formulasPage.travelFees')}</h3>
+              <p>{t('formulasPage.travelFeesDesc')}</p>
               <div className={styles.feeExample}>
-                Exemple: 15 km = 20 MAD
+                {t('formulasPage.travelFeesExample')}
               </div>
             </div>
             <div className={styles.feeCard}>
               <div className={styles.feeIcon}>🌙</div>
-              <h3>Supplement nuit</h3>
-              <p>+30 MAD pour services entre 22h et 6h</p>
+              <h3>{t('formulasPage.nightSupplement')}</h3>
+              <p>{t('formulasPage.nightSupplementDesc')}</p>
               <div className={styles.feeExample}>
-                Applique automatiquement
+                {t('formulasPage.appliedAutomatically')}
               </div>
             </div>
             <div className={styles.feeCard}>
               <div className={styles.feeIcon}>🏷️</div>
-              <h3>Commission GlamGo</h3>
-              <p>20% sur le montant total</p>
+              <h3>{t('formulasPage.glamgoCommission')}</h3>
+              <p>{t('formulasPage.commissionDesc')}</p>
               <div className={styles.feeExample}>
-                Inclus dans le prix affiche
+                {t('formulasPage.includedInPrice')}
               </div>
             </div>
           </div>
@@ -382,7 +384,7 @@ export default function FormulasPage() {
 
         {/* FAQ */}
         <div className={styles.faqSection}>
-          <h2>Questions frequentes</h2>
+          <h2>{t('formulasPage.faqTitle')}</h2>
           <div className={styles.faqList}>
             {faq.map((item, index) => (
               <details key={index} className={styles.faqItem}>
@@ -397,10 +399,10 @@ export default function FormulasPage() {
 
         {/* CTA */}
         <div className={styles.ctaSection}>
-          <h2>Pret a reserver ?</h2>
-          <p>Decouvrez nos services et choisissez la formule qui vous convient</p>
+          <h2>{t('formulasPage.ctaTitle')}</h2>
+          <p>{t('formulasPage.ctaSubtitle')}</p>
           <Link href="/services" className={styles.ctaButton}>
-            Voir les services
+            {t('formulasPage.viewServices')}
           </Link>
         </div>
       </div>

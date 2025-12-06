@@ -3,166 +3,55 @@
 import Link from 'next/link';
 import styles from '../page.module.scss';
 import Button from '@/components/Button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function HowItWorksProviderPage() {
+  const { t, isRTL } = useLanguage();
+
   const steps = [
-    {
-      number: '1',
-      icon: '📝',
-      title: 'Inscription Prestataire',
-      description: 'Créez votre compte professionnel et complétez votre profil pour être visible des clients.',
-      details: [
-        'Formulaire d\'inscription dédié aux professionnels',
-        'Vérification de votre identité (CIN)',
-        'Upload de vos certifications professionnelles',
-        'Définition de votre zone d\'intervention (rayon en km)',
-        'Configuration de vos coordonnées GPS'
-      ]
-    },
-    {
-      number: '2',
-      icon: '🛠️',
-      title: 'Configuration des Services',
-      description: 'Sélectionnez les services que vous proposez parmi notre catalogue.',
-      details: [
-        'Choix parmi plus de 50 services disponibles',
-        'Personnalisation de votre tarif de base',
-        'Définition de votre rayon d\'intervention',
-        'Ajout de votre bio et expérience',
-        'Upload de photos de vos réalisations'
-      ]
-    },
-    {
-      number: '3',
-      icon: '🔔',
-      title: 'Réception des Commandes',
-      description: 'Recevez des notifications pour chaque nouvelle commande dans votre zone.',
-      details: [
-        'Notifications push en temps réel',
-        'Badge de notification sur le tableau de bord',
-        'Détails complets de chaque demande',
-        'Adresse et distance du client affichées',
-        'Date, heure et formule demandée visibles'
-      ]
-    },
-    {
-      number: '4',
-      icon: '✅',
-      title: 'Acceptation et Gestion',
-      description: 'Acceptez les commandes qui vous conviennent et gérez votre planning.',
-      details: [
-        'Acceptation en un clic depuis le dashboard',
-        'Tableau de bord avec toutes vos commandes',
-        'Statuts : En attente, Acceptée, En route, En cours, Terminée',
-        'Possibilité d\'annulation avec frais selon délai',
-        'Chat intégré avec le client'
-      ]
-    },
-    {
-      number: '5',
-      icon: '🚗',
-      title: 'Navigation vers le Client',
-      description: 'Utilisez le suivi GPS intégré pour vous rendre chez le client.',
-      details: [
-        'Bouton "En route" pour signaler votre départ',
-        'Votre position partagée en temps réel avec le client',
-        'Accès à l\'adresse et au numéro du client',
-        'Navigation GPS intégrée',
-        'Le client confirme votre arrivée'
-      ]
-    },
-    {
-      number: '6',
-      icon: '💼',
-      title: 'Réalisation du Service',
-      description: 'Effectuez la prestation et signalez sa fin via l\'application.',
-      details: [
-        'Bouton "Commencer" pour démarrer le service',
-        'Chronomètre de durée de prestation',
-        'Communication continue avec le client si besoin',
-        'Bouton "Terminer" avec confirmation photo optionnelle',
-        'Le client évalue ensuite la prestation'
-      ]
-    },
-    {
-      number: '7',
-      icon: '💰',
-      title: 'Paiement et Revenus',
-      description: 'Recevez votre paiement automatiquement après validation du client.',
-      details: [
-        'Paiement carte : crédité automatiquement (moins 20% commission)',
-        'Paiement espèces : vous gardez 80%, 20% prélevé sur votre compte',
-        'Pourboires 100% pour vous (pas de commission)',
-        'Historique détaillé de vos gains',
-        'Tableau de bord financier complet'
-      ]
-    }
+    { number: '1', icon: '📝', titleKey: 'howItWorksProvider.step1Title', descKey: 'howItWorksProvider.step1Desc', detailsKeys: ['howItWorksProvider.step1Detail1', 'howItWorksProvider.step1Detail2', 'howItWorksProvider.step1Detail3', 'howItWorksProvider.step1Detail4', 'howItWorksProvider.step1Detail5'] },
+    { number: '2', icon: '🛠️', titleKey: 'howItWorksProvider.step2Title', descKey: 'howItWorksProvider.step2Desc', detailsKeys: ['howItWorksProvider.step2Detail1', 'howItWorksProvider.step2Detail2', 'howItWorksProvider.step2Detail3', 'howItWorksProvider.step2Detail4', 'howItWorksProvider.step2Detail5'] },
+    { number: '3', icon: '🔔', titleKey: 'howItWorksProvider.step3Title', descKey: 'howItWorksProvider.step3Desc', detailsKeys: ['howItWorksProvider.step3Detail1', 'howItWorksProvider.step3Detail2', 'howItWorksProvider.step3Detail3', 'howItWorksProvider.step3Detail4', 'howItWorksProvider.step3Detail5'] },
+    { number: '4', icon: '✅', titleKey: 'howItWorksProvider.step4Title', descKey: 'howItWorksProvider.step4Desc', detailsKeys: ['howItWorksProvider.step4Detail1', 'howItWorksProvider.step4Detail2', 'howItWorksProvider.step4Detail3', 'howItWorksProvider.step4Detail4', 'howItWorksProvider.step4Detail5'] },
+    { number: '5', icon: '🚗', titleKey: 'howItWorksProvider.step5Title', descKey: 'howItWorksProvider.step5Desc', detailsKeys: ['howItWorksProvider.step5Detail1', 'howItWorksProvider.step5Detail2', 'howItWorksProvider.step5Detail3', 'howItWorksProvider.step5Detail4', 'howItWorksProvider.step5Detail5'] },
+    { number: '6', icon: '💼', titleKey: 'howItWorksProvider.step6Title', descKey: 'howItWorksProvider.step6Desc', detailsKeys: ['howItWorksProvider.step6Detail1', 'howItWorksProvider.step6Detail2', 'howItWorksProvider.step6Detail3', 'howItWorksProvider.step6Detail4', 'howItWorksProvider.step6Detail5'] },
+    { number: '7', icon: '💰', titleKey: 'howItWorksProvider.step7Title', descKey: 'howItWorksProvider.step7Desc', detailsKeys: ['howItWorksProvider.step7Detail1', 'howItWorksProvider.step7Detail2', 'howItWorksProvider.step7Detail3', 'howItWorksProvider.step7Detail4', 'howItWorksProvider.step7Detail5'] }
   ];
 
   const features = [
-    {
-      icon: '📊',
-      title: 'Tableau de Bord Complet',
-      description: 'Gérez toutes vos commandes, consultez vos statistiques et suivez vos revenus en temps réel.'
-    },
-    {
-      icon: '⭐',
-      title: 'Système de Notation',
-      description: 'Les clients vous notent après chaque prestation. Une bonne note augmente votre visibilité.'
-    },
-    {
-      icon: '🗺️',
-      title: 'Zone d\'Intervention',
-      description: 'Définissez votre rayon d\'action. Les commandes au-delà génèrent des frais de déplacement supplémentaires.'
-    },
-    {
-      icon: '🔄',
-      title: 'Gestion des Annulations',
-      description: 'Annulez si nécessaire avec un système de frais équitable : 0 MAD (>2h), 20 MAD (1-2h), 50 MAD (<1h).'
-    }
+    { icon: '📊', titleKey: 'howItWorksProvider.feature1Title', descKey: 'howItWorksProvider.feature1Desc' },
+    { icon: '⭐', titleKey: 'howItWorksProvider.feature2Title', descKey: 'howItWorksProvider.feature2Desc' },
+    { icon: '🗺️', titleKey: 'howItWorksProvider.feature3Title', descKey: 'howItWorksProvider.feature3Desc' },
+    { icon: '🔄', titleKey: 'howItWorksProvider.feature4Title', descKey: 'howItWorksProvider.feature4Desc' }
   ];
 
   const earnings = [
-    {
-      title: 'Commission GlamGo',
-      value: '20%',
-      description: 'Prélevée sur chaque prestation pour couvrir la plateforme, le support et le marketing.'
-    },
-    {
-      title: 'Vos Revenus',
-      value: '80%',
-      description: 'Du montant total de la prestation (hors pourboire qui est 100% pour vous).'
-    },
-    {
-      title: 'Pourboires',
-      value: '100%',
-      description: 'Les pourboires laissés par les clients vous reviennent intégralement.'
-    }
+    { titleKey: 'howItWorksProvider.earning1Title', value: '20%', descKey: 'howItWorksProvider.earning1Desc' },
+    { titleKey: 'howItWorksProvider.earning2Title', value: '80%', descKey: 'howItWorksProvider.earning2Desc' },
+    { titleKey: 'howItWorksProvider.earning3Title', value: '100%', descKey: 'howItWorksProvider.earning3Desc' }
   ];
 
   const cancellationFees = [
-    { delay: 'Plus de 2h avant', fee: '0 MAD', color: '#22c55e' },
-    { delay: 'Entre 1h et 2h', fee: '20 MAD', color: '#f59e0b' },
-    { delay: 'Moins de 1h', fee: '50 MAD', color: '#ef4444' },
-    { delay: 'No-show', fee: '100 MAD', color: '#dc2626' }
+    { delayKey: 'howItWorksProvider.cancel1Delay', fee: '0 MAD', color: '#22c55e' },
+    { delayKey: 'howItWorksProvider.cancel2Delay', fee: '20 MAD', color: '#f59e0b' },
+    { delayKey: 'howItWorksProvider.cancel3Delay', fee: '50 MAD', color: '#ef4444' },
+    { delayKey: 'howItWorksProvider.cancel4Delay', fee: '100 MAD', color: '#dc2626' }
   ];
 
   return (
-    <div className={styles.howItWorksPage}>
+    <div className={styles.howItWorksPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <section className={styles.hero}>
         <div className="container">
           <div className={styles.heroTabs}>
             <Link href="/how-it-works/client" className={styles.heroTab}>
-              👤 Client
+              👤 {t('howItWorksClient.tabClient')}
             </Link>
             <Link href="/how-it-works/provider" className={`${styles.heroTab} ${styles.active}`}>
-              💼 Prestataire
+              💼 {t('howItWorksClient.tabProvider')}
             </Link>
           </div>
-          <h1 className={styles.title}>Comment devenir prestataire ?</h1>
-          <p className={styles.subtitle}>
-            Guide complet pour proposer vos services sur GlamGo et développer votre activité
-          </p>
+          <h1 className={styles.title}>{t('howItWorksProvider.heroTitle')}</h1>
+          <p className={styles.subtitle}>{t('howItWorksProvider.heroSubtitle')}</p>
         </div>
       </section>
 
@@ -173,11 +62,11 @@ export default function HowItWorksProviderPage() {
               <div key={index} className={styles.stepCard}>
                 <div className={styles.stepNumber}>{step.number}</div>
                 <div className={styles.stepIcon}>{step.icon}</div>
-                <h2 className={styles.stepTitle}>{step.title}</h2>
-                <p className={styles.stepDescription}>{step.description}</p>
+                <h2 className={styles.stepTitle}>{t(step.titleKey)}</h2>
+                <p className={styles.stepDescription}>{t(step.descKey)}</p>
                 <ul className={styles.stepDetails}>
-                  {step.details.map((detail, i) => (
-                    <li key={i}>{detail}</li>
+                  {step.detailsKeys.map((key, i) => (
+                    <li key={i}>{t(key)}</li>
                   ))}
                 </ul>
               </div>
@@ -186,43 +75,43 @@ export default function HowItWorksProviderPage() {
         </section>
 
         <section className={styles.earningsSection}>
-          <h2 className={styles.sectionTitle}>Vos Revenus</h2>
-          <p className={styles.sectionSubtitle}>Tarification transparente et équitable</p>
+          <h2 className={styles.sectionTitle}>{t('howItWorksProvider.earningsTitle')}</h2>
+          <p className={styles.sectionSubtitle}>{t('howItWorksProvider.earningsSubtitle')}</p>
           <div className={styles.earningsGrid}>
             {earnings.map((item, index) => (
               <div key={index} className={styles.earningCard}>
                 <div className={styles.earningValue}>{item.value}</div>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
+                <h3>{t(item.titleKey)}</h3>
+                <p>{t(item.descKey)}</p>
               </div>
             ))}
           </div>
         </section>
 
         <section className={styles.cancellationSection}>
-          <h2 className={styles.sectionTitle}>Politique d'Annulation</h2>
-          <p className={styles.sectionSubtitle}>Frais appliqués si vous annulez une commande acceptée</p>
+          <h2 className={styles.sectionTitle}>{t('howItWorksProvider.cancellationTitle')}</h2>
+          <p className={styles.sectionSubtitle}>{t('howItWorksProvider.cancellationSubtitle')}</p>
           <div className={styles.cancellationGrid}>
             {cancellationFees.map((item, index) => (
               <div key={index} className={styles.cancellationCard} style={{ borderLeftColor: item.color }}>
-                <span className={styles.cancellationDelay}>{item.delay}</span>
+                <span className={styles.cancellationDelay}>{t(item.delayKey)}</span>
                 <span className={styles.cancellationFee} style={{ color: item.color }}>{item.fee}</span>
               </div>
             ))}
           </div>
           <div className={styles.cancellationNote}>
-            <p>En cas d'annulation, la commande est automatiquement re-proposée aux autres prestataires disponibles.</p>
+            <p>{t('howItWorksProvider.cancellationNote')}</p>
           </div>
         </section>
 
         <section className={styles.benefitsSection}>
-          <h2 className={styles.sectionTitle}>Vos Outils Prestataire</h2>
+          <h2 className={styles.sectionTitle}>{t('howItWorksProvider.toolsTitle')}</h2>
           <div className={styles.benefitsGrid}>
             {features.map((feature, index) => (
               <div key={index} className={styles.benefitCard}>
                 <div className={styles.benefitIcon}>{feature.icon}</div>
-                <h3 className={styles.benefitTitle}>{feature.title}</h3>
-                <p className={styles.benefitDescription}>{feature.description}</p>
+                <h3 className={styles.benefitTitle}>{t(feature.titleKey)}</h3>
+                <p className={styles.benefitDescription}>{t(feature.descKey)}</p>
               </div>
             ))}
           </div>
@@ -230,17 +119,17 @@ export default function HowItWorksProviderPage() {
 
         <section className={styles.ctaSection}>
           <div className={styles.cta}>
-            <h2>Prêt à rejoindre GlamGo ?</h2>
-            <p>Développez votre activité et atteignez de nouveaux clients à Marrakech</p>
+            <h2>{t('howItWorksProvider.ctaTitle')}</h2>
+            <p>{t('howItWorksProvider.ctaSubtitle')}</p>
             <div className={styles.ctaButtons}>
               <Link href="/provider/register">
                 <Button variant="primary" size="large">
-                  Devenir prestataire
+                  {t('howItWorksProvider.ctaBecome')}
                 </Button>
               </Link>
               <Link href="/provider/login">
                 <Button variant="outline" size="large">
-                  J'ai déjà un compte
+                  {t('howItWorksProvider.ctaLogin')}
                 </Button>
               </Link>
             </div>

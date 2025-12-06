@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   formatPrice as formatPriceUtil,
   loadCurrencyPreference,
@@ -10,6 +10,9 @@ import {
 } from '@/lib/currency';
 
 const CurrencyContext = createContext();
+
+// Mémoriser les devises disponibles (ne changent pas)
+const availableCurrencies = getAvailableCurrencies();
 
 export function CurrencyProvider({ children }) {
   const [currency, setCurrency] = useState('MAD');
@@ -23,30 +26,32 @@ export function CurrencyProvider({ children }) {
     setIsLoaded(true);
   }, []);
 
-  const changeCurrency = (newCurrency) => {
+  const changeCurrency = useCallback((newCurrency) => {
     setCurrency(newCurrency);
     saveCurrencyPreference(newCurrency);
-  };
+  }, []);
 
-  const toggleShowOriginal = () => {
-    setShowOriginalPrice(!showOriginalPrice);
-  };
+  const toggleShowOriginal = useCallback(() => {
+    setShowOriginalPrice(prev => !prev);
+  }, []);
 
-  const formatPrice = (amountMAD) => {
+  const formatPrice = useCallback((amountMAD) => {
     return formatPriceUtil(amountMAD, currency, showOriginalPrice);
-  };
+  }, [currency, showOriginalPrice]);
 
-  const value = {
+  const currencyInfo = useMemo(() => getCurrencyInfo(currency), [currency]);
+
+  const value = useMemo(() => ({
     currency,
     setCurrency: changeCurrency,
     showOriginalPrice,
     setShowOriginalPrice,
     toggleShowOriginal,
     formatPrice,
-    currencies: getAvailableCurrencies(),
-    currencyInfo: getCurrencyInfo(currency),
+    currencies: availableCurrencies,
+    currencyInfo,
     isLoaded
-  };
+  }), [currency, changeCurrency, showOriginalPrice, toggleShowOriginal, formatPrice, currencyInfo, isLoaded]);
 
   return (
     <CurrencyContext.Provider value={value}>

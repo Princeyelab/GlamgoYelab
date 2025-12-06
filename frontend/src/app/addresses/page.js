@@ -6,10 +6,12 @@ import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AddressesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,10 +45,10 @@ export default function AddressesPage() {
       if (response.success) {
         setAddresses(response.data || []);
       } else {
-        setError('Erreur lors du chargement des adresses');
+        setError(t('addressesPage.loadError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors du chargement des adresses');
+      setError(err.message || t('addressesPage.loadError'));
     } finally {
       setLoading(false);
     }
@@ -77,16 +79,16 @@ export default function AddressesPage() {
       }
 
       if (response.success) {
-        setSuccess(editingId ? 'Adresse modifiée avec succès !' : 'Adresse ajoutée avec succès !');
+        setSuccess(editingId ? t('addressesPage.addressUpdated') : t('addressesPage.addressAdded'));
         setIsAdding(false);
         setEditingId(null);
         resetForm();
         await fetchAddresses();
       } else {
-        setError(response.message || 'Erreur lors de la sauvegarde de l\'adresse');
+        setError(response.message || t('addressesPage.saveError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la sauvegarde de l\'adresse');
+      setError(err.message || t('addressesPage.saveError'));
     } finally {
       setLoading(false);
     }
@@ -105,20 +107,20 @@ export default function AddressesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette adresse ?')) {
+    if (!confirm(t('addressesPage.deleteConfirm'))) {
       return;
     }
 
     try {
       const response = await apiClient.delete(`/user/addresses/${id}`);
       if (response.success) {
-        setSuccess('Adresse supprimée avec succès !');
+        setSuccess(t('addressesPage.addressDeleted'));
         await fetchAddresses();
       } else {
-        setError(response.message || 'Erreur lors de la suppression');
+        setError(response.message || t('addressesPage.deleteError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la suppression');
+      setError(err.message || t('addressesPage.deleteError'));
     }
   };
 
@@ -126,13 +128,13 @@ export default function AddressesPage() {
     try {
       const response = await apiClient.patch(`/user/addresses/${id}/default`);
       if (response.success) {
-        setSuccess('Adresse par défaut mise à jour !');
+        setSuccess(t('addressesPage.defaultUpdated'));
         await fetchAddresses();
       } else {
-        setError(response.message || 'Erreur lors de la mise à jour');
+        setError(response.message || t('addressesPage.updateError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la mise à jour');
+      setError(err.message || t('addressesPage.updateError'));
     }
   };
 
@@ -158,7 +160,7 @@ export default function AddressesPage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -171,8 +173,8 @@ export default function AddressesPage() {
     <div className={styles.addressesPage}>
       <div className="container">
         <div className={styles.header}>
-          <h1 className={styles.title}>Mes Adresses</h1>
-          <p className={styles.subtitle}>Gérez vos adresses de livraison</p>
+          <h1 className={styles.title}>{t('addressesPage.title')}</h1>
+          <p className={styles.subtitle}>{t('addressesPage.subtitle')}</p>
         </div>
 
         {error && (
@@ -193,7 +195,7 @@ export default function AddressesPage() {
               variant="primary"
               onClick={() => setIsAdding(true)}
             >
-              + Ajouter une adresse
+              {t('addressesPage.addAddress')}
             </Button>
           </div>
         )}
@@ -201,13 +203,13 @@ export default function AddressesPage() {
         {isAdding && (
           <div className={styles.formCard}>
             <h2 className={styles.formTitle}>
-              {editingId ? 'Modifier l\'adresse' : 'Nouvelle adresse'}
+              {editingId ? t('addressesPage.editAddress') : t('addressesPage.newAddress')}
             </h2>
             <form onSubmit={handleSubmit} className={styles.addressForm}>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label htmlFor="label" className={styles.label}>
-                    Libellé <span className={styles.required}>*</span>
+                    {t('addressesPage.label')} <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="text"
@@ -216,14 +218,14 @@ export default function AddressesPage() {
                     value={formData.label}
                     onChange={handleChange}
                     className={styles.input}
-                    placeholder="Ex: Maison, Bureau, etc."
+                    placeholder={t('addressesPage.labelPlaceholder')}
                     required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
                   <label htmlFor="city" className={styles.label}>
-                    Ville <span className={styles.required}>*</span>
+                    {t('addressesPage.city')} <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="text"
@@ -247,13 +249,13 @@ export default function AddressesPage() {
                     value={formData.postal_code}
                     onChange={handleChange}
                     className={styles.input}
-                    placeholder="Ex: 40000"
+                    placeholder={t('addressesPage.postalCodePlaceholder')}
                   />
                 </div>
 
                 <div className={styles.formGroupFull}>
                   <label htmlFor="address_line" className={styles.label}>
-                    Adresse complète <span className={styles.required}>*</span>
+                    {t('addressesPage.fullAddress')} <span className={styles.required}>*</span>
                   </label>
                   <textarea
                     id="address_line"
@@ -261,7 +263,7 @@ export default function AddressesPage() {
                     value={formData.address_line}
                     onChange={handleChange}
                     className={styles.textarea}
-                    placeholder="Numéro, rue, quartier..."
+                    placeholder={t('addressesPage.addressPlaceholder')}
                     rows={3}
                     required
                   />
@@ -276,7 +278,7 @@ export default function AddressesPage() {
                       onChange={handleChange}
                       className={styles.checkbox}
                     />
-                    <span>Définir comme adresse par défaut</span>
+                    <span>{t('addressesPage.setAsDefault')}</span>
                   </label>
                 </div>
               </div>
@@ -288,14 +290,14 @@ export default function AddressesPage() {
                   onClick={handleCancel}
                   disabled={loading}
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
                   disabled={loading}
                 >
-                  {loading ? 'Enregistrement...' : 'Enregistrer'}
+                  {loading ? t('addressesPage.saving') : t('addressesPage.save')}
                 </Button>
               </div>
             </form>
@@ -305,20 +307,20 @@ export default function AddressesPage() {
         {loading && !isAdding ? (
           <div className={styles.loading}>
             <div className={styles.spinner}></div>
-            <p>Chargement des adresses...</p>
+            <p>{t('addressesPage.loadingAddresses')}</p>
           </div>
         ) : addresses.length === 0 && !isAdding ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>📍</div>
-            <h3>Aucune adresse enregistrée</h3>
-            <p>Ajoutez une adresse pour faciliter vos commandes.</p>
+            <h3>{t('addressesPage.noAddresses')}</h3>
+            <p>{t('addressesPage.noAddressesDesc')}</p>
           </div>
         ) : (
           <div className={styles.addressesList}>
             {addresses.map((address) => (
               <div key={address.id} className={styles.addressCard}>
                 {address.is_default && (
-                  <div className={styles.defaultBadge}>Par défaut</div>
+                  <div className={styles.defaultBadge}>{t('addressesPage.default')}</div>
                 )}
                 <div className={styles.addressHeader}>
                   <h3 className={styles.addressLabel}>{address.label}</h3>
@@ -326,7 +328,7 @@ export default function AddressesPage() {
                     <button
                       className={styles.actionBtn}
                       onClick={() => handleEdit(address)}
-                      title="Modifier"
+                      title={t('addressesPage.edit')}
                     >
                       ✏️
                     </button>
@@ -334,7 +336,7 @@ export default function AddressesPage() {
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleSetDefault(address.id)}
-                        title="Définir par défaut"
+                        title={t('addressesPage.setDefault')}
                       >
                         ⭐
                       </button>
@@ -342,7 +344,7 @@ export default function AddressesPage() {
                     <button
                       className={styles.actionBtn}
                       onClick={() => handleDelete(address.id)}
-                      title="Supprimer"
+                      title={t('addressesPage.delete')}
                     >
                       🗑️
                     </button>

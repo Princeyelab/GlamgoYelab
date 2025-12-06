@@ -5,6 +5,7 @@ import ServiceCard from '@/components/ServiceCard';
 import styles from './ServicesFilter.module.scss';
 import { fixEncoding } from '@/lib/textUtils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslatedList } from '@/hooks/useDeepLTranslation';
 
 const RADIUS_OPTIONS = [
   { value: 5, label: '5 km' },
@@ -19,6 +20,9 @@ export default function ServicesFilter({ services, categories, initialCategoryId
   const [selectedCategory, setSelectedCategory] = useState(initialCategoryId);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [searchRadius, setSearchRadius] = useState(10);
+
+  // Traduire les noms des catégories avec DeepL
+  const { translatedItems: translatedCategories } = useTranslatedList(categories, ['name']);
 
   // Charger le rayon depuis localStorage au montage
   useEffect(() => {
@@ -115,13 +119,13 @@ export default function ServicesFilter({ services, categories, initialCategoryId
           >
             {t('services.allCategories')}
           </button>
-          {categories.map((category) => (
+          {translatedCategories.map((category) => (
             <button
               key={category.id}
               className={`${styles.categoryBtn} ${selectedCategory === String(category.id) ? styles.active : ''}`}
               onClick={() => setSelectedCategory(String(category.id))}
             >
-              {fixEncoding(category.name)}
+              {category.name}
             </button>
           ))}
         </div>

@@ -10,9 +10,12 @@ import ServicePrice from '@/components/Price/ServicePrice';
 import { fixEncoding } from '@/lib/textUtils';
 import { getServiceImageUrl } from '@/lib/serviceImages';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslatedTexts } from '@/hooks/useDeepLTranslation';
 
 export default function ProviderServicesPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [allServices, setAllServices] = useState([]);
   const [providerServices, setProviderServices] = useState([]);
@@ -73,7 +76,7 @@ export default function ProviderServicesPage() {
         setProviderServices(providerServicesResponse.data || []);
       }
     } catch (err) {
-      setError('Erreur lors du chargement des services');
+      setError(t('providerServices.errorLoadingServices'));
       console.error(err);
     }
   };
@@ -86,21 +89,21 @@ export default function ProviderServicesPage() {
     try {
       const response = await apiClient.addProviderService(serviceId);
       if (response.success) {
-        setSuccess('Service ajouté avec succès');
+        setSuccess(t('providerServices.serviceAdded'));
         await loadServices();
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        setError(response.message || 'Erreur lors de l\'ajout du service');
+        setError(response.message || t('providerServices.errorAddingService'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de l\'ajout du service');
+      setError(err.message || t('providerServices.errorAddingService'));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleRemoveService = async (serviceId) => {
-    if (!confirm('Voulez-vous vraiment retirer ce service ?')) return;
+    if (!confirm(t('providerServices.confirmRemove'))) return;
 
     setActionLoading(true);
     setError('');
@@ -109,14 +112,14 @@ export default function ProviderServicesPage() {
     try {
       const response = await apiClient.removeProviderService(serviceId);
       if (response.success) {
-        setSuccess('Service retiré avec succès');
+        setSuccess(t('providerServices.serviceRemoved'));
         await loadServices();
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        setError(response.message || 'Erreur lors du retrait du service');
+        setError(response.message || t('providerServices.errorRemovingService'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors du retrait du service');
+      setError(err.message || t('providerServices.errorRemovingService'));
     } finally {
       setActionLoading(false);
     }
@@ -136,7 +139,7 @@ export default function ProviderServicesPage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -146,24 +149,24 @@ export default function ProviderServicesPage() {
   }
 
   return (
-    <div className={styles.servicesPage}>
+    <div className={styles.servicesPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <Link href="/provider/dashboard" className={styles.logo}>
             <span>GlamGo</span>
-            <span className={styles.providerBadge}>Prestataire</span>
+            <span className={styles.providerBadge}>{t('providerDashboard.provider')}</span>
           </Link>
 
           <div className={styles.headerActions}>
             <LanguageSwitcher compact />
             <Link href="/provider/dashboard" className={styles.backLink}>
-              ← Retour au dashboard
+              {isRTL ? '→' : '←'} {t('providerProfile.backToDashboard')}
             </Link>
             <Link href="/provider/profile" className={styles.profileLink}>
               {provider.first_name} {provider.last_name}
             </Link>
             <button onClick={handleLogout} className={styles.logoutBtn}>
-              Déconnexion
+              {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -172,9 +175,9 @@ export default function ProviderServicesPage() {
       <main className={styles.main}>
         <div className="container">
           <div className={styles.pageHeader}>
-            <h1>Gestion des Services</h1>
+            <h1>{t('providerServices.title')}</h1>
             <p className={styles.subtitle}>
-              Gérez les services que vous proposez et consultez les modes de réservation
+              {t('providerServices.subtitle')}
             </p>
           </div>
 
@@ -186,13 +189,13 @@ export default function ProviderServicesPage() {
               className={`${styles.tab} ${activeTab === 'my-services' ? styles.active : ''}`}
               onClick={() => setActiveTab('my-services')}
             >
-              Mes Services ({providerServices.length})
+              {t('providerServices.myServicesTab')} ({providerServices.length})
             </button>
             <button
               className={`${styles.tab} ${activeTab === 'available-services' ? styles.active : ''}`}
               onClick={() => setActiveTab('available-services')}
             >
-              Services Disponibles ({availableServices.length})
+              {t('providerServices.availableServicesTab')} ({availableServices.length})
             </button>
           </div>
 
@@ -202,10 +205,10 @@ export default function ProviderServicesPage() {
                 {providerServices.length === 0 ? (
                   <div className={styles.emptyState}>
                     <div className={styles.emptyIcon}>📋</div>
-                    <h3>Aucun service ajouté</h3>
-                    <p>Commencez par ajouter des services depuis l'onglet "Services Disponibles"</p>
+                    <h3>{t('providerServices.noServicesAdded')}</h3>
+                    <p>{t('providerServices.startAddingServices')}</p>
                     <Button onClick={() => setActiveTab('available-services')} variant="primary">
-                      Parcourir les services
+                      {t('providerServices.browseServices')}
                     </Button>
                   </div>
                 ) : (
@@ -227,8 +230,8 @@ export default function ProviderServicesPage() {
                 {availableServices.length === 0 ? (
                   <div className={styles.emptyState}>
                     <div className={styles.emptyIcon}>✅</div>
-                    <h3>Tous les services sont ajoutés</h3>
-                    <p>Vous proposez déjà tous les services disponibles sur la plateforme</p>
+                    <h3>{t('providerServices.allServicesAdded')}</h3>
+                    <p>{t('providerServices.allServicesAddedDesc')}</p>
                   </div>
                 ) : (
                   <div className={styles.servicesGrid}>
@@ -252,27 +255,39 @@ export default function ProviderServicesPage() {
   );
 }
 
-// Composant carte de service
+// Composant carte de service avec traduction DeepL
 function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoading }) {
+  const { t } = useLanguage();
   const imageUrl = getServiceImageUrl(service, '400x300');
+
+  // Traduction DeepL
+  const { translated } = useTranslatedTexts({
+    name: fixEncoding(service.name),
+    description: fixEncoding(service.description),
+    category: service.category_name ? fixEncoding(service.category_name) : '',
+  });
+
+  const displayName = translated.name || fixEncoding(service.name);
+  const displayDesc = translated.description || fixEncoding(service.description);
+  const displayCategory = translated.category || (service.category_name ? fixEncoding(service.category_name) : '');
 
   return (
     <div className={styles.serviceCard}>
       <div className={styles.serviceImage}>
-        <img src={imageUrl} alt={fixEncoding(service.name)} />
+        <img src={imageUrl} alt={displayName} />
       </div>
 
       <div className={styles.serviceContent}>
         <div className={styles.serviceHeader}>
-          <h3 className={styles.serviceName}>{fixEncoding(service.name)}</h3>
-          {service.category_name && (
-            <span className={styles.categoryBadge}>{fixEncoding(service.category_name)}</span>
+          <h3 className={styles.serviceName}>{displayName}</h3>
+          {displayCategory && (
+            <span className={styles.categoryBadge}>{displayCategory}</span>
           )}
         </div>
 
         <p className={styles.serviceDescription}>
-          {fixEncoding(service.description)?.substring(0, 120)}
-          {service.description?.length > 120 ? '...' : ''}
+          {displayDesc?.substring(0, 120)}
+          {displayDesc?.length > 120 ? '...' : ''}
         </p>
 
         <div className={styles.serviceDetails}>
@@ -280,7 +295,7 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
             <div className={styles.priceDisplay}>
               <ServicePrice
                 amount={service.price || service.base_price}
-                label="Prix"
+                label={t('providerServices.price')}
               />
             </div>
             {service.estimated_duration && (
@@ -301,7 +316,7 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
               fullWidth
               disabled={actionLoading}
             >
-              Retirer ce service
+              {t('providerServices.removeService')}
             </Button>
           ) : (
             <Button
@@ -311,7 +326,7 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
               fullWidth
               disabled={actionLoading}
             >
-              Ajouter à mes services
+              {t('providerServices.addToMyServices')}
             </Button>
           )}
         </div>

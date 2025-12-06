@@ -12,9 +12,11 @@ import {
   SPECIALTIES_REQUIRING_DIPLOMA,
   getServicesForSpecialty
 } from '@/lib/providerSpecialties';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderOnboardingPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const { user, loading: authLoading, refreshUser } = useAuth();
   const [selectedSpecialties, setSelectedSpecialties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function ProviderOnboardingPage() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('Le fichier ne doit pas dépasser 5 Mo');
+        setError(t('providerOnboarding.fileTooLarge'));
         return;
       }
       setDiplomaFile(file);
@@ -62,7 +64,7 @@ export default function ProviderOnboardingPage() {
 
   const handleSubmit = async () => {
     if (selectedSpecialties.length === 0) {
-      setError('Veuillez sélectionner au moins une spécialité');
+      setError(t('providerOnboarding.selectAtLeastOne'));
       return;
     }
 
@@ -71,7 +73,7 @@ export default function ProviderOnboardingPage() {
       SPECIALTIES_REQUIRING_DIPLOMA.includes(spec)
     );
     if (needsDiploma && !diplomaFile) {
-      setError('Un diplôme ou certificat est requis pour les spécialités sélectionnées');
+      setError(t('providerOnboarding.diplomaRequired'));
       return;
     }
 
@@ -121,11 +123,11 @@ export default function ProviderOnboardingPage() {
         // Rediriger vers le dashboard
         router.push('/provider/dashboard');
       } else {
-        setError(data.message || 'Une erreur est survenue');
+        setError(data.message || t('providerOnboarding.errorOccurred'));
       }
     } catch (err) {
       console.error('Onboarding error:', err);
-      setError('Erreur lors de la sauvegarde. Veuillez réessayer.');
+      setError(t('providerOnboarding.saveError'));
     } finally {
       setLoading(false);
     }
@@ -141,7 +143,7 @@ export default function ProviderOnboardingPage() {
     return (
       <div className={styles.loadingPage}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -151,13 +153,13 @@ export default function ProviderOnboardingPage() {
   }
 
   return (
-    <div className={styles.onboardingPage}>
+    <div className={styles.onboardingPage} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Vos services</h1>
+            <h1 className={styles.title}>{t('providerOnboarding.title')}</h1>
             <p className={styles.subtitle}>
-              Sélectionnez les services que vous proposez. Vous pourrez modifier cette liste plus tard.
+              {t('providerOnboarding.subtitle')}
             </p>
           </div>
 
@@ -212,10 +214,10 @@ export default function ProviderOnboardingPage() {
           {showDiplomaUpload && (
             <div className={styles.diplomaSection}>
               <h3 className={styles.diplomaTitle}>
-                Diplôme ou certificat requis
+                {t('providerOnboarding.diplomaRequiredTitle')}
               </h3>
               <p className={styles.diplomaHint}>
-                Certaines spécialités sélectionnées nécessitent un diplôme ou certificat.
+                {t('providerOnboarding.diplomaRequiredHint')}
               </p>
               <div className={styles.fileInputWrapper}>
                 <label
@@ -224,7 +226,7 @@ export default function ProviderOnboardingPage() {
                 >
                   <span className={styles.fileIcon}>🎓</span>
                   <div className={styles.fileText}>
-                    <strong>{diplomaFile ? diplomaFile.name : 'Télécharger votre diplôme'}</strong>
+                    <strong>{diplomaFile ? diplomaFile.name : t('providerOnboarding.uploadDiploma')}</strong>
                     <span>PDF, JPG, PNG - max 5MB</span>
                   </div>
                 </label>
@@ -243,7 +245,7 @@ export default function ProviderOnboardingPage() {
           {selectedSpecialties.length > 0 && (
             <div className={styles.selectionSummary}>
               <span className={styles.summaryLabel}>
-                {selectedSpecialties.length} spécialité{selectedSpecialties.length > 1 ? 's' : ''} sélectionnée{selectedSpecialties.length > 1 ? 's' : ''}
+                {selectedSpecialties.length} {selectedSpecialties.length > 1 ? t('providerOnboarding.specialtiesSelected') : t('providerOnboarding.specialtySelected')}
               </span>
             </div>
           )}
@@ -255,7 +257,7 @@ export default function ProviderOnboardingPage() {
               onClick={handleSkip}
               disabled={loading}
             >
-              Configurer plus tard
+              {t('providerOnboarding.configureLater')}
             </Button>
             <Button
               variant="primary"
@@ -264,7 +266,7 @@ export default function ProviderOnboardingPage() {
               loading={loading}
               disabled={loading || selectedSpecialties.length === 0}
             >
-              {loading ? 'Enregistrement...' : 'Terminer'}
+              {loading ? t('providerOnboarding.saving') : t('providerOnboarding.finish')}
             </Button>
           </div>
         </div>

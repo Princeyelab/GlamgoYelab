@@ -7,9 +7,12 @@ import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getServiceImageUrl } from '@/lib/serviceImages';
 import { fixEncoding } from '@/lib/textUtils';
 import Chat from '@/components/Chat';
+import TranslatedText from '@/components/TranslatedText';
+import { useTranslatedTexts } from '@/hooks/useDeepLTranslation';
 import ProviderLocationMap from '@/components/ProviderLocationMap';
 import ClientLocationSharing from '@/components/ClientLocationSharing';
 import Price from '@/components/Price';
@@ -23,6 +26,7 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
+  const { t, language } = useLanguage();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -101,10 +105,10 @@ export default function OrderDetailPage() {
           });
         }
       } else {
-        setError('Commande non trouvée');
+        setError(t('orderDetail.orderNotFound'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors du chargement de la commande');
+      setError(err.message || t('orderDetail.loadError'));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -144,14 +148,14 @@ export default function OrderDetailPage() {
     try {
       const response = await apiClient.acceptBid(bidId);
       if (response.success) {
-        showToast('Offre acceptée avec succès !', 'success');
+        showToast(t('orderDetail.bidAccepted'), 'success');
         fetchOrder();
         fetchBids();
       } else {
-        showToast(response.message || 'Erreur lors de l\'acceptation', 'error');
+        showToast(response.message || t('orderDetail.acceptError'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de l\'acceptation', 'error');
+      showToast(err.message || t('orderDetail.acceptError'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`bid_${bidId}`]: false }));
     }
@@ -159,13 +163,13 @@ export default function OrderDetailPage() {
 
   const getStatusLabel = (status) => {
     const labels = {
-      pending: 'En attente',
-      accepted: 'Acceptee',
-      on_way: 'En route',
-      in_progress: 'En cours',
-      completed_pending_review: 'En attente evaluation',
-      completed: 'Terminee',
-      cancelled: 'Annulee'
+      pending: t('status.pending'),
+      accepted: t('status.accepted'),
+      on_way: t('status.on_way'),
+      in_progress: t('status.in_progress'),
+      completed_pending_review: t('status.completed_pending_review'),
+      completed: t('status.completed'),
+      cancelled: t('status.cancelled')
     };
     return labels[status] || status;
   };
@@ -184,9 +188,9 @@ export default function OrderDetailPage() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Non définie';
+    if (!dateString) return t('orderDetail.notDefined');
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -202,13 +206,13 @@ export default function OrderDetailPage() {
     try {
       const response = await apiClient.cancelOrder(params.id);
       if (response.success) {
-        showToast('Commande annulée avec succès', 'success');
+        showToast(t('orderDetail.orderCancelled'), 'success');
         fetchOrder();
       } else {
-        showToast(response.message || 'Erreur lors de l\'annulation', 'error');
+        showToast(response.message || t('orderDetail.cancelError'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de l\'annulation', 'error');
+      showToast(err.message || t('orderDetail.cancelError'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, cancel: false }));
     }
@@ -221,15 +225,15 @@ export default function OrderDetailPage() {
       if (response.success) {
         setShowArrivalModal(false);
         setArrivalConfirmed(true);
-        showToast('Arrivée confirmée ! Le prestataire peut maintenant commencer.', 'success');
+        showToast(t('orderDetail.arrivalConfirmed'), 'success');
         // Masquer le message de succès après 5 secondes
         setTimeout(() => setArrivalConfirmed(false), 5000);
         fetchOrder(false);
       } else {
-        showToast(response.message || 'Erreur lors de la confirmation', 'error');
+        showToast(response.message || t('orderDetail.confirmError'), 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erreur lors de la confirmation', 'error');
+      showToast(err.message || t('orderDetail.confirmError'), 'error');
     } finally {
       setConfirmingArrival(false);
     }
@@ -239,7 +243,7 @@ export default function OrderDetailPage() {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
-        <p>Chargement...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -251,9 +255,9 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <div className={styles.errorPage}>
-        <h2>{error || 'Commande non trouvée'}</h2>
+        <h2>{error || t('orderDetail.orderNotFound')}</h2>
         <Link href="/orders">
-          <Button variant="primary">Retour aux commandes</Button>
+          <Button variant="primary">{t('orderDetail.backToOrders')}</Button>
         </Link>
       </div>
     );
@@ -271,11 +275,11 @@ export default function OrderDetailPage() {
     <div className={styles.orderDetailPage}>
       <div className="container">
         <Link href="/orders" className={styles.backLink}>
-          ← Retour aux commandes
+          {t('orderDetail.backToOrders')}
         </Link>
 
         <div className={styles.orderHeader}>
-          <h1 className={styles.title}>Commande #{order.id}</h1>
+          <h1 className={styles.title}>{t('orderDetail.orderNumber', { id: order.id })}</h1>
           <span className={`${styles.status} ${getStatusClass(order.status)}`}>
             {getStatusLabel(order.status)}
           </span>
@@ -289,40 +293,34 @@ export default function OrderDetailPage() {
               className={styles.serviceImage}
             />
             <div className={styles.serviceInfo}>
-              <h2 className={styles.serviceName}>
-                {fixEncoding(order.service_name || 'Service')}
-              </h2>
+              <TranslatedText as="h2" className={styles.serviceName} text={order.service_name} fallback="Service" />
               {order.category_name && (
-                <span className={styles.categoryName}>
-                  {fixEncoding(order.category_name)}
-                </span>
+                <TranslatedText as="span" className={styles.categoryName} text={order.category_name} />
               )}
               {order.service_description && (
-                <p className={styles.serviceDescription}>
-                  {fixEncoding(order.service_description)}
-                </p>
+                <TranslatedText as="p" className={styles.serviceDescription} text={order.service_description} />
               )}
             </div>
           </div>
 
           <div className={styles.detailsGrid}>
             <div className={styles.detailCard}>
-              <h3>Informations de réservation</h3>
+              <h3>{t('orderDetail.reservationInfo')}</h3>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Date prévue</span>
+                <span className={styles.detailLabel}>{t('orderDetail.scheduledDate')}</span>
                 <span className={styles.detailValue}>
                   {formatDate(order.scheduled_at)}
                 </span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Date de création</span>
+                <span className={styles.detailLabel}>{t('orderDetail.createdDate')}</span>
                 <span className={styles.detailValue}>
                   {formatDate(order.created_at)}
                 </span>
               </div>
               {order.accepted_at && (
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Acceptée le</span>
+                  <span className={styles.detailLabel}>{t('orderDetail.acceptedOn')}</span>
                   <span className={styles.detailValue}>
                     {formatDate(order.accepted_at)}
                   </span>
@@ -330,7 +328,7 @@ export default function OrderDetailPage() {
               )}
               {order.completed_at && (
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Terminée le</span>
+                  <span className={styles.detailLabel}>{t('orderDetail.completedOn')}</span>
                   <span className={styles.detailValue}>
                     {formatDate(order.completed_at)}
                   </span>
@@ -339,24 +337,24 @@ export default function OrderDetailPage() {
             </div>
 
             <div className={styles.detailCard}>
-              <h3>{order.pricing_mode === 'bidding' ? 'Informations enchères' : 'Prix et paiement'}</h3>
+              <h3>{order.pricing_mode === 'bidding' ? t('orderDetail.biddingInfo') : t('orderDetail.priceAndPayment')}</h3>
               {order.pricing_mode === 'bidding' ? (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Mode</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.mode')}</span>
                     <span className={styles.detailValue}>
-                      <span className={styles.biddingBadge}>🎯 Enchères</span>
+                      <span className={styles.biddingBadge}>🎯 {t('orderDetail.bidding')}</span>
                     </span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Votre prix proposé</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.yourProposedPrice')}</span>
                     <span className={styles.detailValue}>
                       <Price amount={order.user_proposed_price} />
                     </span>
                   </div>
                   {order.bid_expiry_time && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Expiration enchères</span>
+                      <span className={styles.detailLabel}>{t('orderDetail.biddingExpiry')}</span>
                       <span className={styles.detailValue}>
                         {formatDate(order.bid_expiry_time)}
                       </span>
@@ -364,7 +362,7 @@ export default function OrderDetailPage() {
                   )}
                   {order.price > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Prix accepté</span>
+                      <span className={styles.detailLabel}>{t('orderDetail.acceptedPrice')}</span>
                       <span className={`${styles.detailValue} ${styles.totalPrice}`}>
                         <Price amount={order.price} />
                       </span>
@@ -372,26 +370,23 @@ export default function OrderDetailPage() {
                   )}
 
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Mode de paiement</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.paymentMethod')}</span>
                     <span className={styles.detailValue}>
-                      {order.payment_method === 'card' ? '💳 Carte bancaire' : '💵 Espèces'}
+                      {order.payment_method === 'card' ? '💳 ' + t('orderDetail.cardPayment') : '💵 ' + t('orderDetail.cashPayment')}
                     </span>
                   </div>
 
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Statut paiement</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.paymentStatus')}</span>
                     <span className={styles.detailValue}>
-                      {order.payment_status === 'paid' ? '✅ Payé' :
-                       order.payment_status === 'refunded' ? '🔄 Remboursé' : '⏳ En attente'}
+                      {order.payment_status === 'paid' ? '✅ ' + t('orderDetail.paid') : order.payment_status === 'refunded' ? '🔄 ' + t('orderDetail.refunded') : '⏳ ' + t('orderDetail.paymentPending')}
                     </span>
                   </div>
 
                   {order.payment_status === 'pending' && (
                     <div className={styles.paymentInfo}>
                       <p>
-                        {order.payment_method === 'card'
-                          ? '💡 Le paiement sera automatiquement effectué à la fin du service.'
-                          : '💡 Payez en espèces directement au prestataire à la fin du service.'}
+                        {order.payment_method === 'card' ? '💡 ' + t('orderDetail.cardPaymentInfo') : '💡 ' + t('orderDetail.cashPaymentInfo')}
                       </p>
                     </div>
                   )}
@@ -399,14 +394,14 @@ export default function OrderDetailPage() {
               ) : (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Prix du service</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.servicePrice')}</span>
                     <span className={styles.detailValue}>
                       <Price amount={order.base_price || order.price} />
                     </span>
                   </div>
                   {order.formula_fee > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Formule {order.formula_type}</span>
+                      <span className={styles.detailLabel}>{t('orderDetail.formula')} {order.formula_type}</span>
                       <span className={styles.detailValue}>
                         +<Price amount={order.formula_fee} />
                       </span>
@@ -414,7 +409,7 @@ export default function OrderDetailPage() {
                   )}
                   {order.distance_fee > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Frais de déplacement</span>
+                      <span className={styles.detailLabel}>{t('orderDetail.travelFee')}</span>
                       <span className={styles.detailValue}>
                         +<Price amount={order.distance_fee} />
                       </span>
@@ -422,39 +417,36 @@ export default function OrderDetailPage() {
                   )}
                   {order.tip > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Pourboire</span>
+                      <span className={styles.detailLabel}>{t('orderDetail.tip')}</span>
                       <span className={styles.detailValue}>
                         +<Price amount={order.tip} />
                       </span>
                     </div>
                   )}
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Total</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.total')}</span>
                     <span className={`${styles.detailValue} ${styles.totalPrice}`}>
                       <Price amount={order.total} />
                     </span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Mode de paiement</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.paymentMethod')}</span>
                     <span className={styles.detailValue}>
-                      {order.payment_method === 'card' ? '💳 Carte bancaire' : '💵 Espèces'}
+                      {order.payment_method === 'card' ? '💳 ' + t('orderDetail.cardPayment') : '💵 ' + t('orderDetail.cashPayment')}
                     </span>
                   </div>
 
                   <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Statut paiement</span>
+                    <span className={styles.detailLabel}>{t('orderDetail.paymentStatus')}</span>
                     <span className={styles.detailValue}>
-                      {order.payment_status === 'paid' ? '✅ Payé' :
-                       order.payment_status === 'refunded' ? '🔄 Remboursé' : '⏳ En attente'}
+                      {order.payment_status === 'paid' ? '✅ ' + t('orderDetail.paid') : order.payment_status === 'refunded' ? '🔄 ' + t('orderDetail.refunded') : '⏳ ' + t('orderDetail.paymentPending')}
                     </span>
                   </div>
 
                   {order.payment_status === 'pending' && !['completed', 'completed_pending_review'].includes(order.status) && (
                     <div className={styles.paymentInfo}>
                       <p>
-                        {order.payment_method === 'card'
-                          ? '💡 Le paiement sera automatiquement effectué à la fin du service.'
-                          : '💡 Payez en espèces directement au prestataire à la fin du service.'}
+                        {order.payment_method === 'card' ? '💡 ' + t('orderDetail.cardPaymentInfo') : '💡 ' + t('orderDetail.cashPaymentInfo')}
                       </p>
                     </div>
                   )}
@@ -464,7 +456,7 @@ export default function OrderDetailPage() {
 
             {order.provider_name && (
               <div className={styles.providerCard}>
-                <h3>Votre prestataire</h3>
+                <h3>{t('orderDetail.yourProvider')}</h3>
                 <div className={styles.providerProfile}>
                   <div className={styles.providerAvatarLarge}>
                     {order.provider_avatar ? (
@@ -486,7 +478,7 @@ export default function OrderDetailPage() {
                   </div>
                   <div className={styles.providerInfo}>
                     <span className={styles.providerName}>{order.provider_name}</span>
-                    <span className={styles.providerVerified}>✓ Vérifié GlamGo</span>
+                    <span className={styles.providerVerified}>✓ {t('orderDetail.verifiedGlamGo')}</span>
                   </div>
                 </div>
               </div>
@@ -494,14 +486,14 @@ export default function OrderDetailPage() {
 
             {order.notes && (
               <div className={styles.detailCard}>
-                <h3>Notes</h3>
+                <h3>{t('orderDetail.notes')}</h3>
                 <p className={styles.notes}>{order.notes}</p>
               </div>
             )}
 
             {order.cancellation_reason && (
               <div className={styles.detailCard}>
-                <h3>Raison de l'annulation</h3>
+                <h3>{t('orderDetail.cancellationReason')}</h3>
                 <p className={styles.cancellationReason}>{order.cancellation_reason}</p>
               </div>
             )}
@@ -511,30 +503,30 @@ export default function OrderDetailPage() {
           {order.pricing_mode === 'bidding' && order.status === 'pending' && (
             <div className={styles.bidsSection}>
               <div className={styles.bidsSectionHeader}>
-                <h2>💰 Offres reçues</h2>
+                <h2>💰 {t('orderDetail.receivedOffers')}</h2>
                 <Button
                   variant="outline"
                   size="small"
                   onClick={fetchBids}
                   disabled={loadingBids}
                 >
-                  {loadingBids ? 'Chargement...' : '🔄 Actualiser'}
+                  {loadingBids ? t('common.loading') : '🔄 ' + t('orderDetail.refresh')}
                 </Button>
               </div>
 
               {loadingBids ? (
                 <div className={styles.loading}>
                   <div className={styles.spinner}></div>
-                  <p>Chargement des offres...</p>
+                  <p>{t('orderDetail.loadingOffers')}</p>
                 </div>
               ) : bids.length === 0 ? (
                 <div className={styles.noBids}>
                   <div className={styles.noBidsIcon}>📭</div>
-                  <h3>Aucune offre pour le moment</h3>
-                  <p>Les prestataires vont commencer à vous envoyer leurs propositions. Revenez plus tard!</p>
+                  <h3>{t('orderDetail.noOffersYet')}</h3>
+                  <p>{t('orderDetail.noOffersDesc')}</p>
                   {order.bid_expiry_time && (
                     <p className={styles.expiryInfo}>
-                      Les enchères expirent le {formatDate(order.bid_expiry_time)}
+                      {t('orderDetail.bidsExpireOn')} {formatDate(order.bid_expiry_time)}
                     </p>
                   )}
                 </div>
@@ -565,12 +557,12 @@ export default function OrderDetailPage() {
                         {bid.estimated_arrival_minutes && (
                           <div className={styles.bidDetail}>
                             <span>⏱</span>
-                            <span>Arrive dans {bid.estimated_arrival_minutes} minutes</span>
+                            <span>{t('orderDetail.arrivesIn', { minutes: bid.estimated_arrival_minutes })}</span>
                           </div>
                         )}
                         {bid.message && (
                           <div className={styles.bidMessage}>
-                            <strong>Message:</strong> {bid.message}
+                            <strong>{t('orderDetail.message')}:</strong> {bid.message}
                           </div>
                         )}
                       </div>
@@ -583,14 +575,14 @@ export default function OrderDetailPage() {
                             onClick={() => openAcceptBidModal(bid.id)}
                             disabled={actionLoading[`bid_${bid.id}`]}
                           >
-                            {actionLoading[`bid_${bid.id}`] ? 'Acceptation...' : '✅ Accepter cette offre'}
+                            {actionLoading[`bid_${bid.id}`] ? t('orderDetail.accepting') : '✅ ' + t('orderDetail.acceptOffer')}
                           </Button>
                         )}
                         {bid.status === 'accepted' && (
-                          <span className={styles.acceptedBadge}>✓ Offre acceptée</span>
+                          <span className={styles.acceptedBadge}>✓ {t('orderDetail.offerAccepted')}</span>
                         )}
                         {bid.status === 'rejected' && (
-                          <span className={styles.rejectedBadge}>✗ Offre rejetée</span>
+                          <span className={styles.rejectedBadge}>✗ {t('orderDetail.offerRejected')}</span>
                         )}
                       </div>
                     </div>
@@ -606,12 +598,12 @@ export default function OrderDetailPage() {
               <div className={styles.inProgressHeader}>
                 <span className={styles.inProgressIcon}>&#128295;</span>
                 <div>
-                  <h3>Prestation en cours</h3>
-                  <p>Le prestataire {order.provider_name} effectue votre service</p>
+                  <h3>{t('orderDetail.serviceInProgress')}</h3>
+                  <p>{t('orderDetail.providerWorking', { name: order.provider_name })}</p>
                 </div>
               </div>
               <div className={styles.inProgressInfo}>
-                <p>Le prestataire signalera la fin du service une fois terminé. Vous recevrez une notification pour évaluer la prestation.</p>
+                <p>{t('orderDetail.willNotifyWhenDone')}</p>
               </div>
             </div>
           )}
@@ -622,18 +614,18 @@ export default function OrderDetailPage() {
               <div className={styles.satisfactionHeader}>
                 <span className={styles.satisfactionIcon}>&#11088;</span>
                 <div>
-                  <h3>Evaluez votre prestation</h3>
-                  <p>Votre avis est important pour ameliorer nos services</p>
+                  <h3>{t('orderDetail.rateService')}</h3>
+                  <p>{t('orderDetail.rateServiceDesc')}</p>
                 </div>
               </div>
               <div className={styles.satisfactionInfo}>
-                <p>Le prestataire a termine le service. Merci de donner votre evaluation pour finaliser la commande et liberer le paiement.</p>
+                <p>{t('orderDetail.rateServiceInfo')}</p>
                 <Button
                   variant="primary"
                   onClick={() => setShowSatisfactionModal(true)}
                   className={styles.satisfactionButton}
                 >
-                  &#11088; Evaluer maintenant
+                  &#11088; {t('orderDetail.rateNow')}
                 </Button>
               </div>
             </div>
@@ -644,8 +636,8 @@ export default function OrderDetailPage() {
             <div className={styles.successMessage}>
               <span className={styles.successIcon}>✅</span>
               <div>
-                <h3>Arrivée confirmée !</h3>
-                <p>Le prestataire peut maintenant commencer le service.</p>
+                <h3>{t('orderDetail.arrivalConfirmedTitle')}</h3>
+                <p>{t('orderDetail.providerCanStart')}</p>
               </div>
             </div>
           )}
@@ -671,14 +663,14 @@ export default function OrderDetailPage() {
                 </div>
                 <div className={styles.providerArrivingInfo}>
                   <h3>{order.provider_name}</h3>
-                  <p className={styles.arrivingStatus}>🚗 En route vers vous...</p>
+                  <p className={styles.arrivingStatus}>🚗 {t('orderDetail.onTheWay')}</p>
                   {order.provider_rating && (
                     <span className={styles.arrivingRating}>⭐ {parseFloat(order.provider_rating).toFixed(1)}</span>
                   )}
                 </div>
               </div>
               <div className={styles.arrivalInfo}>
-                <p>Vérifiez que c'est bien cette personne à son arrivée, puis confirmez.</p>
+                <p>{t('orderDetail.verifyAndConfirm')}</p>
                 <Button
                   variant="primary"
                   onClick={() => setShowArrivalModal(true)}
@@ -720,11 +712,11 @@ export default function OrderDetailPage() {
                 onClick={() => setShowCancelModal(true)}
                 disabled={actionLoading.cancel}
               >
-                {actionLoading.cancel ? 'Annulation...' : 'Annuler la commande'}
+                {actionLoading.cancel ? t('orderDetail.cancelling') : t('orderDetail.cancelOrder')}
               </Button>
             )}
             <Link href="/orders">
-              <Button variant="primary">Retour aux commandes</Button>
+              <Button variant="primary">{t('orderDetail.backToOrders')}</Button>
             </Link>
           </div>
         </div>
@@ -748,7 +740,7 @@ export default function OrderDetailPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <span className={styles.modalIcon}>🚗</span>
-              <h2>Confirmer l'arrivée</h2>
+              <h2>{t('orderDetail.confirmArrival')}</h2>
             </div>
             <div className={styles.modalBody}>
               {/* Photo du prestataire pour vérification */}
@@ -768,12 +760,12 @@ export default function OrderDetailPage() {
                 </div>
                 <div className={styles.verifyInfo}>
                   <span className={styles.verifyName}>{order?.provider_name}</span>
-                  <span className={styles.verifyLabel}>Votre prestataire</span>
+                  <span className={styles.verifyLabel}>{t('orderDetail.yourProvider')}</span>
                 </div>
               </div>
-              <p className={styles.verifyQuestion}>Est-ce bien cette personne qui est arrivée ?</p>
+              <p className={styles.verifyQuestion}>{t('orderDetail.isThisProvider')}</p>
               <p className={styles.modalHint}>
-                Vérifiez l'identité du prestataire avant de confirmer.
+                {t('orderDetail.verifyIdentity')}
               </p>
             </div>
             <div className={styles.modalActions}>
@@ -782,14 +774,14 @@ export default function OrderDetailPage() {
                 onClick={() => setShowArrivalModal(false)}
                 disabled={confirmingArrival}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="primary"
                 onClick={handleConfirmArrival}
                 disabled={confirmingArrival}
               >
-                {confirmingArrival ? 'Confirmation...' : '✅ Oui, il est arrivé'}
+                {confirmingArrival ? t('orderDetail.confirming') : '✅ ' + t('orderDetail.yesArrived')}
               </Button>
             </div>
           </div>
@@ -802,18 +794,18 @@ export default function OrderDetailPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <span className={styles.modalIcon}>⚠️</span>
-              <h2>Annuler la commande</h2>
+              <h2>{t('orderDetail.cancelOrder')}</h2>
             </div>
             <div className={styles.modalBody}>
-              <p>Êtes-vous sûr de vouloir annuler cette commande ?</p>
-              <p className={styles.modalHint}>Cette action est irréversible.</p>
+              <p>{t('orderDetail.cancelConfirm')}</p>
+              <p className={styles.modalHint}>{t('orderDetail.cancelWarning')}</p>
             </div>
             <div className={styles.modalActions}>
               <Button variant="outline" onClick={() => setShowCancelModal(false)}>
-                Non, garder
+                {t('orderDetail.keepOrder')}
               </Button>
               <Button variant="danger" onClick={handleCancelOrder}>
-                Oui, annuler
+                {t('orderDetail.yesCancel')}
               </Button>
             </div>
           </div>
@@ -826,18 +818,18 @@ export default function OrderDetailPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <span className={styles.modalIcon}>💰</span>
-              <h2>Accepter cette offre</h2>
+              <h2>{t('orderDetail.acceptThisOffer')}</h2>
             </div>
             <div className={styles.modalBody}>
-              <p>Voulez-vous accepter cette offre ?</p>
-              <p className={styles.modalHint}>Les autres offres seront automatiquement rejetées.</p>
+              <p>{t('orderDetail.wantToAccept')}</p>
+              <p className={styles.modalHint}>{t('orderDetail.otherOffersRejected')}</p>
             </div>
             <div className={styles.modalActions}>
               <Button variant="outline" onClick={closeAcceptBidModal}>
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button variant="primary" onClick={handleAcceptBid}>
-                ✅ Accepter
+                ✅ {t('orderDetail.accept')}
               </Button>
             </div>
           </div>
@@ -868,7 +860,7 @@ export default function OrderDetailPage() {
           orderId={order.id}
           providerName={order.provider_name}
           onEmergencyReported={(data) => {
-            showToast('Signalement envoye. Notre equipe vous contactera rapidement.', 'success');
+            showToast(t('orderDetail.emergencyReported'), 'success');
           }}
         />
       )}
