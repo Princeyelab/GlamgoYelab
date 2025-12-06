@@ -1,6 +1,6 @@
-FROM php:8.2-fpm
+FROM php:8.2-cli
 
-# Installation des dépendances système
+# Installation des dépendances système et PostgreSQL
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -9,13 +9,12 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    libzip-dev
+    libzip-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Installation des extensions PHP
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# Installation de Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Installation des extensions PHP (MySQL + PostgreSQL)
+RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
 # Configuration du répertoire de travail
 WORKDIR /var/www/html
@@ -23,11 +22,12 @@ WORKDIR /var/www/html
 # Copie des fichiers de l'application
 COPY . .
 
-# Permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Permissions pour les uploads
+RUN mkdir -p public/uploads public/images \
+    && chmod -R 777 public/uploads public/images
 
-# Expose le port 9000 pour PHP-FPM
-EXPOSE 9000
+# Render utilise la variable PORT (default 10000)
+EXPOSE 10000
 
-CMD ["php-fpm"]
+# Démarrage du serveur PHP intégré
+CMD php -S 0.0.0.0:${PORT:-10000} -t public
