@@ -1,7 +1,7 @@
 <?php
 
 // Parse DATABASE_URL si disponible (format Render/Heroku)
-$databaseUrl = getenv('DATABASE_URL');
+$databaseUrl = getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? ($_SERVER['DATABASE_URL'] ?? null));
 $dbConfig = [];
 
 if ($databaseUrl) {
