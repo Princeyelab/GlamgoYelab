@@ -1,8 +1,22 @@
 <?php
 
-return [
-    // Configuration de la base de données
-    'database' => [
+// Parse DATABASE_URL si disponible (format Render/Heroku)
+$databaseUrl = getenv('DATABASE_URL');
+$dbConfig = [];
+
+if ($databaseUrl) {
+    $parsed = parse_url($databaseUrl);
+    $dbConfig = [
+        'driver' => $parsed['scheme'] === 'postgres' ? 'pgsql' : $parsed['scheme'],
+        'host' => $parsed['host'],
+        'port' => $parsed['port'] ?? 5432,
+        'name' => ltrim($parsed['path'], '/'),
+        'user' => $parsed['user'],
+        'password' => $parsed['pass'],
+        'charset' => 'utf8'
+    ];
+} else {
+    $dbConfig = [
         'driver' => getenv('DB_CONNECTION') ?: 'mysql',
         'host' => getenv('DB_HOST') ?: 'mysql-db',
         'port' => getenv('DB_PORT') ?: '3306',
@@ -10,7 +24,12 @@ return [
         'user' => getenv('DB_USERNAME') ?: (getenv('DB_USER') ?: 'glamgo_user'),
         'password' => getenv('DB_PASSWORD') ?: 'glamgo_password',
         'charset' => 'utf8'
-    ],
+    ];
+}
+
+return [
+    // Configuration de la base de données
+    'database' => $dbConfig,
 
     // Configuration de l'application
     'app' => [
