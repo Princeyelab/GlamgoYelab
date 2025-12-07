@@ -159,6 +159,7 @@ try {
             content TEXT NOT NULL,
             translated_content TEXT NULL,
             is_read BOOLEAN DEFAULT FALSE,
+            is_blocked BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )",
 
