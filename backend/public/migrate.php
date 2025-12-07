@@ -234,25 +234,115 @@ try {
         }
     }
 
-    // Insérer les données de base
-    $inserts = [
-        "INSERT INTO categories (name, slug, description, icon, is_active, display_order) VALUES
-        ('Maison', 'maison', 'Services pour la maison', 'home', TRUE, 1),
-        ('Beauté', 'beaute', 'Services de beauté', 'spa', TRUE, 2),
-        ('Voiture', 'voiture', 'Services automobiles', 'car', TRUE, 3),
-        ('Bien-être', 'bien-etre', 'Services de bien-être', 'heart', TRUE, 4),
-        ('Animaux', 'animaux', 'Services pour animaux', 'paw', TRUE, 5)
-        ON CONFLICT (slug) DO NOTHING",
+    // Supprimer les anciennes données pour repartir propre
+    $pdo->exec("DELETE FROM services");
+    $pdo->exec("DELETE FROM categories");
 
+    // Réinitialiser les séquences
+    $pdo->exec("ALTER SEQUENCE categories_id_seq RESTART WITH 1");
+    $pdo->exec("ALTER SEQUENCE services_id_seq RESTART WITH 1");
+
+    // Insérer les catégories principales
+    $inserts = [
+        "INSERT INTO categories (name, slug, description, icon, parent_id, is_active, display_order) VALUES
+        ('Beauté', 'beaute', 'Services de beauté et bien-être', 'beauty.svg', NULL, TRUE, 1),
+        ('Maison', 'maison', 'Services pour la maison', 'home.svg', NULL, TRUE, 2),
+        ('Voiture', 'voiture', 'Services pour votre véhicule', 'car.svg', NULL, TRUE, 3),
+        ('Animaux', 'animaux', 'Services pour vos animaux de compagnie', 'pet.svg', NULL, TRUE, 4)",
+
+        // Sous-catégories Beauté (parent_id = 1)
+        "INSERT INTO categories (name, slug, description, icon, parent_id, is_active, display_order) VALUES
+        ('Coiffure', 'coiffure', 'Coupe, coloration, coiffage', 'hair.svg', 1, TRUE, 1),
+        ('Esthétique', 'esthetique', 'Soins du visage et du corps', 'face.svg', 1, TRUE, 2),
+        ('Manucure & Pédicure', 'manucure-pedicure', 'Soins des mains et des pieds', 'nails.svg', 1, TRUE, 3),
+        ('Massage', 'massage', 'Massages relaxants et thérapeutiques', 'massage.svg', 1, TRUE, 4)",
+
+        // Sous-catégories Maison (parent_id = 2)
+        "INSERT INTO categories (name, slug, description, icon, parent_id, is_active, display_order) VALUES
+        ('Nettoyage', 'nettoyage', 'Nettoyage et entretien', 'clean.svg', 2, TRUE, 1),
+        ('Plomberie', 'plomberie', 'Réparations et installations', 'plumbing.svg', 2, TRUE, 2),
+        ('Électricité', 'electricite', 'Installations et dépannages électriques', 'electric.svg', 2, TRUE, 3),
+        ('Jardinage', 'jardinage', 'Entretien d espaces verts', 'garden.svg', 2, TRUE, 4)",
+
+        // Sous-catégories Voiture (parent_id = 3)
+        "INSERT INTO categories (name, slug, description, icon, parent_id, is_active, display_order) VALUES
+        ('Lavage', 'lavage', 'Lavage intérieur et extérieur', 'car-wash.svg', 3, TRUE, 1),
+        ('Mécanique', 'mecanique', 'Réparations mécaniques', 'mechanic.svg', 3, TRUE, 2)",
+
+        // Sous-catégories Animaux (parent_id = 4)
+        "INSERT INTO categories (name, slug, description, icon, parent_id, is_active, display_order) VALUES
+        ('Toilettage', 'toilettage', 'Toilettage et soins', 'pet-grooming.svg', 4, TRUE, 1),
+        ('Vétérinaire', 'veterinaire', 'Soins vétérinaires à domicile', 'vet.svg', 4, TRUE, 2)",
+
+        // Services Coiffure (category_id = 5)
         "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
-        (1, 'Ménage complet', 'menage-complet', 'Nettoyage complet de votre maison', 'https://images.unsplash.com/photo-1581578731548-c64695cc6952', 150.00, 120, TRUE),
-        (1, 'Repassage', 'repassage', 'Service de repassage à domicile', 'https://images.unsplash.com/photo-1489274495757-95c7c837b101', 80.00, 60, TRUE),
-        (2, 'Coiffure femme', 'coiffure-femme', 'Coupe et coiffage pour femme', 'https://images.unsplash.com/photo-1560066984-138dadb4c035', 200.00, 90, TRUE),
-        (2, 'Manucure', 'manucure', 'Soin des ongles et pose de vernis', 'https://images.unsplash.com/photo-1604654894610-df63bc536371', 120.00, 45, TRUE),
-        (3, 'Lavage auto', 'lavage-auto', 'Lavage intérieur et extérieur', 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f', 100.00, 60, TRUE),
-        (4, 'Massage relaxant', 'massage-relaxant', 'Massage détente à domicile', 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874', 250.00, 60, TRUE),
-        (5, 'Toilettage chien', 'toilettage-chien', 'Toilettage complet pour chien', 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7', 180.00, 90, TRUE)
-        ON CONFLICT (slug) DO NOTHING"
+        (5, 'Coupe Homme', 'coupe-homme', 'Coupe de cheveux classique pour homme', 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1', 80.00, 30, TRUE),
+        (5, 'Coupe Femme', 'coupe-femme', 'Coupe de cheveux pour femme', 'https://images.unsplash.com/photo-1560066984-138dadb4c035', 120.00, 45, TRUE),
+        (5, 'Brushing', 'brushing', 'Brushing professionnel', 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e', 100.00, 40, TRUE),
+        (5, 'Coloration', 'coloration', 'Coloration complète', 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388', 250.00, 120, TRUE),
+        (5, 'Mèches', 'meches', 'Mèches ou balayage', 'https://images.unsplash.com/photo-1519699047748-de8e457a634e', 300.00, 150, TRUE)",
+
+        // Services Esthétique (category_id = 6)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (6, 'Soin du visage', 'soin-visage', 'Soin complet du visage', 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881', 200.00, 60, TRUE),
+        (6, 'Épilation jambes', 'epilation-jambes', 'Épilation complète des jambes', 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2', 150.00, 45, TRUE),
+        (6, 'Maquillage', 'maquillage', 'Maquillage professionnel', 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9', 180.00, 60, TRUE)",
+
+        // Services Manucure (category_id = 7)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (7, 'Manucure classique', 'manucure-classique', 'Manucure avec vernis', 'https://images.unsplash.com/photo-1604654894610-df63bc536371', 80.00, 30, TRUE),
+        (7, 'Manucure gel', 'manucure-gel', 'Pose de vernis semi-permanent', 'https://images.unsplash.com/photo-1607779097040-26e80aa78e66', 120.00, 45, TRUE),
+        (7, 'Pédicure classique', 'pedicure-classique', 'Pédicure avec vernis', 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b', 100.00, 45, TRUE),
+        (7, 'Pédicure spa', 'pedicure-spa', 'Pédicure avec soin relaxant', 'https://images.unsplash.com/photo-1562322140-8baeececf3df', 150.00, 60, TRUE)",
+
+        // Services Massage (category_id = 8)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (8, 'Massage relaxant 30min', 'massage-relaxant-30', 'Massage relaxant de 30 minutes', 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874', 150.00, 30, TRUE),
+        (8, 'Massage relaxant 60min', 'massage-relaxant-60', 'Massage relaxant d une heure', 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2', 250.00, 60, TRUE),
+        (8, 'Massage sportif', 'massage-sportif', 'Massage pour sportifs', 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1', 300.00, 60, TRUE)",
+
+        // Services Nettoyage (category_id = 9)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (9, 'Nettoyage appartement', 'nettoyage-appartement', 'Nettoyage complet d appartement', 'https://images.unsplash.com/photo-1581578731548-c64695cc6952', 200.00, 120, TRUE),
+        (9, 'Nettoyage villa', 'nettoyage-villa', 'Nettoyage complet de villa', 'https://images.unsplash.com/photo-1558317374-067fb5f30001', 400.00, 240, TRUE),
+        (9, 'Nettoyage express', 'nettoyage-express', 'Nettoyage rapide', 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac', 120.00, 60, TRUE)",
+
+        // Services Plomberie (category_id = 10)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (10, 'Dépannage plomberie', 'depannage-plomberie', 'Intervention d urgence', 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7', 250.00, 60, TRUE),
+        (10, 'Installation sanitaire', 'installation-sanitaire', 'Installation équipement sanitaire', 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1', 300.00, 120, TRUE)",
+
+        // Services Électricité (category_id = 11)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (11, 'Dépannage électrique', 'depannage-electrique', 'Intervention d urgence', 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e', 250.00, 60, TRUE),
+        (11, 'Installation électrique', 'installation-electrique', 'Installation équipement électrique', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64', 300.00, 120, TRUE)",
+
+        // Services Jardinage (category_id = 12)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (12, 'Tonte de pelouse', 'tonte-pelouse', 'Tonte et entretien de pelouse', 'https://images.unsplash.com/photo-1558904541-efa843a96f01', 150.00, 60, TRUE),
+        (12, 'Taille de haies', 'taille-haies', 'Taille et formation de haies', 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b', 180.00, 90, TRUE)",
+
+        // Services Lavage auto (category_id = 13)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (13, 'Lavage extérieur', 'lavage-exterieur', 'Lavage extérieur complet', 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f', 80.00, 30, TRUE),
+        (13, 'Lavage complet', 'lavage-complet', 'Lavage intérieur et extérieur', 'https://images.unsplash.com/photo-1507136566006-cfc505b114fc', 150.00, 60, TRUE),
+        (13, 'Lavage premium', 'lavage-premium', 'Lavage premium avec cirage', 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785', 250.00, 90, TRUE)",
+
+        // Services Mécanique (category_id = 14)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (14, 'Vidange', 'vidange', 'Vidange et changement de filtre', 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc', 300.00, 45, TRUE),
+        (14, 'Diagnostic panne', 'diagnostic-panne', 'Diagnostic mécanique', 'https://images.unsplash.com/photo-1530046339160-ce3e530c7d2f', 200.00, 60, TRUE)",
+
+        // Services Toilettage (category_id = 15)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (15, 'Toilettage chien petit', 'toilettage-chien-petit', 'Pour chiens de petite taille', 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7', 120.00, 45, TRUE),
+        (15, 'Toilettage chien grand', 'toilettage-chien-grand', 'Pour chiens de grande taille', 'https://images.unsplash.com/photo-1587300003388-59208cc962cb', 200.00, 90, TRUE),
+        (15, 'Toilettage chat', 'toilettage-chat', 'Toilettage pour chat', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba', 100.00, 45, TRUE)",
+
+        // Services Vétérinaire (category_id = 16)
+        "INSERT INTO services (category_id, name, slug, description, image, price, duration_minutes, is_active) VALUES
+        (16, 'Consultation vétérinaire', 'consultation-veterinaire', 'Consultation à domicile', 'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def', 250.00, 30, TRUE),
+        (16, 'Vaccination', 'vaccination', 'Vaccination à domicile', 'https://images.unsplash.com/photo-1612531386530-97286d97c2d2', 200.00, 20, TRUE)"
     ];
 
     foreach ($inserts as $sql) {
