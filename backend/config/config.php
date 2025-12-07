@@ -6,8 +6,10 @@ $dbConfig = [];
 
 if ($databaseUrl) {
     $parsed = parse_url($databaseUrl);
+    $scheme = $parsed['scheme'] ?? '';
+    $driver = (strpos($scheme, 'postgres') !== false) ? 'pgsql' : $scheme;
     $dbConfig = [
-        'driver' => $parsed['scheme'] === 'postgres' ? 'pgsql' : $parsed['scheme'],
+        'driver' => $driver,
         'host' => $parsed['host'],
         'port' => $parsed['port'] ?? 5432,
         'name' => ltrim($parsed['path'], '/'),
