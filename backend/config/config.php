@@ -4,20 +4,41 @@
 $databaseUrl = getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? ($_SERVER['DATABASE_URL'] ?? null));
 $dbConfig = [];
 
-if ($databaseUrl) {
+if ($databaseUrl && !empty($databaseUrl)) {
+    // Format: postgresql://user:password@host/database
     $parsed = parse_url($databaseUrl);
-    $scheme = $parsed['scheme'] ?? '';
-    $driver = (strpos($scheme, 'postgres') !== false) ? 'pgsql' : $scheme;
-    $dbConfig = [
-        'driver' => $driver,
-        'host' => $parsed['host'],
-        'port' => $parsed['port'] ?? 5432,
-        'name' => ltrim($parsed['path'], '/'),
-        'user' => $parsed['user'],
-        'password' => $parsed['pass'],
-        'charset' => 'utf8'
-    ];
-} else {
+
+    if ($parsed && isset($parsed['host'])) {
+        $scheme = $parsed['scheme'] ?? 'pgsql';
+        $driver = (strpos($scheme, 'postgres') !== false) ? 'pgsql' : $scheme;
+        $dbConfig = [
+            'driver' => $driver,
+            'host' => $parsed['host'] ?? 'localhost',
+            'port' => $parsed['port'] ?? 5432,
+            'name' => isset($parsed['path']) ? ltrim($parsed['path'], '/') : 'glamgo',
+            'user' => $parsed['user'] ?? '',
+            'password' => $parsed['pass'] ?? '',
+            'charset' => 'utf8'
+        ];
+    } else {
+        // Fallback si parse_url échoue - parser manuellement
+        // Format: postgresql://user:pass@host/dbname
+        if (preg_match('/^postgresql:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)$/', $databaseUrl, $matches)) {
+            $dbConfig = [
+                'driver' => 'pgsql',
+                'host' => $matches[3],
+                'port' => 5432,
+                'name' => $matches[4],
+                'user' => $matches[1],
+                'password' => $matches[2],
+                'charset' => 'utf8'
+            ];
+        }
+    }
+}
+
+// Fallback vers MySQL local si pas de config
+if (empty($dbConfig)) {
     $dbConfig = [
         'driver' => getenv('DB_CONNECTION') ?: 'mysql',
         'host' => getenv('DB_HOST') ?: 'mysql-db',
