@@ -2640,13 +2640,22 @@ export function LanguageProvider({ children }) {
     }
   }, [isRTL, language]);
 
-  // Changer de langue
+  // Changer de langue (toggle FR/AR)
   const toggleLanguage = useCallback(() => {
     const newLang = language === 'fr' ? 'ar' : 'fr';
     setLanguage(newLang);
     setIsRTL(newLang === 'ar');
     localStorage.setItem('glamgo_language', newLang);
   }, [language]);
+
+  // Changer vers une langue spécifique (pour dropdown multi-langues)
+  const switchLanguage = useCallback((langCode) => {
+    // Pour l'instant on supporte que FR et AR, les autres langues sont traitées comme FR
+    const supportedLang = langCode === 'ar' ? 'ar' : 'fr';
+    setLanguage(supportedLang);
+    setIsRTL(supportedLang === 'ar');
+    localStorage.setItem('glamgo_language', supportedLang);
+  }, []);
 
   // Fonction de traduction (clés statiques)
   const t = useCallback((key, params = {}) => {
@@ -2689,6 +2698,7 @@ export function LanguageProvider({ children }) {
     language,
     setLanguage,
     toggleLanguage,
+    switchLanguage,
     t,
     isRTL,
     translations: translations[language],
@@ -2696,7 +2706,7 @@ export function LanguageProvider({ children }) {
     translateDynamic,
     translateDynamicBatch,
     translateDynamicObject
-  }), [language, toggleLanguage, t, isRTL, translateDynamic, translateDynamicBatch, translateDynamicObject]);
+  }), [language, toggleLanguage, switchLanguage, t, isRTL, translateDynamic, translateDynamicBatch, translateDynamicObject]);
 
   return (
     <LanguageContext.Provider value={contextValue}>

@@ -1,6 +1,22 @@
 import '../styles/globals.scss';
-import { Noto_Sans_Arabic } from 'next/font/google';
+import '../styles/globals.css';
+import { Inter, Poppins, Noto_Sans_Arabic } from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
+
+// Charger les polices du Design System GlamGo avec next/font pour optimisation
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
 
 // Charger la police arabe avec next/font pour optimisation
 // La police ne sera chargée que lorsqu'elle sera utilisée (lazy loading)
@@ -24,7 +40,11 @@ export const metadata = {
  */
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" data-scroll-behavior="smooth" className={notoSansArabic.variable}>
+    <html
+      lang="fr"
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${poppins.variable} ${notoSansArabic.variable}`}
+    >
       <body>
         <ClientLayout>{children}</ClientLayout>
       </body>
