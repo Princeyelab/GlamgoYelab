@@ -334,3 +334,178 @@
 .serviceActions {
   margin-top: auto;
 }
+
+// ============================================
+// Responsive Styles - Mobile First
+// ============================================
+
+@include mobile {
+  .headerContent {
+    flex-direction: column;
+    gap: $spacing-sm;
+    padding: 0 $spacing-sm;
+  }
+
+  .logo {
+    font-size: $font-size-lg;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+
+  .backLink {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .profileLink {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .logoutBtn {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .main {
+    padding: $spacing-md 0;
+  }
+
+  .pageHeader {
+    margin-bottom: $spacing-lg;
+    padding: 0 $spacing-sm;
+
+    h1 {
+      font-size: $font-size-xl;
+    }
+  }
+
+  .subtitle {
+    font-size: $font-size-sm;
+  }
+
+  .tabs {
+    margin-bottom: $spacing-lg;
+    padding: 0 $spacing-sm;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .tab {
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-sm;
+    flex-shrink: 0;
+  }
+
+  .tabContent {
+    min-height: 300px;
+    padding: 0 $spacing-sm;
+  }
+
+  .emptyState {
+    padding: $spacing-xl $spacing-md;
+
+    .emptyIcon {
+      font-size: 48px;
+    }
+
+    h3 {
+      font-size: $font-size-lg;
+    }
+
+    p {
+      font-size: $font-size-sm;
+    }
+  }
+
+  .servicesGrid {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+
+  .serviceCard {
+    border-radius: $radius-lg;
+  }
+
+  .serviceImage {
+    height: 160px;
+  }
+
+  .serviceContent {
+    padding: $spacing-md;
+    gap: $spacing-sm;
+  }
+
+  .serviceHeader {
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .serviceName {
+    font-size: $font-size-base;
+  }
+
+  .categoryBadge {
+    font-size: 10px;
+    padding: 2px $spacing-xs;
+    align-self: flex-start;
+  }
+
+  .serviceDescription {
+    font-size: $font-size-xs;
+    line-height: 1.4;
+  }
+
+  .serviceDetails {
+    padding: $spacing-sm;
+  }
+
+  .priceDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+  }
+
+  .duration {
+    font-size: $font-size-xs;
+  }
+
+  .serviceActions {
+    button {
+      width: 100%;
+    }
+  }
+}
+
+@include tablet {
+  .headerContent {
+    padding: 0 $spacing-md;
+  }
+
+  .pageHeader {
+    h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .serviceImage {
+    height: 180px;
+  }
+
+  .serviceHeader {
+    flex-direction: row;
+  }
+}

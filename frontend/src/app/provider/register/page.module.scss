@@ -7,6 +7,13 @@
   @include flex-center;
   padding: $spacing-lg $spacing-md;
   position: relative;
+
+  @include mobile {
+    padding: $spacing-sm $spacing-xs;
+    min-height: 100vh;
+    align-items: flex-start;
+    padding-top: $spacing-xl;
+  }
 }
 
 .languageSwitcherContainer {
@@ -27,8 +34,13 @@
   box-shadow: $shadow-2xl;
   padding: $spacing-lg;
 
-  @include md {
+  @include tablet {
     padding: $spacing-md;
+  }
+
+  @include mobile {
+    padding: $spacing-sm;
+    border-radius: $radius-lg;
   }
 }
 
@@ -75,8 +87,8 @@
   margin-bottom: $spacing-xs;
   text-align: center;
 
-  @include md {
-    font-size: $font-size-xl;
+  @include mobile {
+    font-size: $font-size-lg;
   }
 }
 
@@ -121,6 +133,11 @@
   border-radius: $radius-lg;
   padding: $spacing-md;
   background: $gray-50;
+
+  @include mobile {
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+  }
 }
 
 .sectionTitle {
@@ -135,8 +152,9 @@
   grid-template-columns: 1fr 1fr;
   gap: $spacing-sm;
 
-  @include md {
+  @include mobile {
     grid-template-columns: 1fr;
+    gap: $spacing-xs;
   }
 }
 
@@ -155,6 +173,13 @@
   background: $gray-50;
   border-radius: $radius-lg;
   border: 2px dashed $gray-300;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+  }
 }
 
 .photoPreview {
@@ -166,6 +191,11 @@
   flex-shrink: 0;
   border: 3px solid $white;
   box-shadow: $shadow-md;
+
+  @include mobile {
+    width: 80px;
+    height: 80px;
+  }
 
   img {
     width: 100%;
@@ -199,6 +229,12 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
+
+  @include mobile {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
 }
 
 .photoUploadBtn {
@@ -397,6 +433,11 @@ select.input {
   background-color: rgba($primary-color, 0.03);
   border: 2px solid $primary-color;
   border-radius: $radius-lg;
+
+  @include mobile {
+    padding: $spacing-sm;
+    margin: $spacing-sm 0;
+  }
 }
 
 .termsLabel {
@@ -421,6 +462,10 @@ select.input {
   color: $gray-800;
   line-height: 1.6;
   font-weight: $font-weight-medium;
+
+  @include mobile {
+    font-size: $font-size-xs;
+  }
 }
 
 .termsLink {
@@ -467,6 +512,11 @@ select.input {
   min-height: 100px;
   position: relative;
   overflow: hidden;
+
+  @include mobile {
+    min-height: 80px;
+    padding: $spacing-sm $spacing-xs;
+  }
 
   &:hover {
     border-color: $primary-color;
@@ -588,6 +638,14 @@ select.input {
   justify-content: center;
   margin-bottom: $spacing-md;
   gap: $spacing-xs;
+
+  @include mobile {
+    gap: 2px;
+    margin-bottom: $spacing-sm;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: $spacing-xs 0;
+  }
 }
 
 .step {
@@ -595,6 +653,11 @@ select.input {
   flex-direction: column;
   align-items: center;
   gap: $spacing-xs;
+
+  @include mobile {
+    gap: 2px;
+    min-width: auto;
+  }
 }
 
 .stepNumber {
@@ -609,15 +672,25 @@ select.input {
   font-weight: $font-weight-bold;
   font-size: $font-size-sm;
   transition: all $transition-normal;
+
+  @include mobile {
+    width: 28px;
+    height: 28px;
+    font-size: $font-size-xs;
+  }
 }
 
 .stepLabel {
   font-size: $font-size-xs;
   color: $gray-500;
   font-weight: $font-weight-medium;
+  text-align: center;
+  max-width: 70px;
 
-  @include md {
-    display: none;
+  @include mobile {
+    font-size: 10px;
+    max-width: 50px;
+    line-height: 1.2;
   }
 }
 
@@ -627,8 +700,13 @@ select.input {
   background: $gray-200;
   margin-bottom: $spacing-md;
 
-  @include md {
+  @include tablet {
     width: 20px;
+  }
+
+  @include mobile {
+    width: 12px;
+    margin-bottom: $spacing-sm;
   }
 }
 
@@ -711,10 +789,11 @@ select.input {
   border-radius: $radius-md;
   border: 1px solid $gray-200;
 
-  @include md {
+  @include mobile {
     flex-direction: column;
     align-items: flex-start;
     gap: $spacing-xs;
+    padding: $spacing-xs;
   }
 }
 
@@ -725,17 +804,31 @@ select.input {
   min-width: 120px;
   cursor: pointer;
 
+  @include mobile {
+    min-width: auto;
+    gap: $spacing-xs;
+  }
+
   input[type="checkbox"] {
     width: 18px;
     height: 18px;
     accent-color: $primary-color;
     cursor: pointer;
+
+    @include mobile {
+      width: 16px;
+      height: 16px;
+    }
   }
 
   span {
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
     color: $gray-800;
+
+    @include mobile {
+      font-size: $font-size-xs;
+    }
   }
 }
 
@@ -745,6 +838,14 @@ select.input {
   gap: $spacing-sm;
   font-size: $font-size-sm;
   color: $gray-600;
+
+  @include mobile {
+    gap: $spacing-xs;
+    font-size: $font-size-xs;
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: 24px;
+  }
 }
 
 .timeInput {
@@ -753,6 +854,12 @@ select.input {
   border-radius: $radius-md;
   font-size: $font-size-sm;
   cursor: pointer;
+
+  @include mobile {
+    padding: 4px 6px;
+    font-size: $font-size-xs;
+    min-width: 75px;
+  }
 
   &:focus {
     outline: none;
@@ -767,8 +874,17 @@ select.input {
   justify-content: space-between;
   margin-top: $spacing-md;
 
+  @include mobile {
+    flex-direction: column-reverse;
+    gap: $spacing-xs;
+  }
+
   button {
     flex: 1;
+
+    @include mobile {
+      width: 100%;
+    }
   }
 }
 

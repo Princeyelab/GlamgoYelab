@@ -3,7 +3,8 @@
  * Ces fonctions s'exécutent côté serveur pour améliorer les performances
  */
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api';
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api';
 
 // Cache en mémoire pour le développement (évite les appels répétés)
 const memoryCache = new Map();

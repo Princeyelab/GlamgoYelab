@@ -103,7 +103,7 @@ export default function ProviderOnboardingPage() {
       formData.append('onboarding_completed', 'true');
 
       const token = apiClient.getToken();
-      const response = await fetch(`${apiClient.baseURL}/provider/onboarding`, {
+      const response = await fetch(`${apiClient.baseURL}/onboarding/provider/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

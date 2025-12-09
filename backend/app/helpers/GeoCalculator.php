@@ -108,11 +108,11 @@ class GeoCalculator
 
         // En mode test, ne pas filtrer par is_verified
         if (!$testMode) {
-            $sql .= " AND p.is_verified = 1";
+            $sql .= " AND p.is_verified = TRUE";
         }
 
         if ($onlyAvailable) {
-            $sql .= " AND p.is_available = 1";
+            $sql .= " AND p.is_available = TRUE";
         }
 
         $sql .= " ORDER BY p.rating DESC, p.total_reviews DESC LIMIT :limit";

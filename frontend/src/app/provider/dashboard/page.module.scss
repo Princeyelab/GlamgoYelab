@@ -1163,3 +1163,332 @@
     color: $white;
   }
 }
+
+// ============================================
+// Responsive Styles - Mobile First
+// ============================================
+
+@include mobile {
+  .headerContent {
+    flex-direction: column;
+    gap: $spacing-sm;
+    padding: 0 $spacing-sm;
+  }
+
+  .logo {
+    font-size: $font-size-lg;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+
+  .providerInfo {
+    display: none;
+  }
+
+  .profileLink {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .logoutBtn {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .main {
+    padding: $spacing-md 0;
+  }
+
+  .welcomeSection {
+    margin-bottom: $spacing-md;
+
+    h1 {
+      font-size: $font-size-xl;
+    }
+
+    p {
+      font-size: $font-size-sm;
+    }
+  }
+
+  .welcomeHeader {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .headerControls {
+    width: 100%;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .availabilityToggle {
+    width: 100%;
+    justify-content: space-between;
+    padding: $spacing-sm;
+  }
+
+  .quickActions {
+    grid-template-columns: 1fr;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .quickActionCard {
+    padding: $spacing-md;
+  }
+
+  .quickActionIcon {
+    font-size: 36px;
+  }
+
+  .quickActionContent {
+    h3 {
+      font-size: $font-size-base;
+    }
+
+    p {
+      font-size: $font-size-xs;
+    }
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .statCard {
+    padding: $spacing-md;
+  }
+
+  .statValue {
+    font-size: $font-size-xl;
+  }
+
+  .statLabel {
+    font-size: $font-size-xs;
+  }
+
+  .earningsCard {
+    .statValue {
+      font-size: $font-size-xl;
+    }
+  }
+
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .tab {
+    padding: $spacing-sm;
+    font-size: $font-size-sm;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    min-width: 80px;
+  }
+
+  .ordersList {
+    padding: $spacing-sm;
+  }
+
+  .orderCard {
+    padding: $spacing-sm;
+  }
+
+  .orderHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+  }
+
+  .orderId {
+    font-size: $font-size-sm;
+  }
+
+  .status {
+    font-size: 10px;
+    padding: 2px $spacing-xs;
+  }
+
+  .serviceName {
+    font-size: $font-size-base;
+  }
+
+  .orderInfo {
+    grid-template-columns: 1fr;
+    gap: $spacing-xs;
+  }
+
+  .infoItem {
+    font-size: $font-size-xs;
+  }
+
+  .orderActions {
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .pendingReviewStatus {
+    flex-direction: column;
+    text-align: center;
+    padding: $spacing-sm;
+  }
+
+  .pendingReviewIcon {
+    font-size: 1.5rem;
+  }
+
+  .pendingReviewText {
+    strong {
+      font-size: $font-size-sm;
+    }
+
+    p {
+      font-size: $font-size-xs;
+    }
+  }
+
+  // Modals
+  .chatModalContent,
+  .completeModalContent,
+  .cancelModalContent {
+    max-height: 95vh;
+    margin: $spacing-xs;
+  }
+
+  .chatModalHeader,
+  .completeModalHeader,
+  .cancelModalHeader {
+    padding: $spacing-sm;
+
+    h3 {
+      font-size: $font-size-base;
+    }
+  }
+
+  .completeModalBody,
+  .cancelModalBody {
+    padding: $spacing-md;
+  }
+
+  .orderSummary {
+    padding: $spacing-sm;
+
+    .serviceName {
+      font-size: $font-size-sm;
+    }
+
+    .orderTotal {
+      font-size: $font-size-base;
+    }
+  }
+
+  .confirmMessage {
+    .checkIcon {
+      width: 50px;
+      height: 50px;
+      font-size: 1.5rem;
+    }
+
+    p {
+      font-size: $font-size-sm;
+    }
+  }
+
+  .completeModalFooter,
+  .cancelModalFooter {
+    flex-direction: column-reverse;
+    padding: $spacing-sm;
+    gap: $spacing-xs;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .cancellationFee {
+    flex-direction: column;
+    text-align: center;
+    padding: $spacing-sm;
+  }
+
+  .feeIcon {
+    font-size: $font-size-xl;
+  }
+
+  .feeInfo {
+    strong {
+      font-size: $font-size-sm;
+    }
+
+    p {
+      font-size: $font-size-xs;
+    }
+  }
+
+  .gpsTrackerSection {
+    padding: $spacing-sm;
+    margin: $spacing-sm 0;
+  }
+
+  .locationIndicator {
+    font-size: 10px;
+    padding: 2px $spacing-xs;
+  }
+}
+
+@include tablet {
+  .headerContent {
+    padding: 0 $spacing-md;
+  }
+
+  .welcomeSection {
+    h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  .quickActions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .statValue {
+    font-size: $font-size-2xl;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+  }
+
+  .tab {
+    flex: 1;
+  }
+
+  .orderInfo {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .orderActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

@@ -85,13 +85,29 @@ class JWT
      */
     public static function getTokenFromHeaders(): ?string
     {
-        $headers = getallheaders();
+        $authHeader = null;
 
-        if (isset($headers['Authorization'])) {
-            $authHeader = $headers['Authorization'];
-            if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-                return $matches[1];
+        // Méthode 1: getallheaders() avec case-insensitive
+        $headers = getallheaders();
+        if ($headers) {
+            $headersLower = array_change_key_case($headers, CASE_LOWER);
+            if (isset($headersLower['authorization'])) {
+                $authHeader = $headersLower['authorization'];
             }
+        }
+
+        // Méthode 2: $_SERVER avec HTTP_AUTHORIZATION
+        if (!$authHeader && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+
+        // Méthode 3: $_SERVER avec REDIRECT_HTTP_AUTHORIZATION (Apache)
+        if (!$authHeader && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+
+        if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            return $matches[1];
         }
 
         return null;

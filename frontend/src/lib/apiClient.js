@@ -3,7 +3,8 @@
  * Client HTTP pour communiquer avec le backend
  */
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api';
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api';
 
 class ApiClient {
   constructor() {

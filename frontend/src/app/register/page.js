@@ -649,6 +649,7 @@ export default function RegisterPage() {
                 onSuccess={handlePaymentSuccess}
                 userType="client"
                 skipable={false}
+                demoMode={true}
               />
             </div>
           )}

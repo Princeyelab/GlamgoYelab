@@ -42,9 +42,9 @@ class LocationController extends Controller
         $provider = $this->providerModel->find($order['provider_id']);
 
         $this->success([
-            'latitude' => $provider['current_latitude'],
-            'longitude' => $provider['current_longitude'],
-            'updated_at' => $provider['updated_at']
+            'latitude' => $provider['current_latitude'] ?? null,
+            'longitude' => $provider['current_longitude'] ?? null,
+            'updated_at' => $provider['updated_at'] ?? null
         ]);
     }
 
@@ -116,9 +116,9 @@ class LocationController extends Controller
         }
 
         $this->success([
-            'client_live_latitude' => $order['client_live_latitude'],
-            'client_live_longitude' => $order['client_live_longitude'],
-            'location_sharing_enabled' => !empty($order['client_live_latitude']) && !empty($order['client_live_longitude'])
+            'client_live_latitude' => $order['client_live_latitude'] ?? null,
+            'client_live_longitude' => $order['client_live_longitude'] ?? null,
+            'location_sharing_enabled' => !empty($order['client_live_latitude'] ?? null) && !empty($order['client_live_longitude'] ?? null)
         ]);
     }
 }

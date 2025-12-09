@@ -187,12 +187,6 @@ export default function ProviderRegisterPage() {
       newErrors.password_confirmation = t('register.passwordsDontMatch');
     }
 
-    if (!formData.bio.trim()) {
-      newErrors.bio = t('providerRegister.bioRequired');
-    } else if (formData.bio.length < 50) {
-      newErrors.bio = t('providerRegister.bioMinLength');
-    }
-
     if (!formData.experience_years) {
       newErrors.experience_years = t('providerRegister.experienceRequired');
     } else if (isNaN(formData.experience_years) || formData.experience_years < 0) {
@@ -350,19 +344,19 @@ export default function ProviderRegisterPage() {
 
         // Sauvegarder TOUTES les données pour le profil
         const providerTempData = {
-          first_name: registrationData.first_name,
-          last_name: registrationData.last_name,
-          email: registrationData.email,
-          phone: registrationData.phone,
-          date_of_birth: registrationData.date_of_birth,
-          address: registrationData.address,
-          city: registrationData.city,
-          latitude: registrationData.latitude,
-          longitude: registrationData.longitude,
-          bio: registrationData.bio,
-          experience_years: registrationData.experience_years,
-          intervention_radius: registrationData.intervention_radius,
-          availability_schedule: registrationData.availability_schedule,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone: formData.phone,
+          date_of_birth: formData.date_of_birth,
+          address: formData.address,
+          city: formData.city,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          bio: formData.bio,
+          experience_years: formData.experience_years,
+          intervention_radius: formData.intervention_radius,
+          availability_schedule: formData.availability_schedule,
         };
         localStorage.setItem('provider_temp_data', JSON.stringify(providerTempData));
 
@@ -705,23 +699,6 @@ export default function ProviderRegisterPage() {
                       {errors.profile_photo && <span className={styles.error}>{errors.profile_photo}</span>}
                     </div>
                   </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="bio" className={styles.label}>
-                    {t('providerRegister.serviceDescription')} <span className={styles.required}>*</span>
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    className={`${styles.textarea} ${errors.bio ? styles.inputError : ''}`}
-                    placeholder={t('providerRegister.descPlaceholder')}
-                    rows={4}
-                  />
-                  {errors.bio && <span className={styles.error}>{errors.bio}</span>}
-                  <small className={styles.hint}>{formData.bio.length}/50 {t('providerRegister.minChars')}</small>
                 </div>
 
                 <div className={styles.formGroup}>

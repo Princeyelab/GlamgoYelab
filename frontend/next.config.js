@@ -4,7 +4,7 @@ const nextConfig = {
 
   // Variables d'environnement
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://glamgo-api.onrender.com',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://glamgo-api.fly.dev/api',
   },
 
   // Configuration des images optimisées
@@ -82,8 +82,8 @@ const nextConfig = {
   // Compression
   compress: true,
 
-  // Mode standalone désactivé pour réduire le temps de build
-  // output: 'standalone',
+  // Mode standalone pour le déploiement
+  output: 'standalone',
 }
 
 module.exports = nextConfig

@@ -70,8 +70,9 @@ class PriceCalculator
 
         $basePrice = floatval($service['price']);
 
-        // Vérifier si la formule est autorisée
-        $allowedFormulas = json_decode($service['allowed_formulas'] ?? '["standard"]', true) ?: ['standard'];
+        // Vérifier si la formule est autorisée (basée sur la catégorie)
+        $categoryName = strtolower($service['category_name'] ?? '');
+        $allowedFormulas = self::getAllowedFormulasByCategory($categoryName);
         if (!in_array($formulaType, $allowedFormulas)) {
             return [
                 'success' => false,
@@ -257,28 +258,8 @@ class PriceCalculator
         $categorySlug = strtolower($category['slug'] ?? '');
         $categoryName = strtolower($category['category_name'] ?? '');
 
-        // Restrictions par catégorie de service
-        $allFormulas = ['standard', 'recurring', 'premium', 'urgent', 'night'];
-
-        if (strpos($categorySlug, 'menage') !== false || strpos($categoryName, 'ménage') !== false || strpos($categoryName, 'menage') !== false) {
-            // Ménage : toutes les formules
-            $allowedFormulas = $allFormulas;
-        } elseif (strpos($categorySlug, 'auto') !== false || strpos($categoryName, 'auto') !== false) {
-            // Auto : pas de nuit (nettoyage en journée)
-            $allowedFormulas = ['standard', 'recurring', 'premium', 'urgent'];
-        } elseif (strpos($categorySlug, 'danse') !== false || strpos($categoryName, 'danse') !== false) {
-            // Danse : pas d'urgence ni nuit (cours planifiés)
-            $allowedFormulas = ['standard', 'recurring', 'premium'];
-        } elseif (strpos($categorySlug, 'animaux') !== false || strpos($categoryName, 'animaux') !== false || strpos($categoryName, 'pet') !== false) {
-            // Animaux : gardiennage simple + nuit possible
-            $allowedFormulas = ['standard', 'recurring', 'night'];
-        } elseif (strpos($categorySlug, 'beaute') !== false || strpos($categoryName, 'beauté') !== false || strpos($categoryName, 'beaute') !== false) {
-            // Beauté : pas de nuit (salons fermés)
-            $allowedFormulas = ['standard', 'recurring', 'premium', 'urgent'];
-        } else {
-            // Par défaut : toutes les formules
-            $allowedFormulas = $allFormulas;
-        }
+        // Toutes les formules sont disponibles pour tous les services
+        $allowedFormulas = ['standard', 'recurring', 'premium', 'urgent', 'night'];
 
         // Récupérer les détails des formules
         $placeholders = implode(',', array_fill(0, count($allowedFormulas), '?'));
@@ -292,7 +273,7 @@ class PriceCalculator
             WHERE sf.service_id = ?
               AND sf.formula_type IN ($placeholders)
               AND sf.is_active = TRUE
-            ORDER BY FIELD(sf.formula_type, 'standard', 'recurring', 'premium', 'urgent', 'night')
+            ORDER BY CASE sf.formula_type WHEN 'standard' THEN 1 WHEN 'recurring' THEN 2 WHEN 'premium' THEN 3 WHEN 'urgent' THEN 4 WHEN 'night' THEN 5 ELSE 6 END
         ");
 
         $params = array_merge(
@@ -394,6 +375,15 @@ class PriceCalculator
             'formulas' => $formulas,
             'allowed_types' => $allowedFormulas
         ];
+    }
+
+
+    /**
+     * Obtenir les formules autorisées - toutes les formules sont disponibles pour tous les services
+     */
+    private static function getAllowedFormulasByCategory(string $categoryName): array
+    {
+        return ['standard', 'recurring', 'premium', 'urgent', 'night'];
     }
 
     /**

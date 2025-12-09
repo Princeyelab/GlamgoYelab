@@ -683,3 +683,164 @@
   color: $gray-500;
   font-style: italic;
 }
+
+// ============================================
+// Responsive Styles - Mobile First
+// ============================================
+
+@include mobile {
+  .headerContent {
+    flex-direction: column;
+    gap: $spacing-sm;
+    padding: 0 $spacing-sm;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+
+  .backLink {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .logoutBtn {
+    font-size: $font-size-xs;
+    padding: $spacing-xs;
+  }
+
+  .main {
+    padding: $spacing-md 0;
+  }
+
+  .profileContainer {
+    border-radius: $radius-lg;
+    padding: $spacing-md;
+    margin: 0 $spacing-sm;
+  }
+
+  .profileHeader {
+    flex-direction: column;
+    gap: $spacing-md;
+    align-items: flex-start;
+
+    h1 {
+      font-size: $font-size-xl;
+    }
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .section {
+    h2 {
+      font-size: $font-size-lg;
+    }
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+
+  .infoItem {
+    padding: $spacing-sm;
+    background: $gray-50;
+    border-radius: $radius-md;
+  }
+
+  .statusBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: $spacing-sm;
+  }
+
+  .statusInfo {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .statusBadge {
+    font-size: $font-size-xs;
+    padding: 2px $spacing-xs;
+  }
+
+  .availabilityGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .availabilityItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+    padding: $spacing-sm;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formSection {
+    h2 {
+      font-size: $font-size-lg;
+    }
+  }
+
+  .multiSelect {
+    size: 4;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+    gap: $spacing-sm;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .tags {
+    gap: 4px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px $spacing-xs;
+  }
+
+  .bioText {
+    font-size: $font-size-sm;
+  }
+}
+
+@include tablet {
+  .headerContent {
+    padding: 0 $spacing-md;
+  }
+
+  .profileContainer {
+    padding: $spacing-lg;
+  }
+
+  .profileHeader {
+    h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .availabilityGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .formGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

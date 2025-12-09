@@ -27,7 +27,7 @@ RUN mkdir -p public/uploads public/images \
     && chmod -R 777 public/uploads public/images
 
 # Render utilise la variable PORT (default 10000)
-EXPOSE 10000
+EXPOSE 8080
 
 # Démarrage du serveur PHP intégré
-CMD php -S 0.0.0.0:${PORT:-10000} -t public
+CMD php -S 0.0.0.0:${PORT:-8080} -t public

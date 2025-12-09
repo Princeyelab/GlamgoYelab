@@ -333,4 +333,96 @@ class ProviderController extends Controller
             'avatar' => $avatarPath
         ], 'Photo de profil mise a jour');
     }
+
+    /**
+     * Upload des documents d'identite du prestataire (CIN)
+     */
+    public function uploadDocuments(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        // Recuperer les donnees du formulaire
+        $cinNumber = $_POST['cin_number'] ?? null;
+        $charterAccepted = $_POST['charter_accepted'] ?? false;
+
+        // Validation du numero CIN
+        if (!$cinNumber) {
+            $this->error('Numero CIN requis', 400);
+        }
+
+        // Creer le repertoire des documents si necessaire
+        $uploadDir = __DIR__ . '/../../public/uploads/documents/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $cinFrontPath = null;
+        $cinBackPath = null;
+
+        // Upload CIN recto
+        if (isset($_FILES['cin_front']) && $_FILES['cin_front']['error'] === UPLOAD_ERR_OK) {
+            $cinFrontPath = $this->uploadDocumentFile($_FILES['cin_front'], $providerId, 'cin_front', $uploadDir);
+        }
+
+        // Upload CIN verso
+        if (isset($_FILES['cin_back']) && $_FILES['cin_back']['error'] === UPLOAD_ERR_OK) {
+            $cinBackPath = $this->uploadDocumentFile($_FILES['cin_back'], $providerId, 'cin_back', $uploadDir);
+        }
+
+        // Mettre a jour les informations du prestataire
+        $updateData = [
+            'cin_number' => strtoupper($cinNumber),
+            'charter_accepted' => $charterAccepted === 'true' || $charterAccepted === true ? true : false
+        ];
+
+        if ($cinFrontPath) {
+            $updateData['cin_front_path'] = $cinFrontPath;
+        }
+        if ($cinBackPath) {
+            $updateData['cin_back_path'] = $cinBackPath;
+        }
+
+        $this->providerModel->update($providerId, $updateData);
+
+        $this->success([
+            'cin_number' => strtoupper($cinNumber),
+            'cin_front_uploaded' => !empty($cinFrontPath),
+            'cin_back_uploaded' => !empty($cinBackPath),
+            'charter_accepted' => $charterAccepted
+        ], 'Documents enregistres avec succes');
+    }
+
+    /**
+     * Helper pour uploader un fichier de document
+     */
+    private function uploadDocumentFile(array $file, int $providerId, string $docType, string $uploadDir): ?string
+    {
+        // Validation du type
+        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($mimeType, $allowedTypes)) {
+            return null;
+        }
+
+        // Validation de la taille (max 10MB)
+        if ($file['size'] > 10 * 1024 * 1024) {
+            return null;
+        }
+
+        // Generer un nom unique
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = $docType . '_' . $providerId . '_' . time() . '.' . $extension;
+        $destination = $uploadDir . $filename;
+
+        // Deplacer le fichier
+        if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            return null;
+        }
+
+        return '/uploads/documents/' . $filename;
+    }
+
 }

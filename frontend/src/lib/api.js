@@ -1,4 +1,5 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api'
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api'
 
 /**
  * Helper pour faire des requêtes API

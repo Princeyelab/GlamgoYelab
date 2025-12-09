@@ -155,6 +155,8 @@ $router->put('/api/provider/profile', 'ProviderController', 'updateProfile')
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/provider/profile/image', 'ProviderController', 'uploadProfileImage')
     ->middleware([AuthMiddleware::class]);
+$router->post('/api/provider/documents', 'ProviderController', 'uploadDocuments')
+    ->middleware([AuthMiddleware::class]);
 
 // Services proposés par le prestataire
 $router->get('/api/provider/services', 'ProviderServiceController', 'index')
