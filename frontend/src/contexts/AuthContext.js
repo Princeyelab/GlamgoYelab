@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import apiClient from '@/lib/apiClient';
 import { mergeClientData } from '@/lib/clientDataHelper';
 
@@ -10,17 +11,33 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checked, setChecked] = useState(false);
+  const pathname = usePathname();
+
+  // Déterminer si on est sur une page provider basé sur l'URL
+  const isProviderPage = pathname?.startsWith('/provider');
 
   const checkAuth = useCallback(async () => {
     // Ne vérifier qu'une seule fois au montage initial
     if (checked) return;
 
+    // Forcer le chargement du bon token selon la page actuelle
+    // Cela évite la confusion entre les profils client et prestataire
+    if (typeof window !== 'undefined') {
+      if (isProviderPage) {
+        // Sur une page provider, charger uniquement le token provider
+        apiClient._loadProviderToken();
+      } else {
+        // Sur une page client, charger uniquement le token client
+        apiClient._loadClientToken();
+      }
+    }
+
     const token = apiClient.getToken();
     if (token) {
       try {
-        // Appeler la bonne API selon le type d'utilisateur
-        const isProvider = apiClient.getIsProvider();
-        console.log('🔐 checkAuth - isProvider:', isProvider);
+        // Appeler la bonne API selon le type de page (pas le type stocké)
+        const isProvider = isProviderPage;
+        console.log('🔐 checkAuth - isProviderPage:', isProviderPage, '- token exists:', !!token);
 
         const response = isProvider
           ? await apiClient.getProviderProfile()
@@ -33,16 +50,20 @@ export function AuthProvider({ children }) {
           const userData = isProvider ? response.data : mergeClientData(response.data);
           setUser(userData);
           console.log('✅ checkAuth - Utilisateur chargé:', userData);
+        } else {
+          // Token invalide pour ce type d'utilisateur
+          console.log('⚠️ checkAuth - Token invalide pour ce type de page');
+          setUser(null);
         }
       } catch (error) {
         console.error('❌ Auth check failed:', error);
-        apiClient.clearToken();
+        // Ne pas effacer tous les tokens, seulement déconnecter de cette session
         setUser(null);
       }
     }
     setLoading(false);
     setChecked(true);
-  }, [checked]);
+  }, [checked, isProviderPage]);
 
   useEffect(() => {
     checkAuth();
@@ -68,9 +89,9 @@ export function AuthProvider({ children }) {
     const token = apiClient.getToken();
     if (token) {
       try {
-        // Appeler la bonne API selon le type d'utilisateur
-        const isProvider = apiClient.getIsProvider();
-        console.log('🔄 refreshUser - isProvider:', isProvider);
+        // Appeler la bonne API selon le type de page (pas le type stocké)
+        const isProvider = isProviderPage;
+        console.log('🔄 refreshUser - isProviderPage:', isProviderPage);
 
         const response = isProvider
           ? await apiClient.getProviderProfile()
@@ -90,7 +111,7 @@ export function AuthProvider({ children }) {
       }
     }
     return null;
-  }, []);
+  }, [isProviderPage]);
 
   // Vérifier si l'onboarding est complété
   const isOnboardingCompleted = useCallback(() => {
@@ -121,17 +142,15 @@ export function AuthProvider({ children }) {
   const getOnboardingPath = useCallback(() => {
     if (!user) return null;
 
-    // Utiliser apiClient pour déterminer le type d'utilisateur
-    const isProvider = apiClient.getIsProvider();
-
+    // Utiliser la page actuelle pour déterminer le type d'utilisateur
     // Seuls les prestataires ont un onboarding séparé
-    if (isProvider) {
+    if (isProviderPage) {
       return '/provider/onboarding';
     }
 
     // Pour les clients, pas d'onboarding séparé (inscription complète)
     return null;
-  }, [user]);
+  }, [user, isProviderPage]);
 
   // Mémoiser le contexte pour éviter les re-renders inutiles
   const value = useMemo(() => ({
@@ -142,7 +161,8 @@ export function AuthProvider({ children }) {
     refreshUser,
     isOnboardingCompleted,
     getOnboardingPath,
-  }), [user, loading, login, logout, refreshUser, isOnboardingCompleted, getOnboardingPath]);
+    isProviderPage, // Exposer pour permettre aux composants de savoir le contexte
+  }), [user, loading, login, logout, refreshUser, isOnboardingCompleted, getOnboardingPath, isProviderPage]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

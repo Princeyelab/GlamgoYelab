@@ -82,8 +82,20 @@ const nextConfig = {
   // Compression
   compress: true,
 
-  // Mode standalone pour le déploiement
+  // Mode standalone pour le déploiement Fly.io
   output: 'standalone',
+
+  // Rewrites pour rediriger les images vers le backend
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const backendUrl = apiUrl.replace('/api', '');
+    return [
+      {
+        source: '/images/:path*',
+        destination: backendUrl + '/images/:path*',
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig
