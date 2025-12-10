@@ -98,7 +98,7 @@ export default function HomeContent({ categories, services }) {
           )}
 
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <Link prefetch={false} href="/services">
+            <Link href="/services">
               <Button variant="outline">{t('home.viewAllCategories')}</Button>
             </Link>
           </div>
@@ -148,7 +148,7 @@ export default function HomeContent({ categories, services }) {
           )}
 
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <Link prefetch={false} href="/services">
+            <Link href="/services">
               <Button variant="primary" size="large">
                 {t('home.viewAllServices')}
               </Button>
@@ -162,7 +162,7 @@ export default function HomeContent({ categories, services }) {
           <div className={styles.cta}>
             <h2>{t('home.readyToStart')}</h2>
             <p>{t('home.signUpNow')}</p>
-            <Link prefetch={false} href="/register">
+            <Link href="/register">
               <Button variant="outline" size="large">
                 {t('home.createAccount')}
               </Button>

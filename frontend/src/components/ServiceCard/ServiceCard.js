@@ -68,7 +68,7 @@ export default function ServiceCard({ service }) {
   const imageUrl = getServiceImageUrl(service, '400x300');
 
   return (
-    <Link prefetch={false} href={`/services/${id}`} className={styles.serviceCard} prefetch={true}>
+    <Link href={`/services/${id}`} className={styles.serviceCard} prefetch={true}>
       <div className={styles.imageContainer}>
         {imageError ? (
           <div className={styles.imagePlaceholder}>

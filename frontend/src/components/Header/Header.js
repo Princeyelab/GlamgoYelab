@@ -73,7 +73,7 @@ export default function Header() {
     <>
       <header className={styles.header}>
         <div className={styles.headerContainer}>
-          <Link prefetch={false} href="/" className={styles.logo}>
+          <Link href="/" className={styles.logo}>
             <img src="/logo2.jpg" alt="GlamGo" className={styles.logoImage} />
             <span className={styles.logoText}>GlamGo</span>
           </Link>
@@ -148,7 +148,7 @@ export default function Header() {
               <>
                 {/* Icônes messages et notifications - visibles sur tablette et desktop */}
                 <div className={styles.tabletActions}>
-                  <Link prefetch={false} href="/orders" className={styles.messagesIcon} title="Messages">
+                  <Link href="/orders" className={styles.messagesIcon} title="Messages">
                     <FaComments />
                     <UnreadBadge />
                   </Link>
@@ -167,17 +167,17 @@ export default function Header() {
 
                 {userMenuOpen && (
                   <div className={styles.userDropdown}>
-                    <Link prefetch={false} href="/profile" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                    <Link href="/profile" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
                       {t('nav.profile')}
                     </Link>
-                    <Link prefetch={false} href="/orders" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                    <Link href="/orders" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
                       {t('nav.bookings')}
                     </Link>
-                    <Link prefetch={false} href="/addresses" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                    <Link href="/addresses" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
                       {t('nav.addresses')}
                     </Link>
                     {user.is_provider && (
-                      <Link prefetch={false} href="/provider/dashboard" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                      <Link href="/provider/dashboard" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
                         {t('nav.providerSpace')}
                       </Link>
                     )}
@@ -191,15 +191,15 @@ export default function Header() {
               </>
             ) : (
               <div className={styles.desktopOnly}>
-                <Link prefetch={false} href="/provider/register" className={styles.providerLink}>
+                <Link href="/provider/register" className={styles.providerLink}>
                   {t('nav.becomeProvider')}
                 </Link>
-                <Link prefetch={false} href="/login">
+                <Link href="/login">
                   <Button variant="outline" size="small">
                     {t('nav.login')}
                   </Button>
                 </Link>
-                <Link prefetch={false} href="/register">
+                <Link href="/register">
                   <Button variant="primary" size="small">
                     {t('nav.register')}
                   </Button>
@@ -285,14 +285,14 @@ export default function Header() {
                     <FaUserCircle className={styles.mobileUserIcon} />
                     <span>{user.first_name} {user.last_name}</span>
                   </div>
-                  <Link prefetch={false} href="/profile" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/profile" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
                     {t('nav.profile')}
                   </Link>
-                  <Link prefetch={false} href="/addresses" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/addresses" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
                     {t('nav.addresses')}
                   </Link>
                   {user.is_provider && (
-                    <Link prefetch={false} href="/provider/dashboard" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/provider/dashboard" className={styles.mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
                       {t('nav.providerSpace')}
                     </Link>
                   )}
@@ -338,7 +338,7 @@ export default function Header() {
               <strong>{t('nav.completeProfile')}</strong>
               <p>{t('nav.completeProfileDesc')}</p>
             </div>
-            <Link prefetch={false} href={getOnboardingPath()} className={styles.onboardingAlertButton}>
+            <Link href={getOnboardingPath()} className={styles.onboardingAlertButton}>
               {t('nav.completeNow')}
             </Link>
           </div>
