@@ -26,10 +26,10 @@ export default function ServiceDetailPage() {
         if (response.success) {
           setService(response.data);
         } else {
-          setError('Service non trouvé');
+          setError(t('serviceDetail.notFound'));
         }
       } catch (err) {
-        setError(err.message || 'Erreur lors du chargement');
+        setError(err.message || t('message.error'));
       } finally {
         setLoading(false);
       }
@@ -38,7 +38,7 @@ export default function ServiceDetailPage() {
     if (params.id) {
       fetchService();
     }
-  }, [params.id]);
+  }, [params.id, t]);
 
   // Traduction DeepL du contenu dynamique
   const { translated } = useTranslatedTexts({

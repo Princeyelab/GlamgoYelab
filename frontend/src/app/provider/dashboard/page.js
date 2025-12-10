@@ -76,6 +76,7 @@ export default function ProviderDashboardPage() {
     }
 
     if (!token) {
+      console.log('🔒 [Dashboard] Pas de token, redirection vers login');
       router.push('/provider/login');
       return;
     }
@@ -83,10 +84,12 @@ export default function ProviderDashboardPage() {
     // Set the token for API calls - isProvider=true pour prestataire
     // Utiliser isFromLocalStorage pour remember
     apiClient.setToken(token, isFromLocalStorage, true);
+    console.log('🔑 [Dashboard] Token chargé, appel API profile...');
 
     try {
       const response = await apiClient.getProviderProfile();
       if (response.success) {
+        console.log('✅ [Dashboard] Profil chargé avec succès');
         setProvider(response.data);
         fetchOrders();
 
@@ -98,11 +101,21 @@ export default function ProviderDashboardPage() {
           fetchOrders(true); // silent = true pour éviter le clignotement
         }, 5000);
       } else {
+        console.warn('⚠️ [Dashboard] Réponse API sans success, redirection');
         router.push('/provider/login');
       }
     } catch (err) {
-      console.error('Auth error:', err);
-      router.push('/provider/login');
+      console.error('❌ [Dashboard] Auth error:', err);
+      // Ne rediriger que si c'est une vraie erreur d'authentification (401)
+      if (err.isAuthError || err.status === 401) {
+        console.log('🔒 [Dashboard] Token expiré, nettoyage et redirection');
+        localStorage.removeItem('provider_token');
+        sessionStorage.removeItem('provider_token');
+        router.push('/provider/login');
+      } else {
+        // Erreur réseau ou autre - afficher l'erreur mais ne pas déconnecter
+        setError(t('providerDashboard.connectionError') || 'Erreur de connexion au serveur. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }

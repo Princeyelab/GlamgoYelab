@@ -1,0 +1,382 @@
+/**
+ * RTL (Right-to-Left) Styles for Arabic Language Support
+ * GlamGo - Morocco & Maghreb Region
+ *
+ * Ce fichier contient tous les styles spécifiques pour le support RTL
+ * Utilise des propriétés CSS logiques quand c'est possible pour une meilleure compatibilité
+ */
+
+/* ==================== BASE RTL SETUP ==================== */
+
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* ==================== TYPOGRAPHIE ==================== */
+
+/* Font Noto Sans Arabic pour un meilleur rendu de l'arabe */
+[dir="rtl"] body,
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] button,
+[dir="rtl"] select {
+  font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Amélioration de la lisibilité pour l'arabe */
+[dir="rtl"] {
+  line-height: 1.8;
+  letter-spacing: 0;
+}
+
+/* ==================== MARGES ET PADDING ==================== */
+
+/* Helper classes pour les marges logiques */
+.m-inline-start {
+  margin-inline-start: 1rem;
+}
+
+.m-inline-end {
+  margin-inline-end: 1rem;
+}
+
+.p-inline-start {
+  padding-inline-start: 1rem;
+}
+
+.p-inline-end {
+  padding-inline-end: 1rem;
+}
+
+/* ==================== FLEXBOX ==================== */
+
+/* Inversion automatique des flex containers */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .items-start {
+  align-items: flex-end;
+}
+
+[dir="rtl"] .items-end {
+  align-items: flex-start;
+}
+
+/* ==================== ICÔNES DIRECTIONNELLES ==================== */
+
+/* Flip les icônes directionnelles (flèches, chevrons) */
+[dir="rtl"] .icon-arrow,
+[dir="rtl"] .icon-chevron,
+[dir="rtl"] .arrow-icon,
+[dir="rtl"] [class*="arrow"],
+[dir="rtl"] [class*="chevron"] {
+  transform: scaleX(-1);
+}
+
+/* Ne pas flipper les icônes qui ne sont pas directionnelles */
+[dir="rtl"] .icon-search,
+[dir="rtl"] .icon-user,
+[dir="rtl"] .icon-heart,
+[dir="rtl"] .icon-star,
+[dir="rtl"] .icon-phone,
+[dir="rtl"] .icon-email {
+  transform: none;
+}
+
+/* ==================== FORMULAIRES ==================== */
+
+/* Inputs et labels */
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+[dir="rtl"] label {
+  text-align: right;
+}
+
+/* Placeholders */
+[dir="rtl"] ::placeholder {
+  text-align: right;
+}
+
+/* Checkboxes et radios */
+[dir="rtl"] input[type="checkbox"],
+[dir="rtl"] input[type="radio"] {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Boutons de formulaire */
+[dir="rtl"] .form-actions {
+  flex-direction: row-reverse;
+}
+
+/* ==================== NAVIGATION ==================== */
+
+/* Menu de navigation */
+[dir="rtl"] nav ul {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] nav li {
+  margin-left: 1rem;
+  margin-right: 0;
+}
+
+/* Breadcrumbs */
+[dir="rtl"] .breadcrumb {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .breadcrumb-separator {
+  transform: scaleX(-1);
+}
+
+/* ==================== CARTES ET LISTES ==================== */
+
+/* Cards */
+[dir="rtl"] .card {
+  text-align: right;
+}
+
+[dir="rtl"] .card-header,
+[dir="rtl"] .card-body,
+[dir="rtl"] .card-footer {
+  text-align: right;
+}
+
+/* Listes */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-right: 2rem;
+  padding-left: 0;
+}
+
+/* ==================== MODALES ET DIALOGS ==================== */
+
+/* Bouton de fermeture */
+[dir="rtl"] .modal-close,
+[dir="rtl"] .dialog-close {
+  left: 1rem;
+  right: auto;
+}
+
+/* Actions de la modale */
+[dir="rtl"] .modal-actions,
+[dir="rtl"] .dialog-actions {
+  flex-direction: row-reverse;
+}
+
+/* ==================== TABLEAUX ==================== */
+
+/* Alignement des colonnes */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+/* Colonnes numériques (garder LTR) */
+[dir="rtl"] .numeric-column {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ==================== POSITIONNEMENT ==================== */
+
+/* Float inversé */
+[dir="rtl"] .float-left {
+  float: right;
+}
+
+[dir="rtl"] .float-right {
+  float: left;
+}
+
+/* Text alignment */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* ==================== BORDURES ==================== */
+
+/* Border radius */
+[dir="rtl"] .rounded-l {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+[dir="rtl"] .rounded-r {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+/* ==================== SHADOWS ==================== */
+
+/* Box shadows inversés */
+[dir="rtl"] .shadow-left {
+  box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+[dir="rtl"] .shadow-right {
+  box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== ANIMATIONS ET TRANSITIONS ==================== */
+
+/* Slides inversés */
+[dir="rtl"] .slide-in-left {
+  animation-name: slideInRight;
+}
+
+[dir="rtl"] .slide-in-right {
+  animation-name: slideInLeft;
+}
+
+/* ==================== COMPOSANTS SPÉCIFIQUES GLAMGO ==================== */
+
+/* Header */
+[dir="rtl"] .header-nav {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .header-logo {
+  margin-right: 0;
+  margin-left: 2rem;
+}
+
+/* Service Cards */
+[dir="rtl"] .service-card {
+  text-align: right;
+}
+
+[dir="rtl"] .service-card-image {
+  margin-left: 1rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .service-card-price {
+  text-align: right;
+}
+
+/* Provider Cards */
+[dir="rtl"] .provider-card {
+  text-align: right;
+}
+
+[dir="rtl"] .provider-avatar {
+  margin-left: 1rem;
+  margin-right: 0;
+}
+
+/* Booking Steps */
+[dir="rtl"] .booking-steps {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .step-connector {
+  transform: scaleX(-1);
+}
+
+/* Reviews/Ratings */
+[dir="rtl"] .review-stars {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .review-author {
+  text-align: right;
+}
+
+/* Chat/Messages */
+[dir="rtl"] .message-sent {
+  margin-left: auto;
+  margin-right: 0;
+  border-radius: 1rem 1rem 0 1rem;
+}
+
+[dir="rtl"] .message-received {
+  margin-right: auto;
+  margin-left: 0;
+  border-radius: 1rem 1rem 1rem 0;
+}
+
+/* ==================== UTILITAIRES ==================== */
+
+/* Classes pour forcer LTR (pour les numéros de téléphone, emails, etc.) */
+.ltr-content {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Classes pour forcer RTL */
+.rtl-content {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* ==================== RESPONSIVE RTL ==================== */
+
+/* Ajustements mobile */
+@media (max-width: 768px) {
+  [dir="rtl"] .mobile-nav {
+    flex-direction: column;
+  }
+
+  [dir="rtl"] .mobile-menu-button {
+    left: 1rem;
+    right: auto;
+  }
+}
+
+/* ==================== FIXES POUR SAFARI ==================== */
+
+/* Safari a parfois des problèmes avec les propriétés logiques */
+@supports not (margin-inline-start: 0) {
+  [dir="rtl"] .m-inline-start {
+    margin-right: 1rem;
+  }
+
+  [dir="rtl"] .m-inline-end {
+    margin-left: 1rem;
+  }
+
+  [dir="rtl"] .p-inline-start {
+    padding-right: 1rem;
+  }
+
+  [dir="rtl"] .p-inline-end {
+    padding-left: 1rem;
+  }
+}
+
+/* ==================== PRINT RTL ==================== */
+
+@media print {
+  [dir="rtl"] {
+    direction: rtl;
+  }
+
+  [dir="rtl"] body {
+    text-align: right;
+  }
+}

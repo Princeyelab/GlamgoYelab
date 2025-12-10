@@ -88,29 +88,21 @@ export default function ProviderProfilePage() {
     }
 
     if (!token) {
+      console.log('🔒 [Profile] Pas de token, redirection vers login');
       router.push('/provider/login');
       return;
     }
 
     apiClient.setToken(token, isFromLocalStorage, true);
+    console.log('🔑 [Profile] Token chargé, appel API profile...');
 
     try {
       const response = await apiClient.getProviderProfile();
       if (response.success) {
-        console.log('🔍 [PROFILE PAGE] Raw backend data:', response.data);
-        console.log('🔍 [PROFILE PAGE] Backend fields:', Object.keys(response.data));
+        console.log('✅ [Profile] Profil chargé avec succès');
 
         // Fusionner avec les données locales
         const completeData = mergeProviderData(response.data);
-
-        console.log('✅ [PROFILE PAGE] Complete merged data:', completeData);
-        console.log('✅ [PROFILE PAGE] All fields:', Object.keys(completeData));
-        console.log('📍 [PROFILE PAGE] Coordonnées GPS:', {
-          latitude: completeData.latitude,
-          longitude: completeData.longitude,
-          address: completeData.address,
-          city: completeData.city
-        });
 
         setProvider(completeData);
         // Remplir le formulaire avec les données complètes
@@ -144,11 +136,21 @@ export default function ProviderProfilePage() {
           availability_schedule: availabilityData || DEFAULT_AVAILABILITY
         });
       } else {
+        console.warn('⚠️ [Profile] Réponse API sans success, redirection');
         router.push('/provider/login');
       }
     } catch (err) {
-      console.error('Auth error:', err);
-      router.push('/provider/login');
+      console.error('❌ [Profile] Auth error:', err);
+      // Ne rediriger que si c'est une vraie erreur d'authentification (401)
+      if (err.isAuthError || err.status === 401) {
+        console.log('🔒 [Profile] Token expiré, nettoyage et redirection');
+        localStorage.removeItem('provider_token');
+        sessionStorage.removeItem('provider_token');
+        router.push('/provider/login');
+      } else {
+        // Erreur réseau ou autre - afficher l'erreur mais ne pas déconnecter
+        setError(t('providerProfile.connectionError') || 'Erreur de connexion au serveur. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }

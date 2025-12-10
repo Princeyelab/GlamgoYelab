@@ -382,11 +382,11 @@ export default function ProviderRegisterPage() {
           });
           setErrors(backendErrors);
         }
-        setServerError(response.error || response.message || "Une erreur s'est produite");
+        setServerError(response.error || response.message || t('message.genericError'));
       }
     } catch (error) {
       console.error('Provider registration error:', error);
-      setServerError(error.message || "Une erreur s'est produite lors de l'inscription");
+      setServerError(error.message || t('message.genericError'));
     } finally {
       setLoading(false);
     }

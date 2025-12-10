@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderBiddingPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   useEffect(() => {
     // Le système d'enchères est désactivé - rediriger vers le dashboard
@@ -18,12 +20,13 @@ export default function ProviderBiddingPage() {
       justifyContent: 'center',
       minHeight: '100vh',
       padding: '20px',
-      textAlign: 'center'
+      textAlign: 'center',
+      direction: isRTL ? 'rtl' : 'ltr'
     }}>
       <div>
-        <h1>🚫 Fonctionnalité désactivée</h1>
-        <p>Le système d'enchères n'est plus disponible.</p>
-        <p>Redirection vers le dashboard...</p>
+        <h1>{t('providerBidding.disabled')}</h1>
+        <p>{t('providerBidding.notAvailable')}</p>
+        <p>{t('providerBidding.redirecting')}</p>
       </div>
     </div>
   );

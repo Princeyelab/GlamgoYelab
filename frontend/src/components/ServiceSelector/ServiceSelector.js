@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import './ServiceSelector.scss';
 
 /**
@@ -17,11 +18,49 @@ export default function ServiceSelector({
   onSelectionChange,
   multiSelect = true
 }) {
+  const { language, t, translateDynamicBatch } = useLanguage();
   const [selected, setSelected] = useState(selectedServices);
+  const [translatedServices, setTranslatedServices] = useState([]);
 
   useEffect(() => {
     setSelected(selectedServices);
   }, [selectedServices]);
+
+  // Traduire les noms et descriptions des services en arabe
+  useEffect(() => {
+    const translateServices = async () => {
+      if (language !== 'ar' || services.length === 0) {
+        setTranslatedServices(services);
+        return;
+      }
+
+      try {
+        // Collecter tous les textes à traduire
+        const textsToTranslate = [];
+        services.forEach(service => {
+          textsToTranslate.push(service.name || '');
+          textsToTranslate.push(service.description || '');
+        });
+
+        // Traduire en batch
+        const translations = await translateDynamicBatch(textsToTranslate);
+
+        // Reconstruire les services avec les traductions
+        const translated = services.map((service, index) => ({
+          ...service,
+          translatedName: translations[index * 2] || service.name,
+          translatedDescription: translations[index * 2 + 1] || service.description
+        }));
+
+        setTranslatedServices(translated);
+      } catch (error) {
+        console.error('Erreur traduction services:', error);
+        setTranslatedServices(services);
+      }
+    };
+
+    translateServices();
+  }, [language, services, translateDynamicBatch]);
 
   const handleToggle = (serviceId) => {
     let newSelection;
@@ -44,18 +83,45 @@ export default function ServiceSelector({
     }
   };
 
+  // Utiliser les services traduits ou originaux
+  const displayServices = translatedServices.length > 0 ? translatedServices : services;
+
   if (services.length === 0) {
     return (
       <div className="service-selector-empty">
-        Aucun service disponible
+        {t('serviceSelector.noServices') || (language === 'ar' ? 'لا توجد خدمات متاحة' : 'Aucun service disponible')}
       </div>
     );
   }
 
+  const getServiceName = (service) => {
+    if (language === 'ar' && service.translatedName) {
+      return service.translatedName;
+    }
+    return service.name;
+  };
+
+  const getServiceDescription = (service) => {
+    if (language === 'ar' && service.translatedDescription) {
+      return service.translatedDescription;
+    }
+    return service.description;
+  };
+
+  const getSelectionText = () => {
+    if (language === 'ar') {
+      if (selected.length === 1) {
+        return 'خدمة واحدة مختارة';
+      }
+      return `${selected.length} خدمات مختارة`;
+    }
+    return `${selected.length} service${selected.length > 1 ? 's' : ''} sélectionné${selected.length > 1 ? 's' : ''}`;
+  };
+
   return (
-    <div className="service-selector">
+    <div className="service-selector" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="services-grid">
-        {services.map(service => (
+        {displayServices.map(service => (
           <div
             key={service.id}
             className={`service-card ${selected.includes(service.id) ? 'selected' : ''}`}
@@ -64,9 +130,9 @@ export default function ServiceSelector({
             <div className="service-icon">
               {service.icon || '✨'}
             </div>
-            <div className="service-name">{service.name}</div>
+            <div className="service-name">{getServiceName(service)}</div>
             {service.description && (
-              <div className="service-description">{service.description}</div>
+              <div className="service-description">{getServiceDescription(service)}</div>
             )}
             {selected.includes(service.id) && (
               <div className="check-icon"></div>
@@ -77,7 +143,7 @@ export default function ServiceSelector({
 
       {selected.length > 0 && (
         <div className="selection-summary">
-          {selected.length} service{selected.length > 1 ? 's' : ''} selectionne{selected.length > 1 ? 's' : ''}
+          {getSelectionText()}
         </div>
       )}
     </div>

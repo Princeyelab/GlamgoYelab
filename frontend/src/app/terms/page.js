@@ -1,96 +1,77 @@
 'use client';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 import './terms.scss';
 
 export default function TermsPage() {
+  const { t, language } = useLanguage();
+
   return (
-    <div className="terms-page">
+    <div className="terms-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="terms-container">
-        <Link href="/" className="back-link">← Retour</Link>
+        <Link href="/" className="back-link">← {t('terms.backLink')}</Link>
 
-        <h1>Conditions Generales d'Utilisation</h1>
-        <p className="last-update">Derniere mise a jour : Novembre 2024</p>
+        <h1>{t('terms.title')}</h1>
+        <p className="last-update">{t('terms.lastUpdate')}</p>
 
         <section>
-          <h2>1. Objet</h2>
-          <p>
-            Les presentes Conditions Generales d'Utilisation (CGU) regissent l'utilisation
-            de la plateforme GlamGo, service de mise en relation entre clients et prestataires
-            de services a domicile au Maroc.
-          </p>
+          <h2>{t('terms.section1Title')}</h2>
+          <p>{t('terms.section1Content')}</p>
         </section>
 
         <section>
-          <h2>2. Inscription et Compte</h2>
-          <p>
-            Pour utiliser nos services, vous devez creer un compte en fournissant des
-            informations exactes et a jour. Vous etes responsable de la confidentialite
-            de vos identifiants de connexion.
-          </p>
+          <h2>{t('terms.section2Title')}</h2>
+          <p>{t('terms.section2Content')}</p>
           <ul>
-            <li>Vous devez avoir au moins 18 ans pour vous inscrire</li>
-            <li>Un seul compte par personne est autorise</li>
-            <li>Les informations fournies doivent etre veridiques</li>
+            <li>{t('terms.section2Item1')}</li>
+            <li>{t('terms.section2Item2')}</li>
+            <li>{t('terms.section2Item3')}</li>
           </ul>
         </section>
 
         <section>
-          <h2>3. Services Proposes</h2>
-          <p>
-            GlamGo propose une plateforme de mise en relation pour des services de beaute
-            et bien-etre a domicile, incluant notamment :
-          </p>
+          <h2>{t('terms.section3Title')}</h2>
+          <p>{t('terms.section3Content')}</p>
           <ul>
-            <li>Coiffure</li>
-            <li>Soins esthetiques</li>
-            <li>Manucure et pedicure</li>
-            <li>Massage et bien-etre</li>
-            <li>Maquillage</li>
+            <li>{t('terms.section3Item1')}</li>
+            <li>{t('terms.section3Item2')}</li>
+            <li>{t('terms.section3Item3')}</li>
+            <li>{t('terms.section3Item4')}</li>
+            <li>{t('terms.section3Item5')}</li>
           </ul>
         </section>
 
         <section>
-          <h2>4. Tarification et Paiement</h2>
-          <p>
-            Les prix des services sont affiches sur la plateforme. Le paiement peut etre
-            effectue par carte bancaire ou en especes selon les options disponibles.
-          </p>
+          <h2>{t('terms.section4Title')}</h2>
+          <p>{t('terms.section4Content')}</p>
         </section>
 
         <section>
-          <h2>5. Annulation et Remboursement</h2>
-          <p>
-            Les conditions d'annulation varient selon le type de reservation :
-          </p>
+          <h2>{t('terms.section5Title')}</h2>
+          <p>{t('terms.section5Content')}</p>
           <ul>
-            <li>Annulation gratuite jusqu'a 24h avant le rendez-vous</li>
-            <li>Frais d'annulation de 50% entre 24h et 2h avant</li>
-            <li>Aucun remboursement pour annulation moins de 2h avant</li>
+            <li>{t('terms.section5Item1')}</li>
+            <li>{t('terms.section5Item2')}</li>
+            <li>{t('terms.section5Item3')}</li>
           </ul>
         </section>
 
         <section>
-          <h2>6. Responsabilites</h2>
-          <p>
-            GlamGo agit en tant qu'intermediaire et n'est pas responsable de la qualite
-            des prestations effectuees par les prestataires independants.
-          </p>
+          <h2>{t('terms.section6Title')}</h2>
+          <p>{t('terms.section6Content')}</p>
         </section>
 
         <section>
-          <h2>7. Protection des Donnees</h2>
-          <p>
-            Vos donnees personnelles sont traitees conformement a notre Politique de
-            Confidentialite et aux lois marocaines en vigueur sur la protection des donnees.
-          </p>
+          <h2>{t('terms.section7Title')}</h2>
+          <p>{t('terms.section7Content')}</p>
         </section>
 
         <section>
-          <h2>8. Contact</h2>
+          <h2>{t('terms.section8Title')}</h2>
           <p>
-            Pour toute question concernant ces CGU, vous pouvez nous contacter a :
+            {t('terms.section8Content')}
             <br />
-            Email : contact@glamgo.ma
+            {t('terms.section8Email')}
           </p>
         </section>
       </div>

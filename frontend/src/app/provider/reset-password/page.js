@@ -6,8 +6,10 @@ import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderResetPasswordPage() {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -25,9 +27,9 @@ export default function ProviderResetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      setServerError('Token de réinitialisation manquant. Veuillez utiliser le lien envoyé par email.');
+      setServerError(t('resetPassword.tokenMissing'));
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,15 +43,15 @@ export default function ProviderResetPasswordPage() {
     const newErrors = {};
 
     if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t('resetPassword.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+      newErrors.password = t('resetPassword.passwordTooShort');
     }
 
     if (!formData.password_confirmation) {
-      newErrors.password_confirmation = 'Veuillez confirmer votre mot de passe';
+      newErrors.password_confirmation = t('resetPassword.confirmPasswordRequired');
     } else if (formData.password !== formData.password_confirmation) {
-      newErrors.password_confirmation = 'Les mots de passe ne correspondent pas';
+      newErrors.password_confirmation = t('resetPassword.passwordMismatch');
     }
 
     setErrors(newErrors);
@@ -61,7 +63,7 @@ export default function ProviderResetPasswordPage() {
     setServerError('');
 
     if (!token) {
-      setServerError('Token de réinitialisation manquant');
+      setServerError(t('resetPassword.tokenMissing'));
       return;
     }
 
@@ -84,10 +86,10 @@ export default function ProviderResetPasswordPage() {
           router.push('/provider/login');
         }, 3000);
       } else {
-        setServerError(response.message || "Une erreur s'est produite");
+        setServerError(response.message || t('message.genericError'));
       }
     } catch (error) {
-      setServerError(error.message || "Une erreur s'est produite lors de la réinitialisation");
+      setServerError(error.message || t('message.genericError'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +98,7 @@ export default function ProviderResetPasswordPage() {
   if (success) {
     return (
       <div className={styles.resetPasswordPage}>
-        <div className={styles.container}>
+        <div className={styles.container} dir={isRTL ? 'rtl' : 'ltr'}>
           <div className={styles.formCard}>
             <div className={styles.successIcon}>
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -104,12 +106,12 @@ export default function ProviderResetPasswordPage() {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h1 className={styles.title}>Mot de passe réinitialisé !</h1>
+            <h1 className={styles.title}>{t('resetPassword.successTitle')}</h1>
             <p className={styles.message}>
-              Votre mot de passe a été modifié avec succès. Vous allez être redirigé vers la page de connexion...
+              {t('resetPassword.successMessage')}
             </p>
             <Link href="/provider/login" className={styles.backLink}>
-              Se connecter maintenant
+              {t('resetPassword.loginNow')}
             </Link>
           </div>
         </div>
@@ -119,11 +121,11 @@ export default function ProviderResetPasswordPage() {
 
   return (
     <div className={styles.resetPasswordPage}>
-      <div className={styles.container}>
+      <div className={styles.container} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={styles.formCard}>
-          <h1 className={styles.title}>Nouveau mot de passe</h1>
+          <h1 className={styles.title}>{t('resetPassword.title')}</h1>
           <p className={styles.subtitle}>
-            Choisissez un nouveau mot de passe sécurisé pour votre compte.
+            {t('resetPassword.subtitle')}
           </p>
 
           {serverError && (
@@ -135,7 +137,7 @@ export default function ProviderResetPasswordPage() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
               <label htmlFor="password" className={styles.label}>
-                Nouveau mot de passe <span className={styles.required}>*</span>
+                {t('resetPassword.newPasswordLabel')} <span className={styles.required}>*</span>
               </label>
               <div className={styles.passwordWrapper}>
                 <input
@@ -145,14 +147,14 @@ export default function ProviderResetPasswordPage() {
                   value={formData.password}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-                  placeholder="Minimum 6 caractères"
+                  placeholder={t('resetPassword.passwordPlaceholder')}
                   disabled={!token}
                 />
                 <button
                   type="button"
                   className={styles.passwordToggle}
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-label={showPassword ? t('resetPassword.hidePassword') : t('resetPassword.showPassword')}
                 >
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -174,7 +176,7 @@ export default function ProviderResetPasswordPage() {
 
             <div className={styles.formGroup}>
               <label htmlFor="password_confirmation" className={styles.label}>
-                Confirmer le mot de passe <span className={styles.required}>*</span>
+                {t('resetPassword.confirmPasswordLabel')} <span className={styles.required}>*</span>
               </label>
               <div className={styles.passwordWrapper}>
                 <input
@@ -184,14 +186,14 @@ export default function ProviderResetPasswordPage() {
                   value={formData.password_confirmation}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.password_confirmation ? styles.inputError : ''}`}
-                  placeholder="Retapez votre mot de passe"
+                  placeholder={t('resetPassword.confirmPasswordPlaceholder')}
                   disabled={!token}
                 />
                 <button
                   type="button"
                   className={styles.passwordToggle}
                   onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
-                  aria-label={showPasswordConfirmation ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-label={showPasswordConfirmation ? t('resetPassword.hidePassword') : t('resetPassword.showPassword')}
                 >
                   {showPasswordConfirmation ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -219,13 +221,13 @@ export default function ProviderResetPasswordPage() {
               loading={loading}
               disabled={loading || !token}
             >
-              {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
+              {loading ? t('resetPassword.resettingButton') : t('resetPassword.resetButton')}
             </Button>
           </form>
 
           <div className={styles.footer}>
             <Link href="/provider/login" className={styles.link}>
-              Retour à la connexion
+              {t('resetPassword.backToLogin')}
             </Link>
           </div>
         </div>

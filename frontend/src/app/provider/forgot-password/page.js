@@ -5,8 +5,10 @@ import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderForgotPasswordPage() {
+  const { t, isRTL } = useLanguage();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,12 +23,12 @@ export default function ProviderForgotPasswordPage() {
     setError('');
 
     if (!email.trim()) {
-      setError("L'email est requis");
+      setError(t('forgotPassword.emailRequired'));
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("L'email n'est pas valide");
+      setError(t('forgotPassword.emailInvalid'));
       return;
     }
 
@@ -37,10 +39,10 @@ export default function ProviderForgotPasswordPage() {
       if (response.success) {
         setSuccess(true);
       } else {
-        setError(response.message || "Une erreur s'est produite");
+        setError(response.message || t('message.genericError'));
       }
     } catch (err) {
-      setError(err.message || "Une erreur s'est produite");
+      setError(err.message || t('message.genericError'));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function ProviderForgotPasswordPage() {
   if (success) {
     return (
       <div className={styles.forgotPasswordPage}>
-        <div className={styles.container}>
+        <div className={styles.container} dir={isRTL ? 'rtl' : 'ltr'}>
           <div className={styles.formCard}>
             <div className={styles.successIcon}>
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -57,15 +59,15 @@ export default function ProviderForgotPasswordPage() {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h1 className={styles.title}>Email envoyé !</h1>
+            <h1 className={styles.title}>{t('forgotPassword.successTitle')}</h1>
             <p className={styles.message}>
-              Si un compte existe avec l'adresse <strong>{email}</strong>, vous recevrez un email avec les instructions pour réinitialiser votre mot de passe.
+              {t('forgotPassword.successMessage', { email: email })}
             </p>
             <p className={styles.note}>
-              Pensez à vérifier votre dossier spam si vous ne recevez rien dans les prochaines minutes.
+              {t('forgotPassword.checkSpam')}
             </p>
             <Link href="/provider/login" className={styles.backLink}>
-              Retour à la connexion
+              {t('forgotPassword.backToLogin')}
             </Link>
           </div>
         </div>
@@ -75,11 +77,11 @@ export default function ProviderForgotPasswordPage() {
 
   return (
     <div className={styles.forgotPasswordPage}>
-      <div className={styles.container}>
+      <div className={styles.container} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={styles.formCard}>
-          <h1 className={styles.title}>Mot de passe oublié</h1>
+          <h1 className={styles.title}>{t('forgotPassword.title')}</h1>
           <p className={styles.subtitle}>
-            Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+            {t('forgotPassword.subtitle')}
           </p>
 
           {error && (
@@ -91,7 +93,7 @@ export default function ProviderForgotPasswordPage() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
               <label htmlFor="email" className={styles.label}>
-                Email <span className={styles.required}>*</span>
+                {t('forgotPassword.emailLabel')} <span className={styles.required}>*</span>
               </label>
               <input
                 type="email"
@@ -99,7 +101,7 @@ export default function ProviderForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={styles.input}
-                placeholder="votre.email@exemple.com"
+                placeholder={t('forgotPassword.emailPlaceholder')}
                 autoComplete="email"
               />
             </div>
@@ -112,13 +114,13 @@ export default function ProviderForgotPasswordPage() {
               loading={loading}
               disabled={loading}
             >
-              {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
+              {loading ? t('forgotPassword.sendingButton') : t('forgotPassword.sendButton')}
             </Button>
           </form>
 
           <div className={styles.footer}>
             <Link href="/provider/login" className={styles.link}>
-              Retour à la connexion
+              {t('forgotPassword.backToLogin')}
             </Link>
           </div>
         </div>

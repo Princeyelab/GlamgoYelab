@@ -1,0 +1,257 @@
+/**
+ * Glassmorphism Utility Classes
+ * Ultra-Premium iOS/Apple Style Glass Effect
+ *
+ * Philosophy: Every surface "floats" with glass effect above a background
+ * Hierarchy: More important = stronger glass effect
+ */
+
+/* ============================================
+   GLASS EFFECT MIXINS
+   ============================================ */
+
+@mixin glass-base($blur, $opacity) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur); // Safari support
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+@mixin glass-shadow($strength: 'medium') {
+  @if $strength == 'light' {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  } @else if $strength == 'medium' {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  } @else if $strength == 'strong' {
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ============================================
+   GLASS UTILITY CLASSES
+   ============================================ */
+
+/* Light Glass - Subtle effect (blur 8px, 70% opacity) */
+.glass-light {
+  @include glass-base(8px, 0.7);
+  @include glass-shadow('light');
+}
+
+/* Medium Glass - Standard effect (blur 12px, 80% opacity) */
+.glass-medium {
+  @include glass-base(12px, 0.8);
+  @include glass-shadow('medium');
+}
+
+/* Strong Glass - Premium effect (blur 20px, 90% opacity) */
+.glass-strong {
+  @include glass-base(20px, 0.9);
+  @include glass-shadow('medium');
+}
+
+/* Extra Strong Glass - Maximum effect (blur 24px, 95% opacity) */
+.glass-extra-strong {
+  @include glass-base(24px, 0.95);
+  @include glass-shadow('strong');
+}
+
+/* ============================================
+   SPECIALIZED GLASS EFFECTS
+   ============================================ */
+
+/* Navigation Glass - For headers, navbars */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* Card Glass - For cards and containers */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* Dropdown Glass - For dropdown menus */
+.glass-dropdown {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+}
+
+/* Input Glass - For input fields */
+.glass-input {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+
+  &:focus {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* Badge Glass - For badges */
+.glass-badge {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Button Glass - Subtle for colored buttons */
+.glass-button {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+/* Button Glass Secondary - For outline/secondary buttons */
+.glass-button-secondary {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+/* ============================================
+   HOVER STATES
+   ============================================ */
+
+.glass-hover {
+  transition: all 0.3s ease;
+
+  &:hover {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+}
+
+.glass-card-hover {
+  transition: all 0.3s ease;
+
+  &:hover {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ============================================
+   DARK VARIANTS (for colored backgrounds)
+   ============================================ */
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.glass-dark-strong {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   PREMIUM BORDERS
+   ============================================ */
+
+.glass-border-light {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-border-medium {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-border-strong {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes glassAppear {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+.glass-appear {
+  animation: glassAppear 0.4s ease-out;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Reduce blur on mobile for performance */
+  .glass-strong,
+  .glass-extra-strong {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-dropdown {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+/* ============================================
+   RTL SUPPORT
+   ============================================ */
+
+[dir="rtl"] {
+  .glass-nav,
+  .glass-card,
+  .glass-dropdown,
+  .glass-input,
+  .glass-badge {
+    // Glass effects work the same in RTL
+    // No specific adjustments needed
+  }
+}

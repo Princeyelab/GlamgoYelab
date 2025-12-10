@@ -121,7 +121,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
               <label htmlFor='email' className={styles.label}>{t('form.email')} <span className={styles.required}>*</span></label>
-              <input type='email' id='email' name='email' value={formData.email} onChange={handleChange} className={`${styles.input} ${errors.email ? styles.inputError : ''}`} placeholder='votre.email@exemple.com' autoComplete='email' onFocus={handleEmailFocus} />
+              <input type='email' id='email' name='email' value={formData.email} onChange={handleChange} className={`${styles.input} ${errors.email ? styles.inputError : ''}`} placeholder={t('register.emailPlaceholder')} autoComplete='email' onFocus={handleEmailFocus} />
               {errors.email && <span className={styles.error}>{errors.email}</span>}
             </div>
             <div className={styles.formGroup}>

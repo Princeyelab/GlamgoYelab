@@ -180,6 +180,16 @@ class ApiClient {
           console.error('Validation error (422):', data);
           return data; // Retourner la réponse avec success: false et les erreurs
         }
+
+        // Pour les erreurs 401 (non authentifié), marquer avec un flag spécial
+        if (response.status === 401) {
+          console.warn('🔒 [API] Token invalide ou expiré pour:', endpoint);
+          const authError = new Error(data.message || 'Session expirée');
+          authError.isAuthError = true;
+          authError.status = 401;
+          throw authError;
+        }
+
         throw new Error(data.message || 'Une erreur est survenue');
       }
 

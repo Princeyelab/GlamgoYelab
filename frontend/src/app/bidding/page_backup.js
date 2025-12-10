@@ -266,9 +266,9 @@ export default function BiddingTestPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>🎯 {t('bidding.title')}</h1>
+        <h1>🎯 Test Système d'Enchères GlamGo</h1>
         <p className={styles.subtitle}>
-          {t('bidding.subtitle')}
+          Mode InDrive - Testez la création de commandes et d'offres
         </p>
       </div>
 
@@ -286,10 +286,10 @@ export default function BiddingTestPage() {
 
       {/* ÉTAPE 1: CRÉER COMMANDE BIDDING */}
       <div className={styles.section}>
-        <h2>📝 {t('bidding.step1Number')}: {t('bidding.step1Title')}</h2>
+        <h2>📝 Étape 1: Créer une Commande en Mode Enchères</h2>
         <form onSubmit={handleCreateBiddingOrder} className={styles.form}>
           <div className={styles.formGroup}>
-            <label>{t('bidding.service')}</label>
+            <label>Service</label>
             <select
               value={orderForm.service_id}
               onChange={(e) => {
@@ -300,7 +300,7 @@ export default function BiddingTestPage() {
               }}
               required
             >
-              <option value="">{t('bidding.selectService')}</option>
+              <option value="">Sélectionner un service</option>
               {services
                 .filter(s => s.allow_bidding)
                 .map(service => (
@@ -316,35 +316,35 @@ export default function BiddingTestPage() {
 
           {selectedService && (
             <div className={styles.serviceInfo}>
-              <p><strong>{t('bidding.priceRange')}:</strong> {selectedService.min_suggested_price} - {selectedService.max_suggested_price} MAD</p>
+              <p><strong>Fourchette de prix:</strong> {selectedService.min_suggested_price} - {selectedService.max_suggested_price} MAD</p>
             </div>
           )}
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.yourProposedPrice')} *</label>
+            <label>Votre Prix Proposé (MAD) *</label>
             <input
               type="number"
               step="0.01"
               value={orderForm.user_proposed_price}
               onChange={(e) => setOrderForm(prev => ({ ...prev, user_proposed_price: e.target.value }))}
-              placeholder={t('bidding.pricePlaceholder')}
+              placeholder="Ex: 100"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.address')} *</label>
+            <label>Adresse *</label>
             <input
               type="text"
               value={orderForm.address}
               onChange={(e) => setOrderForm(prev => ({ ...prev, address: e.target.value }))}
-              placeholder={t('bidding.addressPlaceholder')}
+              placeholder="Ex: 123 Avenue Mohammed V, Marrakech"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.serviceDateTime')} *</label>
+            <label>Date et heure du service *</label>
             <input
               type="datetime-local"
               value={orderForm.scheduled_at}
@@ -354,17 +354,17 @@ export default function BiddingTestPage() {
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.notes')}</label>
+            <label>Notes (optionnel)</label>
             <textarea
               value={orderForm.notes}
               onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
-              placeholder={t('bidding.notesPlaceholder')}
+              placeholder="Instructions particulières pour le prestataire..."
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.biddingDuration')}</label>
+            <label>Durée des enchères (heures)</label>
             <input
               type="number"
               value={orderForm.bid_expiry_hours}
@@ -373,35 +373,35 @@ export default function BiddingTestPage() {
           </div>
 
           <Button type="submit" disabled={loading}>
-            {loading ? t('bidding.creating') : `🎯 ${t('bidding.createBiddingOrder')}`}
+            {loading ? 'Création...' : '🎯 Créer Commande Enchères'}
           </Button>
         </form>
       </div>
 
       {/* ÉTAPE 2: MES COMMANDES */}
       <div className={styles.section}>
-        <h2>📋 {t('bidding.step2Title')}</h2>
+        <h2>📋 Mes Commandes en Mode Enchères</h2>
         <Button onClick={loadMyOrders} variant="secondary" disabled={loading}>
-          🔄 {t('bidding.reload')}
+          🔄 Recharger
         </Button>
 
         {orders.length === 0 ? (
-          <p className={styles.empty}>{t('bidding.noBiddingOrders')}</p>
+          <p className={styles.empty}>Aucune commande en mode enchères</p>
         ) : (
           <div className={styles.ordersList}>
             {orders.map(order => (
               <div key={order.id} className={styles.orderCard}>
                 <div className={styles.orderHeader}>
-                  <h3>{t('bidding.orderNumber')}{order.id}</h3>
+                  <h3>Commande #{order.id}</h3>
                   <span className={`${styles.badge} ${styles[order.status]}`}>
                     {order.status}
                   </span>
                 </div>
-                <p><strong>{t('bidding.service')}:</strong> {order.service_name}</p>
-                <p><strong>{t('bidding.proposedPrice')}:</strong> {order.user_proposed_price} MAD</p>
-                <p><strong>{t('bidding.address')}:</strong> {order.address_line}</p>
+                <p><strong>Service:</strong> {order.service_name}</p>
+                <p><strong>Prix proposé:</strong> {order.user_proposed_price} MAD</p>
+                <p><strong>Adresse:</strong> {order.address_line}</p>
                 {order.pricing_mode && (
-                  <p><strong>{t('bidding.mode')}:</strong> {order.pricing_mode}</p>
+                  <p><strong>Mode:</strong> {order.pricing_mode}</p>
                 )}
                 <Button
                   onClick={() => {
@@ -410,7 +410,7 @@ export default function BiddingTestPage() {
                   }}
                   size="small"
                 >
-                  👀 {t('bidding.viewOffers')}
+                  👀 Voir les offres
                 </Button>
               </div>
             ))}
@@ -420,37 +420,38 @@ export default function BiddingTestPage() {
 
       {/* ÉTAPE 3: CRÉER OFFRE (POUR PRESTATAIRES) */}
       <div className={styles.section}>
-        <h2>💰 {t('bidding.step3Title')}</h2>
+        <h2>💰 Créer une Offre (Mode Prestataire)</h2>
         <p className={styles.note}>
-          {t('bidding.providerNote')}
+          Note: Cette section est pour les prestataires.
+          Vous devez vous connecter avec un compte prestataire pour créer des offres.
         </p>
 
         <form onSubmit={handleCreateBid} className={styles.form}>
           <div className={styles.formGroup}>
-            <label>{t('bidding.orderId')} *</label>
+            <label>Order ID *</label>
             <input
               type="number"
               value={bidForm.order_id}
               onChange={(e) => setBidForm(prev => ({ ...prev, order_id: e.target.value }))}
-              placeholder={t('bidding.orderIdPlaceholder')}
+              placeholder="ID de la commande"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.yourPrice')} *</label>
+            <label>Votre Prix (MAD) *</label>
             <input
               type="number"
               step="0.01"
               value={bidForm.proposed_price}
               onChange={(e) => setBidForm(prev => ({ ...prev, proposed_price: e.target.value }))}
-              placeholder={t('bidding.yourPricePlaceholder')}
+              placeholder="Ex: 85"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.arrivalTime')}</label>
+            <label>Temps d'arrivée (minutes)</label>
             <input
               type="number"
               value={bidForm.estimated_arrival_minutes}
@@ -459,7 +460,7 @@ export default function BiddingTestPage() {
           </div>
 
           <div className={styles.formGroup}>
-            <label>{t('bidding.message')}</label>
+            <label>Message (optionnel)</label>
             <textarea
               value={bidForm.message}
               onChange={(e) => setBidForm(prev => ({ ...prev, message: e.target.value }))}
@@ -468,7 +469,7 @@ export default function BiddingTestPage() {
           </div>
 
           <Button type="submit" disabled={loading}>
-            {loading ? t('bidding.creating') : `💰 ${t('bidding.createOffer')}`}
+            {loading ? 'Création...' : '💰 Créer Offre'}
           </Button>
         </form>
       </div>
@@ -476,7 +477,7 @@ export default function BiddingTestPage() {
       {/* ÉTAPE 4: OFFRES REÇUES */}
       {bids.length > 0 && (
         <div className={styles.section}>
-          <h2>✨ {t('bidding.step4Title')}</h2>
+          <h2>✨ Offres Reçues</h2>
 
           <div className={styles.bidsList}>
             {bids.map(bid => (
@@ -492,11 +493,11 @@ export default function BiddingTestPage() {
                 </div>
 
                 <div className={styles.bidDetails}>
-                  <p><strong>{t('bidding.provider')}:</strong> {bid.first_name} {bid.last_name}</p>
-                  <p><strong>{t('bidding.phone')}:</strong> {bid.phone}</p>
-                  <p><strong>{t('bidding.eta')}:</strong> {bid.estimated_arrival_minutes} {t('bidding.minutes')}</p>
-                  {bid.rating && <p><strong>{t('bidding.rating')}:</strong> {bid.rating}/5 ⭐</p>}
-                  {bid.message && <p><strong>{t('bidding.message')}:</strong> {bid.message}</p>}
+                  <p><strong>Prestataire:</strong> {bid.first_name} {bid.last_name}</p>
+                  <p><strong>Téléphone:</strong> {bid.phone}</p>
+                  <p><strong>ETA:</strong> {bid.estimated_arrival_minutes} minutes</p>
+                  {bid.rating && <p><strong>Note:</strong> {bid.rating}/5 ⭐</p>}
+                  {bid.message && <p><strong>Message:</strong> {bid.message}</p>}
                 </div>
 
                 {bid.status === 'pending' && (
@@ -504,7 +505,7 @@ export default function BiddingTestPage() {
                     onClick={() => handleAcceptBid(bid.id)}
                     size="small"
                   >
-                    ✅ {t('bidding.acceptOffer')}
+                    ✅ Accepter cette offre
                   </Button>
                 )}
               </div>
@@ -515,13 +516,13 @@ export default function BiddingTestPage() {
 
       {/* INFORMATIONS */}
       <div className={styles.section + ' ' + styles.info}>
-        <h3>ℹ️ {t('bidding.howToTestTitle')}</h3>
+        <h3>ℹ️ Comment tester ?</h3>
         <ol>
-          <li>{t('bidding.howToTestStep1')}</li>
-          <li>{t('bidding.howToTestStep2')}</li>
-          <li>{t('bidding.howToTestStep3')}</li>
-          <li>{t('bidding.howToTestStep4')}</li>
-          <li>{t('bidding.howToTestStep5')}</li>
+          <li>Créez une commande en mode enchères (Étape 1)</li>
+          <li>Connectez-vous avec un compte prestataire dans un autre onglet</li>
+          <li>Le prestataire crée une offre (Étape 3)</li>
+          <li>Revenez à ce compte et consultez les offres (Étape 2)</li>
+          <li>Acceptez la meilleure offre (Étape 4)</li>
         </ol>
       </div>
     </div>

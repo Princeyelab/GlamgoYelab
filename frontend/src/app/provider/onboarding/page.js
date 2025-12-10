@@ -193,7 +193,7 @@ export default function ProviderOnboardingPage() {
                           <span className={styles.specialtyLabel}>
                             {specialty.label}
                             {requiresDiploma && (
-                              <span className={styles.diplomaBadge} title="Diplôme requis">
+                              <span className={styles.diplomaBadge} title={t('providerOnboarding.diplomaRequired')}>
                                 🎓
                               </span>
                             )}

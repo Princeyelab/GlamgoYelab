@@ -127,10 +127,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       if (response.success) {
         setService(response.data);
       } else {
-        setError('Service non trouvé');
+        setError(t('bookingPage.serviceNotFound'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors du chargement du service');
+      setError(err.message || t('bookingPage.serviceNotFound'));
     } finally {
       setLoading(false);
     }
@@ -196,7 +196,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
         time: !formData.time ? 'MANQUANT' : 'OK',
         address: !formData.address ? 'MANQUANT' : 'OK'
       });
-      setError('Veuillez remplir tous les champs obligatoires');
+      setError(t('bookingPage.fillAllFields'));
       return;
     }
 
@@ -222,10 +222,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
           router.push('/orders');
         }, 3000);
       } else {
-        setError(response.message || 'Erreur lors de la création de la commande');
+        setError(response.message || t('bookingPage.creationError'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la création de la commande');
+      setError(err.message || t('bookingPage.creationError'));
     } finally {
       setSubmitting(false);
     }

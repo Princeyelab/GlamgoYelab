@@ -267,11 +267,11 @@ export default function RegisterPage() {
           });
           setErrors(backendErrors);
         }
-        setServerError(response.error || response.message || "Une erreur s'est produite");
+        setServerError(response.error || response.message || t('message.genericError'));
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setServerError(error.message || "Une erreur s'est produite lors de l'inscription");
+      setServerError(error.message || t('message.genericError'));
     } finally {
       setLoading(false);
     }
@@ -426,7 +426,7 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                  placeholder="votre.email@exemple.com"
+                  placeholder={t('register.emailPlaceholder')}
                 />
                 {errors.email && <span className={styles.error}>{errors.email}</span>}
               </div>
@@ -442,7 +442,7 @@ export default function RegisterPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
-                  placeholder="0612345678"
+                  placeholder={t('register.phonePlaceholder')}
                 />
                 {errors.phone && <span className={styles.error}>{errors.phone}</span>}
               </div>

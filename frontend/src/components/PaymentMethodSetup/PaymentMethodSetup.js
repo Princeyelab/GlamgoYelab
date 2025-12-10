@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 import './PaymentMethodSetup.scss';
 
 /**
@@ -16,6 +17,7 @@ import './PaymentMethodSetup.scss';
  * @author Claude Code
  */
 export default function PaymentMethodSetup({ onSuccess, userType = 'client', skipable = false, demoMode = false, onSkip }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [cardData, setCardData] = useState({
     card_number: '',
@@ -46,7 +48,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
     // Numéro carte (Luhn algorithm)
     const cardNumber = cardData.card_number.replace(/\s/g, '');
     if (!/^\d{16}$/.test(cardNumber)) {
-      newErrors.card_number = 'Numéro de carte invalide (16 chiffres)';
+      newErrors.card_number = t('paymentSetup.cardNumberInvalid');
     }
 
     // Expiration
@@ -56,18 +58,18 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
     const currentMonth = new Date().getMonth() + 1;
 
     if (month < 1 || month > 12) {
-      newErrors.card_exp_month = 'Mois invalide';
+      newErrors.card_exp_month = t('paymentSetup.monthInvalid');
     }
     if (year < currentYear) {
-      newErrors.card_exp_year = 'Carte expirée';
+      newErrors.card_exp_year = t('paymentSetup.cardExpired');
     }
     if (year === currentYear && month < currentMonth) {
-      newErrors.card_exp_year = 'Carte expirée';
+      newErrors.card_exp_year = t('paymentSetup.cardExpired');
     }
 
     // CVV
     if (!/^\d{3}$/.test(cardData.card_cvv)) {
-      newErrors.card_cvv = 'CVV invalide (3 chiffres)';
+      newErrors.card_cvv = t('paymentSetup.cvvInvalid');
     }
 
     setErrors(newErrors);
@@ -80,11 +82,11 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
     // Format IBAN Maroc : MA + 24 chiffres
     const iban = bankData.iban.replace(/\s/g, '');
     if (!/^MA\d{24}$/.test(iban)) {
-      newErrors.iban = 'Format IBAN invalide (MA + 24 chiffres)';
+      newErrors.iban = t('paymentSetup.ibanInvalid');
     }
 
     if (!bankData.bank_name || bankData.bank_name.length < 3) {
-      newErrors.bank_name = 'Nom de banque requis';
+      newErrors.bank_name = t('paymentSetup.bankNameRequired');
     }
 
     setErrors(newErrors);
@@ -113,7 +115,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
       }
     } catch (error) {
       setErrors({
-        submit: error.message || 'Erreur validation carte'
+        submit: error.message || t('paymentSetup.cardValidationError')
       });
     } finally {
       setLoading(false);
@@ -137,7 +139,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
       }
     } catch (error) {
       setErrors({
-        submit: error.message || 'Erreur enregistrement IBAN'
+        submit: error.message || t('paymentSetup.ibanSaveError')
       });
     } finally {
       setLoading(false);
@@ -161,12 +163,11 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
         <div className="step-card">
           <div className="step-header">
             <span className="step-icon">💳</span>
-            <h3>Validation de votre carte bancaire</h3>
+            <h3>{t('paymentSetup.cardTitle')}</h3>
           </div>
 
           <p className="info">
-            Votre carte est nécessaire pour sécuriser les transactions.
-            Nous ne stockons pas vos données bancaires complètes.
+            {t('paymentSetup.cardInfo')}
           </p>
 
           <div className="test-card-info" style={{
@@ -177,15 +178,15 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
             marginBottom: '20px',
             fontSize: '14px'
           }}>
-            <strong>🧪 Mode Test :</strong> Utilisez la carte <code style={{background: '#fff', padding: '2px 6px', borderRadius: '3px'}}>4242 4242 4242 4242</code> (CVV: 123) pour réussir à tous les coups. Les autres cartes ont un taux de succès de 80%.
+            <strong>🧪 {t('paymentSetup.testModeInfo')}</strong> {t('paymentSetup.testCard')} <code style={{background: '#fff', padding: '2px 6px', borderRadius: '3px'}}>4242 4242 4242 4242</code> {t('paymentSetup.testCardSuccess')}
           </div>
 
           <div className="form">
             <div className="form-group">
-              <label>Numéro de carte</label>
+              <label>{t('paymentSetup.cardNumber')}</label>
               <input
                 type="text"
-                placeholder="1234 5678 9012 3456"
+                placeholder={t('paymentSetup.cardNumberPlaceholder')}
                 maxLength="19"
                 value={cardData.card_number}
                 onChange={(e) => {
@@ -200,7 +201,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
 
             <div className="form-row">
               <div className="form-group">
-                <label>Mois d'expiration</label>
+                <label>{t('paymentSetup.expiryMonth')}</label>
                 <select
                   value={cardData.card_exp_month}
                   onChange={(e) => handleCardChange('card_exp_month', e.target.value)}
@@ -217,7 +218,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
               </div>
 
               <div className="form-group">
-                <label>Année d'expiration</label>
+                <label>{t('paymentSetup.expiryYear')}</label>
                 <select
                   value={cardData.card_exp_year}
                   onChange={(e) => handleCardChange('card_exp_year', e.target.value)}
@@ -234,10 +235,10 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
               </div>
 
               <div className="form-group">
-                <label>CVV</label>
+                <label>{t('paymentSetup.cvv')}</label>
                 <input
                   type="text"
-                  placeholder="123"
+                  placeholder={t('paymentSetup.cvvPlaceholder')}
                   maxLength="3"
                   value={cardData.card_cvv}
                   onChange={(e) => handleCardChange('card_cvv', e.target.value.replace(/\D/g, ''))}
@@ -255,17 +256,17 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
             onClick={handleCardSubmit}
             disabled={loading}
           >
-            {loading ? 'Validation...' : 'Valider ma carte'}
+            {loading ? t('paymentSetup.validating') : t('paymentSetup.validateCard')}
           </button>
 
           {skipable && (
             <button className="btn-skip" onClick={handleSkip}>
-              Passer cette étape
+              {t('paymentSetup.skipStep')}
             </button>
           )}
 
           <p className="security-info">
-            🔒 Paiement sécurisé - Vos données sont cryptées
+            🔒 {t('paymentSetup.securePayment')}
           </p>
         </div>
       )}
@@ -275,20 +276,19 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
         <div className="step-card">
           <div className="step-header">
             <span className="step-icon">🏦</span>
-            <h3>Coordonnées bancaires</h3>
+            <h3>{t('paymentSetup.bankTitle')}</h3>
           </div>
 
           <p className="info">
-            Renseignez votre IBAN pour recevoir vos paiements.
-            Les virements sont effectués sous 3 jours ouvrés.
+            {t('paymentSetup.bankInfo')}
           </p>
 
           <div className="form">
             <div className="form-group">
-              <label>IBAN (Maroc)</label>
+              <label>{t('paymentSetup.iban')}</label>
               <input
                 type="text"
-                placeholder="MA00 0000 0000 0000 0000 0000"
+                placeholder={t('paymentSetup.ibanPlaceholder')}
                 maxLength="29"
                 value={bankData.iban}
                 onChange={(e) => {
@@ -301,17 +301,17 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
                 className={errors.iban ? 'error' : ''}
               />
               {errors.iban && <span className="error-msg">{errors.iban}</span>}
-              <span className="helper-text">Format : MA + 24 chiffres</span>
+              <span className="helper-text">{t('paymentSetup.ibanFormat')}</span>
             </div>
 
             <div className="form-group">
-              <label>Nom de votre banque</label>
+              <label>{t('paymentSetup.bankName')}</label>
               <select
                 value={bankData.bank_name}
                 onChange={(e) => handleBankChange('bank_name', e.target.value)}
                 className={errors.bank_name ? 'error' : ''}
               >
-                <option value="">Sélectionnez votre banque</option>
+                <option value="">{t('paymentSetup.selectBank')}</option>
                 <option value="Attijariwafa Bank">Attijariwafa Bank</option>
                 <option value="Banque Populaire">Banque Populaire</option>
                 <option value="BMCE Bank">BMCE Bank</option>
@@ -333,17 +333,17 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
             onClick={handleBankSubmit}
             disabled={loading}
           >
-            {loading ? 'Enregistrement...' : 'Enregistrer mon IBAN'}
+            {loading ? t('paymentSetup.saving') : t('paymentSetup.saveIban')}
           </button>
 
           {skipable && (
             <button className="btn-skip" onClick={handleSkip}>
-              Passer cette étape
+              {t('paymentSetup.skipStep')}
             </button>
           )}
 
           <p className="security-info">
-            🔒 Informations sécurisées et confidentielles
+            🔒 {t('paymentSetup.secureInfo')}
           </p>
         </div>
       )}

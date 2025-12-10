@@ -40,23 +40,36 @@ export default function ProviderServicesPage() {
     }
 
     if (!token) {
+      console.log('🔒 [Services] Pas de token, redirection vers login');
       router.push('/provider/login');
       return;
     }
 
     apiClient.setToken(token, isFromLocalStorage, true);
+    console.log('🔑 [Services] Token chargé, appel API profile...');
 
     try {
       const response = await apiClient.getProviderProfile();
       if (response.success) {
+        console.log('✅ [Services] Profil chargé avec succès');
         setProvider(response.data);
         await loadServices();
       } else {
+        console.warn('⚠️ [Services] Réponse API sans success, redirection');
         router.push('/provider/login');
       }
     } catch (err) {
-      console.error('Auth error:', err);
-      router.push('/provider/login');
+      console.error('❌ [Services] Auth error:', err);
+      // Ne rediriger que si c'est une vraie erreur d'authentification (401)
+      if (err.isAuthError || err.status === 401) {
+        console.log('🔒 [Services] Token expiré, nettoyage et redirection');
+        localStorage.removeItem('provider_token');
+        sessionStorage.removeItem('provider_token');
+        router.push('/provider/login');
+      } else {
+        // Erreur réseau ou autre - afficher l'erreur mais ne pas déconnecter
+        setError(t('providerServices.connectionError') || 'Erreur de connexion au serveur. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }

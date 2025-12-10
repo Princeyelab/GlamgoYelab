@@ -8,6 +8,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import ChatBot from '@/components/ChatBot';
 import NavigationProgress from '@/components/NavigationProgress';
+import HtmlWrapper from '@/components/HtmlWrapper';
 
 /**
  * ClientLayout - Wrapper pour les composants clients
@@ -22,6 +23,7 @@ export default function ClientLayout({ children }) {
 
   return (
     <LanguageProvider>
+      <HtmlWrapper />
       <AuthProvider>
         <CurrencyProvider>
           <Suspense fallback={null}>
