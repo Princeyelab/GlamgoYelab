@@ -283,6 +283,17 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
             {t('paymentSetup.bankInfo')}
           </p>
 
+          <div className="test-card-info" style={{
+            background: '#e3f2fd',
+            border: '1px solid #2196f3',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}>
+            <strong>🧪 {t('paymentSetup.testModeInfo')}</strong> {t('paymentSetup.testIban')} <code style={{background: '#fff', padding: '2px 6px', borderRadius: '3px'}}>MA64 0111 1111 1111 1111 1111 11</code>
+          </div>
+
           <div className="form">
             <div className="form-group">
               <label>{t('paymentSetup.iban')}</label>
