@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.scss';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,63 +9,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function NotificationsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { isRTL, language } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [notificationsData, setNotificationsData] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Traductions locales - useMemo pour réagir aux changements de langue
-  const content = useMemo(() => ({
-    fr: {
-      title: 'Notifications',
-      noNotifications: 'Aucune notification pour le moment',
-      noNotificationsDesc: 'Vous recevrez ici les mises à jour sur vos commandes et activités.',
-      markAllRead: 'Tout marquer comme lu',
-      back: 'Retour',
-      today: 'Aujourd\'hui',
-      yesterday: 'Hier',
-      earlier: 'Plus ancien',
-      newOrder: 'Nouvelle commande',
-      orderAccepted: 'Commande acceptée',
-      orderCompleted: 'Commande terminée',
-      orderCancelled: 'Commande annulée',
-      newMessage: 'Nouveau message',
-      paymentReceived: 'Paiement reçu',
-      reviewReceived: 'Nouvel avis reçu',
-      // Messages des notifications de démo
-      demoMessage1: 'Votre réservation pour Soin du visage a été acceptée',
-      demoMessage2: 'Vous avez un nouveau message de Sarah',
-      demoMessage3: 'Votre prestation Massage a été complétée. Merci pour votre confiance !',
-      minutesAgo: 'Il y a {n} min',
-      hoursAgo: 'Il y a {n}h',
-      daysAgo: 'Il y a {n} jours'
-    },
-    ar: {
-      title: 'الإشعارات',
-      noNotifications: 'لا توجد إشعارات في الوقت الحالي',
-      noNotificationsDesc: 'ستتلقى هنا التحديثات حول طلباتك وأنشطتك.',
-      markAllRead: 'تحديد الكل كمقروء',
-      back: 'رجوع',
-      today: 'اليوم',
-      yesterday: 'أمس',
-      earlier: 'سابقاً',
-      newOrder: 'طلب جديد',
-      orderAccepted: 'تم قبول الطلب',
-      orderCompleted: 'تم إكمال الطلب',
-      orderCancelled: 'تم إلغاء الطلب',
-      newMessage: 'رسالة جديدة',
-      paymentReceived: 'تم استلام الدفع',
-      reviewReceived: 'تقييم جديد',
-      // Messages des notifications de démo
-      demoMessage1: 'تم قبول طلبك للعناية بالوجه',
-      demoMessage2: 'لديك رسالة جديدة من سارة',
-      demoMessage3: 'تم إكمال خدمة التدليك. شكراً لثقتك!',
-      minutesAgo: 'منذ {n} دقيقة',
-      hoursAgo: 'منذ {n} ساعة',
-      daysAgo: 'منذ {n} أيام'
-    }
-  }), []);
-
-  const txt = content[language] || content.fr;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -82,8 +28,8 @@ export default function NotificationsPage() {
           {
             id: 1,
             type: 'order_accepted',
-            titleKey: 'orderAccepted',
-            messageKey: 'demoMessage1',
+            titleKey: 'notifications.orderAccepted',
+            messageKey: 'notifications.demoMessage1',
             time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
             read: false,
             link: '/orders'
@@ -91,8 +37,8 @@ export default function NotificationsPage() {
           {
             id: 2,
             type: 'new_message',
-            titleKey: 'newMessage',
-            messageKey: 'demoMessage2',
+            titleKey: 'notifications.newMessage',
+            messageKey: 'notifications.demoMessage2',
             time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
             read: false,
             link: '/orders'
@@ -100,8 +46,8 @@ export default function NotificationsPage() {
           {
             id: 3,
             type: 'order_completed',
-            titleKey: 'orderCompleted',
-            messageKey: 'demoMessage3',
+            titleKey: 'notifications.orderCompleted',
+            messageKey: 'notifications.demoMessage3',
             time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
             read: true,
             link: '/orders'
@@ -124,13 +70,13 @@ export default function NotificationsPage() {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 60) {
-      return txt.minutesAgo.replace('{n}', diffMins);
+      return t('notifications.minutesAgo', { n: diffMins });
     } else if (diffHours < 24) {
-      return txt.hoursAgo.replace('{n}', diffHours);
+      return t('notifications.hoursAgo', { n: diffHours });
     } else if (diffDays === 1) {
-      return txt.yesterday;
+      return t('notifications.yesterday');
     } else {
-      return txt.daysAgo.replace('{n}', diffDays);
+      return t('notifications.daysAgo', { n: diffDays });
     }
   };
 
@@ -190,17 +136,17 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className={styles.header}>
           <button className={styles.backBtn} onClick={() => router.back()}>
-            {isRTL ? '→' : '←'} {txt.back}
+            {isRTL ? '→' : '←'} {t('notifications.back')}
           </button>
           <h1 className={styles.title}>
-            {txt.title}
+            {t('notifications.title')}
             {unreadCount > 0 && (
               <span className={styles.badge}>{unreadCount}</span>
             )}
           </h1>
           {notificationsData.length > 0 && unreadCount > 0 && (
             <button className={styles.markReadBtn} onClick={markAllAsRead}>
-              {txt.markAllRead}
+              {t('notifications.markAllRead')}
             </button>
           )}
         </div>
@@ -213,8 +159,8 @@ export default function NotificationsPage() {
         ) : notificationsData.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🔔</div>
-            <h2>{txt.noNotifications}</h2>
-            <p>{txt.noNotificationsDesc}</p>
+            <h2>{t('notifications.noNotifications')}</h2>
+            <p>{t('notifications.noNotificationsDesc')}</p>
           </div>
         ) : (
           <div className={styles.notificationsList}>
@@ -229,10 +175,10 @@ export default function NotificationsPage() {
                 </div>
                 <div className={styles.notificationContent}>
                   <div className={styles.notificationHeader}>
-                    <span className={styles.notificationTitle}>{txt[notification.titleKey]}</span>
+                    <span className={styles.notificationTitle}>{t(notification.titleKey)}</span>
                     <span className={styles.notificationTime}>{getTimeAgo(notification.time)}</span>
                   </div>
-                  <p className={styles.notificationMessage}>{txt[notification.messageKey]}</p>
+                  <p className={styles.notificationMessage}>{t(notification.messageKey)}</p>
                 </div>
                 {!notification.read && <div className={styles.unreadDot}></div>}
               </div>
