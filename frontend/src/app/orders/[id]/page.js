@@ -676,7 +676,7 @@ export default function OrderDetailPage() {
                   onClick={() => setShowArrivalModal(true)}
                   className={styles.confirmButton}
                 >
-                  ✅ Confirmer l'arrivée
+                  ✅ {t('orderDetail.confirmArrival')}
                 </Button>
               </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.scss';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,8 +13,8 @@ export default function NotificationsPage() {
   const [notificationsData, setNotificationsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Traductions locales
-  const content = {
+  // Traductions locales - useMemo pour réagir aux changements de langue
+  const content = useMemo(() => ({
     fr: {
       title: 'Notifications',
       noNotifications: 'Aucune notification pour le moment',
@@ -63,7 +63,7 @@ export default function NotificationsPage() {
       hoursAgo: 'منذ {n} ساعة',
       daysAgo: 'منذ {n} أيام'
     }
-  };
+  }), []);
 
   const txt = content[language] || content.fr;
 
