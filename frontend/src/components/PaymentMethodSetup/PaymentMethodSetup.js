@@ -300,7 +300,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
               <input
                 type="text"
                 placeholder={t('paymentSetup.ibanPlaceholder')}
-                maxLength="29"
+                maxLength="32"
                 value={bankData.iban}
                 onChange={(e) => {
                   let value = e.target.value.toUpperCase();
