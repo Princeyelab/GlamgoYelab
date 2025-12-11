@@ -1029,8 +1029,7 @@ export default function ProviderRegisterPage() {
               <PaymentMethodSetup
                 onSuccess={handlePaymentSuccess}
                 userType="provider"
-                skipable={true}
-                onSkip={handleSkipPayment}
+                skipable={false}
                 demoMode={true}
               />
             </div>
