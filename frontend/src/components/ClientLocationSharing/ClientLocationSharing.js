@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './ClientLocationSharing.module.scss';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Composant pour le client : Partager sa position GPS en temps réel
  * Utilisé quand le prestataire est "en route" vers le client
  */
 export default function ClientLocationSharing({ orderId }) {
+  const { t, isRTL } = useLanguage();
   const [isSharing, setIsSharing] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ export default function ClientLocationSharing({ orderId }) {
 
   const startSharing = () => {
     if (!('geolocation' in navigator)) {
-      setError('Votre appareil ne supporte pas la géolocalisation');
+      setError(t('gps.deviceNotSupported'));
       return;
     }
 
@@ -94,28 +96,28 @@ export default function ClientLocationSharing({ orderId }) {
 
     switch (err.code) {
       case err.PERMISSION_DENIED:
-        errorMessage = 'Vous avez refusé l\'accès à votre position';
+        errorMessage = t('gps.permissionDenied');
         break;
       case err.POSITION_UNAVAILABLE:
-        errorMessage = 'Position indisponible. Vérifiez que le GPS est activé';
+        errorMessage = t('gps.positionUnavailable');
         break;
       case err.TIMEOUT:
-        errorMessage = 'Délai dépassé. Essayez à nouveau';
+        errorMessage = t('gps.timeout');
         break;
       default:
-        errorMessage = 'Erreur lors de la récupération de la position';
+        errorMessage = t('gps.genericError');
     }
 
     setError(errorMessage);
   };
 
   return (
-    <div className={styles.clientLocationSharing}>
+    <div className={styles.clientLocationSharing} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={styles.header}>
         <span className={styles.icon}>📍</span>
         <div className={styles.headerText}>
-          <h3>Partager votre position</h3>
-          <p>Aidez le prestataire à vous trouver facilement</p>
+          <h3>{t('gps.shareYourPosition')}</h3>
+          <p>{t('gps.helpProviderFind')}</p>
         </div>
       </div>
 
@@ -128,36 +130,36 @@ export default function ClientLocationSharing({ orderId }) {
       {!isSharing ? (
         <div className={styles.content}>
           <p className={styles.description}>
-            En activant le partage, le prestataire pourra voir votre position exacte en temps réel pour arriver plus facilement.
+            {t('gps.shareDescription')}
           </p>
           <button onClick={startSharing} className={styles.shareButton}>
-            🛰️ Activer le partage GPS
+            🛰️ {t('gps.enableGpsSharing')}
           </button>
         </div>
       ) : (
         <div className={styles.sharingActive}>
           <div className={styles.statusBadge}>
             <span className={styles.pulse}></span>
-            PARTAGE ACTIF
+            {t('gps.sharingActive')}
           </div>
 
           {currentPosition && (
             <div className={styles.positionInfo}>
               <p>
-                <strong>Votre position :</strong><br />
+                <strong>{t('gps.yourPosition')} :</strong><br />
                 {currentPosition.latitude.toFixed(6)}, {currentPosition.longitude.toFixed(6)}
               </p>
               <p className={styles.accuracy}>
-                Précision : ±{Math.round(currentPosition.accuracy)}m
+                {t('gps.accuracy')} : ±{Math.round(currentPosition.accuracy)}m
               </p>
               <p className={styles.updates}>
-                Mises à jour : {updateCount}
+                {t('gps.updates')} : {updateCount}
               </p>
             </div>
           )}
 
           <button onClick={stopSharing} className={styles.stopButton}>
-            ⏹️ Arrêter le partage
+            ⏹️ {t('gps.stopSharing')}
           </button>
         </div>
       )}

@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './ProviderLocationMap.module.scss';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Composant pour le client : Visualiser la position du prestataire en temps réel
  * La carte iframe est masquée par défaut pour éviter les problèmes de scroll
  */
 export default function ProviderLocationMap({ orderId, clientAddress, clientLat, clientLng }) {
+  const { t, isRTL } = useLanguage();
   const [providerLocation, setProviderLocation] = useState(null);
   const [mapUrl, setMapUrl] = useState(null);
   const [showMap, setShowMap] = useState(false); // Carte masquée par défaut
@@ -62,10 +64,10 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
             updateMapUrl(newLat, newLng);
           }
         } else {
-          setError('Le prestataire n\'a pas encore partagé sa position');
+          setError(t('gps.providerNotShared'));
         }
       } else {
-        setError('Impossible de récupérer la position du prestataire');
+        setError(t('gps.cannotGetPosition'));
       }
     } catch (err) {
       // Silently ignore fetch errors
@@ -74,7 +76,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
         setLoading(false);
       }
     }
-  }, [orderId, showMap, updateMapUrl]);
+  }, [orderId, showMap, updateMapUrl, t]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -162,10 +164,10 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
 
   if (loading) {
     return (
-      <div className={styles.providerLocationMap}>
+      <div className={styles.providerLocationMap} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
-          <p>Chargement de la position...</p>
+          <p>{t('gps.loadingPosition')}</p>
         </div>
       </div>
     );
@@ -173,13 +175,13 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
 
   if (error && !providerLocation) {
     return (
-      <div className={styles.providerLocationMap}>
+      <div className={styles.providerLocationMap} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={styles.errorState}>
           <span className={styles.errorIcon}>📍</span>
-          <h3>Position non disponible</h3>
+          <h3>{t('gps.positionNotAvailable')}</h3>
           <p>{error}</p>
           <p className={styles.hint}>
-            Le prestataire partagera sa position quand il sera en route vers vous.
+            {t('gps.providerWillShare')}
           </p>
         </div>
       </div>
@@ -187,18 +189,18 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
   }
 
   return (
-    <div className={styles.providerLocationMap}>
+    <div className={styles.providerLocationMap} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={styles.header}>
         <div className={styles.headerContent}>
           <span className={styles.icon}>🚗</span>
           <div>
-            <h3 className={styles.title}>Suivi en temps réel</h3>
-            <p className={styles.subtitle}>Mis à jour il y a {getTimeSinceUpdate()}</p>
+            <h3 className={styles.title}>{t('gps.realTimeTracking')}</h3>
+            <p className={styles.subtitle}>{t('gps.updatedAgo', { time: getTimeSinceUpdate() })}</p>
           </div>
         </div>
         <div className={styles.statusBadge}>
           <span className={styles.pulse}></span>
-          EN DIRECT
+          {t('gps.live')}
         </div>
       </div>
 
@@ -208,7 +210,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
             <span className={styles.distanceIcon}>📏</span>
             <div>
               <div className={styles.distanceValue}>{formatDistance(distance)}</div>
-              <div className={styles.distanceLabel}>Distance</div>
+              <div className={styles.distanceLabel}>{t('gps.distance')}</div>
             </div>
           </div>
 
@@ -216,7 +218,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
             <span className={styles.distanceIcon}>⏱️</span>
             <div>
               <div className={styles.distanceValue}>{estimatedTime(distance)}</div>
-              <div className={styles.distanceLabel}>Temps estimé</div>
+              <div className={styles.distanceLabel}>{t('gps.estimatedTime')}</div>
             </div>
           </div>
         </div>
@@ -228,7 +230,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
           <div className={styles.locationCard}>
             <span className={styles.locationIcon}>🚗</span>
             <div>
-              <strong>Prestataire</strong>
+              <strong>{t('gps.provider')}</strong>
               <p>{providerLocation?.lat.toFixed(5)}, {providerLocation?.lng.toFixed(5)}</p>
             </div>
           </div>
@@ -237,7 +239,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
             <div className={styles.locationCard}>
               <span className={styles.locationIcon}>🏠</span>
               <div>
-                <strong>Vous</strong>
+                <strong>{t('gps.you')}</strong>
                 <p>{clientAddress || `${clientLatNum.toFixed(5)}, ${clientLngNum.toFixed(5)}`}</p>
               </div>
             </div>
@@ -248,7 +250,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
       {/* Bouton pour afficher/masquer la carte */}
       <div className={styles.mapToggle}>
         <button onClick={handleToggleMap} className={styles.toggleButton}>
-          {showMap ? '🗺️ Masquer la carte' : '🗺️ Afficher la carte'}
+          🗺️ {showMap ? t('gps.hideMap') : t('gps.showMap')}
         </button>
       </div>
 
@@ -261,7 +263,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
               className={styles.mapIframe}
               frameBorder="0"
               scrolling="no"
-              title="Position du prestataire"
+              title={t('gps.provider')}
               loading="lazy"
               tabIndex="-1"
             />
@@ -275,7 +277,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
         </button>
         {clientLatNum && clientLngNum && (
           <button onClick={openDirections} className={styles.mapButton}>
-            🧭 Itinéraire
+            🧭 {t('gps.directions')}
           </button>
         )}
         {providerLocation && (
@@ -291,7 +293,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
       </div>
 
       <div className={styles.refreshInfo}>
-        <p>🔄 Position mise à jour toutes les 10 secondes</p>
+        <p>🔄 {t('gps.updateEvery10s')}</p>
       </div>
     </div>
   );
