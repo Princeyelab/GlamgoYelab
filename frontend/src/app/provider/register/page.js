@@ -350,19 +350,19 @@ export default function ProviderRegisterPage() {
 
         // Sauvegarder TOUTES les données pour le profil
         const providerTempData = {
-          first_name: registrationData.first_name,
-          last_name: registrationData.last_name,
-          email: registrationData.email,
-          phone: registrationData.phone,
-          date_of_birth: registrationData.date_of_birth,
-          address: registrationData.address,
-          city: registrationData.city,
-          latitude: registrationData.latitude,
-          longitude: registrationData.longitude,
-          bio: registrationData.bio,
-          experience_years: registrationData.experience_years,
-          intervention_radius: registrationData.intervention_radius,
-          availability_schedule: registrationData.availability_schedule,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone: formData.phone,
+          date_of_birth: formData.date_of_birth,
+          address: formData.address,
+          city: formData.city,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          bio: formData.bio,
+          experience_years: formData.experience_years,
+          intervention_radius: formData.intervention_radius,
+          availability_schedule: formData.availability_schedule,
         };
         localStorage.setItem('provider_temp_data', JSON.stringify(providerTempData));
 
