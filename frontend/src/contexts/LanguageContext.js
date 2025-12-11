@@ -50,6 +50,21 @@ const translations = {
     'notifications.hoursAgo': 'Il y a {n}h',
     'notifications.daysAgo': 'Il y a {n} jours',
 
+    // Notification Dropdown (popup)
+    'notificationDropdown.justNow': 'À l\'instant',
+    'notificationDropdown.view': 'Voir',
+    'notificationDropdown.viewAll': 'Voir toutes les notifications',
+    'notificationDropdown.orderAccepted': 'Commande acceptée',
+    'notificationDropdown.providerOnWay': 'Prestataire en route',
+    'notificationDropdown.serviceInProgress': 'Service en cours',
+    'notificationDropdown.serviceCompleted': 'Service terminé',
+    'notificationDropdown.orderCancelled': 'Commande annulée',
+    'notificationDropdown.newMessage': 'Nouveau message',
+    'notificationDropdown.rateService': 'Prestation terminée - Évaluez le service',
+    'notificationDropdown.providerOnWayMsg': 'Le prestataire est en route pour votre commande #{orderNum}.',
+    'notificationDropdown.orderAcceptedMsg': 'Votre commande #{orderNum} a été acceptée par un prestataire.',
+    'notificationDropdown.rateServiceMsg': 'Votre prestation est terminée. Merci d\'évaluer le service reçu pour libérer le paiement.',
+
     // Page d'accueil
     'home.title': 'Services à domicile à Marrakech',
     'home.subtitle': 'Beauté, ménage, réparations... Tout ce dont vous avez besoin, à portée de main',
@@ -1702,6 +1717,21 @@ const translations = {
     'notifications.minutesAgo': 'منذ {n} دقيقة',
     'notifications.hoursAgo': 'منذ {n} ساعة',
     'notifications.daysAgo': 'منذ {n} أيام',
+
+    // Notification Dropdown (popup)
+    'notificationDropdown.justNow': 'الآن',
+    'notificationDropdown.view': 'عرض',
+    'notificationDropdown.viewAll': 'عرض جميع الإشعارات',
+    'notificationDropdown.orderAccepted': 'تم قبول الطلب',
+    'notificationDropdown.providerOnWay': 'مقدم الخدمة في الطريق',
+    'notificationDropdown.serviceInProgress': 'الخدمة جارية',
+    'notificationDropdown.serviceCompleted': 'تمت الخدمة',
+    'notificationDropdown.orderCancelled': 'تم إلغاء الطلب',
+    'notificationDropdown.newMessage': 'رسالة جديدة',
+    'notificationDropdown.rateService': 'انتهت الخدمة - قيّم الخدمة',
+    'notificationDropdown.providerOnWayMsg': 'مقدم الخدمة في الطريق إليك للطلب #{orderNum}.',
+    'notificationDropdown.orderAcceptedMsg': 'تم قبول طلبك #{orderNum} من قبل مقدم خدمة.',
+    'notificationDropdown.rateServiceMsg': 'انتهت خدمتك. يرجى تقييم الخدمة المقدمة لتحرير الدفع.',
 
     // Page d'accueil
     'home.title': 'خدمات منزلية في مراكش',

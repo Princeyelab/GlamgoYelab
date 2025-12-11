@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import styles from './NotificationDropdown.module.scss';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function NotificationDropdown() {
+  const { t, isRTL } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -94,11 +96,11 @@ export default function NotificationDropdown() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "À l'instant";
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 1) return t('notificationDropdown.justNow');
+    if (diffMins < 60) return t('notifications.minutesAgo', { n: diffMins });
+    if (diffHours < 24) return t('notifications.hoursAgo', { n: diffHours });
+    if (diffDays < 7) return t('notifications.daysAgo', { n: diffDays });
+    return date.toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR');
   };
 
   const getNotificationIcon = (type) => {
@@ -114,12 +116,44 @@ export default function NotificationDropdown() {
     return icons[type] || '🔔';
   };
 
+  // Traduire le titre de notification si c'est une clé connue
+  const translateNotificationTitle = (title) => {
+    const titleMap = {
+      'Commande acceptée': t('notificationDropdown.orderAccepted'),
+      'Prestataire en route': t('notificationDropdown.providerOnWay'),
+      'Service en cours': t('notificationDropdown.serviceInProgress'),
+      'Service terminé': t('notificationDropdown.serviceCompleted'),
+      'Commande annulée': t('notificationDropdown.orderCancelled'),
+      'Nouveau message': t('notificationDropdown.newMessage'),
+      'Prestation terminee - Evaluez le service': t('notificationDropdown.rateService'),
+      'Prestation terminée - Évaluez le service': t('notificationDropdown.rateService'),
+    };
+    return titleMap[title] || title;
+  };
+
+  // Traduire le message de notification
+  const translateNotificationMessage = (message) => {
+    // Patterns de messages connus
+    if (message.includes('est en route pour votre commande')) {
+      const orderNum = message.match(/#(\d+)/)?.[1];
+      return t('notificationDropdown.providerOnWayMsg', { orderNum: orderNum || '' });
+    }
+    if (message.includes('a été acceptée par un prestataire')) {
+      const orderNum = message.match(/#(\d+)/)?.[1];
+      return t('notificationDropdown.orderAcceptedMsg', { orderNum: orderNum || '' });
+    }
+    if (message.includes('Merci d\'evaluer le service') || message.includes('Merci d\'évaluer le service')) {
+      return t('notificationDropdown.rateServiceMsg');
+    }
+    return message;
+  };
+
   return (
-    <div className={styles.notificationDropdown} ref={dropdownRef}>
+    <div className={styles.notificationDropdown} ref={dropdownRef} dir={isRTL ? 'rtl' : 'ltr'}>
       <button
         className={styles.notificationButton}
         onClick={handleToggle}
-        aria-label="Notifications"
+        aria-label={t('notifications.title')}
       >
         <svg
           width="24"
@@ -142,22 +176,22 @@ export default function NotificationDropdown() {
       {isOpen && (
         <div className={styles.dropdown}>
           <div className={styles.dropdownHeader}>
-            <h3>Notifications</h3>
+            <h3>{t('notifications.title')}</h3>
             {unreadCount > 0 && (
               <button
                 className={styles.markAllRead}
                 onClick={handleMarkAllAsRead}
               >
-                Tout marquer comme lu
+                {t('notifications.markAllRead')}
               </button>
             )}
           </div>
 
           <div className={styles.dropdownContent}>
             {loading ? (
-              <div className={styles.loading}>Chargement...</div>
+              <div className={styles.loading}>{t('common.loading')}</div>
             ) : notifications.length === 0 ? (
-              <div className={styles.empty}>Aucune notification</div>
+              <div className={styles.empty}>{t('notifications.noNotifications')}</div>
             ) : (
               notifications.map(notification => (
                 <div
@@ -170,10 +204,10 @@ export default function NotificationDropdown() {
                   </span>
                   <div className={styles.notificationContent}>
                     <div className={styles.notificationTitle}>
-                      {notification.title}
+                      {translateNotificationTitle(notification.title)}
                     </div>
                     <div className={styles.notificationMessage}>
-                      {notification.message}
+                      {translateNotificationMessage(notification.message)}
                     </div>
                     <div className={styles.notificationTime}>
                       {formatDate(notification.created_at)}
@@ -185,7 +219,7 @@ export default function NotificationDropdown() {
                       className={styles.viewOrder}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Voir
+                      {t('notificationDropdown.view')}
                     </Link>
                   )}
                 </div>
@@ -196,7 +230,7 @@ export default function NotificationDropdown() {
           {notifications.length > 0 && (
             <div className={styles.dropdownFooter}>
               <Link href="/notifications" onClick={() => setIsOpen(false)}>
-                Voir toutes les notifications
+                {t('notificationDropdown.viewAll')}
               </Link>
             </div>
           )}
