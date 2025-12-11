@@ -81,10 +81,6 @@ export default function ProviderOnboardingPage() {
     setError('');
 
     try {
-      // Préparer les données
-      const formData = new FormData();
-      formData.append('specialties', JSON.stringify(selectedSpecialties));
-
       // Convertir spécialités en services offerts
       const servicesOffered = selectedSpecialties.flatMap(spec => {
         const services = getServicesForSpecialty(spec);
@@ -94,37 +90,49 @@ export default function ProviderOnboardingPage() {
           custom_price: null
         }));
       });
-      formData.append('services_offered', JSON.stringify(servicesOffered));
 
-      if (diplomaFile) {
-        formData.append('diploma_certificate', diplomaFile);
+      // Sauvegarder en localStorage pour le mode démo
+      const providerTempData = JSON.parse(localStorage.getItem('provider_temp_data') || '{}');
+      providerTempData.specialties = selectedSpecialties;
+      providerTempData.services_offered = servicesOffered;
+      providerTempData.onboarding_completed = true;
+      localStorage.setItem('provider_temp_data', JSON.stringify(providerTempData));
+
+      // Essayer d'appeler le backend, mais ne pas bloquer si ça échoue
+      try {
+        const formData = new FormData();
+        formData.append('specialties', JSON.stringify(selectedSpecialties));
+        formData.append('services_offered', JSON.stringify(servicesOffered));
+        if (diplomaFile) {
+          formData.append('diploma_certificate', diplomaFile);
+        }
+        formData.append('onboarding_completed', 'true');
+
+        const token = apiClient.getToken();
+        const response = await fetch(`${apiClient.baseURL}/provider/onboarding`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            await refreshUser();
+          }
+        }
+      } catch (apiError) {
+        // Ignorer les erreurs API en mode démo
+        console.log('Onboarding API skipped (demo mode):', apiError.message);
       }
 
-      formData.append('onboarding_completed', 'true');
+      // Marquer le popup de bienvenue
+      localStorage.setItem('showWelcomePopupProvider', 'true');
 
-      const token = apiClient.getToken();
-      const response = await fetch(`${apiClient.baseURL}/provider/onboarding`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Rafraîchir les données utilisateur
-        await refreshUser();
-
-        // Marquer le popup de bienvenue
-        localStorage.setItem('showWelcomePopupProvider', 'true');
-
-        // Rediriger vers le dashboard
-        router.push('/provider/dashboard');
-      } else {
-        setError(data.message || t('providerOnboarding.errorOccurred'));
-      }
+      // Rediriger vers le dashboard
+      router.push('/provider/dashboard');
     } catch (err) {
       console.error('Onboarding error:', err);
       setError(t('providerOnboarding.saveError'));
