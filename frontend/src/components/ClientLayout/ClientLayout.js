@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
@@ -17,6 +17,20 @@ import HtmlWrapper from '@/components/HtmlWrapper';
  */
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
+
+  // Supprimer les warnings de preload CSS (bug connu Next.js avec Turbopack)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+      const originalWarn = console.warn;
+      console.warn = (...args) => {
+        const message = args[0];
+        if (typeof message === 'string' && message.includes('was preloaded using link preload but not used')) {
+          return; // Ignorer ce warning spécifique
+        }
+        originalWarn.apply(console, args);
+      };
+    }
+  }, []);
 
   // Ne pas afficher le Header sur les pages prestataires
   const isProviderPage = pathname?.startsWith('/provider');
