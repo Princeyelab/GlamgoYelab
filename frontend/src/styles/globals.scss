@@ -257,7 +257,7 @@ ul, ol {
 body.rtl {
   direction: rtl;
   text-align: right;
-  font-family: 'Noto Sans Arabic', 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-arabic), 'Noto Sans Arabic', 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
 
   // Inverser les marges et paddings directionnels
   .text-left {
@@ -395,6 +395,6 @@ body.rtl {
   }
 }
 
-// Import police arabe
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+// Note: La police arabe 'Noto Sans Arabic' est chargée via next/font dans le layout
+// pour éviter les warnings de preload et optimiser le chargement
 
