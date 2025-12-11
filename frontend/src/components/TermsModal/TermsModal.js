@@ -32,7 +32,7 @@ Dernière mise à jour : ${currentDate}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 INSCRIPTION ET ACCÈS
-• Création de compte obligatoire avec informations exactes : prénom, nom, email, téléphone, WhatsApp.
+• Création de compte obligatoire avec informations exactes : prénom, nom, email, téléphone.
 • Date de naissance obligatoire - Vous devez être majeur (18 ans minimum).
 • Adresse complète avec ville obligatoire pour la localisation des services.
 • Les informations doivent être tenues à jour.
@@ -46,8 +46,8 @@ Dernière mise à jour : ${currentDate}
 • Respect des horaires, avis honnêtes, comportement respectueux.
 
 📅 POLITIQUE D'ANNULATION ET REMBOURSEMENT
-• Annulation sans frais jusqu'à 4h avant.
-• Moins de 4h → frais possibles.
+• Annulation sans frais jusqu'à 2h avant.
+• Moins de 2h → frais possibles.
 • Absence sans annulation → prestation due intégralement.
 • Annulation par le Prestataire → remboursement intégral.
 • Cas de force majeure → conditions adaptées.
@@ -105,7 +105,7 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTÉ L'INTÉGRALITÉ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 التسجيل والوصول
-• إنشاء حساب إلزامي بمعلومات دقيقة: الاسم الأول، الاسم العائلي، البريد الإلكتروني، الهاتف، واتساب.
+• إنشاء حساب إلزامي بمعلومات دقيقة: الاسم الأول، الاسم العائلي، البريد الإلكتروني، الهاتف.
 • تاريخ الميلاد إلزامي - يجب أن يكون عمرك 18 سنة على الأقل.
 • العنوان الكامل مع المدينة إلزامي لتحديد موقع الخدمات.
 • يجب تحديث المعلومات باستمرار.
@@ -119,8 +119,8 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTÉ L'INTÉGRALITÉ
 • احترام المواعيد، آراء صادقة، سلوك محترم.
 
 📅 سياسة الإلغاء والاسترداد
-• إلغاء مجاني حتى 4 ساعات قبل الموعد.
-• أقل من 4 ساعات ← رسوم محتملة.
+• إلغاء مجاني حتى ساعتين قبل الموعد.
+• أقل من ساعتين ← رسوم محتملة.
 • الغياب بدون إلغاء ← الخدمة مستحقة بالكامل.
 • إلغاء من مقدم الخدمة ← استرداد كامل.
 • حالة القوة القاهرة ← شروط مكيفة.
