@@ -1031,6 +1031,7 @@ export default function ProviderRegisterPage() {
                 userType="provider"
                 skipable={true}
                 onSkip={handleSkipPayment}
+                demoMode={true}
               />
             </div>
           )}
