@@ -129,6 +129,22 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
     setErrors({});
 
     try {
+      // En mode démo, simuler la réussite sans appeler le backend
+      if (demoMode) {
+        // Simuler un délai réseau
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const demoResponse = {
+          success: true,
+          message: 'Compte bancaire enregistré (mode démo)',
+          iban: bankData.iban.replace(/\s/g, ''),
+          bank_name: bankData.bank_name
+        };
+        if (onSuccess) {
+          onSuccess(demoResponse);
+        }
+        return;
+      }
+
       const response = await api.post('/provider/payment/bank-account', {
         iban: bankData.iban.replace(/\s/g, ''),
         bank_name: bankData.bank_name
