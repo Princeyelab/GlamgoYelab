@@ -291,7 +291,7 @@ export default function PaymentMethodSetup({ onSuccess, userType = 'client', ski
             marginBottom: '20px',
             fontSize: '14px'
           }}>
-            <strong>🧪 {t('paymentSetup.testModeInfo')}</strong> {t('paymentSetup.testIban')} <code style={{background: '#fff', padding: '2px 6px', borderRadius: '3px'}}>MA64 0111 1111 1111 1111 1111 11</code>
+            <strong>🧪 {t('paymentSetup.testModeInfo')}</strong> {t('paymentSetup.testIban')} <code style={{background: '#fff', padding: '2px 6px', borderRadius: '3px'}}>MA00 1111 1111 1111 1111 1111 11</code>
           </div>
 
           <div className="form">
