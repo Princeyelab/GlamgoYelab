@@ -850,7 +850,9 @@ const translations = {
     // Status labels
     'status.pending': 'En attente',
     'status.accepted': 'Acceptée',
+    'status.on_way': 'En route',
     'status.in_progress': 'En cours',
+    'status.completed_pending_review': 'En attente d\'évaluation',
     'status.completed': 'Terminée',
     'status.cancelled': 'Annulée',
     'status.bidding': 'Enchères en cours',
@@ -2550,7 +2552,9 @@ const translations = {
     // Status labels
     'status.pending': 'قيد الانتظار',
     'status.accepted': 'مقبول',
+    'status.on_way': 'في الطريق',
     'status.in_progress': 'جاري التنفيذ',
+    'status.completed_pending_review': 'في انتظار التقييم',
     'status.completed': 'مكتمل',
     'status.cancelled': 'ملغي',
     'status.bidding': 'المزايدة جارية',
