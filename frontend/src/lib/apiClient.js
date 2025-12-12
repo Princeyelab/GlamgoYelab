@@ -14,8 +14,20 @@ class ApiClient {
     this.isProvider = false;
     this._currentTokenType = null;
 
-    // NE PAS charger le token automatiquement dans le constructeur
-    // Le token sera charge explicitement par loadTokenForContext() selon la page
+    // Charger le token au demarrage selon last_login_type
+    // Cela garantit que la session persiste apres rafraichissement
+    if (typeof window !== 'undefined') {
+      const lastLoginType = localStorage.getItem('last_login_type');
+
+      if (lastLoginType === 'provider') {
+        this._loadProviderToken();
+        if (this.token) this._currentTokenType = 'provider';
+      } else if (lastLoginType === 'client') {
+        this._loadClientToken();
+        if (this.token) this._currentTokenType = 'client';
+      }
+      // Si pas de last_login_type, on ne charge rien (nouvel utilisateur)
+    }
   }
 
   /**
