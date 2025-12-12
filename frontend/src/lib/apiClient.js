@@ -12,26 +12,37 @@ class ApiClient {
     this.token = null;
     this.rememberMe = false;
     this.isProvider = false;
+    this._currentTokenType = null;
 
-    // Charger le token depuis localStorage ou sessionStorage (côté client uniquement)
-    if (typeof window !== 'undefined') {
-      // Vérifier le type de connexion le plus récent
-      const lastLoginType = localStorage.getItem('last_login_type');
+    // NE PAS charger le token automatiquement dans le constructeur
+    // Le token sera charge explicitement par loadTokenForContext() selon la page
+  }
 
-      // Charger UNIQUEMENT le token correspondant au dernier type de connexion
-      // Ne PAS faire de fallback vers l'autre type pour éviter les confusions de profil
-      if (lastLoginType === 'client') {
-        this._loadClientToken();
-      } else if (lastLoginType === 'provider') {
-        this._loadProviderToken();
-      } else {
-        // Pas de last_login_type défini - vérifier les deux (ancien comportement pour migration)
-        this._loadProviderToken();
-        if (!this.token) {
-          this._loadClientToken();
-        }
+  /**
+   * Charger le token approprie selon le contexte (page client ou provider)
+   * @param {boolean} forProvider - true pour charger le token provider, false pour client
+   */
+  loadTokenForContext(forProvider = false) {
+    if (typeof window === 'undefined') return;
+
+    // Toujours reinitialiser pour garantir la fraicheur
+    this.token = null;
+    this.isProvider = false;
+    this._currentTokenType = null;
+
+    if (forProvider) {
+      this._loadProviderToken();
+      if (this.token) {
+        this._currentTokenType = 'provider';
+      }
+    } else {
+      this._loadClientToken();
+      if (this.token) {
+        this._currentTokenType = 'client';
       }
     }
+
+    console.log('[Token] loadTokenForContext:', forProvider ? 'provider' : 'client', '- token:', this.token ? 'EXISTS' : 'NONE');
   }
 
   _loadProviderToken() {
@@ -83,14 +94,12 @@ class ApiClient {
 
         if (remember) {
           localStorage.setItem(tokenKey, token);
-          localStorage.setItem('token', token); // Pour compatibilité backend
           sessionStorage.removeItem(tokenKey);
           // Nettoyer l'autre type de token
           localStorage.removeItem(altTokenKey);
           sessionStorage.removeItem(altTokenKey);
         } else {
           sessionStorage.setItem(tokenKey, token);
-          localStorage.setItem('token', token); // Pour compatibilité backend
           localStorage.removeItem(tokenKey);
           // Nettoyer l'autre type de token
           localStorage.removeItem(altTokenKey);
