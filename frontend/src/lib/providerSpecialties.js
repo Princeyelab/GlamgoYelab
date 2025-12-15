@@ -1,140 +1,252 @@
-// Spécialités des prestataires basées sur les services GlamGo
-// ⚠️ SYNCHRONISÉ avec la base de données - 28 services / 16 spécialités
+// Services des prestataires GlamGo
+// ⚠️ SYNCHRONISÉ avec la base de données - 28 services individuels
 
-export const PROVIDER_SPECIALTIES = {
-  // ==================== BEAUTÉ (5 spécialités) ====================
-  coiffure_homme: {
-    value: 'coiffure_homme',
-    label: 'Coiffure Homme',
-    labelAr: 'حلاقة رجال',
+export const PROVIDER_SERVICES = {
+  // ==================== BEAUTÉ (11 services) ====================
+  coiffure_homme_simple: {
+    value: 'coiffure_homme_simple',
+    label: 'Coiffure Homme Simple',
+    labelAr: 'حلاقة رجال بسيطة',
     icon: '💇‍♂️',
-    category: 'beaute'
+    category: 'beaute',
+    requiresDiploma: true
   },
-  coiffure_femme: {
-    value: 'coiffure_femme',
-    label: 'Coiffure Femme',
-    labelAr: 'تصفيف شعر نساء',
+  coiffure_homme_premium: {
+    value: 'coiffure_homme_premium',
+    label: 'Coiffure Homme Premium',
+    labelAr: 'حلاقة رجال فاخرة',
+    icon: '💇‍♂️',
+    category: 'beaute',
+    requiresDiploma: true
+  },
+  coiffure_express: {
+    value: 'coiffure_express',
+    label: 'Coiffure Express',
+    labelAr: 'تصفيف سريع',
     icon: '💇‍♀️',
-    category: 'beaute'
+    category: 'beaute',
+    requiresDiploma: true
   },
-  barbier: {
-    value: 'barbier',
-    label: 'Barbier',
-    labelAr: 'حلاق',
+  coiffure_classique: {
+    value: 'coiffure_classique',
+    label: 'Coiffure Classique',
+    labelAr: 'تصفيف كلاسيكي',
+    icon: '💇‍♀️',
+    category: 'beaute',
+    requiresDiploma: true
+  },
+  coiffure_mariage: {
+    value: 'coiffure_mariage',
+    label: 'Coiffure Mariage & Événement',
+    labelAr: 'تصفيف زفاف ومناسبات',
+    icon: '👰',
+    category: 'beaute',
+    requiresDiploma: true
+  },
+  taille_barbe: {
+    value: 'taille_barbe',
+    label: 'Taille de Barbe',
+    labelAr: 'تشذيب اللحية',
     icon: '🧔',
-    category: 'beaute'
+    category: 'beaute',
+    requiresDiploma: true
   },
-  epilation_femme: {
-    value: 'epilation_femme',
-    label: 'Épilation Femme',
-    labelAr: 'إزالة الشعر للنساء',
-    icon: '✨',
-    category: 'beaute'
+  pack_coiffure_barbe: {
+    value: 'pack_coiffure_barbe',
+    label: 'Pack Coiffure + Barbe',
+    labelAr: 'باقة حلاقة + لحية',
+    icon: '✂️',
+    category: 'beaute',
+    requiresDiploma: true
   },
-  epilation_homme: {
-    value: 'epilation_homme',
-    label: 'Épilation Homme',
-    labelAr: 'إزالة الشعر للرجال',
+  smooth_femme: {
+    value: 'smooth_femme',
+    label: 'Smooth Femme',
+    labelAr: 'إزالة شعر نساء',
     icon: '✨',
-    category: 'beaute'
+    category: 'beaute',
+    requiresDiploma: false
+  },
+  full_smooth_femme: {
+    value: 'full_smooth_femme',
+    label: 'Full Smooth Femme',
+    labelAr: 'إزالة شعر كاملة نساء',
+    icon: '✨',
+    category: 'beaute',
+    requiresDiploma: false
+  },
+  smooth_homme: {
+    value: 'smooth_homme',
+    label: 'Smooth Homme',
+    labelAr: 'إزالة شعر رجال',
+    icon: '✨',
+    category: 'beaute',
+    requiresDiploma: false
+  },
+  full_smooth_homme: {
+    value: 'full_smooth_homme',
+    label: 'Full Smooth Homme',
+    labelAr: 'إزالة شعر كاملة رجال',
+    icon: '✨',
+    category: 'beaute',
+    requiresDiploma: false
   },
 
-  // ==================== MAISON (4 spécialités) ====================
+  // ==================== MAISON (6 services) ====================
   menage: {
     value: 'menage',
     label: 'Ménage',
     labelAr: 'تنظيف منزلي',
     icon: '🧹',
-    category: 'maison'
+    category: 'maison',
+    requiresDiploma: false
   },
-  bricolage: {
-    value: 'bricolage',
-    label: 'Bricolage',
-    labelAr: 'أعمال يدوية',
+  petits_bricolages: {
+    value: 'petits_bricolages',
+    label: 'Petits Bricolages',
+    labelAr: 'أعمال يدوية صغيرة',
     icon: '🔧',
-    category: 'maison'
+    category: 'maison',
+    requiresDiploma: false
   },
   jardinage: {
     value: 'jardinage',
     label: 'Jardinage',
     labelAr: 'بستنة',
     icon: '🌱',
-    category: 'maison'
+    category: 'maison',
+    requiresDiploma: false
   },
-  chef_domicile: {
-    value: 'chef_domicile',
-    label: 'Chef à Domicile',
-    labelAr: 'طباخ منزلي',
+  chef_2_personnes: {
+    value: 'chef_2_personnes',
+    label: 'Chef à Domicile - 2 Personnes',
+    labelAr: 'طباخ منزلي - شخصين',
     icon: '👨‍🍳',
-    category: 'maison'
+    category: 'maison',
+    requiresDiploma: true
+  },
+  chef_4_personnes: {
+    value: 'chef_4_personnes',
+    label: 'Chef à Domicile - 4 Personnes',
+    labelAr: 'طباخ منزلي - 4 أشخاص',
+    icon: '👨‍🍳',
+    category: 'maison',
+    requiresDiploma: true
+  },
+  chef_8_personnes: {
+    value: 'chef_8_personnes',
+    label: 'Chef à Domicile - 8 Personnes',
+    labelAr: 'طباخ منزلي - 8 أشخاص',
+    icon: '👨‍🍳',
+    category: 'maison',
+    requiresDiploma: true
   },
 
-  // ==================== VOITURE (1 spécialité) ====================
-  nettoyage_auto: {
-    value: 'nettoyage_auto',
-    label: 'Nettoyage Auto',
-    labelAr: 'غسيل سيارات',
+  // ==================== VOITURE (3 services) ====================
+  nettoyage_auto_interne: {
+    value: 'nettoyage_auto_interne',
+    label: 'Nettoyage Auto Interne',
+    labelAr: 'تنظيف داخلي للسيارة',
     icon: '🚗',
-    category: 'voiture'
+    category: 'voiture',
+    requiresDiploma: false
+  },
+  nettoyage_auto_externe: {
+    value: 'nettoyage_auto_externe',
+    label: 'Nettoyage Auto Externe',
+    labelAr: 'تنظيف خارجي للسيارة',
+    icon: '🚗',
+    category: 'voiture',
+    requiresDiploma: false
+  },
+  nettoyage_auto_complet: {
+    value: 'nettoyage_auto_complet',
+    label: 'Nettoyage Auto Complet',
+    labelAr: 'تنظيف كامل للسيارة',
+    icon: '🚗',
+    category: 'voiture',
+    requiresDiploma: false
   },
 
-  // ==================== ANIMAUX (1 spécialité) ====================
-  garde_animaux: {
-    value: 'garde_animaux',
-    label: 'Garde Animaux',
-    labelAr: 'رعاية حيوانات',
+  // ==================== ANIMAUX (2 services) ====================
+  promenade_animaux: {
+    value: 'promenade_animaux',
+    label: "Promenade d'Animaux",
+    labelAr: 'تمشية الحيوانات',
     icon: '🐕',
-    category: 'animaux'
+    category: 'animaux',
+    requiresDiploma: false
+  },
+  gardiennage_animaux: {
+    value: 'gardiennage_animaux',
+    label: "Gardiennage d'Animaux",
+    labelAr: 'رعاية الحيوانات',
+    icon: '🏠',
+    category: 'animaux',
+    requiresDiploma: false
   },
 
-  // ==================== BIEN-ÊTRE (5 spécialités) ====================
-  massage: {
-    value: 'massage',
-    label: 'Massage',
-    labelAr: 'تدليك',
+  // ==================== BIEN-ÊTRE (6 services) ====================
+  massage_relaxant: {
+    value: 'massage_relaxant',
+    label: 'Massage Relaxant',
+    labelAr: 'تدليك استرخائي',
     icon: '💆',
-    category: 'bien-etre'
+    category: 'bien-etre',
+    requiresDiploma: true
   },
-  hammam_soins: {
-    value: 'hammam_soins',
-    label: 'Hammam & Soins',
-    labelAr: 'حمام وعناية',
+  hammam_gommage: {
+    value: 'hammam_gommage',
+    label: 'Hammam & Gommage',
+    labelAr: 'حمام وتقشير',
     icon: '🛁',
-    category: 'bien-etre'
+    category: 'bien-etre',
+    requiresDiploma: true
+  },
+  soin_argan: {
+    value: 'soin_argan',
+    label: 'Soin Premium Argan',
+    labelAr: 'عناية فاخرة بالأركان',
+    icon: '🌿',
+    category: 'bien-etre',
+    requiresDiploma: true
   },
   yoga: {
     value: 'yoga',
     label: 'Yoga',
     labelAr: 'يوغا',
     icon: '🧘',
-    category: 'bien-etre'
+    category: 'bien-etre',
+    requiresDiploma: true
   },
   coach_sportif: {
     value: 'coach_sportif',
     label: 'Coach Sportif',
     labelAr: 'مدرب رياضي',
     icon: '🏋️',
-    category: 'bien-etre'
+    category: 'bien-etre',
+    requiresDiploma: true
   },
-  danse: {
-    value: 'danse',
-    label: 'Danse',
-    labelAr: 'رقص',
+  danse_orientale: {
+    value: 'danse_orientale',
+    label: 'Danse Orientale',
+    labelAr: 'رقص شرقي',
     icon: '💃',
-    category: 'bien-etre'
+    category: 'bien-etre',
+    requiresDiploma: true
   }
 };
 
-// Liste ordonnée des spécialités pour l'affichage
-export const SPECIALTY_LIST = Object.values(PROVIDER_SPECIALTIES);
+// Liste ordonnée des services pour l'affichage
+export const SERVICE_LIST = Object.values(PROVIDER_SERVICES);
 
-// Spécialités groupées par catégorie
-export const SPECIALTIES_BY_CATEGORY = {
-  beaute: SPECIALTY_LIST.filter(s => s.category === 'beaute'),
-  maison: SPECIALTY_LIST.filter(s => s.category === 'maison'),
-  voiture: SPECIALTY_LIST.filter(s => s.category === 'voiture'),
-  animaux: SPECIALTY_LIST.filter(s => s.category === 'animaux'),
-  'bien-etre': SPECIALTY_LIST.filter(s => s.category === 'bien-etre')
+// Services groupés par catégorie
+export const SERVICES_BY_CATEGORY = {
+  beaute: SERVICE_LIST.filter(s => s.category === 'beaute'),
+  maison: SERVICE_LIST.filter(s => s.category === 'maison'),
+  voiture: SERVICE_LIST.filter(s => s.category === 'voiture'),
+  animaux: SERVICE_LIST.filter(s => s.category === 'animaux'),
+  'bien-etre': SERVICE_LIST.filter(s => s.category === 'bien-etre')
 };
 
 // Labels de catégories (Français)
@@ -163,82 +275,79 @@ export const getCategoryLabel = (categorySlug, language = 'fr') => {
   return CATEGORY_LABELS[categorySlug] || categorySlug;
 };
 
-// Fonction pour obtenir le label de spécialité traduit
-export const getSpecialtyLabel = (specialty, language = 'fr') => {
-  if (language === 'ar' && specialty.labelAr) {
-    return specialty.labelAr;
+// Fonction pour obtenir le label de service traduit
+export const getServiceLabel = (service, language = 'fr') => {
+  if (language === 'ar' && service.labelAr) {
+    return service.labelAr;
   }
-  return specialty.label;
+  return service.label;
 };
 
-// Clés de traduction pour les catégories
-export const CATEGORY_LABEL_KEYS = {
-  beaute: 'categories.beauty',
-  maison: 'categories.home',
-  voiture: 'categories.car',
-  animaux: 'categories.pets',
-  'bien-etre': 'categories.wellness'
+// Fonction pour obtenir un service par sa valeur
+export const getServiceByValue = (value) => {
+  return PROVIDER_SERVICES[value] || null;
 };
 
-// Spécialités nécessitant un diplôme/certificat
-export const SPECIALTIES_REQUIRING_DIPLOMA = [
-  'coiffure_homme',
-  'coiffure_femme',
-  'barbier',
-  'massage',
-  'hammam_soins',
-  'yoga',
-  'coach_sportif',
-  'danse'
-];
-
-// Fonction pour obtenir une spécialité par sa valeur
-export const getSpecialtyByValue = (value) => {
-  return PROVIDER_SPECIALTIES[value] || null;
+// Fonction pour vérifier si un service nécessite un diplôme
+export const serviceRequiresDiploma = (value) => {
+  const service = PROVIDER_SERVICES[value];
+  return service ? service.requiresDiploma : false;
 };
 
-// Fonction pour vérifier si une spécialité nécessite un diplôme
-export const requiresDiploma = (value) => {
-  return SPECIALTIES_REQUIRING_DIPLOMA.includes(value);
+// Fonction pour vérifier si au moins un service sélectionné nécessite un diplôme
+export const anyServiceRequiresDiploma = (selectedServices) => {
+  return selectedServices.some(serviceValue => serviceRequiresDiploma(serviceValue));
 };
 
-// Mapping spécialité -> services correspondants (28 services)
-// ⚠️ SYNCHRONISÉ avec la base de données
-export const SPECIALTY_TO_SERVICES = {
-  // Beauté (7 services)
-  coiffure_homme: ['Coiffure Homme Simple', 'Coiffure Homme Premium'],
-  coiffure_femme: ['Coiffure Express', 'Coiffure Classique', 'Coiffure Mariage & Événement'],
-  barbier: ['Taille de Barbe', 'Pack Coiffure + Barbe'],
-  epilation_femme: ['Smooth Femme', 'Full Smooth Femme'],
-  epilation_homme: ['Smooth Homme', 'Full Smooth Homme'],
+// Liste des services nécessitant un diplôme (pour référence)
+export const SERVICES_REQUIRING_DIPLOMA = SERVICE_LIST
+  .filter(s => s.requiresDiploma)
+  .map(s => s.value);
 
-  // Maison (6 services)
-  menage: ['Ménage'],
-  bricolage: ['Petits Bricolages'],
-  jardinage: ['Jardinage'],
-  chef_domicile: ['Chef à Domicile - 2 Personnes', 'Chef à Domicile - 4 Personnes', 'Chef à Domicile - 8 Personnes'],
+// ============================================================
+// EXPORTS LEGACY (pour compatibilité avec l'ancien code)
+// ============================================================
+export const PROVIDER_SPECIALTIES = PROVIDER_SERVICES;
+export const SPECIALTY_LIST = SERVICE_LIST;
+export const SPECIALTIES_BY_CATEGORY = SERVICES_BY_CATEGORY;
+export const getSpecialtyByValue = getServiceByValue;
+export const getSpecialtyLabel = getServiceLabel;
+export const SPECIALTIES_REQUIRING_DIPLOMA = SERVICES_REQUIRING_DIPLOMA;
+export const requiresDiploma = serviceRequiresDiploma;
 
-  // Voiture (3 services)
-  nettoyage_auto: ['Nettoyage Auto Interne', 'Nettoyage Auto Externe', 'Nettoyage Auto Complet'],
-
-  // Animaux (2 services)
-  garde_animaux: ['Promenade d\'Animaux', 'Gardiennage d\'Animaux'],
-
-  // Bien-être (6 services)
-  massage: ['Massage Relaxant'],
-  hammam_soins: ['Hammam & Gommage', 'Soin Premium Argan'],
-  yoga: ['Yoga'],
-  coach_sportif: ['Coach Sportif'],
-  danse: ['Danse Orientale']
+// Mapping service -> nom dans la BDD (pour enregistrement)
+export const SERVICE_TO_DB_NAME = {
+  coiffure_homme_simple: 'Coiffure Homme Simple',
+  coiffure_homme_premium: 'Coiffure Homme Premium',
+  coiffure_express: 'Coiffure Express',
+  coiffure_classique: 'Coiffure Classique',
+  coiffure_mariage: 'Coiffure Mariage & Événement',
+  taille_barbe: 'Taille de Barbe',
+  pack_coiffure_barbe: 'Pack Coiffure + Barbe',
+  smooth_femme: 'Smooth Femme',
+  full_smooth_femme: 'Full Smooth Femme',
+  smooth_homme: 'Smooth Homme',
+  full_smooth_homme: 'Full Smooth Homme',
+  menage: 'Ménage',
+  petits_bricolages: 'Petits Bricolages',
+  jardinage: 'Jardinage',
+  chef_2_personnes: 'Chef à Domicile - 2 Personnes',
+  chef_4_personnes: 'Chef à Domicile - 4 Personnes',
+  chef_8_personnes: 'Chef à Domicile - 8 Personnes',
+  nettoyage_auto_interne: 'Nettoyage Auto Interne',
+  nettoyage_auto_externe: 'Nettoyage Auto Externe',
+  nettoyage_auto_complet: 'Nettoyage Auto Complet',
+  promenade_animaux: "Promenade d'Animaux",
+  gardiennage_animaux: "Gardiennage d'Animaux",
+  massage_relaxant: 'Massage Relaxant',
+  hammam_gommage: 'Hammam & Gommage',
+  soin_argan: 'Soin Premium Argan',
+  yoga: 'Yoga',
+  coach_sportif: 'Coach Sportif',
+  danse_orientale: 'Danse Orientale'
 };
 
-// Fonction pour obtenir les services d'une spécialité
-export const getServicesForSpecialty = (specialtyValue) => {
-  return SPECIALTY_TO_SERVICES[specialtyValue] || [];
-};
-
-// Fonction pour obtenir la clé de traduction (retourne le label direct)
-export const getSpecialtyLabelKey = (value) => {
-  const specialty = getSpecialtyByValue(value);
-  return specialty ? specialty.label : value;
+// Fonction pour obtenir le nom BDD d'un service
+export const getServiceDBName = (serviceValue) => {
+  return SERVICE_TO_DB_NAME[serviceValue] || serviceValue;
 };

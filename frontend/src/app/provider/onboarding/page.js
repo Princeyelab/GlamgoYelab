@@ -7,11 +7,11 @@ import Button from '@/components/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/apiClient';
 import {
-  SPECIALTIES_BY_CATEGORY,
-  SPECIALTIES_REQUIRING_DIPLOMA,
-  getServicesForSpecialty,
+  SERVICES_BY_CATEGORY,
   getCategoryLabel,
-  getSpecialtyLabel
+  getServiceLabel,
+  anyServiceRequiresDiploma,
+  getServiceDBName
 } from '@/lib/providerSpecialties';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -19,19 +19,17 @@ export default function ProviderOnboardingPage() {
   const router = useRouter();
   const { t, isRTL, language, toggleLanguage } = useLanguage();
   const { user, loading: authLoading, refreshUser } = useAuth();
-  const [selectedSpecialties, setSelectedSpecialties] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDiplomaUpload, setShowDiplomaUpload] = useState(false);
   const [diplomaFile, setDiplomaFile] = useState(null);
 
-  // Vérifier si un diplôme est requis pour les spécialités sélectionnées
+  // Vérifier si un diplôme est requis pour les services sélectionnés
   useEffect(() => {
-    const needsDiploma = selectedSpecialties.some(spec =>
-      SPECIALTIES_REQUIRING_DIPLOMA.includes(spec)
-    );
+    const needsDiploma = anyServiceRequiresDiploma(selectedServices);
     setShowDiplomaUpload(needsDiploma);
-  }, [selectedSpecialties]);
+  }, [selectedServices]);
 
   // Rediriger si pas authentifié
   useEffect(() => {
@@ -40,12 +38,12 @@ export default function ProviderOnboardingPage() {
     }
   }, [user, authLoading, router]);
 
-  const handleSpecialtyToggle = (specialtyValue) => {
-    setSelectedSpecialties(prev => {
-      if (prev.includes(specialtyValue)) {
-        return prev.filter(s => s !== specialtyValue);
+  const handleServiceToggle = (serviceValue) => {
+    setSelectedServices(prev => {
+      if (prev.includes(serviceValue)) {
+        return prev.filter(s => s !== serviceValue);
       } else {
-        return [...prev, specialtyValue];
+        return [...prev, serviceValue];
       }
     });
     setError('');
@@ -64,15 +62,13 @@ export default function ProviderOnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (selectedSpecialties.length === 0) {
+    if (selectedServices.length === 0) {
       setError(t('providerOnboarding.selectAtLeastOne'));
       return;
     }
 
     // Vérifier si diplôme requis mais non fourni
-    const needsDiploma = selectedSpecialties.some(spec =>
-      SPECIALTIES_REQUIRING_DIPLOMA.includes(spec)
-    );
+    const needsDiploma = anyServiceRequiresDiploma(selectedServices);
     if (needsDiploma && !diplomaFile) {
       setError(t('providerOnboarding.diplomaRequired'));
       return;
@@ -82,19 +78,16 @@ export default function ProviderOnboardingPage() {
     setError('');
 
     try {
-      // Convertir spécialités en services offerts
-      const servicesOffered = selectedSpecialties.flatMap(spec => {
-        const services = getServicesForSpecialty(spec);
-        return services.map(serviceName => ({
-          specialty: spec,
-          service_name: serviceName,
-          custom_price: null
-        }));
-      });
+      // Convertir les services sélectionnés en format pour la BDD
+      const servicesOffered = selectedServices.map(serviceValue => ({
+        service_key: serviceValue,
+        service_name: getServiceDBName(serviceValue),
+        custom_price: null
+      }));
 
       // Sauvegarder en localStorage pour le mode démo
       const providerTempData = JSON.parse(localStorage.getItem('provider_temp_data') || '{}');
-      providerTempData.specialties = selectedSpecialties;
+      providerTempData.services = selectedServices;
       providerTempData.services_offered = servicesOffered;
       providerTempData.onboarding_completed = true;
       localStorage.setItem('provider_temp_data', JSON.stringify(providerTempData));
@@ -102,7 +95,7 @@ export default function ProviderOnboardingPage() {
       // Essayer d'appeler le backend, mais ne pas bloquer si ça échoue
       try {
         const formData = new FormData();
-        formData.append('specialties', JSON.stringify(selectedSpecialties));
+        formData.append('services', JSON.stringify(selectedServices));
         formData.append('services_offered', JSON.stringify(servicesOffered));
         if (diplomaFile) {
           formData.append('diploma_certificate', diplomaFile);
@@ -187,30 +180,29 @@ export default function ProviderOnboardingPage() {
           )}
 
           <div className={styles.categoriesGrid}>
-            {Object.entries(SPECIALTIES_BY_CATEGORY).map(([categorySlug, specialties]) => (
+            {Object.entries(SERVICES_BY_CATEGORY).map(([categorySlug, services]) => (
               <div key={categorySlug} className={styles.categorySection}>
                 <h3 className={styles.categoryTitle}>
                   {getCategoryLabel(categorySlug, language)}
                 </h3>
                 <div className={styles.servicesGrid}>
-                  {specialties.map(specialty => {
-                    const isSelected = selectedSpecialties.includes(specialty.value);
-                    const requiresDiploma = SPECIALTIES_REQUIRING_DIPLOMA.includes(specialty.value);
+                  {services.map(service => {
+                    const isSelected = selectedServices.includes(service.value);
 
                     return (
                       <div
-                        key={specialty.value}
+                        key={service.value}
                         className={`${styles.serviceCard} ${isSelected ? styles.selected : ''}`}
-                        onClick={() => handleSpecialtyToggle(specialty.value)}
+                        onClick={() => handleServiceToggle(service.value)}
                       >
                         <div className={styles.cardIcon}>
-                          {specialty.icon || '✨'}
+                          {service.icon || '✨'}
                         </div>
                         <div className={styles.cardContent}>
                           <span className={styles.cardLabel}>
-                            {getSpecialtyLabel(specialty, language)}
+                            {getServiceLabel(service, language)}
                           </span>
-                          {requiresDiploma && (
+                          {service.requiresDiploma && (
                             <span className={styles.diplomaBadge} title={t('providerOnboarding.diplomaRequired')}>
                               🎓
                             </span>
@@ -259,10 +251,10 @@ export default function ProviderOnboardingPage() {
           )}
 
           {/* Résumé de la sélection */}
-          {selectedSpecialties.length > 0 && (
+          {selectedServices.length > 0 && (
             <div className={styles.selectionSummary}>
               <span className={styles.summaryLabel}>
-                {selectedSpecialties.length} {selectedSpecialties.length > 1 ? t('providerOnboarding.specialtiesSelected') : t('providerOnboarding.specialtySelected')}
+                {selectedServices.length} {selectedServices.length > 1 ? t('providerOnboarding.servicesSelected') : t('providerOnboarding.serviceSelected')}
               </span>
             </div>
           )}
@@ -281,7 +273,7 @@ export default function ProviderOnboardingPage() {
               size="large"
               onClick={handleSubmit}
               loading={loading}
-              disabled={loading || selectedSpecialties.length === 0}
+              disabled={loading || selectedServices.length === 0}
             >
               {loading ? t('providerOnboarding.saving') : t('providerOnboarding.finish')}
             </Button>
