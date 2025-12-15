@@ -8,15 +8,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/apiClient';
 import {
   SPECIALTIES_BY_CATEGORY,
-  CATEGORY_LABELS,
   SPECIALTIES_REQUIRING_DIPLOMA,
-  getServicesForSpecialty
+  getServicesForSpecialty,
+  getCategoryLabel,
+  getSpecialtyLabel
 } from '@/lib/providerSpecialties';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderOnboardingPage() {
   const router = useRouter();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language, toggleLanguage } = useLanguage();
   const { user, loading: authLoading, refreshUser } = useAuth();
   const [selectedSpecialties, setSelectedSpecialties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -162,6 +163,16 @@ export default function ProviderOnboardingPage() {
 
   return (
     <div className={styles.onboardingPage} dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Bouton de changement de langue */}
+      <button
+        className={styles.languageToggle}
+        onClick={toggleLanguage}
+        aria-label={language === 'fr' ? 'التبديل إلى العربية' : 'Passer en français'}
+      >
+        <span className={styles.languageIcon}>{language === 'fr' ? '🇲🇦' : '🇫🇷'}</span>
+        <span className={styles.languageText}>{language === 'fr' ? 'العربية' : 'Français'}</span>
+      </button>
+
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.header}>
@@ -177,40 +188,38 @@ export default function ProviderOnboardingPage() {
 
           <div className={styles.categoriesGrid}>
             {Object.entries(SPECIALTIES_BY_CATEGORY).map(([categorySlug, specialties]) => (
-              <div key={categorySlug} className={styles.categoryCard}>
+              <div key={categorySlug} className={styles.categorySection}>
                 <h3 className={styles.categoryTitle}>
-                  {CATEGORY_LABELS[categorySlug]}
+                  {getCategoryLabel(categorySlug, language)}
                 </h3>
-                <div className={styles.specialtiesList}>
+                <div className={styles.servicesGrid}>
                   {specialties.map(specialty => {
                     const isSelected = selectedSpecialties.includes(specialty.value);
                     const requiresDiploma = SPECIALTIES_REQUIRING_DIPLOMA.includes(specialty.value);
 
                     return (
-                      <label
+                      <div
                         key={specialty.value}
-                        className={`${styles.specialtyItem} ${isSelected ? styles.selected : ''}`}
+                        className={`${styles.serviceCard} ${isSelected ? styles.selected : ''}`}
+                        onClick={() => handleSpecialtyToggle(specialty.value)}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleSpecialtyToggle(specialty.value)}
-                          className={styles.checkbox}
-                        />
-                        <div className={styles.specialtyInfo}>
-                          <span className={styles.specialtyLabel}>
-                            {specialty.label}
-                            {requiresDiploma && (
-                              <span className={styles.diplomaBadge} title={t('providerOnboarding.diplomaRequired')}>
-                                🎓
-                              </span>
-                            )}
-                          </span>
-                          <span className={styles.specialtyDescription}>
-                            {specialty.description}
-                          </span>
+                        <div className={styles.cardIcon}>
+                          {specialty.icon || '✨'}
                         </div>
-                      </label>
+                        <div className={styles.cardContent}>
+                          <span className={styles.cardLabel}>
+                            {getSpecialtyLabel(specialty, language)}
+                          </span>
+                          {requiresDiploma && (
+                            <span className={styles.diplomaBadge} title={t('providerOnboarding.diplomaRequired')}>
+                              🎓
+                            </span>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <div className={styles.checkmark}>✓</div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

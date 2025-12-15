@@ -1,154 +1,175 @@
 // Spécialités des prestataires basées sur les services GlamGo
-// Ce fichier centralise les spécialités disponibles pour l'inscription et le profil des prestataires
-// ⚠️ SYNCHRONISÉ avec categoryServices.js
 
 export const PROVIDER_SPECIALTIES = {
   // ==================== BEAUTÉ ====================
   coiffure_homme: {
     value: 'coiffure_homme',
-    label: 'Coiffure homme',
-    category: 'beaute',
-    description: 'Coupes classiques et tendances pour hommes'
+    label: 'Coiffure Homme',
+    labelAr: 'حلاقة رجال',
+    icon: '💇‍♂️',
+    category: 'beaute'
   },
   coiffure_femme: {
     value: 'coiffure_femme',
-    label: 'Coiffure femme',
-    category: 'beaute',
-    description: 'Coupes, colorations, brushing pour femmes'
+    label: 'Coiffure Femme',
+    labelAr: 'تصفيف شعر نساء',
+    icon: '💇‍♀️',
+    category: 'beaute'
   },
   barbier: {
     value: 'barbier',
     label: 'Barbier',
-    category: 'beaute',
-    description: 'Taille de barbe, rasage à l\'ancienne, soins barbe'
+    labelAr: 'حلاق',
+    icon: '🧔',
+    category: 'beaute'
   },
   maquillage: {
     value: 'maquillage',
     label: 'Maquillage',
-    category: 'beaute',
-    description: 'Maquillage jour, soirée, mariage'
+    labelAr: 'مكياج',
+    icon: '💄',
+    category: 'beaute'
   },
   manucure_pedicure: {
     value: 'manucure_pedicure',
     label: 'Manucure & Pédicure',
-    category: 'beaute',
-    description: 'Soins des ongles, pose de vernis, pédicure spa'
+    labelAr: 'مانيكير وباديكير',
+    icon: '💅',
+    category: 'beaute'
   },
   epilation: {
     value: 'epilation',
     label: 'Épilation',
-    category: 'beaute',
-    description: 'Épilation jambes, sourcils, visage, corps'
+    labelAr: 'إزالة الشعر',
+    icon: '✨',
+    category: 'beaute'
   },
 
   // ==================== BIEN-ÊTRE ====================
   massage: {
     value: 'massage',
     label: 'Massage',
-    category: 'bien-etre',
-    description: 'Massage tonique, sportif, thaïlandais, marocain traditionnel'
+    labelAr: 'تدليك',
+    icon: '💆',
+    category: 'bien-etre'
   },
   yoga: {
     value: 'yoga',
     label: 'Yoga',
-    category: 'bien-etre',
-    description: 'Cours de yoga à domicile'
+    labelAr: 'يوغا',
+    icon: '🧘',
+    category: 'bien-etre'
   },
   pilates: {
     value: 'pilates',
     label: 'Pilates',
-    category: 'bien-etre',
-    description: 'Cours de pilates à domicile'
+    labelAr: 'بيلاتس',
+    icon: '🤸',
+    category: 'bien-etre'
   },
   coaching_sport: {
     value: 'coaching_sport',
-    label: 'Coach sportif',
-    category: 'bien-etre',
-    description: 'Musculation personnalisée, étirements guidés'
+    label: 'Coaching Sport',
+    labelAr: 'تدريب رياضي',
+    icon: '🏋️',
+    category: 'bien-etre'
   },
   meditation: {
     value: 'meditation',
-    label: 'Méditation & Respiration',
-    category: 'bien-etre',
-    description: 'Méditation guidée, exercices de respiration'
+    label: 'Méditation',
+    labelAr: 'تأمل',
+    icon: '🙏',
+    category: 'bien-etre'
   },
   coaching_nutrition: {
     value: 'coaching_nutrition',
-    label: 'Coaching nutrition',
-    category: 'bien-etre',
-    description: 'Conseils nutritionnels personnalisés'
+    label: 'Coaching Nutrition',
+    labelAr: 'تدريب تغذية',
+    icon: '🥗',
+    category: 'bien-etre'
   },
 
   // ==================== MAISON ====================
   menage: {
     value: 'menage',
     label: 'Ménage',
-    category: 'maison',
-    description: 'Ménage classique, approfondi, nettoyage après événement, repassage'
+    labelAr: 'تنظيف منزلي',
+    icon: '🧹',
+    category: 'maison'
   },
   bricolage: {
     value: 'bricolage',
     label: 'Bricolage',
-    category: 'maison',
-    description: 'Montage meuble, plomberie, perçage, fixation'
+    labelAr: 'أعمال يدوية',
+    icon: '🔧',
+    category: 'maison'
   },
   jardinage: {
     value: 'jardinage',
     label: 'Jardinage',
-    category: 'maison',
-    description: 'Entretien pelouse, taille haies, plantation'
+    labelAr: 'بستنة',
+    icon: '🌱',
+    category: 'maison'
   },
   cuisine: {
     value: 'cuisine',
-    label: 'Chef à domicile',
-    category: 'maison',
-    description: 'Préparation repas, chef événementiel, coaching cuisine'
+    label: 'Cuisine',
+    labelAr: 'طبخ',
+    icon: '👨‍🍳',
+    category: 'maison'
   },
   demenagement: {
     value: 'demenagement',
-    label: 'Petit déménagement',
-    category: 'maison',
-    description: 'Aide au déménagement, transport de meubles'
+    label: 'Déménagement',
+    labelAr: 'نقل أثاث',
+    icon: '📦',
+    category: 'maison'
   },
 
   // ==================== VOITURE ====================
   mecanique_auto: {
     value: 'mecanique_auto',
-    label: 'Mécanique auto',
-    category: 'voiture',
-    description: 'Vidange, changement pneu, ampoules, essuie-glaces'
+    label: 'Mécanique Auto',
+    labelAr: 'ميكانيك سيارات',
+    icon: '🔩',
+    category: 'voiture'
   },
   nettoyage_auto: {
     value: 'nettoyage_auto',
-    label: 'Nettoyage auto',
-    category: 'voiture',
-    description: 'Nettoyage intérieur et extérieur de véhicules'
+    label: 'Nettoyage Auto',
+    labelAr: 'غسيل سيارات',
+    icon: '🚗',
+    category: 'voiture'
   },
 
   // ==================== ANIMAUX ====================
   toilettage_animaux: {
     value: 'toilettage_animaux',
-    label: 'Toilettage animaux',
-    category: 'animaux',
-    description: 'Toilettage chiens et autres animaux de compagnie'
+    label: 'Toilettage',
+    labelAr: 'تجميل حيوانات',
+    icon: '🐕',
+    category: 'animaux'
   },
   garde_animaux: {
     value: 'garde_animaux',
-    label: 'Garde d\'animaux',
-    category: 'animaux',
-    description: 'Promenade, gardiennage à domicile, nourrissage'
+    label: 'Garde Animaux',
+    labelAr: 'رعاية حيوانات',
+    icon: '🏠',
+    category: 'animaux'
   },
   transport_animaux: {
     value: 'transport_animaux',
-    label: 'Transport animaux',
-    category: 'animaux',
-    description: 'Transport sécurisé d\'animaux de compagnie'
+    label: 'Transport Animaux',
+    labelAr: 'نقل حيوانات',
+    icon: '🚐',
+    category: 'animaux'
   },
   nettoyage_animaux: {
     value: 'nettoyage_animaux',
-    label: 'Nettoyage espace animal',
-    category: 'animaux',
-    description: 'Nettoyage et entretien des espaces pour animaux'
+    label: 'Nettoyage Espace',
+    labelAr: 'تنظيف مساحة',
+    icon: '🧼',
+    category: 'animaux'
   }
 };
 
@@ -164,13 +185,47 @@ export const SPECIALTIES_BY_CATEGORY = {
   animaux: SPECIALTY_LIST.filter(s => s.category === 'animaux')
 };
 
-// Labels de catégories
+// Labels de catégories (Français)
 export const CATEGORY_LABELS = {
   beaute: 'Beauté',
   'bien-etre': 'Bien-être',
   maison: 'Maison',
   voiture: 'Voiture',
   animaux: 'Animaux'
+};
+
+// Labels de catégories (Arabe)
+export const CATEGORY_LABELS_AR = {
+  beaute: 'الجمال',
+  'bien-etre': 'الرفاهية',
+  maison: 'المنزل',
+  voiture: 'السيارة',
+  animaux: 'الحيوانات'
+};
+
+// Fonction pour obtenir le label de catégorie traduit
+export const getCategoryLabel = (categorySlug, language = 'fr') => {
+  if (language === 'ar') {
+    return CATEGORY_LABELS_AR[categorySlug] || CATEGORY_LABELS[categorySlug] || categorySlug;
+  }
+  return CATEGORY_LABELS[categorySlug] || categorySlug;
+};
+
+// Fonction pour obtenir le label de spécialité traduit
+export const getSpecialtyLabel = (specialty, language = 'fr') => {
+  if (language === 'ar' && specialty.labelAr) {
+    return specialty.labelAr;
+  }
+  return specialty.label;
+};
+
+// Clés de traduction pour les catégories
+export const CATEGORY_LABEL_KEYS = {
+  beaute: 'categories.beauty',
+  'bien-etre': 'categories.wellness',
+  maison: 'categories.home',
+  voiture: 'categories.car',
+  animaux: 'categories.pets'
 };
 
 // Spécialités nécessitant un diplôme/certificat
@@ -192,22 +247,17 @@ export const getSpecialtyByValue = (value) => {
   return PROVIDER_SPECIALTIES[value] || null;
 };
 
-// Fonction pour obtenir le label d'une spécialité
-export const getSpecialtyLabel = (value) => {
-  const specialty = getSpecialtyByValue(value);
-  return specialty ? specialty.label : value;
-};
-
 // Fonction pour vérifier si une spécialité nécessite un diplôme
 export const requiresDiploma = (value) => {
   return SPECIALTIES_REQUIRING_DIPLOMA.includes(value);
 };
 
 // Mapping spécialité -> services correspondants
+// ⚠️ SYNCHRONISÉ avec categoryServices.js et la base de données
 export const SPECIALTY_TO_SERVICES = {
-  coiffure_homme: ['Coupe classique homme', 'Coupe tendance homme', 'Combo coupe + barbe'],
+  coiffure_homme: ['Coiffure Homme Simple', 'Coiffure Homme Premium', 'Coupe classique homme', 'Coupe tendance homme'],
   coiffure_femme: ['Coupe cheveux courts', 'Coupe cheveux longs', 'Coloration cheveux courts', 'Coloration cheveux longs'],
-  barbier: ['Taille de barbe classique', 'Barbe et contours', 'Rasage à l\'ancienne', 'Soin barbe'],
+  barbier: ['Taille de Barbe', 'Pack Coiffure + Barbe', 'Taille de barbe classique', 'Barbe et contours', 'Rasage à l\'ancienne', 'Soin barbe'],
   maquillage: ['Maquillage jour', 'Maquillage soirée', 'Maquillage mariage'],
   manucure_pedicure: ['Manucure femme', 'Manucure homme', 'Pédicure spa'],
   epilation: ['Jambes complètes femme', 'Sourcils et visage', 'Torse ou dos', 'Bras complets'],
@@ -233,4 +283,10 @@ export const SPECIALTY_TO_SERVICES = {
 // Fonction pour obtenir les services d'une spécialité
 export const getServicesForSpecialty = (specialtyValue) => {
   return SPECIALTY_TO_SERVICES[specialtyValue] || [];
+};
+
+// Fonction pour obtenir la clé de traduction (retourne le label direct)
+export const getSpecialtyLabelKey = (value) => {
+  const specialty = getSpecialtyByValue(value);
+  return specialty ? specialty.label : value;
 };
