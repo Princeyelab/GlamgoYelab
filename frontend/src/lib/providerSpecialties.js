@@ -1,8 +1,8 @@
 // Spécialités des prestataires basées sur les services GlamGo
-// ⚠️ SYNCHRONISÉ avec categoryServices.js et la base de données
+// ⚠️ SYNCHRONISÉ avec la base de données - 28 services / 16 spécialités
 
 export const PROVIDER_SPECIALTIES = {
-  // ==================== BEAUTÉ ====================
+  // ==================== BEAUTÉ (5 spécialités) ====================
   coiffure_homme: {
     value: 'coiffure_homme',
     label: 'Coiffure Homme',
@@ -24,52 +24,22 @@ export const PROVIDER_SPECIALTIES = {
     icon: '🧔',
     category: 'beaute'
   },
-  maquillage: {
-    value: 'maquillage',
-    label: 'Maquillage',
-    labelAr: 'مكياج',
-    icon: '💄',
+  epilation_femme: {
+    value: 'epilation_femme',
+    label: 'Épilation Femme',
+    labelAr: 'إزالة الشعر للنساء',
+    icon: '✨',
     category: 'beaute'
   },
-  manucure_pedicure: {
-    value: 'manucure_pedicure',
-    label: 'Manucure & Pédicure',
-    labelAr: 'مانيكير وباديكير',
-    icon: '💅',
-    category: 'beaute'
-  },
-  epilation: {
-    value: 'epilation',
-    label: 'Épilation',
-    labelAr: 'إزالة الشعر',
+  epilation_homme: {
+    value: 'epilation_homme',
+    label: 'Épilation Homme',
+    labelAr: 'إزالة الشعر للرجال',
     icon: '✨',
     category: 'beaute'
   },
 
-  // ==================== BIEN-ÊTRE ====================
-  massage: {
-    value: 'massage',
-    label: 'Massage',
-    labelAr: 'تدليك',
-    icon: '💆',
-    category: 'bien-etre'
-  },
-  coaching_sport: {
-    value: 'coaching_sport',
-    label: 'Coaching Sportif',
-    labelAr: 'تدريب رياضي',
-    icon: '🏋️',
-    category: 'bien-etre'
-  },
-  coaching_nutrition: {
-    value: 'coaching_nutrition',
-    label: 'Coaching Nutrition',
-    labelAr: 'تدريب تغذية',
-    icon: '🥗',
-    category: 'bien-etre'
-  },
-
-  // ==================== MAISON ====================
+  // ==================== MAISON (4 spécialités) ====================
   menage: {
     value: 'menage',
     label: 'Ménage',
@@ -91,22 +61,15 @@ export const PROVIDER_SPECIALTIES = {
     icon: '🌱',
     category: 'maison'
   },
-  cuisine: {
-    value: 'cuisine',
-    label: 'Cuisine',
-    labelAr: 'طبخ',
+  chef_domicile: {
+    value: 'chef_domicile',
+    label: 'Chef à Domicile',
+    labelAr: 'طباخ منزلي',
     icon: '👨‍🍳',
     category: 'maison'
   },
 
-  // ==================== VOITURE ====================
-  mecanique_auto: {
-    value: 'mecanique_auto',
-    label: 'Mécanique Auto',
-    labelAr: 'ميكانيك سيارات',
-    icon: '🔩',
-    category: 'voiture'
-  },
+  // ==================== VOITURE (1 spécialité) ====================
   nettoyage_auto: {
     value: 'nettoyage_auto',
     label: 'Nettoyage Auto',
@@ -115,34 +78,50 @@ export const PROVIDER_SPECIALTIES = {
     category: 'voiture'
   },
 
-  // ==================== ANIMAUX ====================
-  toilettage_animaux: {
-    value: 'toilettage_animaux',
-    label: 'Toilettage',
-    labelAr: 'تجميل حيوانات',
-    icon: '🐕',
-    category: 'animaux'
-  },
+  // ==================== ANIMAUX (1 spécialité) ====================
   garde_animaux: {
     value: 'garde_animaux',
     label: 'Garde Animaux',
     labelAr: 'رعاية حيوانات',
-    icon: '🏠',
+    icon: '🐕',
     category: 'animaux'
   },
-  transport_animaux: {
-    value: 'transport_animaux',
-    label: 'Transport Animaux',
-    labelAr: 'نقل حيوانات',
-    icon: '🚐',
-    category: 'animaux'
+
+  // ==================== BIEN-ÊTRE (5 spécialités) ====================
+  massage: {
+    value: 'massage',
+    label: 'Massage',
+    labelAr: 'تدليك',
+    icon: '💆',
+    category: 'bien-etre'
   },
-  nettoyage_animaux: {
-    value: 'nettoyage_animaux',
-    label: 'Nettoyage Espace',
-    labelAr: 'تنظيف مساحة',
-    icon: '🧼',
-    category: 'animaux'
+  hammam_soins: {
+    value: 'hammam_soins',
+    label: 'Hammam & Soins',
+    labelAr: 'حمام وعناية',
+    icon: '🛁',
+    category: 'bien-etre'
+  },
+  yoga: {
+    value: 'yoga',
+    label: 'Yoga',
+    labelAr: 'يوغا',
+    icon: '🧘',
+    category: 'bien-etre'
+  },
+  coach_sportif: {
+    value: 'coach_sportif',
+    label: 'Coach Sportif',
+    labelAr: 'مدرب رياضي',
+    icon: '🏋️',
+    category: 'bien-etre'
+  },
+  danse: {
+    value: 'danse',
+    label: 'Danse',
+    labelAr: 'رقص',
+    icon: '💃',
+    category: 'bien-etre'
   }
 };
 
@@ -152,28 +131,28 @@ export const SPECIALTY_LIST = Object.values(PROVIDER_SPECIALTIES);
 // Spécialités groupées par catégorie
 export const SPECIALTIES_BY_CATEGORY = {
   beaute: SPECIALTY_LIST.filter(s => s.category === 'beaute'),
-  'bien-etre': SPECIALTY_LIST.filter(s => s.category === 'bien-etre'),
   maison: SPECIALTY_LIST.filter(s => s.category === 'maison'),
   voiture: SPECIALTY_LIST.filter(s => s.category === 'voiture'),
-  animaux: SPECIALTY_LIST.filter(s => s.category === 'animaux')
+  animaux: SPECIALTY_LIST.filter(s => s.category === 'animaux'),
+  'bien-etre': SPECIALTY_LIST.filter(s => s.category === 'bien-etre')
 };
 
 // Labels de catégories (Français)
 export const CATEGORY_LABELS = {
   beaute: 'Beauté',
-  'bien-etre': 'Bien-être',
   maison: 'Maison',
   voiture: 'Voiture',
-  animaux: 'Animaux'
+  animaux: 'Animaux',
+  'bien-etre': 'Bien-être'
 };
 
 // Labels de catégories (Arabe)
 export const CATEGORY_LABELS_AR = {
   beaute: 'الجمال',
-  'bien-etre': 'الرفاهية',
   maison: 'المنزل',
   voiture: 'السيارة',
-  animaux: 'الحيوانات'
+  animaux: 'الحيوانات',
+  'bien-etre': 'الرفاهية'
 };
 
 // Fonction pour obtenir le label de catégorie traduit
@@ -195,10 +174,10 @@ export const getSpecialtyLabel = (specialty, language = 'fr') => {
 // Clés de traduction pour les catégories
 export const CATEGORY_LABEL_KEYS = {
   beaute: 'categories.beauty',
-  'bien-etre': 'categories.wellness',
   maison: 'categories.home',
   voiture: 'categories.car',
-  animaux: 'categories.pets'
+  animaux: 'categories.pets',
+  'bien-etre': 'categories.wellness'
 };
 
 // Spécialités nécessitant un diplôme/certificat
@@ -206,11 +185,11 @@ export const SPECIALTIES_REQUIRING_DIPLOMA = [
   'coiffure_homme',
   'coiffure_femme',
   'barbier',
-  'maquillage',
   'massage',
-  'coaching_sport',
-  'coaching_nutrition',
-  'mecanique_auto'
+  'hammam_soins',
+  'yoga',
+  'coach_sportif',
+  'danse'
 ];
 
 // Fonction pour obtenir une spécialité par sa valeur
@@ -223,37 +202,34 @@ export const requiresDiploma = (value) => {
   return SPECIALTIES_REQUIRING_DIPLOMA.includes(value);
 };
 
-// Mapping spécialité -> services correspondants
-// ⚠️ SYNCHRONISÉ avec categoryServices.js et la base de données
+// Mapping spécialité -> services correspondants (28 services)
+// ⚠️ SYNCHRONISÉ avec la base de données
 export const SPECIALTY_TO_SERVICES = {
-  // Beauté
-  coiffure_homme: ['Coiffure Homme Simple', 'Coiffure Homme Premium', 'Coupe classique homme', 'Coupe tendance homme'],
-  coiffure_femme: ['Coupe cheveux courts', 'Coupe cheveux longs', 'Coloration cheveux courts', 'Coloration cheveux longs'],
-  barbier: ['Taille de Barbe', 'Pack Coiffure + Barbe', 'Taille de barbe classique', 'Barbe et contours', 'Rasage à l\'ancienne', 'Soin barbe'],
-  maquillage: ['Maquillage jour', 'Maquillage soirée', 'Maquillage mariage'],
-  manucure_pedicure: ['Manucure femme', 'Manucure homme', 'Pédicure spa'],
-  epilation: ['Jambes complètes femme', 'Sourcils et visage', 'Torse ou dos', 'Bras complets'],
+  // Beauté (7 services)
+  coiffure_homme: ['Coiffure Homme Simple', 'Coiffure Homme Premium'],
+  coiffure_femme: ['Coiffure Express', 'Coiffure Classique', 'Coiffure Mariage & Événement'],
+  barbier: ['Taille de Barbe', 'Pack Coiffure + Barbe'],
+  epilation_femme: ['Smooth Femme', 'Full Smooth Femme'],
+  epilation_homme: ['Smooth Homme', 'Full Smooth Homme'],
 
-  // Bien-être
-  massage: ['Massage tonique', 'Massage sportif', 'Massage thaïlandais', 'Massage marocain traditionnel'],
-  coaching_sport: ['Yoga', 'Pilates', 'Étirements guidés', 'Musculation personnalisée', 'Méditation et respiration'],
-  coaching_nutrition: ['Coaching nutrition'],
+  // Maison (6 services)
+  menage: ['Ménage'],
+  bricolage: ['Petits Bricolages'],
+  jardinage: ['Jardinage'],
+  chef_domicile: ['Chef à Domicile - 2 Personnes', 'Chef à Domicile - 4 Personnes', 'Chef à Domicile - 8 Personnes'],
 
-  // Maison
-  menage: ['Ménage classique', 'Ménage approfondi', 'Nettoyage après événement', 'Nettoyage de printemps', 'Nettoyage cuisine', 'Nettoyage salle de bain', 'Service repassage'],
-  bricolage: ['Montage meuble', 'Changement d\'ampoule', 'Petits travaux plomberie', 'Perçage et fixation', 'Petit déménagement'],
-  jardinage: ['Entretien pelouse', 'Taille haies', 'Plantation fleurs'],
-  cuisine: ['Préparation repas', 'Chef événementiel', 'Coaching cuisine'],
+  // Voiture (3 services)
+  nettoyage_auto: ['Nettoyage Auto Interne', 'Nettoyage Auto Externe', 'Nettoyage Auto Complet'],
 
-  // Voiture
-  mecanique_auto: ['Vidange huile', 'Changement ampoule voiture', 'Changement essuie-glace', 'Changement pneu'],
-  nettoyage_auto: ['Nettoyage extérieur seul', 'Nettoyage intérieur seul', 'Combo intérieur + extérieur'],
+  // Animaux (2 services)
+  garde_animaux: ['Promenade d\'Animaux', 'Gardiennage d\'Animaux'],
 
-  // Animaux
-  toilettage_animaux: ['Toilettage chien'],
-  garde_animaux: ['Promenade chien', 'Gardiennage à domicile', 'Gardiennage longue durée', 'Nourrissage animaux'],
-  transport_animaux: ['Transport animaux'],
-  nettoyage_animaux: ['Nettoyage espace animal']
+  // Bien-être (6 services)
+  massage: ['Massage Relaxant'],
+  hammam_soins: ['Hammam & Gommage', 'Soin Premium Argan'],
+  yoga: ['Yoga'],
+  coach_sportif: ['Coach Sportif'],
+  danse: ['Danse Orientale']
 };
 
 // Fonction pour obtenir les services d'une spécialité
