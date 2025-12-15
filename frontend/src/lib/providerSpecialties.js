@@ -315,6 +315,21 @@ export const getSpecialtyLabel = getServiceLabel;
 export const SPECIALTIES_REQUIRING_DIPLOMA = SERVICES_REQUIRING_DIPLOMA;
 export const requiresDiploma = serviceRequiresDiploma;
 
+// Clés de traduction pour les catégories (legacy)
+export const CATEGORY_LABEL_KEYS = {
+  beaute: 'categories.beauty',
+  maison: 'categories.home',
+  voiture: 'categories.car',
+  animaux: 'categories.pets',
+  'bien-etre': 'categories.wellness'
+};
+
+// Fonction pour obtenir la clé de traduction d'un service (legacy)
+export const getSpecialtyLabelKey = (value) => {
+  const service = getServiceByValue(value);
+  return service ? service.label : value;
+};
+
 // Mapping service -> nom dans la BDD (pour enregistrement)
 export const SERVICE_TO_DB_NAME = {
   coiffure_homme_simple: 'Coiffure Homme Simple',
