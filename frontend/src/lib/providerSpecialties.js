@@ -1,4 +1,5 @@
 // Spécialités des prestataires basées sur les services GlamGo
+// ⚠️ SYNCHRONISÉ avec categoryServices.js et la base de données
 
 export const PROVIDER_SPECIALTIES = {
   // ==================== BEAUTÉ ====================
@@ -53,32 +54,11 @@ export const PROVIDER_SPECIALTIES = {
     icon: '💆',
     category: 'bien-etre'
   },
-  yoga: {
-    value: 'yoga',
-    label: 'Yoga',
-    labelAr: 'يوغا',
-    icon: '🧘',
-    category: 'bien-etre'
-  },
-  pilates: {
-    value: 'pilates',
-    label: 'Pilates',
-    labelAr: 'بيلاتس',
-    icon: '🤸',
-    category: 'bien-etre'
-  },
   coaching_sport: {
     value: 'coaching_sport',
-    label: 'Coaching Sport',
+    label: 'Coaching Sportif',
     labelAr: 'تدريب رياضي',
     icon: '🏋️',
-    category: 'bien-etre'
-  },
-  meditation: {
-    value: 'meditation',
-    label: 'Méditation',
-    labelAr: 'تأمل',
-    icon: '🙏',
     category: 'bien-etre'
   },
   coaching_nutrition: {
@@ -116,13 +96,6 @@ export const PROVIDER_SPECIALTIES = {
     label: 'Cuisine',
     labelAr: 'طبخ',
     icon: '👨‍🍳',
-    category: 'maison'
-  },
-  demenagement: {
-    value: 'demenagement',
-    label: 'Déménagement',
-    labelAr: 'نقل أثاث',
-    icon: '📦',
     category: 'maison'
   },
 
@@ -235,8 +208,6 @@ export const SPECIALTIES_REQUIRING_DIPLOMA = [
   'barbier',
   'maquillage',
   'massage',
-  'yoga',
-  'pilates',
   'coaching_sport',
   'coaching_nutrition',
   'mecanique_auto'
@@ -255,25 +226,30 @@ export const requiresDiploma = (value) => {
 // Mapping spécialité -> services correspondants
 // ⚠️ SYNCHRONISÉ avec categoryServices.js et la base de données
 export const SPECIALTY_TO_SERVICES = {
+  // Beauté
   coiffure_homme: ['Coiffure Homme Simple', 'Coiffure Homme Premium', 'Coupe classique homme', 'Coupe tendance homme'],
   coiffure_femme: ['Coupe cheveux courts', 'Coupe cheveux longs', 'Coloration cheveux courts', 'Coloration cheveux longs'],
   barbier: ['Taille de Barbe', 'Pack Coiffure + Barbe', 'Taille de barbe classique', 'Barbe et contours', 'Rasage à l\'ancienne', 'Soin barbe'],
   maquillage: ['Maquillage jour', 'Maquillage soirée', 'Maquillage mariage'],
   manucure_pedicure: ['Manucure femme', 'Manucure homme', 'Pédicure spa'],
   epilation: ['Jambes complètes femme', 'Sourcils et visage', 'Torse ou dos', 'Bras complets'],
+
+  // Bien-être
   massage: ['Massage tonique', 'Massage sportif', 'Massage thaïlandais', 'Massage marocain traditionnel'],
-  yoga: ['Yoga'],
-  pilates: ['Pilates'],
-  coaching_sport: ['Musculation personnalisée', 'Étirements guidés'],
-  meditation: ['Méditation et respiration'],
+  coaching_sport: ['Yoga', 'Pilates', 'Étirements guidés', 'Musculation personnalisée', 'Méditation et respiration'],
   coaching_nutrition: ['Coaching nutrition'],
+
+  // Maison
   menage: ['Ménage classique', 'Ménage approfondi', 'Nettoyage après événement', 'Nettoyage de printemps', 'Nettoyage cuisine', 'Nettoyage salle de bain', 'Service repassage'],
-  bricolage: ['Montage meuble', 'Changement d\'ampoule', 'Petits travaux plomberie', 'Perçage et fixation'],
+  bricolage: ['Montage meuble', 'Changement d\'ampoule', 'Petits travaux plomberie', 'Perçage et fixation', 'Petit déménagement'],
   jardinage: ['Entretien pelouse', 'Taille haies', 'Plantation fleurs'],
   cuisine: ['Préparation repas', 'Chef événementiel', 'Coaching cuisine'],
-  demenagement: ['Petit déménagement'],
+
+  // Voiture
   mecanique_auto: ['Vidange huile', 'Changement ampoule voiture', 'Changement essuie-glace', 'Changement pneu'],
   nettoyage_auto: ['Nettoyage extérieur seul', 'Nettoyage intérieur seul', 'Combo intérieur + extérieur'],
+
+  // Animaux
   toilettage_animaux: ['Toilettage chien'],
   garde_animaux: ['Promenade chien', 'Gardiennage à domicile', 'Gardiennage longue durée', 'Nourrissage animaux'],
   transport_animaux: ['Transport animaux'],
