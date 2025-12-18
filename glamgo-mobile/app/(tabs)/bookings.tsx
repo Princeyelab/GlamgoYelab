@@ -159,7 +159,7 @@ export default function BookingsScreen() {
       date={item.date}
       time={item.start_time}
       status={item.status}
-      total={item.price}
+      total={item.total || item.price}
       currency={item.currency}
       address={item.address}
       variant={activeTab}

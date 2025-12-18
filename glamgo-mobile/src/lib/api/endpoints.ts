@@ -53,16 +53,16 @@ export const ENDPOINTS = {
     AVAILABILITY: (id: number | string) => `/api/providers/${id}/availability`,
   },
 
-  // === RESERVATIONS / BOOKINGS ===
+  // === RESERVATIONS / BOOKINGS (uses /api/orders in backend) ===
   BOOKINGS: {
-    LIST: '/api/bookings',
-    CREATE: '/api/bookings',
-    DETAIL: (id: number | string) => `/api/bookings/${id}`,
-    CANCEL: (id: number | string) => `/api/bookings/${id}/cancel`,
-    CONFIRM: (id: number | string) => `/api/bookings/${id}/confirm`,
-    COMPLETE: (id: number | string) => `/api/bookings/${id}/complete`,
-    HISTORY: '/api/bookings/history',
-    UPCOMING: '/api/bookings/upcoming',
+    LIST: '/api/orders',
+    CREATE: '/api/orders',
+    DETAIL: (id: number | string) => `/api/orders/${id}`,
+    CANCEL: (id: number | string) => `/api/orders/${id}/cancel`,
+    CONFIRM: (id: number | string) => `/api/orders/${id}/accept`,  // Provider accepts
+    COMPLETE: (id: number | string) => `/api/orders/${id}/confirm-complete`,
+    HISTORY: '/api/orders',  // Same endpoint with status filter
+    UPCOMING: '/api/orders', // Same endpoint with status filter
   },
 
   // === AVIS / REVIEWS ===

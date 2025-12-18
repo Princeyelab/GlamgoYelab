@@ -10,7 +10,9 @@ import { ENDPOINTS } from './endpoints';
 
 export type BookingStatus =
   | 'pending'        // En attente de confirmation
-  | 'confirmed'      // Confirmee par le prestataire
+  | 'accepted'       // Acceptee par le prestataire
+  | 'confirmed'      // Confirmee (alias de accepted)
+  | 'on_way'         // Prestataire en route
   | 'in_progress'    // En cours
   | 'completed'      // Terminee
   | 'cancelled'      // Annulee
@@ -28,6 +30,7 @@ export interface Booking {
   end_time?: string;
   duration_minutes: number;
   price: number;
+  total: number;
   final_price?: number;
   currency: string;
   address: string;
@@ -65,6 +68,108 @@ export interface Booking {
     name: string;
     avatar?: string;
     phone?: string;
+  };
+}
+
+// === BACKEND ORDER TYPE (format retourne par l'API) ===
+interface BackendOrder {
+  id: number;
+  user_id: number;
+  provider_id: number | null;
+  service_id: number;
+  status: string;
+  scheduled_at: string | null;
+  price: number;
+  total: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  // Flat fields from JOIN
+  service_name?: string;
+  service_image?: string;
+  service_description?: string;
+  category_name?: string;
+  provider_first_name?: string;
+  provider_last_name?: string;
+  provider_avatar?: string;
+  provider_phone?: string;
+  provider_rating?: number;
+  provider_name?: string;
+  address_line?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  cancellation_reason?: string;
+  cancelled_by?: string;
+  cancelled_at?: string;
+  completed_at?: string;
+}
+
+// === MAPPER: Backend Order -> Frontend Booking ===
+function mapOrderToBooking(order: BackendOrder): Booking {
+  // Parser scheduled_at pour extraire date et heure
+  let date = '';
+  let startTime = '';
+  if (order.scheduled_at) {
+    const scheduled = new Date(order.scheduled_at);
+    date = scheduled.toISOString().split('T')[0]; // YYYY-MM-DD
+    startTime = scheduled.toTimeString().substring(0, 5); // HH:MM
+  } else {
+    // Utiliser created_at comme fallback
+    const created = new Date(order.created_at);
+    date = created.toISOString().split('T')[0];
+    startTime = created.toTimeString().substring(0, 5);
+  }
+
+  // Construire l'adresse complete
+  const addressParts = [order.address_line, order.city].filter(Boolean);
+  const address = addressParts.join(', ') || 'Adresse non disponible';
+
+  // Construire le nom du prestataire
+  const providerName = order.provider_name ||
+    [order.provider_first_name, order.provider_last_name].filter(Boolean).join(' ') ||
+    'Prestataire';
+
+  return {
+    id: order.id,
+    user_id: order.user_id,
+    provider_id: order.provider_id || 0,
+    service_id: order.service_id,
+    status: order.status as BookingStatus,
+    date,
+    start_time: startTime,
+    duration_minutes: 60, // Default, a ajuster si disponible
+    price: order.price,
+    total: order.total || order.price,
+    currency: 'MAD',
+    address,
+    latitude: order.latitude,
+    longitude: order.longitude,
+    notes: order.notes || undefined,
+    cancellation_reason: order.cancellation_reason || undefined,
+    cancelled_by: order.cancelled_by as 'user' | 'provider' | undefined,
+    cancelled_at: order.cancelled_at || undefined,
+    completed_at: order.completed_at || undefined,
+    created_at: order.created_at,
+    updated_at: order.updated_at,
+    // Relations imbriquees
+    service: {
+      id: order.service_id,
+      title: order.service_name || 'Service',
+      thumbnail: order.service_image,
+      category: order.category_name ? {
+        id: 0,
+        name: order.category_name,
+        color: '#E91E63',
+      } : undefined,
+    },
+    provider: order.provider_id ? {
+      id: order.provider_id,
+      name: providerName,
+      avatar: order.provider_avatar,
+      phone: order.provider_phone,
+      rating: order.provider_rating || 0,
+    } : undefined,
   };
 }
 
@@ -116,53 +221,89 @@ export interface BookingResponse {
  * Creer une nouvelle reservation
  */
 export const createBooking = async (data: CreateBookingData): Promise<Booking> => {
-  const response = await apiClient.post<BookingResponse>(
+  const response = await apiClient.post<{ success: boolean; data: BackendOrder }>(
     ENDPOINTS.BOOKINGS.CREATE,
     data
   );
-  return response.data.data;
+  return mapOrderToBooking(response.data.data);
 };
 
 /**
  * Recuperer toutes les reservations de l'utilisateur
  */
 export const getBookings = async (params?: BookingListParams): Promise<PaginatedResponse<Booking>> => {
-  const response = await apiClient.get<PaginatedResponse<Booking>>(
+  const response = await apiClient.get<{ success: boolean; data: BackendOrder[] }>(
     ENDPOINTS.BOOKINGS.LIST,
     { params }
   );
-  return response.data;
+
+  // Mapper les orders en bookings
+  const bookings = response.data.data.map(mapOrderToBooking);
+
+  // Retourner format pagine (le backend ne pagine pas actuellement)
+  return {
+    success: true,
+    data: bookings,
+    meta: {
+      current_page: 1,
+      last_page: 1,
+      per_page: bookings.length,
+      total: bookings.length,
+    },
+  };
 };
 
 /**
  * Recuperer une reservation par ID
  */
 export const getBookingById = async (id: number | string): Promise<Booking> => {
-  const response = await apiClient.get<{ success: boolean; data: Booking }>(
+  const response = await apiClient.get<{ success: boolean; data: BackendOrder }>(
     ENDPOINTS.BOOKINGS.DETAIL(id)
   );
-  return response.data.data;
+  return mapOrderToBooking(response.data.data);
 };
 
 /**
  * Recuperer les reservations a venir
  */
 export const getUpcomingBookings = async (): Promise<Booking[]> => {
-  const response = await apiClient.get<{ success: boolean; data: Booking[] }>(
+  // Le backend utilise le meme endpoint avec filtrage cote client
+  const response = await apiClient.get<{ success: boolean; data: BackendOrder[] }>(
     ENDPOINTS.BOOKINGS.UPCOMING
   );
-  return response.data.data;
+
+  const bookings = response.data.data.map(mapOrderToBooking);
+
+  // Filtrer pour garder seulement les reservations actives
+  const upcomingStatuses = ['pending', 'accepted', 'confirmed', 'on_way', 'in_progress'];
+  return bookings.filter(b => upcomingStatuses.includes(b.status));
 };
 
 /**
  * Recuperer l'historique des reservations
  */
 export const getBookingHistory = async (params?: BookingListParams): Promise<PaginatedResponse<Booking>> => {
-  const response = await apiClient.get<PaginatedResponse<Booking>>(
+  const response = await apiClient.get<{ success: boolean; data: BackendOrder[] }>(
     ENDPOINTS.BOOKINGS.HISTORY,
     { params }
   );
-  return response.data;
+
+  const bookings = response.data.data.map(mapOrderToBooking);
+
+  // Filtrer pour garder seulement les reservations passees
+  const pastStatuses = ['completed', 'cancelled', 'rejected', 'no_show'];
+  const filteredBookings = bookings.filter(b => pastStatuses.includes(b.status));
+
+  return {
+    success: true,
+    data: filteredBookings,
+    meta: {
+      current_page: 1,
+      last_page: 1,
+      per_page: filteredBookings.length,
+      total: filteredBookings.length,
+    },
+  };
 };
 
 /**
@@ -172,31 +313,46 @@ export const cancelBooking = async (
   id: number | string,
   data?: CancelBookingData
 ): Promise<Booking> => {
-  const response = await apiClient.post<BookingResponse>(
+  const response = await apiClient.patch<{ success: boolean; data?: BackendOrder; message?: string }>(
     ENDPOINTS.BOOKINGS.CANCEL(id),
     data
   );
-  return response.data.data;
+
+  // Le backend peut retourner juste un message de succes
+  if (response.data.data) {
+    return mapOrderToBooking(response.data.data);
+  }
+
+  // Recharger la reservation pour avoir les donnees a jour
+  return getBookingById(id);
 };
 
 /**
  * Confirmer une reservation (pour prestataire)
  */
 export const confirmBooking = async (id: number | string): Promise<Booking> => {
-  const response = await apiClient.post<BookingResponse>(
+  const response = await apiClient.patch<{ success: boolean; data?: BackendOrder }>(
     ENDPOINTS.BOOKINGS.CONFIRM(id)
   );
-  return response.data.data;
+
+  if (response.data.data) {
+    return mapOrderToBooking(response.data.data);
+  }
+  return getBookingById(id);
 };
 
 /**
  * Marquer une reservation comme terminee
  */
 export const completeBooking = async (id: number | string): Promise<Booking> => {
-  const response = await apiClient.post<BookingResponse>(
+  const response = await apiClient.patch<{ success: boolean; data?: BackendOrder }>(
     ENDPOINTS.BOOKINGS.COMPLETE(id)
   );
-  return response.data.data;
+
+  if (response.data.data) {
+    return mapOrderToBooking(response.data.data);
+  }
+  return getBookingById(id);
 };
 
 // === AVIS ===
