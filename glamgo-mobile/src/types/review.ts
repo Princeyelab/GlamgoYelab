@@ -1,33 +1,67 @@
+// ==========================================
+// REVIEW TYPES - Conforme a DB GlamGo
+// ==========================================
+
 export interface Review {
-  id: string;
-  // User info
-  user: {
-    id: string;
-    name: string;
+  // IDs - accepts both number and string
+  id: number | string;
+  // Relations
+  user_id?: number;
+  user?: {
+    id: number | string;
+    name?: string;
+    first_name?: string;
+    last_name?: string;
     avatar?: string;
   };
-  // Service info (optionnel si review est dans contexte service)
+  service_id?: number;
   service?: {
-    id: string;
-    name: string;
+    id: number | string;
+    title?: string;
+    name?: string;
+    thumbnail?: string;
   };
-  // Rating
-  rating: number; // 1-5
-  // Texte
+  order_id?: number;
+  provider_id?: number;
+  // Rating & Content
+  rating: number;
+  title?: string;
   comment: string;
-  // Meta
-  date: string; // ISO format
-  isVerified?: boolean; // Achat vérifié
-  helpfulCount?: number; // Nombre de "helpful"
-  // Response du provider (optionnel)
+  // Detailed ratings (optional)
+  service_quality?: number;
+  punctuality?: number;
+  professionalism?: number;
+  // Verification - supports both new and legacy
+  is_verified_purchase?: boolean;
+  isVerified?: boolean;
+  // Metrics - supports both new and legacy
+  helpful_count?: number;
+  helpfulCount?: number;
+  // Provider Response - supports both formats
+  provider_response?: {
+    text: string;
+    responded_at?: string;
+    date?: string;
+  };
   providerResponse?: {
     text: string;
-    date: string;
+    responded_at?: string;
+    date?: string;
   };
+  // Moderation
+  is_approved?: boolean;
+  is_flagged?: boolean;
+  // Timestamps - supports both new and legacy
+  created_at?: string;
+  date?: string;
+  updated_at?: string;
 }
 
 export interface ReviewCardProps extends Review {
   variant?: 'default' | 'compact';
-  showService?: boolean; // Afficher info service
-  onHelpful?: (reviewId: string) => void;
+  showService?: boolean;
+  onHelpful?: (reviewId: number | string) => void;
 }
+
+/** @deprecated Use Review instead */
+export type LegacyReview = Review;

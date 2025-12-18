@@ -44,9 +44,9 @@ export default function Button({
     styles.base,
     variantStyles[variant],
     sizeStyles[size],
-    fullWidth && styles.fullWidth,
-    (disabled || loading) && styles.disabled,
-  ];
+    fullWidth ? styles.fullWidth : undefined,
+    (disabled || loading) ? styles.disabled : undefined,
+  ].filter((s): s is ViewStyle => !!s);
   if (style) buttonStyles.push(style);
 
   const textStyles: TextStyle[] = [

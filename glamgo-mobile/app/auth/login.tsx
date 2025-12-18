@@ -1,25 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Input from '../../src/components/ui/Input';
 import { colors, spacing, typography } from '../../src/lib/constants/theme';
+import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
+import { loginUser, clearError, selectAuth } from '../../src/lib/store/slices/authSlice';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // Rediriger si deja authentifie
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/' as any);
+    }
+  }, [isAuthenticated]);
+
+  // Clear error quand on modifie les champs
+  useEffect(() => {
+    if (error) {
+      dispatch(clearError());
+    }
+  }, [email, password]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setEmailError('');
     setPasswordError('');
 
@@ -37,17 +54,20 @@ export default function LoginScreen() {
       setPasswordError('Mot de passe requis');
       hasError = true;
     } else if (password.length < 6) {
-      setPasswordError('Minimum 6 caractères');
+      setPasswordError('Minimum 6 caracteres');
       hasError = true;
     }
 
     if (hasError) return;
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('Succès', 'Login réussi ! (simulation)');
-    }, 2000);
+    // Dispatch Redux action
+    try {
+      await dispatch(loginUser({ email, password })).unwrap();
+      // Success - navigation automatique via useEffect
+    } catch (err) {
+      const errorMessage = typeof err === 'string' ? err : 'Connexion echouee';
+      Alert.alert('Erreur', errorMessage);
+    }
   };
 
   return (
@@ -77,12 +97,13 @@ export default function LoginScreen() {
             }}
             errorText={emailError}
             error={!!emailError}
+            editable={!isLoading}
           />
 
           <Input
             label="Mot de passe"
             type="password"
-            placeholder="••••••••"
+            placeholder="********"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -90,27 +111,36 @@ export default function LoginScreen() {
             }}
             errorText={passwordError}
             error={!!passwordError}
-            helperText={!passwordError ? 'Minimum 6 caractères' : undefined}
+            helperText={!passwordError ? 'Minimum 6 caracteres' : undefined}
+            editable={!isLoading}
           />
+
+          {/* Global error from Redux */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
           <Button
             variant="primary"
             size="lg"
             fullWidth
             onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
+            loading={isLoading}
+            disabled={isLoading}
             style={styles.loginButton}
           >
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {isLoading ? 'Connexion...' : 'Se connecter'}
           </Button>
 
           <Button
             variant="ghost"
             fullWidth
             onPress={() => router.push('/auth/forgot-password')}
+            disabled={isLoading}
           >
-            Mot de passe oublié ?
+            Mot de passe oublie ?
           </Button>
 
           <View style={styles.divider}>
@@ -123,16 +153,18 @@ export default function LoginScreen() {
             variant="outline"
             fullWidth
             onPress={() => router.push('/auth/signup')}
+            disabled={isLoading}
           >
-            Créer un compte
+            Creer un compte
           </Button>
 
           <Button
             variant="ghost"
-            onPress={() => router.back()}
+            onPress={() => router.push('/welcome')}
             style={styles.backButton}
+            disabled={isLoading}
           >
-            ← Retour à l'accueil
+            Retour a l'accueil
           </Button>
         </View>
       </ScrollView>
@@ -168,6 +200,17 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingHorizontal: spacing.xl,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: colors.error + '15',
+    borderRadius: 8,
+    marginVertical: spacing.md,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.fontSize.sm,
+    textAlign: 'center',
   },
   loginButton: {
     marginTop: spacing.md,

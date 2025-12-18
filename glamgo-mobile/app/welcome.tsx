@@ -1,21 +1,8 @@
-import { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
-import { useAppSelector } from '../src/lib/store/hooks';
-import { selectIsAuthenticated } from '../src/lib/store/slices/authSlice';
 
-export default function Index() {
-  const router = useRouter();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-
-  // Rediriger vers tabs si connecte
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/(tabs)' as any);
-    }
-  }, [isAuthenticated]);
-
+export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -27,9 +14,9 @@ export default function Index() {
           />
           <Text style={styles.logoText}>GlamGo</Text>
         </View>
-        <Text style={styles.title}>Services à domicile à Marrakech</Text>
+        <Text style={styles.title}>Services a domicile a Marrakech</Text>
         <Text style={styles.subtitle}>
-          Beauté, ménage, réparations...{'\n'}Tout ce dont vous avez besoin, à portée de main
+          Beaute, menage, reparations...{'\n'}Tout ce dont vous avez besoin, a portee de main
         </Text>
       </View>
 
@@ -42,7 +29,7 @@ export default function Index() {
 
         <Link href="/auth/signup" asChild>
           <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Créer un compte</Text>
+            <Text style={styles.secondaryButtonText}>Creer un compte</Text>
           </TouchableOpacity>
         </Link>
       </View>
@@ -51,7 +38,7 @@ export default function Index() {
         <Link href="/test-components">
           <Text style={styles.testLink}>Test Composants</Text>
         </Link>
-        <Text style={styles.footer}>📍 Marrakech, Maroc</Text>
+        <Text style={styles.footer}>Marrakech, Maroc</Text>
       </View>
     </View>
   );
@@ -82,12 +69,12 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 36,
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: 'bold',
     color: colors.primary,
   },
   title: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: 'bold',
     color: colors.gray[900],
     marginBottom: spacing.base,
     textAlign: 'center',
@@ -111,7 +98,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: colors.white,
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   secondaryButton: {
     backgroundColor: colors.white,
@@ -125,7 +112,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.primary,
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   footerContainer: {
     alignItems: 'center',
@@ -134,7 +121,7 @@ const styles = StyleSheet.create({
   testLink: {
     color: colors.accent,
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
+    fontWeight: '500',
   },
   footer: {
     textAlign: 'center',

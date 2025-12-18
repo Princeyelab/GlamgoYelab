@@ -1,33 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Input from '../../src/components/ui/Input';
 import { colors, spacing, typography } from '../../src/lib/constants/theme';
+import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
+import { registerUser, clearError, selectAuth } from '../../src/lib/store/slices/authSlice';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
 
+  // Form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Error states
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-  const [loading, setLoading] = useState(false);
+  // Rediriger si authentifie
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/' as any);
+    }
+  }, [isAuthenticated]);
+
+  // Clear error
+  useEffect(() => {
+    if (error) {
+      dispatch(clearError());
+    }
+  }, [name, email, phone, password, confirmPassword]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     setNameError('');
     setEmailError('');
     setPhoneError('');
@@ -40,7 +58,7 @@ export default function SignupScreen() {
       setNameError('Nom requis');
       hasError = true;
     } else if (name.length < 2) {
-      setNameError('Minimum 2 caractères');
+      setNameError('Minimum 2 caracteres');
       hasError = true;
     }
 
@@ -53,7 +71,7 @@ export default function SignupScreen() {
     }
 
     if (!phone) {
-      setPhoneError('Téléphone requis');
+      setPhoneError('Telephone requis');
       hasError = true;
     }
 
@@ -61,7 +79,7 @@ export default function SignupScreen() {
       setPasswordError('Mot de passe requis');
       hasError = true;
     } else if (password.length < 8) {
-      setPasswordError('Minimum 8 caractères');
+      setPasswordError('Minimum 8 caracteres');
       hasError = true;
     }
 
@@ -75,13 +93,14 @@ export default function SignupScreen() {
 
     if (hasError) return;
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('Succès', 'Inscription réussie ! (simulation)', [
-        { text: 'OK', onPress: () => router.push('/auth/login') },
-      ]);
-    }, 2000);
+    // Dispatch Redux action
+    try {
+      await dispatch(registerUser({ name, email, phone, password })).unwrap();
+      // Success - navigation auto via useEffect
+    } catch (err) {
+      const errorMessage = typeof err === 'string' ? err : 'Inscription echouee';
+      Alert.alert('Erreur', errorMessage);
+    }
   };
 
   return (
@@ -95,7 +114,7 @@ export default function SignupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Créer un compte</Text>
+          <Text style={styles.title}>Creer un compte</Text>
           <Text style={styles.subtitle}>Rejoignez GlamGo</Text>
         </View>
 
@@ -110,6 +129,7 @@ export default function SignupScreen() {
             }}
             errorText={nameError}
             error={!!nameError}
+            editable={!isLoading}
           />
 
           <Input
@@ -123,10 +143,11 @@ export default function SignupScreen() {
             }}
             errorText={emailError}
             error={!!emailError}
+            editable={!isLoading}
           />
 
           <Input
-            label="Téléphone"
+            label="Telephone"
             type="phone"
             placeholder="+212 6XX XXX XXX"
             value={phone}
@@ -136,12 +157,13 @@ export default function SignupScreen() {
             }}
             errorText={phoneError}
             error={!!phoneError}
+            editable={!isLoading}
           />
 
           <Input
             label="Mot de passe"
             type="password"
-            placeholder="••••••••"
+            placeholder="********"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -149,13 +171,14 @@ export default function SignupScreen() {
             }}
             errorText={passwordError}
             error={!!passwordError}
-            helperText={!passwordError ? 'Minimum 8 caractères' : undefined}
+            helperText={!passwordError ? 'Minimum 8 caracteres' : undefined}
+            editable={!isLoading}
           />
 
           <Input
             label="Confirmer mot de passe"
             type="password"
-            placeholder="••••••••"
+            placeholder="********"
             value={confirmPassword}
             onChangeText={(text) => {
               setConfirmPassword(text);
@@ -163,18 +186,26 @@ export default function SignupScreen() {
             }}
             errorText={confirmPasswordError}
             error={!!confirmPasswordError}
+            editable={!isLoading}
           />
+
+          {/* Global error from Redux */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
           <Button
             variant="primary"
             size="lg"
             fullWidth
             onPress={handleSignup}
-            loading={loading}
-            disabled={loading}
+            loading={isLoading}
+            disabled={isLoading}
             style={styles.signupButton}
           >
-            {loading ? 'Inscription...' : 'Créer mon compte'}
+            {isLoading ? 'Inscription...' : 'Creer mon compte'}
           </Button>
 
           <View style={styles.divider}>
@@ -187,16 +218,18 @@ export default function SignupScreen() {
             variant="outline"
             fullWidth
             onPress={() => router.push('/auth/login')}
+            disabled={isLoading}
           >
-            J'ai déjà un compte
+            J'ai deja un compte
           </Button>
 
           <Button
             variant="ghost"
-            onPress={() => router.back()}
+            onPress={() => router.push('/welcome')}
             style={styles.backButton}
+            disabled={isLoading}
           >
-            ← Retour
+            Retour a l'accueil
           </Button>
         </View>
       </ScrollView>
@@ -232,6 +265,17 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingHorizontal: spacing.xl,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: colors.error + '15',
+    borderRadius: 8,
+    marginVertical: spacing.md,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.fontSize.sm,
+    textAlign: 'center',
   },
   signupButton: {
     marginTop: spacing.md,

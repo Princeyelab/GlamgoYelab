@@ -12,23 +12,31 @@ import Badge from '../ui/Badge';
 import { colors, spacing, borderRadius, typography } from '../../lib/constants/theme';
 import { ReviewCardProps } from '../../types/review';
 
-export default function ReviewCard({
-  id,
-  user,
-  service,
-  rating,
-  comment,
-  date,
-  isVerified = false,
-  helpfulCount = 0,
-  providerResponse,
-  variant = 'default',
-  showService = false,
-  onHelpful,
-}: ReviewCardProps) {
+export default function ReviewCard(props: ReviewCardProps) {
+  const {
+    id,
+    user,
+    service,
+    rating,
+    comment,
+    variant = 'default',
+    showService = false,
+    onHelpful,
+  } = props;
+  // Support both new and legacy field names
+  const created_at = props.created_at || props.date || '';
+  const is_verified_purchase = props.is_verified_purchase ?? props.isVerified ?? false;
+  const helpful_count = props.helpful_count ?? props.helpfulCount ?? 0;
+  const provider_response = props.provider_response || props.providerResponse;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [localHelpfulCount, setLocalHelpfulCount] = useState(helpfulCount);
+  const [localHelpfulCount, setLocalHelpfulCount] = useState(helpful_count);
   const [hasVoted, setHasVoted] = useState(false);
+
+  // Get user display name
+  const userName = user?.name ||
+    (user?.first_name && user?.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user?.first_name || 'Utilisateur');
 
   // Format date (ex: "Il y a 3 jours")
   const formatDate = (dateStr: string): string => {
@@ -61,7 +69,7 @@ export default function ReviewCard({
   // Handle helpful vote
   const handleHelpful = () => {
     if (!hasVoted) {
-      setLocalHelpfulCount((prev) => prev + 1);
+      setLocalHelpfulCount((prev: number) => prev + 1);
       setHasVoted(true);
       onHelpful?.(id);
     }
@@ -90,12 +98,12 @@ export default function ReviewCard({
       {/* Header */}
       <View style={styles.header}>
         {/* User Avatar */}
-        {user.avatar ? (
+        {user?.avatar ? (
           <Image source={{ uri: user.avatar }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <Text style={styles.avatarText}>
-              {user.name.charAt(0).toUpperCase()}
+              {userName.charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
@@ -103,8 +111,8 @@ export default function ReviewCard({
         {/* User Info */}
         <View style={styles.userInfo}>
           <View style={styles.userNameRow}>
-            <Text style={styles.userName}>{user.name}</Text>
-            {isVerified && (
+            <Text style={styles.userName}>{userName}</Text>
+            {is_verified_purchase && (
               <Badge
                 color="success"
                 variant="soft"
@@ -115,7 +123,7 @@ export default function ReviewCard({
               </Badge>
             )}
           </View>
-          <Text style={styles.date}>{formatDate(date)}</Text>
+          <Text style={styles.date}>{formatDate(created_at)}</Text>
         </View>
       </View>
 
@@ -126,7 +134,7 @@ export default function ReviewCard({
       {showService && service && (
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceLabel}>Service : </Text>
-          <Text style={styles.serviceName}>{service.name}</Text>
+          <Text style={styles.serviceName}>{service.title || service.name}</Text>
         </View>
       )}
 
@@ -143,16 +151,16 @@ export default function ReviewCard({
       )}
 
       {/* Provider Response */}
-      {providerResponse && (
+      {provider_response && (
         <View style={styles.providerResponse}>
           <Text style={styles.providerResponseLabel}>
             Réponse du prestataire
           </Text>
           <Text style={styles.providerResponseText}>
-            {providerResponse.text}
+            {provider_response.text}
           </Text>
           <Text style={styles.providerResponseDate}>
-            {formatDate(providerResponse.date)}
+            {formatDate(provider_response.responded_at || provider_response.date || '')}
           </Text>
         </View>
       )}

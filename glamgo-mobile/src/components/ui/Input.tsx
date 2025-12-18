@@ -93,10 +93,10 @@ export default function Input({
         <TextInput
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            (rightIcon || type === 'password') && styles.inputWithRightIcon,
-            disabled && styles.inputDisabled,
-          ]}
+            leftIcon ? styles.inputWithLeftIcon : undefined,
+            (rightIcon || type === 'password') ? styles.inputWithRightIcon : undefined,
+            disabled ? styles.inputDisabled : undefined,
+          ].filter(Boolean)}
           placeholder={placeholder}
           placeholderTextColor={colors.gray[400]}
           value={value}
