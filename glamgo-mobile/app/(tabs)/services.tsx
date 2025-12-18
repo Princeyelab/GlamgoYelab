@@ -130,7 +130,7 @@ export default function ServicesScreen() {
   };
 
   const handleServicePress = (serviceId: number | string) => {
-    console.log('Navigate to service:', serviceId);
+    router.push(`/services/${serviceId}`);
   };
 
   // Filtrage avec useMemo pour performance
