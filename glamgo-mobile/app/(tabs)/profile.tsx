@@ -64,11 +64,15 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
-                {user.name.charAt(0).toUpperCase()}
+                {(user.first_name || user.name || 'U').charAt(0).toUpperCase()}
               </Text>
             </View>
           )}
-          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.name}>
+            {user.first_name && user.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : user.name || 'Utilisateur'}
+          </Text>
           <Text style={styles.email}>{user.email}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>

@@ -18,7 +18,9 @@ import { handleAPIError, logError } from '../../utils/errorHandler';
 
 interface User {
   id: number;
-  name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
   avatar?: string;
@@ -85,7 +87,7 @@ export const loginUser = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (
-    userData: { name: string; email: string; phone?: string; password: string; password_confirmation: string },
+    userData: { first_name: string; last_name: string; email: string; phone?: string; password: string },
     { rejectWithValue }
   ) => {
     try {

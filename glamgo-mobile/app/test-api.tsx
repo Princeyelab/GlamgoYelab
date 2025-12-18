@@ -167,9 +167,63 @@ export default function TestAPIScreen() {
     }
   };
 
-  // Test 5: Vérifier les headers
+  // Test 5: Test register - Validation des champs requis
+  const testRegisterValidation = async () => {
+    const name = '5. POST /api/auth/register (validation)';
+    addResult({ name, status: 'loading' });
+
+    try {
+      // Test avec payload correct selon le backend
+      const response = await apiClient.post(ENDPOINTS.AUTH.REGISTER, {
+        first_name: 'Test',
+        last_name: 'User',
+        email: `test_${Date.now()}@glamgo-test.com`,
+        password: 'testpassword123',
+      });
+
+      // Si ça passe, supprimer le compte test (optionnel)
+      updateResult(name, {
+        status: 'success',
+        message: 'Register fonctionne - Structure payload OK',
+        data: { user: response.data?.data?.user?.email || 'créé' },
+      });
+      return true;
+    } catch (error: any) {
+      const status = error.response?.status;
+      const errors = error.response?.data?.errors;
+
+      if (status === 422 && errors) {
+        // Analyser les erreurs de validation pour comprendre ce qui manque
+        const missingFields = Object.keys(errors);
+        updateResult(name, {
+          status: 'error',
+          message: `Validation échouée - Champs requis: ${missingFields.join(', ')}`,
+          data: errors,
+        });
+        return false;
+      }
+
+      if (status === 409) {
+        // Email déjà utilisé = endpoint fonctionne
+        updateResult(name, {
+          status: 'success',
+          message: 'Endpoint fonctionne (email déjà utilisé)',
+        });
+        return true;
+      }
+
+      updateResult(name, {
+        status: 'error',
+        message: `Erreur ${status}: ${error.response?.data?.message || error.message}`,
+        data: error.response?.data,
+      });
+      return false;
+    }
+  };
+
+  // Test 6: Vérifier les headers
   const testHeaders = async () => {
-    const name = '5. Vérifier Headers';
+    const name = '6. Vérifier Headers';
     addResult({ name, status: 'loading' });
 
     try {
@@ -213,12 +267,14 @@ export default function TestAPIScreen() {
     await testLoginEndpoint();
     await new Promise(r => setTimeout(r, 500));
 
+    await testRegisterValidation();
+    await new Promise(r => setTimeout(r, 500));
+
     await testHeaders();
 
     setIsRunning(false);
 
     // Résumé
-    const successCount = results.filter(r => r.status === 'success').length;
     Alert.alert(
       'Tests terminés',
       `Vérifiez les résultats ci-dessous.\nL'API backend doit être accessible pour que les tests passent.`

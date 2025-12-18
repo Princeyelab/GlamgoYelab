@@ -13,14 +13,16 @@ export default function SignupScreen() {
   const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
 
   // Form state
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Error states
-  const [nameError, setNameError] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -38,7 +40,7 @@ export default function SignupScreen() {
     if (error) {
       dispatch(clearError());
     }
-  }, [name, email, phone, password, confirmPassword]);
+  }, [firstName, lastName, email, phone, password, confirmPassword]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,7 +48,8 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
-    setNameError('');
+    setFirstNameError('');
+    setLastNameError('');
     setEmailError('');
     setPhoneError('');
     setPasswordError('');
@@ -54,11 +57,19 @@ export default function SignupScreen() {
 
     let hasError = false;
 
-    if (!name) {
-      setNameError('Nom requis');
+    if (!firstName) {
+      setFirstNameError('Prenom requis');
       hasError = true;
-    } else if (name.length < 2) {
-      setNameError('Minimum 2 caracteres');
+    } else if (firstName.length < 2) {
+      setFirstNameError('Minimum 2 caracteres');
+      hasError = true;
+    }
+
+    if (!lastName) {
+      setLastNameError('Nom requis');
+      hasError = true;
+    } else if (lastName.length < 2) {
+      setLastNameError('Minimum 2 caracteres');
       hasError = true;
     }
 
@@ -70,16 +81,11 @@ export default function SignupScreen() {
       hasError = true;
     }
 
-    if (!phone) {
-      setPhoneError('Telephone requis');
-      hasError = true;
-    }
-
     if (!password) {
       setPasswordError('Mot de passe requis');
       hasError = true;
-    } else if (password.length < 8) {
-      setPasswordError('Minimum 8 caracteres');
+    } else if (password.length < 6) {
+      setPasswordError('Minimum 6 caracteres');
       hasError = true;
     }
 
@@ -95,7 +101,13 @@ export default function SignupScreen() {
 
     // Dispatch Redux action
     try {
-      await dispatch(registerUser({ name, email, phone, password, password_confirmation: confirmPassword })).unwrap();
+      await dispatch(registerUser({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone: phone || undefined,
+        password
+      })).unwrap();
       // Success - navigation auto via useEffect
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : 'Inscription echouee';
@@ -120,15 +132,28 @@ export default function SignupScreen() {
 
         <View style={styles.form}>
           <Input
-            label="Nom complet"
-            placeholder="Jean Dupont"
-            value={name}
+            label="Prenom"
+            placeholder="Jean"
+            value={firstName}
             onChangeText={(text) => {
-              setName(text);
-              setNameError('');
+              setFirstName(text);
+              setFirstNameError('');
             }}
-            errorText={nameError}
-            error={!!nameError}
+            errorText={firstNameError}
+            error={!!firstNameError}
+            editable={!isLoading}
+          />
+
+          <Input
+            label="Nom"
+            placeholder="Dupont"
+            value={lastName}
+            onChangeText={(text) => {
+              setLastName(text);
+              setLastNameError('');
+            }}
+            errorText={lastNameError}
+            error={!!lastNameError}
             editable={!isLoading}
           />
 
@@ -147,16 +172,13 @@ export default function SignupScreen() {
           />
 
           <Input
-            label="Telephone"
+            label="Telephone (optionnel)"
             type="phone"
             placeholder="+212 6XX XXX XXX"
             value={phone}
             onChangeText={(text) => {
               setPhone(text);
-              setPhoneError('');
             }}
-            errorText={phoneError}
-            error={!!phoneError}
             editable={!isLoading}
           />
 
@@ -171,7 +193,7 @@ export default function SignupScreen() {
             }}
             errorText={passwordError}
             error={!!passwordError}
-            helperText={!passwordError ? 'Minimum 8 caracteres' : undefined}
+            helperText={!passwordError ? 'Minimum 6 caracteres' : undefined}
             editable={!isLoading}
           />
 

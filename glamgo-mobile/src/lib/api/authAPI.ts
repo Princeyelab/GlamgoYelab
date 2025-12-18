@@ -14,20 +14,24 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
-  password_confirmation: string;
+  password_confirmation?: string;
   phone?: string;
 }
 
 export interface User {
   id: number;
-  name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
   avatar?: string;
   email_verified_at?: string;
+  referral_code?: string;
   created_at: string;
   updated_at: string;
 }

@@ -15,7 +15,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>
-            Bonjour{user ? `, ${user.name.split(' ')[0]}` : ''} 👋
+            Bonjour{user ? `, ${user.first_name || user.name?.split(' ')[0] || ''}` : ''} 👋
           </Text>
           <Text style={styles.subtitle}>
             Trouvez les meilleurs services pres de chez vous
@@ -52,6 +52,15 @@ export default function HomeScreen() {
           >
             Test Composants UI
           </Button>
+
+          <Button
+            variant="ghost"
+            fullWidth
+            onPress={() => router.push('/test-full')}
+            style={styles.actionButton}
+          >
+            Tests Complets API
+          </Button>
         </View>
 
         {/* User Status */}
@@ -59,11 +68,15 @@ export default function HomeScreen() {
           <View style={styles.userCard}>
             <View style={styles.userAvatar}>
               <Text style={styles.userAvatarText}>
-                {user.name.charAt(0).toUpperCase()}
+                {(user.first_name || user.name || 'U').charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user.name}</Text>
+              <Text style={styles.userName}>
+                {user.first_name && user.last_name
+                  ? `${user.first_name} ${user.last_name}`
+                  : user.name || 'Utilisateur'}
+              </Text>
               <Text style={styles.userEmail}>{user.email}</Text>
             </View>
           </View>
