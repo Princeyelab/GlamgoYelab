@@ -462,7 +462,9 @@ export const toggleFavorite = async (serviceId: number): Promise<{ isFavorite: b
 export const formatBookingStatus = (status: BookingStatus): string => {
   const statusLabels: Record<BookingStatus, string> = {
     pending: 'En attente',
+    accepted: 'Acceptee',
     confirmed: 'Confirmee',
+    on_way: 'En route',
     in_progress: 'En cours',
     completed: 'Terminee',
     cancelled: 'Annulee',
@@ -478,7 +480,9 @@ export const formatBookingStatus = (status: BookingStatus): string => {
 export const getBookingStatusColor = (status: BookingStatus): string => {
   const statusColors: Record<BookingStatus, string> = {
     pending: '#F59E0B',      // Orange
+    accepted: '#3B82F6',     // Bleu
     confirmed: '#3B82F6',    // Bleu
+    on_way: '#8B5CF6',       // Violet
     in_progress: '#8B5CF6',  // Violet
     completed: '#10B981',    // Vert
     cancelled: '#EF4444',    // Rouge

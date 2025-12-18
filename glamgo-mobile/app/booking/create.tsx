@@ -191,7 +191,7 @@ export default function CreateBookingScreen() {
     try {
       await dispatch(createBooking({
         service_id: Number(service_id),
-        provider_id: service.provider?.id || 1, // Default if no provider
+        provider_id: Number(service.provider?.id || 1), // Default if no provider
         date: date,
         start_time: time,
         address: address,
@@ -293,7 +293,7 @@ export default function CreateBookingScreen() {
               value={date}
               onChangeText={handleDateChange}
               error={!!dateError}
-              errorMessage={dateError}
+              errorText={dateError}
               keyboardType="numeric"
               maxLength={10}
               editable={!isSubmitting}
@@ -311,7 +311,7 @@ export default function CreateBookingScreen() {
               value={time}
               onChangeText={handleTimeChange}
               error={!!timeError}
-              errorMessage={timeError}
+              errorText={timeError}
               keyboardType="numeric"
               maxLength={5}
               editable={!isSubmitting}
@@ -332,7 +332,7 @@ export default function CreateBookingScreen() {
                 if (addressError) setAddressError(validateAddress(v));
               }}
               error={!!addressError}
-              errorMessage={addressError}
+              errorText={addressError}
               multiline
               numberOfLines={3}
               editable={!isSubmitting}

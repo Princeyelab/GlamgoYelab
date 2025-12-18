@@ -247,7 +247,7 @@ export default function ServiceDetailScreen() {
                 <View style={styles.providerInfo}>
                   <Text style={styles.providerName}>{service.provider.name}</Text>
                   <Text style={styles.providerRating}>
-                    ⭐ {(service.provider.rating || 4.5).toFixed(1)}
+                    ⭐ {((service.provider as any).rating || 4.5).toFixed(1)}
                   </Text>
                 </View>
                 <Button
