@@ -92,13 +92,11 @@ export default function BookingsScreen() {
   };
 
   const handleTrackProvider = (bookingId: number) => {
-    console.log('Track provider:', bookingId);
-    // TODO: Navigation vers map
+    router.push(`/booking/track/${bookingId}` as any);
   };
 
   const handleBookingPress = (booking: Booking) => {
-    console.log('Booking pressed:', booking.id);
-    // TODO: Navigation vers details
+    router.push(`/bookings/${booking.id}` as any);
   };
 
   const bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;

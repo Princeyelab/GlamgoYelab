@@ -16,6 +16,7 @@ import Input from '../../src/components/ui/Input';
 import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import Loading from '../../src/components/ui/Loading';
+import DateTimePicker from '../../src/components/ui/DateTimePicker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { createBooking } from '../../src/lib/store/slices/bookingsSlice';
@@ -40,16 +41,14 @@ export default function CreateBookingScreen() {
   const service = services.find(s => s.id === Number(service_id)) || currentService;
 
   // Form state
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [selectedDateTime, setSelectedDateTime] = useState<Date>(new Date());
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!service);
 
   // Errors
-  const [dateError, setDateError] = useState('');
-  const [timeError, setTimeError] = useState('');
+  const [dateTimeError, setDateTimeError] = useState('');
   const [addressError, setAddressError] = useState('');
 
   useEffect(() => {
@@ -69,44 +68,29 @@ export default function CreateBookingScreen() {
     }
   };
 
-  // Get tomorrow's date as default minimum
-  const getTomorrowDate = (): string => {
+  // Get minimum date (tomorrow)
+  const getMinDate = (): Date => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    tomorrow.setHours(8, 0, 0, 0);
+    return tomorrow;
   };
 
-  // Validation functions
-  const validateDate = (value: string): string => {
-    if (!value) return 'Date requise';
-
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(value)) return 'Format: AAAA-MM-JJ';
-
-    const selectedDate = new Date(value);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (isNaN(selectedDate.getTime())) return 'Date invalide';
-    if (selectedDate < today) return 'Date passee';
-
-    return '';
+  // Get maximum date (30 days from now)
+  const getMaxDate = (): Date => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+    return maxDate;
   };
 
-  const validateTime = (value: string): string => {
-    if (!value) return 'Heure requise';
+  // Validation function for date/time
+  const validateDateTime = (date: Date): string => {
+    const now = new Date();
+    if (date <= now) return 'La date doit etre dans le futur';
 
-    const timeRegex = /^\d{2}:\d{2}$/;
-    if (!timeRegex.test(value)) return 'Format: HH:MM';
-
-    const [hours, minutes] = value.split(':').map(Number);
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      return 'Heure invalide';
-    }
-
-    // Check working hours (8h - 20h)
+    const hours = date.getHours();
     if (hours < 8 || hours >= 20) {
-      return 'Heures: 08:00 - 20:00';
+      return 'Horaires: 08:00 - 20:00';
     }
 
     return '';
@@ -119,56 +103,39 @@ export default function CreateBookingScreen() {
   };
 
   // Format date for display
-  const formatDateForDisplay = (dateStr: string): string => {
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      const options: Intl.DateTimeFormatOptions = {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      };
-      return date.toLocaleDateString('fr-FR', options);
-    } catch {
-      return dateStr;
-    }
+  const formatDateForDisplay = (date: Date): string => {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    };
+    return date.toLocaleDateString('fr-FR', options);
   };
 
-  const handleDateChange = (value: string) => {
-    // Auto-format as user types
-    let formatted = value.replace(/[^0-9]/g, '');
-    if (formatted.length > 4) {
-      formatted = formatted.slice(0, 4) + '-' + formatted.slice(4);
-    }
-    if (formatted.length > 7) {
-      formatted = formatted.slice(0, 7) + '-' + formatted.slice(7, 9);
-    }
-    setDate(formatted);
-    if (dateError) setDateError(validateDate(formatted));
+  // Format time for display
+  const formatTimeForDisplay = (date: Date): string => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  const handleTimeChange = (value: string) => {
-    // Auto-format as user types
-    let formatted = value.replace(/[^0-9]/g, '');
-    if (formatted.length > 2) {
-      formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
-    }
-    setTime(formatted);
-    if (timeError) setTimeError(validateTime(formatted));
+  // Handle date/time selection
+  const handleDateTimeChange = (date: Date) => {
+    setSelectedDateTime(date);
+    if (dateTimeError) setDateTimeError(validateDateTime(date));
   };
 
   const handleSubmit = async () => {
     // Validate all fields
-    const dateErr = validateDate(date);
-    const timeErr = validateTime(time);
+    const dateTimeErr = validateDateTime(selectedDateTime);
     const addressErr = validateAddress(address);
 
-    setDateError(dateErr);
-    setTimeError(timeErr);
+    setDateTimeError(dateTimeErr);
     setAddressError(addressErr);
 
-    if (dateErr || timeErr || addressErr) {
+    if (dateTimeErr || addressErr) {
       return;
     }
 
@@ -188,12 +155,16 @@ export default function CreateBookingScreen() {
 
     setIsSubmitting(true);
 
+    // Format date and time for API
+    const formattedDate = selectedDateTime.toISOString().split('T')[0];
+    const formattedTime = `${selectedDateTime.getHours().toString().padStart(2, '0')}:${selectedDateTime.getMinutes().toString().padStart(2, '0')}`;
+
     try {
       await dispatch(createBooking({
         service_id: Number(service_id),
         provider_id: Number(service.provider?.id || 1), // Default if no provider
-        date: date,
-        start_time: time,
+        date: formattedDate,
+        start_time: formattedTime,
         address: address,
         notes: notes || undefined,
       })).unwrap();
@@ -285,41 +256,17 @@ export default function CreateBookingScreen() {
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Details de la reservation</Text>
 
-          {/* Date Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Date</Text>
-            <Input
-              placeholder="2024-12-25"
-              value={date}
-              onChangeText={handleDateChange}
-              error={!!dateError}
-              errorText={dateError}
-              keyboardType="numeric"
-              maxLength={10}
-              editable={!isSubmitting}
-            />
-            <Text style={styles.inputHelper}>
-              Format: AAAA-MM-JJ (ex: {getTomorrowDate()})
-            </Text>
-          </View>
-
-          {/* Time Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Heure</Text>
-            <Input
-              placeholder="14:30"
-              value={time}
-              onChangeText={handleTimeChange}
-              error={!!timeError}
-              errorText={timeError}
-              keyboardType="numeric"
-              maxLength={5}
-              editable={!isSubmitting}
-            />
-            <Text style={styles.inputHelper}>
-              Horaires: 08:00 - 20:00
-            </Text>
-          </View>
+          {/* Date & Time Picker */}
+          <DateTimePicker
+            mode="datetime"
+            value={selectedDateTime}
+            onChange={handleDateTimeChange}
+            minDate={getMinDate()}
+            maxDate={getMaxDate()}
+            label="Date et heure"
+            placeholder="Choisir une date et heure"
+            error={dateTimeError}
+          />
 
           {/* Address Input */}
           <View style={styles.inputGroup}>
@@ -367,18 +314,17 @@ export default function CreateBookingScreen() {
             <Text style={styles.summaryValue}>{service.duration_minutes} min</Text>
           </View>
 
-          {date && !dateError && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Date</Text>
-              <Text style={styles.summaryValue}>{formatDateForDisplay(date)}</Text>
-            </View>
-          )}
-
-          {time && !timeError && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Heure</Text>
-              <Text style={styles.summaryValue}>{time}</Text>
-            </View>
+          {!dateTimeError && (
+            <>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Date</Text>
+                <Text style={styles.summaryValue}>{formatDateForDisplay(selectedDateTime)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Heure</Text>
+                <Text style={styles.summaryValue}>{formatTimeForDisplay(selectedDateTime)}</Text>
+              </View>
+            </>
           )}
 
           <View style={styles.summaryDivider} />
