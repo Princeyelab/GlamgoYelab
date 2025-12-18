@@ -1,6 +1,21 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+/**
+ * Auth Slice - GlamGo Mobile
+ * Gestion authentification avec vraies API
+ */
 
-// Types
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import {
+  login,
+  register,
+  logout,
+  getMe,
+  updateProfile,
+  User as APIUser,
+} from '../../api/authAPI';
+import { handleAPIError, logError } from '../../utils/errorHandler';
+
+// === TYPES ===
+
 interface User {
   id: number;
   name: string;
@@ -8,6 +23,7 @@ interface User {
   phone?: string;
   avatar?: string;
   role: 'user' | 'provider' | 'admin';
+  email_verified_at?: string;
 }
 
 interface AuthState {
@@ -17,9 +33,11 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isInitialized: boolean;
 }
 
-// Initial state
+// === INITIAL STATE ===
+
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -27,76 +45,129 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  isInitialized: false,
 };
 
-// Async thunks (API calls)
+// === ASYNC THUNKS ===
+
+/**
+ * Login utilisateur
+ */
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      // TODO: Remplacer par vrai API call
-      // const response = await api.post('/auth/login', credentials);
+      const response = await login(credentials);
 
-      // Mock pour l'instant
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (response.success && response.data) {
+        const { user, token, refresh_token } = response.data;
+        return {
+          user: {
+            ...user,
+            role: 'user' as const,
+          },
+          token,
+          refreshToken: refresh_token,
+        };
+      }
 
-      // Mock response
-      return {
-        user: {
-          id: 1,
-          name: 'Utilisateur GlamGo',
-          email: credentials.email,
-          role: 'user' as const,
-        },
-        token: 'mock-jwt-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token',
-      };
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      return rejectWithValue(err.response?.data?.message || 'Connexion echouee');
+      return rejectWithValue(response.message || 'Connexion echouee');
+    } catch (error: any) {
+      logError('loginUser', error);
+      return rejectWithValue(handleAPIError(error));
     }
   }
 );
 
+/**
+ * Inscription utilisateur
+ */
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (userData: { name: string; email: string; phone: string; password: string }, { rejectWithValue }) => {
+  async (
+    userData: { name: string; email: string; phone?: string; password: string; password_confirmation: string },
+    { rejectWithValue }
+  ) => {
     try {
-      // TODO: Remplacer par vrai API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await register(userData);
 
-      return {
-        user: {
-          id: 2,
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone,
-          role: 'user' as const,
-        },
-        token: 'mock-jwt-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token',
-      };
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      return rejectWithValue(err.response?.data?.message || 'Inscription echouee');
+      if (response.success && response.data) {
+        const { user, token, refresh_token } = response.data;
+        return {
+          user: {
+            ...user,
+            role: 'user' as const,
+          },
+          token,
+          refreshToken: refresh_token,
+        };
+      }
+
+      return rejectWithValue(response.message || 'Inscription echouee');
+    } catch (error: any) {
+      logError('registerUser', error);
+      return rejectWithValue(handleAPIError(error));
     }
   }
 );
 
+/**
+ * Deconnexion utilisateur
+ */
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: API call pour invalider token
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await logout();
       return true;
-    } catch {
-      return rejectWithValue('Deconnexion echouee');
+    } catch (error: any) {
+      // Logout quand meme cote client
+      logError('logoutUser', error);
+      return true;
     }
   }
 );
 
-// Slice
+/**
+ * Recuperer le profil utilisateur (check auth)
+ */
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const user = await getMe();
+      return {
+        ...user,
+        role: 'user' as const,
+      };
+    } catch (error: any) {
+      logError('fetchCurrentUser', error);
+      return rejectWithValue(handleAPIError(error));
+    }
+  }
+);
+
+/**
+ * Mettre a jour le profil
+ */
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (data: { name?: string; phone?: string }, { rejectWithValue }) => {
+    try {
+      const user = await updateProfile(data);
+      return {
+        ...user,
+        role: 'user' as const,
+      };
+    } catch (error: any) {
+      logError('updateUserProfile', error);
+      return rejectWithValue(handleAPIError(error));
+    }
+  }
+);
+
+// === SLICE ===
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -111,19 +182,21 @@ const authSlice = createSlice({
       if (action.payload.refreshToken) {
         state.refreshToken = action.payload.refreshToken;
       }
+      state.isAuthenticated = true;
     },
     clearError: (state) => {
       state.error = null;
     },
-    updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
-      if (state.user) {
-        state.user = { ...state.user, ...action.payload };
-      }
+    setInitialized: (state) => {
+      state.isInitialized = true;
     },
-    resetAuth: () => initialState,
+    resetAuth: () => ({
+      ...initialState,
+      isInitialized: true,
+    }),
   },
   extraReducers: (builder) => {
-    // Login
+    // === LOGIN ===
     builder
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
@@ -133,16 +206,18 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        state.refreshToken = action.payload.refreshToken || null;
         state.isAuthenticated = true;
         state.error = null;
+        state.isInitialized = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.isInitialized = true;
       });
 
-    // Register
+    // === REGISTER ===
     builder
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
@@ -152,40 +227,80 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        state.refreshToken = action.payload.refreshToken || null;
         state.isAuthenticated = true;
         state.error = null;
+        state.isInitialized = true;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.isInitialized = true;
       });
 
-    // Logout
+    // === LOGOUT ===
     builder
       .addCase(logoutUser.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(logoutUser.fulfilled, () => {
-        return initialState;
+      .addCase(logoutUser.fulfilled, () => ({
+        ...initialState,
+        isInitialized: true,
+      }))
+      .addCase(logoutUser.rejected, () => ({
+        ...initialState,
+        isInitialized: true,
+      }));
+
+    // === FETCH CURRENT USER ===
+    builder
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
       })
-      .addCase(logoutUser.rejected, () => {
-        // Logout quand meme en cas d'erreur
-        return initialState;
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.isInitialized = true;
+      })
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+        state.isInitialized = true;
+      });
+
+    // === UPDATE PROFILE ===
+    builder
+      .addCase(updateUserProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-// Export actions
-export const { setUser, setToken, clearError, updateUserProfile, resetAuth } = authSlice.actions;
+// === EXPORTS ===
 
-// Export selectors
+export const { setUser, setToken, clearError, setInitialized, resetAuth } = authSlice.actions;
+
+// Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.isLoading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
 export const selectToken = (state: { auth: AuthState }) => state.auth.token;
+export const selectIsInitialized = (state: { auth: AuthState }) => state.auth.isInitialized;
 
-// Export reducer
 export default authSlice.reducer;

@@ -4,10 +4,13 @@ import { Provider } from './provider';
 export type BookingStatus =
   | 'pending'
   | 'accepted'
+  | 'confirmed'
   | 'on_way'
   | 'in_progress'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'rejected'
+  | 'no_show';
 
 export const BOOKING_STATUS_CONFIG: Record<BookingStatus, {
   label: string;
@@ -16,10 +19,13 @@ export const BOOKING_STATUS_CONFIG: Record<BookingStatus, {
 }> = {
   pending: { label: 'En attente', color: 'warning', description: 'En attente de confirmation' },
   accepted: { label: 'Accepte', color: 'success', description: 'Prestataire a confirme' },
+  confirmed: { label: 'Confirme', color: 'success', description: 'Reservation confirmee' },
   on_way: { label: 'En route', color: 'accent', description: 'Prestataire en route' },
   in_progress: { label: 'En cours', color: 'primary', description: 'Service en cours' },
   completed: { label: 'Termine', color: 'default', description: 'Service termine' },
-  cancelled: { label: 'Annule', color: 'error', description: 'Reservation annulee' }
+  cancelled: { label: 'Annule', color: 'error', description: 'Reservation annulee' },
+  rejected: { label: 'Refuse', color: 'error', description: 'Reservation refusee' },
+  no_show: { label: 'Absent', color: 'error', description: 'Client absent' },
 };
 
 export interface Booking {

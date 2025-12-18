@@ -1,5 +1,24 @@
+/**
+ * Services Slice - GlamGo Mobile
+ * Gestion services et categories avec vraies API
+ */
+
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Service, Category } from '../../../types/service';
+import {
+  getServices,
+  getServiceById,
+  searchServices as apiSearchServices,
+  getCategories,
+  ServicesListParams,
+} from '../../api/servicesAPI';
+import { handleAPIError, logError } from '../../utils/errorHandler';
+
+// Donnees locales fallback
+import { SERVICES as LOCAL_SERVICES } from '../../constants/services';
+import { CATEGORIES as LOCAL_CATEGORIES } from '../../constants/categories';
+
+// === TYPES ===
 
 interface ServicesState {
   items: Service[];
@@ -10,7 +29,11 @@ interface ServicesState {
   error: string | null;
   searchQuery: string;
   selectedCategory: number | null;
+  currentService: Service | null;
+  useLocalData: boolean;
 }
+
+// === INITIAL STATE ===
 
 const initialState: ServicesState = {
   items: [],
@@ -21,44 +44,104 @@ const initialState: ServicesState = {
   error: null,
   searchQuery: '',
   selectedCategory: null,
+  currentService: null,
+  useLocalData: false,
 };
 
-// Async thunks
+// === ASYNC THUNKS ===
+
+/**
+ * Charger tous les services
+ */
 export const fetchServices = createAsyncThunk(
   'services/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params: ServicesListParams | undefined, { rejectWithValue }) => {
     try {
-      // TODO: Remplacer par vrai API call
-      // const response = await api.get('/services');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock data
-      return [] as Service[];
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      return rejectWithValue(err.response?.data?.message || 'Erreur chargement services');
+      const response = await getServices(params);
+      return {
+        services: response.data,
+        useLocalData: false,
+      };
+    } catch (error: any) {
+      logError('fetchServices', error);
+      // Fallback sur donnees locales
+      console.log('📦 Utilisation donnees locales (fallback)');
+      return {
+        services: LOCAL_SERVICES,
+        useLocalData: true,
+      };
     }
   }
 );
 
+/**
+ * Charger un service par ID
+ */
+export const fetchServiceById = createAsyncThunk(
+  'services/fetchById',
+  async (id: number | string, { rejectWithValue }) => {
+    try {
+      const service = await getServiceById(id);
+      return service;
+    } catch (error: any) {
+      logError('fetchServiceById', error);
+      // Fallback sur donnees locales
+      const localService = LOCAL_SERVICES.find(s => s.id === Number(id));
+      if (localService) {
+        return localService;
+      }
+      return rejectWithValue(handleAPIError(error));
+    }
+  }
+);
+
+/**
+ * Rechercher des services
+ */
+export const searchServicesAsync = createAsyncThunk(
+  'services/search',
+  async (query: string, { rejectWithValue, getState }) => {
+    try {
+      const response = await apiSearchServices(query);
+      return response.data;
+    } catch (error: any) {
+      logError('searchServices', error);
+      // Fallback sur recherche locale
+      const q = query.toLowerCase();
+      const localResults = LOCAL_SERVICES.filter(
+        s =>
+          s.title?.toLowerCase().includes(q) ||
+          s.description?.toLowerCase().includes(q)
+      );
+      return localResults;
+    }
+  }
+);
+
+/**
+ * Charger les categories
+ */
 export const fetchCategories = createAsyncThunk(
   'services/fetchCategories',
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: Remplacer par vrai API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return [] as Category[];
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      return rejectWithValue(err.response?.data?.message || 'Erreur chargement categories');
+      const categories = await getCategories();
+      return categories;
+    } catch (error: any) {
+      logError('fetchCategories', error);
+      // Fallback sur donnees locales
+      return LOCAL_CATEGORIES;
     }
   }
 );
+
+// === SLICE ===
 
 const servicesSlice = createSlice({
   name: 'services',
   initialState,
   reducers: {
+    // Actions synchrones
     setServices: (state, action: PayloadAction<Service[]>) => {
       state.items = action.payload;
     },
@@ -76,11 +159,8 @@ const servicesSlice = createSlice({
     },
     addToRecentlyViewed: (state, action: PayloadAction<number>) => {
       const serviceId = action.payload;
-      // Retirer si deja present
       state.recentlyViewed = state.recentlyViewed.filter(id => id !== serviceId);
-      // Ajouter en premier
       state.recentlyViewed.unshift(serviceId);
-      // Limiter a 10
       if (state.recentlyViewed.length > 10) {
         state.recentlyViewed.pop();
       }
@@ -91,15 +171,26 @@ const servicesSlice = createSlice({
     setSelectedCategory: (state, action: PayloadAction<number | null>) => {
       state.selectedCategory = action.payload;
     },
+    setCurrentService: (state, action: PayloadAction<Service | null>) => {
+      state.currentService = action.payload;
+    },
     clearFavorites: (state) => {
       state.favorites = [];
     },
     clearRecentlyViewed: (state) => {
       state.recentlyViewed = [];
     },
+    clearError: (state) => {
+      state.error = null;
+    },
+    useLocalFallback: (state) => {
+      state.items = LOCAL_SERVICES;
+      state.categories = LOCAL_CATEGORIES;
+      state.useLocalData = true;
+    },
   },
   extraReducers: (builder) => {
-    // Fetch services
+    // === FETCH ALL SERVICES ===
     builder
       .addCase(fetchServices.pending, (state) => {
         state.isLoading = true;
@@ -107,14 +198,58 @@ const servicesSlice = createSlice({
       })
       .addCase(fetchServices.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload;
+        state.items = action.payload.services;
+        state.useLocalData = action.payload.useLocalData;
+        state.error = null;
       })
       .addCase(fetchServices.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        // Utiliser donnees locales en cas d'erreur
+        if (state.items.length === 0) {
+          state.items = LOCAL_SERVICES;
+          state.useLocalData = true;
+        }
       });
 
-    // Fetch categories
+    // === FETCH SERVICE BY ID ===
+    builder
+      .addCase(fetchServiceById.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchServiceById.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.currentService = action.payload;
+        // Mettre a jour dans items si existe
+        const index = state.items.findIndex(s => s.id === action.payload.id);
+        if (index > -1) {
+          state.items[index] = action.payload;
+        } else {
+          state.items.push(action.payload);
+        }
+      })
+      .addCase(fetchServiceById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // === SEARCH SERVICES ===
+    builder
+      .addCase(searchServicesAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(searchServicesAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.items = action.payload;
+      })
+      .addCase(searchServicesAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // === FETCH CATEGORIES ===
     builder
       .addCase(fetchCategories.pending, (state) => {
         state.isLoading = true;
@@ -126,9 +261,15 @@ const servicesSlice = createSlice({
       .addCase(fetchCategories.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        // Utiliser categories locales en cas d'erreur
+        if (state.categories.length === 0) {
+          state.categories = LOCAL_CATEGORIES;
+        }
       });
   },
 });
+
+// === EXPORTS ===
 
 export const {
   setServices,
@@ -137,8 +278,11 @@ export const {
   addToRecentlyViewed,
   setSearchQuery,
   setSelectedCategory,
+  setCurrentService,
   clearFavorites,
   clearRecentlyViewed,
+  clearError,
+  useLocalFallback,
 } = servicesSlice.actions;
 
 // Selectors
@@ -147,8 +291,11 @@ export const selectCategories = (state: { services: ServicesState }) => state.se
 export const selectFavorites = (state: { services: ServicesState }) => state.services.favorites;
 export const selectRecentlyViewed = (state: { services: ServicesState }) => state.services.recentlyViewed;
 export const selectServicesLoading = (state: { services: ServicesState }) => state.services.isLoading;
+export const selectServicesError = (state: { services: ServicesState }) => state.services.error;
 export const selectSearchQuery = (state: { services: ServicesState }) => state.services.searchQuery;
 export const selectSelectedCategory = (state: { services: ServicesState }) => state.services.selectedCategory;
+export const selectCurrentService = (state: { services: ServicesState }) => state.services.currentService;
+export const selectUseLocalData = (state: { services: ServicesState }) => state.services.useLocalData;
 
 export const selectIsFavorite = (serviceId: number) => (state: { services: ServicesState }) =>
   state.services.favorites.includes(serviceId);
@@ -161,7 +308,10 @@ export const selectFilteredServices = (state: { services: ServicesState }) => {
 
   // Filtre par categorie
   if (state.services.selectedCategory) {
-    filtered = filtered.filter(s => s.category?.id === state.services.selectedCategory);
+    filtered = filtered.filter(s =>
+      s.category?.id === state.services.selectedCategory ||
+      s.category_id === state.services.selectedCategory
+    );
   }
 
   // Filtre par recherche
@@ -175,5 +325,10 @@ export const selectFilteredServices = (state: { services: ServicesState }) => {
 
   return filtered;
 };
+
+export const selectServicesByCategory = (categoryId: number) => (state: { services: ServicesState }) =>
+  state.services.items.filter(s =>
+    s.category?.id === categoryId || s.category_id === categoryId
+  );
 
 export default servicesSlice.reducer;

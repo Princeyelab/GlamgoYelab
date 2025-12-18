@@ -49,10 +49,13 @@ export const getNextStatus = (status: BookingStatus): BookingStatus | null => {
   const flow: Record<BookingStatus, BookingStatus | null> = {
     pending: 'accepted',
     accepted: 'on_way',
+    confirmed: 'on_way',
     on_way: 'in_progress',
     in_progress: 'completed',
     completed: null,
     cancelled: null,
+    rejected: null,
+    no_show: null,
   };
   return flow[status];
 };

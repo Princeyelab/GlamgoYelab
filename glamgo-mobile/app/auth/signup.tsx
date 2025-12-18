@@ -95,7 +95,7 @@ export default function SignupScreen() {
 
     // Dispatch Redux action
     try {
-      await dispatch(registerUser({ name, email, phone, password })).unwrap();
+      await dispatch(registerUser({ name, email, phone, password, password_confirmation: confirmPassword })).unwrap();
       // Success - navigation auto via useEffect
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : 'Inscription echouee';
