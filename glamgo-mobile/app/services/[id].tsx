@@ -253,7 +253,7 @@ export default function ServiceDetailScreen() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onPress={() => {/* TODO: Navigate to provider profile */}}
+                  onPress={() => router.push(`/providers/${service.provider?.id || service.provider_id}` as any)}
                 >
                   Voir profil
                 </Button>
