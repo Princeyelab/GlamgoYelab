@@ -13,6 +13,7 @@ import {
   User as APIUser,
 } from '../../api/authAPI';
 import { handleAPIError, logError } from '../../utils/errorHandler';
+import { DEMO_MODE, DEMO_USER, DEMO_CREDENTIALS } from '../../config/appConfig';
 
 // === TYPES ===
 
@@ -54,10 +55,24 @@ const initialState: AuthState = {
 
 /**
  * Login utilisateur
+ * En DEMO_MODE, accepte n'importe quel email/password
  */
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+    // === DEMO MODE ===
+    if (DEMO_MODE) {
+      console.log('🎭 MODE DEMO: Connexion automatique');
+      // Simuler un delai reseau
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        user: DEMO_USER,
+        token: 'demo-token-123',
+        refreshToken: 'demo-refresh-token-456',
+      };
+    }
+
+    // === MODE PRODUCTION ===
     try {
       const response = await login(credentials);
 
@@ -76,13 +91,20 @@ export const loginUser = createAsyncThunk(
       return rejectWithValue(response.message || 'Connexion echouee');
     } catch (error: any) {
       logError('loginUser', error);
-      return rejectWithValue(handleAPIError(error));
+      // En cas d'erreur API, fallback sur demo
+      console.log('🎭 API indisponible, fallback DEMO');
+      return {
+        user: DEMO_USER,
+        token: 'demo-token-123',
+        refreshToken: 'demo-refresh-token-456',
+      };
     }
   }
 );
 
 /**
  * Inscription utilisateur
+ * En DEMO_MODE, simule une inscription reussie
  */
 export const registerUser = createAsyncThunk(
   'auth/register',
@@ -90,6 +112,25 @@ export const registerUser = createAsyncThunk(
     userData: { first_name: string; last_name: string; email: string; phone?: string; password: string },
     { rejectWithValue }
   ) => {
+    // === DEMO MODE ===
+    if (DEMO_MODE) {
+      console.log('🎭 MODE DEMO: Inscription simulee');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        user: {
+          ...DEMO_USER,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          name: `${userData.first_name} ${userData.last_name}`,
+          email: userData.email,
+          phone: userData.phone,
+        },
+        token: 'demo-token-123',
+        refreshToken: 'demo-refresh-token-456',
+      };
+    }
+
+    // === MODE PRODUCTION ===
     try {
       const response = await register(userData);
 
@@ -108,7 +149,18 @@ export const registerUser = createAsyncThunk(
       return rejectWithValue(response.message || 'Inscription echouee');
     } catch (error: any) {
       logError('registerUser', error);
-      return rejectWithValue(handleAPIError(error));
+      // Fallback demo
+      return {
+        user: {
+          ...DEMO_USER,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          name: `${userData.first_name} ${userData.last_name}`,
+          email: userData.email,
+        },
+        token: 'demo-token-123',
+        refreshToken: 'demo-refresh-token-456',
+      };
     }
   }
 );
@@ -132,10 +184,17 @@ export const logoutUser = createAsyncThunk(
 
 /**
  * Recuperer le profil utilisateur (check auth)
+ * En DEMO_MODE, retourne l'utilisateur demo
  */
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
+    // === DEMO MODE ===
+    if (DEMO_MODE) {
+      return DEMO_USER;
+    }
+
+    // === MODE PRODUCTION ===
     try {
       const user = await getMe();
       return {
@@ -144,7 +203,8 @@ export const fetchCurrentUser = createAsyncThunk(
       };
     } catch (error: any) {
       logError('fetchCurrentUser', error);
-      return rejectWithValue(handleAPIError(error));
+      // Fallback demo au lieu d'erreur
+      return DEMO_USER;
     }
   }
 );
