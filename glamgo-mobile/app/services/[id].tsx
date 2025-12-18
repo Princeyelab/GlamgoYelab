@@ -210,13 +210,18 @@ export default function ServiceDetailScreen() {
                 {(service.rating || 0).toFixed(1)}
               </Text>
             </View>
-            <View style={styles.infoCard}>
+            <TouchableOpacity
+              style={styles.infoCard}
+              onPress={() => router.push(`/reviews/${service.id}` as any)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.infoIcon}>💬</Text>
               <Text style={styles.infoLabel}>Avis</Text>
               <Text style={styles.infoValue}>
                 {service.reviews_count || 0}
               </Text>
-            </View>
+              <Text style={styles.infoLink}>Voir →</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Description */}
@@ -461,6 +466,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: colors.gray[900],
+  },
+  infoLink: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary,
+    fontWeight: '500',
+    marginTop: 2,
   },
 
   // Description
