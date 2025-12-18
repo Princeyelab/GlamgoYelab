@@ -48,9 +48,15 @@ export default function Index() {
       </View>
 
       <View style={styles.footerContainer}>
-        <Link href="/test-components">
-          <Text style={styles.testLink}>Test Composants</Text>
-        </Link>
+        <View style={styles.testLinks}>
+          <Link href="/test-components">
+            <Text style={styles.testLink}>Test Composants</Text>
+          </Link>
+          <Text style={styles.testSeparator}>•</Text>
+          <Link href="/test-api">
+            <Text style={styles.testLink}>Test API</Text>
+          </Link>
+        </View>
         <Text style={styles.footer}>📍 Marrakech, Maroc</Text>
       </View>
     </View>
@@ -131,10 +137,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  testLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   testLink: {
     color: colors.accent,
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
+  },
+  testSeparator: {
+    color: colors.gray[400],
+    fontSize: typography.fontSize.sm,
   },
   footer: {
     textAlign: 'center',

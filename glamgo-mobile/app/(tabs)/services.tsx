@@ -32,6 +32,11 @@ import { SERVICES } from '../../src/lib/constants/services';
 import { CATEGORIES } from '../../src/lib/constants/categories';
 import { Service } from '../../src/types/service';
 
+// Test Agent
+import { testAgent, TestReport } from '../../src/lib/testing/testAgent';
+import TestReportModal from '../../src/components/debug/TestReportModal';
+import { shouldRunAutoTests } from '../../src/lib/constants/config';
+
 export default function ServicesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -46,10 +51,57 @@ export default function ServicesScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
 
-  // Load services on mount
+  // Test Agent state
+  const [testReport, setTestReport] = useState<TestReport | null>(null);
+  const [showTestReport, setShowTestReport] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
+  // Load services on mount (avec tests auto)
   useEffect(() => {
-    loadServices();
+    initializeScreen();
   }, []);
+
+  const initializeScreen = async () => {
+    if (shouldRunAutoTests()) {
+      await runTests();
+    } else {
+      await loadServices();
+    }
+  };
+
+  const runTests = async () => {
+    setIsTesting(true);
+    setIsLoading(true);
+
+    try {
+      const report = await testAgent.runAllTests();
+      setTestReport(report);
+
+      if (report.failed > 0) {
+        // Tests echoues - afficher rapport
+        setShowTestReport(true);
+      } else {
+        // Tests OK - charger services
+        await loadServices();
+      }
+    } catch (error) {
+      console.error('Test error:', error);
+      // En cas d'erreur, charger quand meme les donnees locales
+      await loadServices();
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleContinueAfterTests = async () => {
+    setShowTestReport(false);
+    await loadServices();
+  };
+
+  const handleRetryTests = async () => {
+    setShowTestReport(false);
+    await runTests();
+  };
 
   const loadServices = async () => {
     try {
@@ -156,6 +208,11 @@ export default function ServicesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.skeletonHeader}>
+          {isTesting && (
+            <View style={styles.testingBanner}>
+              <Text style={styles.testingText}>🧪 Test API en cours...</Text>
+            </View>
+          )}
           <View style={styles.skeletonTitle} />
           <View style={styles.skeletonSubtitle} />
           <View style={styles.skeletonSearch} />
@@ -292,6 +349,15 @@ export default function ServicesScreen() {
         maxToRenderPerBatch={10}
         windowSize={10}
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Test Report Modal */}
+      <TestReportModal
+        visible={showTestReport}
+        report={testReport}
+        onClose={() => setShowTestReport(false)}
+        onContinue={handleContinueAfterTests}
+        onRetry={handleRetryTests}
       />
     </KeyboardAvoidingView>
   );
@@ -432,6 +498,20 @@ const styles = StyleSheet.create({
   },
   clearSearchText: {
     color: colors.white,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+
+  // Testing Banner
+  testingBanner: {
+    backgroundColor: '#EFF6FF',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    alignItems: 'center',
+  },
+  testingText: {
+    color: '#1E40AF',
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
   },
