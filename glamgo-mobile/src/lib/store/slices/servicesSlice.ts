@@ -76,20 +76,25 @@ export const fetchServices = createAsyncThunk(
 
 /**
  * Charger un service par ID
+ * Utilise l'API si disponible, sinon fallback sur donnees locales
  */
 export const fetchServiceById = createAsyncThunk(
   'services/fetchById',
   async (id: number | string, { rejectWithValue }) => {
+    // D'abord essayer les donnees locales (plus rapide)
+    const localService = LOCAL_SERVICES.find(s => s.id === Number(id));
+
     try {
       const service = await getServiceById(id);
       return service;
     } catch (error: any) {
-      logError('fetchServiceById', error);
-      // Fallback sur donnees locales
-      const localService = LOCAL_SERVICES.find(s => s.id === Number(id));
+      // Fallback sur donnees locales si API echoue
       if (localService) {
+        console.log(`📦 Service ${id} charge depuis donnees locales (API indisponible)`);
         return localService;
       }
+      // Seulement logger erreur si pas de fallback
+      logError('fetchServiceById', error);
       return rejectWithValue(handleAPIError(error));
     }
   }
