@@ -8,7 +8,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
@@ -110,6 +110,10 @@ export default function ReviewsScreen() {
       }
     });
 
+  // Debug
+  console.log('Reviews count:', reviews.length);
+  console.log('Service ID:', id);
+
   // Calculate stats
   const stats = {
     total: MOCK_REVIEWS.length,
@@ -210,21 +214,6 @@ export default function ReviewsScreen() {
     </View>
   );
 
-  const renderReview = ({ item }: { item: Review }) => (
-    <View style={styles.reviewItem}>
-      <ReviewCard
-        id={item.id}
-        user={item.user}
-        rating={item.rating}
-        comment={item.comment}
-        is_verified_purchase={item.is_verified_purchase}
-        helpful_count={item.helpful_count}
-        provider_response={item.provider_response}
-        created_at={item.created_at}
-      />
-    </View>
-  );
-
   const renderEmpty = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>⭐</Text>
@@ -251,15 +240,32 @@ export default function ReviewsScreen() {
       </View>
 
       {/* List */}
-      <FlatList
-        data={reviews}
-        renderItem={renderReview}
-        keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+      <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-      />
+      >
+        {renderHeader()}
+
+        {reviews.length === 0 ? (
+          renderEmpty()
+        ) : (
+          reviews.map((review) => (
+            <View key={review.id} style={styles.reviewItem}>
+              <ReviewCard
+                id={review.id}
+                user={review.user}
+                rating={review.rating}
+                comment={review.comment}
+                is_verified_purchase={review.is_verified_purchase}
+                helpful_count={review.helpful_count}
+                provider_response={review.provider_response}
+                created_at={review.created_at}
+              />
+            </View>
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -307,6 +313,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.lg,
     paddingBottom: spacing['2xl'],
+    flexGrow: 1,
   },
 
   // Stats Card
