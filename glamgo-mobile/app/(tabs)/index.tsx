@@ -1,87 +1,200 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+/**
+ * Home Screen - GlamGo Mobile
+ * Ecran d'accueil avec recherche, notifications et services populaires
+ */
+
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import Button from '../../src/components/ui/Button';
-import { colors, spacing, typography } from '../../src/lib/constants/theme';
-import { useAppSelector } from '../../src/lib/store/hooks';
+import ServiceCard from '../../src/components/features/ServiceCard';
+import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser } from '../../src/lib/store/slices/authSlice';
+import {
+  selectServices,
+  selectFavorites,
+  selectCategories,
+  toggleFavorite,
+} from '../../src/lib/store/slices/servicesSlice';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
   const user = useAppSelector(selectUser);
+  const services = useAppSelector(selectServices);
+  const favorites = useAppSelector(selectFavorites);
+  const categories = useAppSelector(selectCategories);
+
+  // Services populaires (premiers 4)
+  const popularServices = services.slice(0, 4);
+
+  // Categories principales
+  const mainCategories = [
+    { id: 1, name: 'Coiffure', icon: '💇' },
+    { id: 2, name: 'Massage', icon: '💆' },
+    { id: 3, name: 'Manucure', icon: '💅' },
+    { id: 4, name: 'Maquillage', icon: '💄' },
+  ];
+
+  const handleSearchPress = () => {
+    router.push('/search');
+  };
+
+  const handleNotificationsPress = () => {
+    router.push('/notifications');
+  };
+
+  const handleServicePress = (serviceId: number | string) => {
+    router.push(`/services/${serviceId}` as any);
+  };
+
+  const handleFavoriteToggle = (serviceId: number | string) => {
+    dispatch(toggleFavorite(Number(serviceId)));
+  };
+
+  const handleCategoryPress = (categoryName: string) => {
+    router.push(`/search?q=${categoryName}` as any);
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>
-            Bonjour{user ? `, ${user.first_name || user.name?.split(' ')[0] || ''}` : ''} 👋
-          </Text>
-          <Text style={styles.subtitle}>
-            Trouvez les meilleurs services pres de chez vous
-          </Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>
+              Bonjour{user ? `, ${user.first_name || user.name?.split(' ')[0] || ''}` : ''} 👋
+            </Text>
+            <Text style={styles.subtitle}>
+              Que recherchez-vous aujourd'hui ?
+            </Text>
+          </View>
+
+          {/* Notification Bell */}
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={handleNotificationsPress}
+          >
+            <Text style={styles.notificationIcon}>🔔</Text>
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>2</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
+        {/* Search Bar */}
+        <TouchableOpacity
+          style={styles.searchBar}
+          onPress={handleSearchPress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.searchIcon}>🔍</Text>
+          <Text style={styles.searchPlaceholder}>
+            Rechercher un service...
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-          <Button
-            variant="primary"
-            fullWidth
-            onPress={() => router.push('/(tabs)/services')}
-            style={styles.actionButton}
-          >
-            Explorer les services
-          </Button>
+      {/* Categories */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+        <View style={styles.categoriesGrid}>
+          {mainCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={styles.categoryCard}
+              onPress={() => handleCategoryPress(category.name)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <Text style={styles.categoryName}>{category.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
-          <Button
-            variant="outline"
-            fullWidth
-            onPress={() => router.push('/(tabs)/bookings')}
-            style={styles.actionButton}
-          >
-            Mes reservations
-          </Button>
-
-          <Button
-            variant="ghost"
-            fullWidth
-            onPress={() => router.push('/test-components')}
-            style={styles.actionButton}
-          >
-            Test Composants UI
-          </Button>
-
-          <Button
-            variant="ghost"
-            fullWidth
-            onPress={() => router.push('/test-full')}
-            style={styles.actionButton}
-          >
-            Tests Complets API
-          </Button>
+      {/* Popular Services */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Services populaires</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/services')}>
+            <Text style={styles.seeAll}>Voir tout →</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* User Status */}
-        {user && (
-          <View style={styles.userCard}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>
-                {(user.first_name || user.name || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>
-                {user.first_name && user.last_name
-                  ? `${user.first_name} ${user.last_name}`
-                  : user.name || 'Utilisateur'}
-              </Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
-            </View>
+        {popularServices.length > 0 ? (
+          <View style={styles.servicesList}>
+            {popularServices.map((service) => (
+              <View key={service.id} style={styles.serviceItem}>
+                <ServiceCard
+                  id={service.id}
+                  title={service.title}
+                  description={service.description}
+                  images={service.images}
+                  thumbnail={service.thumbnail}
+                  price={service.price}
+                  currency={service.currency}
+                  rating={service.rating}
+                  reviews_count={service.reviews_count}
+                  duration_minutes={service.duration_minutes}
+                  category={service.category || { id: 0, name: 'Service' }}
+                  provider={service.provider || { id: 0, name: 'Prestataire' }}
+                  is_featured={service.is_featured}
+                  isFavorite={favorites.includes(Number(service.id))}
+                  onPress={() => handleServicePress(service.id)}
+                  onFavoritePress={() => handleFavoriteToggle(service.id)}
+                />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyServices}>
+            <Text style={styles.emptyText}>Chargement des services...</Text>
           </View>
         )}
       </View>
+
+      {/* Quick Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Acces rapide</Text>
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => router.push('/(tabs)/bookings')}
+          >
+            <Text style={styles.quickActionIcon}>📅</Text>
+            <Text style={styles.quickActionText}>Mes reservations</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => router.push('/(tabs)/favorites')}
+          >
+            <Text style={styles.quickActionIcon}>❤️</Text>
+            <Text style={styles.quickActionText}>Mes favoris</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => router.push('/(tabs)/profile')}
+          >
+            <Text style={styles.quickActionIcon}>👤</Text>
+            <Text style={styles.quickActionText}>Mon profil</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Spacer for tab bar */}
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -89,27 +202,92 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.gray[50],
   },
-  content: {
-    padding: spacing.xl,
-    paddingTop: 60,
-  },
+
+  // Header
   header: {
-    marginBottom: spacing['2xl'],
+    backgroundColor: colors.white,
+    paddingTop: 60,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
+    ...shadows.sm,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
   },
   greeting: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.gray[900],
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    color: colors.gray[500],
+    color: colors.gray[600],
   },
+  notificationButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationIcon: {
+    fontSize: 22,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+
+  // Search Bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[100],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  searchPlaceholder: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[400],
+  },
+
+  // Section
   section: {
-    marginBottom: spacing['2xl'],
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
@@ -117,43 +295,72 @@ const styles = StyleSheet.create({
     color: colors.gray[900],
     marginBottom: spacing.md,
   },
-  actionButton: {
+  seeAll: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+
+  // Categories
+  categoriesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  categoryCard: {
+    width: '23%',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  categoryIcon: {
+    fontSize: 28,
+    marginBottom: spacing.xs,
+  },
+  categoryName: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[700],
+    fontWeight: '500',
+  },
+
+  // Services
+  servicesList: {
+    marginTop: -spacing.md,
+  },
+  serviceItem: {
     marginBottom: spacing.md,
   },
-  userCard: {
-    flexDirection: 'row',
+  emptyServices: {
+    paddingVertical: spacing.xl,
     alignItems: 'center',
-    padding: spacing.base,
-    backgroundColor: colors.gray[50],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
   },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  userAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
+  emptyText: {
     fontSize: typography.fontSize.base,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: typography.fontSize.sm,
     color: colors.gray[500],
+  },
+
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  quickAction: {
+    width: '31%',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  quickActionIcon: {
+    fontSize: 28,
+    marginBottom: spacing.sm,
+  },
+  quickActionText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[700],
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
