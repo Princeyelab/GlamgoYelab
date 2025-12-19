@@ -12,12 +12,14 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import ServiceCard from '../../src/components/features/ServiceCard';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
-import { selectUser } from '../../src/lib/store/slices/authSlice';
+import { selectUser, switchRole } from '../../src/lib/store/slices/authSlice';
+import { hapticFeedback } from '../../src/lib/utils/haptics';
 import {
   selectServices,
   selectFavorites,
@@ -65,6 +67,24 @@ export default function HomeScreen() {
     router.push(`/search?q=${categoryName}` as any);
   };
 
+  const handleSwitchToProvider = () => {
+    hapticFeedback.medium();
+    Alert.alert(
+      'Mode Prestataire',
+      'Basculer vers l\'espace prestataire ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: () => {
+            dispatch(switchRole('provider'));
+            router.replace('/(provider)');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
@@ -79,16 +99,27 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          {/* Notification Bell */}
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={handleNotificationsPress}
-          >
-            <Text style={styles.notificationIcon}>🔔</Text>
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>2</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Header Actions */}
+          <View style={styles.headerActions}>
+            {/* Switch to Provider */}
+            <TouchableOpacity
+              style={styles.switchModeButton}
+              onPress={handleSwitchToProvider}
+            >
+              <Text style={styles.switchModeIcon}>💼</Text>
+            </TouchableOpacity>
+
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={handleNotificationsPress}
+            >
+              <Text style={styles.notificationIcon}>🔔</Text>
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>2</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -230,6 +261,24 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: typography.fontSize.base,
     color: colors.gray[600],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  switchModeButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+  },
+  switchModeIcon: {
+    fontSize: 22,
   },
   notificationButton: {
     width: 48,

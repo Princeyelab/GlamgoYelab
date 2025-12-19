@@ -1,9 +1,9 @@
 /**
  * Provider Dashboard - GlamGo Mobile
- * Tableau de bord du prestataire
+ * Tableau de bord complet du prestataire
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,228 +11,505 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Switch,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Card from '../../src/components/ui/Card';
+import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
-import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
-import { useAppSelector } from '../../src/lib/store/hooks';
-import { selectUser } from '../../src/lib/store/slices/authSlice';
+import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
+import { selectUser, switchRole } from '../../src/lib/store/slices/authSlice';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 
-// Demo data pour le dashboard provider
-const DEMO_STATS = {
-  todayBookings: 3,
-  pendingRequests: 2,
-  weeklyEarnings: 1250,
-  monthlyEarnings: 4800,
+// Types
+type PeriodType = 'today' | 'week' | 'month';
+type BookingStatus = 'pending' | 'accepted' | 'on_way' | 'in_progress' | 'completed' | 'cancelled';
+
+interface BookingService {
+  title: string;
+  duration_minutes: number;
+  price: number;
+}
+
+interface BookingUser {
+  name: string;
+  phone: string;
+}
+
+interface TodayBooking {
+  id: number;
+  order_number: string;
+  status: BookingStatus;
+  service: BookingService;
+  user: BookingUser;
+  booking_date: string;
+  booking_time: string;
+  address: string;
+}
+
+// Mock data stats par période
+const MOCK_STATS = {
+  today: {
+    bookings: 3,
+    earnings: 850,
+    completed: 2,
+  },
+  week: {
+    bookings: 12,
+    earnings: 3200,
+    completed: 10,
+  },
+  month: {
+    bookings: 48,
+    earnings: 14500,
+    completed: 42,
+  },
   rating: 4.8,
-  totalReviews: 47,
-  completedBookings: 156,
+  reviews_count: 156,
+  completion_rate: 95,
 };
 
-const DEMO_PENDING_BOOKINGS = [
+// Mock reservations du jour
+const MOCK_TODAY_BOOKINGS: TodayBooking[] = [
   {
     id: 1,
-    clientName: 'Sarah M.',
-    service: 'Coiffure à domicile',
-    date: '2024-12-20',
-    time: '14:00',
-    price: 350,
+    order_number: 'BK-2024-001',
     status: 'pending',
+    service: { title: 'Coupe Femme', duration_minutes: 60, price: 150 },
+    user: { name: 'Sophie Martin', phone: '+212 6 12 34 56 78' },
+    booking_date: new Date().toISOString().split('T')[0],
+    booking_time: '10:00:00',
+    address: '15 Rue Mohammed V, Marrakech',
   },
   {
     id: 2,
-    clientName: 'Fatima Z.',
-    service: 'Maquillage mariage',
-    date: '2024-12-21',
-    time: '10:00',
-    price: 500,
-    status: 'pending',
+    order_number: 'BK-2024-002',
+    status: 'accepted',
+    service: { title: 'Manucure', duration_minutes: 45, price: 120 },
+    user: { name: 'Amina Idrissi', phone: '+212 6 23 45 67 89' },
+    booking_date: new Date().toISOString().split('T')[0],
+    booking_time: '14:30:00',
+    address: '28 Avenue Hassan II, Marrakech',
+  },
+  {
+    id: 3,
+    order_number: 'BK-2024-003',
+    status: 'in_progress',
+    service: { title: 'Coupe + Brushing', duration_minutes: 90, price: 200 },
+    user: { name: 'Karim Bensaid', phone: '+212 6 34 56 78 90' },
+    booking_date: new Date().toISOString().split('T')[0],
+    booking_time: '16:00:00',
+    address: '42 Boulevard Zerktouni, Marrakech',
   },
 ];
 
 export default function ProviderDashboard() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
-  const [isAvailable, setIsAvailable] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState(DEMO_STATS);
-  const [pendingBookings, setPendingBookings] = useState(DEMO_PENDING_BOOKINGS);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    hapticFeedback.light();
-    // Simuler un refresh
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
-  };
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('today');
+  const [bookings, setBookings] = useState<TodayBooking[]>(MOCK_TODAY_BOOKINGS);
 
-  const toggleAvailability = () => {
+  const stats = MOCK_STATS[selectedPeriod];
+
+  // Switch to client mode
+  const handleSwitchToClient = () => {
     hapticFeedback.medium();
-    setIsAvailable(!isAvailable);
+    Alert.alert(
+      'Mode Client',
+      'Basculer vers l\'espace client ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: () => {
+            dispatch(switchRole('user'));
+            router.replace('/(client)');
+          },
+        },
+      ]
+    );
   };
 
-  const handleAcceptBooking = (bookingId: number) => {
+  // Pull to refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    hapticFeedback.light();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsRefreshing(false);
+  };
+
+  // Status helpers
+  const getStatusColor = (status: BookingStatus): 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'error' => {
+    switch (status) {
+      case 'pending': return 'warning';
+      case 'accepted': return 'success';
+      case 'on_way': return 'accent';
+      case 'in_progress': return 'primary';
+      case 'completed': return 'default';
+      case 'cancelled': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status: BookingStatus): string => {
+    switch (status) {
+      case 'pending': return '⏳ En attente';
+      case 'accepted': return '✅ Accepté';
+      case 'on_way': return '🚗 En route';
+      case 'in_progress': return '🔨 En cours';
+      case 'completed': return '✓ Terminé';
+      case 'cancelled': return '✕ Annulé';
+      default: return status;
+    }
+  };
+
+  // Booking actions
+  const handleAcceptBooking = (id: number) => {
     hapticFeedback.success();
-    setPendingBookings(prev => prev.filter(b => b.id !== bookingId));
+    setBookings(prev =>
+      prev.map(b => b.id === id ? { ...b, status: 'accepted' as BookingStatus } : b)
+    );
   };
 
-  const handleDeclineBooking = (bookingId: number) => {
+  const handleRejectBooking = (id: number) => {
     hapticFeedback.warning();
-    setPendingBookings(prev => prev.filter(b => b.id !== bookingId));
+    Alert.alert(
+      'Refuser la réservation',
+      'Êtes-vous sûr de vouloir refuser cette réservation ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Refuser',
+          style: 'destructive',
+          onPress: () => {
+            setBookings(prev =>
+              prev.map(b => b.id === id ? { ...b, status: 'cancelled' as BookingStatus } : b)
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartRoute = (id: number) => {
+    hapticFeedback.medium();
+    setBookings(prev =>
+      prev.map(b => b.id === id ? { ...b, status: 'on_way' as BookingStatus } : b)
+    );
+    // Navigate to journey mode with booking ID
+    router.push(`/(provider)/booking/journey/${id}` as any);
+  };
+
+  const handleArrived = (id: number) => {
+    hapticFeedback.medium();
+    setBookings(prev =>
+      prev.map(b => b.id === id ? { ...b, status: 'in_progress' as BookingStatus } : b)
+    );
+  };
+
+  const handleCompleteService = (id: number) => {
+    hapticFeedback.success();
+    setBookings(prev =>
+      prev.map(b => b.id === id ? { ...b, status: 'completed' as BookingStatus } : b)
+    );
+  };
+
+  const getCardStyle = (status: BookingStatus) => {
+    switch (status) {
+      case 'pending':
+        return styles.cardPending;
+      case 'accepted':
+        return styles.cardAccepted;
+      case 'on_way':
+        return styles.cardOnWay;
+      case 'in_progress':
+        return styles.cardInProgress;
+      default:
+        return {};
+    }
   };
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={styles.scrollContent}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.primary}
+        />
       }
     >
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>
-            {user?.first_name || user?.name || 'Prestataire'}
-          </Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.switchModeButton}
+            onPress={handleSwitchToClient}
+          >
+            <Text style={styles.switchModeIcon}>👤</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.greeting}>Bonjour,</Text>
+            <Text style={styles.name}>{user?.first_name || user?.name || 'Prestataire'} 👋</Text>
+          </View>
         </View>
-        <View style={styles.availabilityContainer}>
-          <Text style={[styles.availabilityText, !isAvailable && styles.unavailableText]}>
-            {isAvailable ? 'Disponible' : 'Indisponible'}
-          </Text>
-          <Switch
-            value={isAvailable}
-            onValueChange={toggleAvailability}
-            trackColor={{ false: colors.gray[300], true: colors.success }}
-            thumbColor={colors.white}
-          />
-        </View>
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={() => router.push('/notifications')}
+        >
+          <Text style={styles.notificationIcon}>🔔</Text>
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>3</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Stats rapides */}
-      <View style={styles.statsRow}>
-        <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.todayBookings}</Text>
-          <Text style={styles.statLabel}>Aujourd'hui</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.pendingRequests}</Text>
-          <Text style={styles.statLabel}>En attente</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={[styles.statValue, styles.earningsValue]}>
-            {stats.weeklyEarnings} DH
-          </Text>
-          <Text style={styles.statLabel}>Cette semaine</Text>
-        </Card>
+      {/* Period Selector */}
+      <View style={styles.periodSelector}>
+        {(['today', 'week', 'month'] as PeriodType[]).map((period) => (
+          <TouchableOpacity
+            key={period}
+            style={[
+              styles.periodButton,
+              selectedPeriod === period && styles.periodButtonActive,
+            ]}
+            onPress={() => {
+              hapticFeedback.selection();
+              setSelectedPeriod(period);
+            }}
+          >
+            <Text
+              style={[
+                styles.periodButtonText,
+                selectedPeriod === period && styles.periodButtonTextActive,
+              ]}
+            >
+              {period === 'today' ? "Aujourd'hui" : period === 'week' ? 'Semaine' : 'Mois'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Demandes en attente */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Demandes en attente</Text>
+      {/* Stats Cards */}
+      <View style={styles.statsGrid}>
+        <Card style={[styles.statCard, styles.statCardBlue]}>
+          <Text style={styles.statIcon}>📋</Text>
+          <Text style={styles.statValue}>{stats.bookings}</Text>
+          <Text style={styles.statLabel}>Réservations</Text>
+        </Card>
 
-        {pendingBookings.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Aucune demande en attente</Text>
-          </Card>
-        ) : (
-          pendingBookings.map(booking => (
-            <Card key={booking.id} style={styles.bookingCard}>
-              <View style={styles.bookingHeader}>
-                <Text style={styles.clientName}>{booking.clientName}</Text>
-                <Text style={styles.bookingPrice}>{booking.price} DH</Text>
-              </View>
-              <Text style={styles.serviceName}>{booking.service}</Text>
-              <Text style={styles.bookingDateTime}>
-                📅 {new Date(booking.date).toLocaleDateString('fr-FR')} à {booking.time}
-              </Text>
-              <View style={styles.bookingActions}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onPress={() => handleDeclineBooking(booking.id)}
-                  style={styles.declineButton}
-                  textStyle={styles.declineButtonText}
-                >
-                  Refuser
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onPress={() => handleAcceptBooking(booking.id)}
-                  style={styles.acceptButton}
-                >
-                  Accepter
-                </Button>
-              </View>
-            </Card>
-          ))
-        )}
+        <Card style={[styles.statCard, styles.statCardGreen]}>
+          <Text style={styles.statIcon}>💰</Text>
+          <Text style={[styles.statValue, styles.statValueGreen]}>{stats.earnings} DH</Text>
+          <Text style={styles.statLabel}>Revenus</Text>
+        </Card>
+
+        <Card style={[styles.statCard, styles.statCardPurple]}>
+          <Text style={styles.statIcon}>✅</Text>
+          <Text style={styles.statValue}>{stats.completed}</Text>
+          <Text style={styles.statLabel}>Complétés</Text>
+        </Card>
+
+        <Card style={[styles.statCard, styles.statCardYellow]}>
+          <Text style={styles.statIcon}>⭐</Text>
+          <Text style={[styles.statValue, styles.statValueYellow]}>{MOCK_STATS.rating}</Text>
+          <Text style={styles.statLabel}>Note moyenne</Text>
+        </Card>
       </View>
 
       {/* Performance */}
-      <View style={styles.section}>
+      <Card style={styles.performanceCard}>
         <Text style={styles.sectionTitle}>Performance</Text>
-        <Card style={styles.performanceCard}>
-          <View style={styles.performanceRow}>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceValue}>⭐ {stats.rating}</Text>
-              <Text style={styles.performanceLabel}>{stats.totalReviews} avis</Text>
-            </View>
-            <View style={styles.performanceDivider} />
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceValue}>{stats.completedBookings}</Text>
-              <Text style={styles.performanceLabel}>Réservations</Text>
-            </View>
-            <View style={styles.performanceDivider} />
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceValue}>{stats.monthlyEarnings} DH</Text>
-              <Text style={styles.performanceLabel}>Ce mois</Text>
-            </View>
+        <View style={styles.performanceRow}>
+          <View style={styles.performanceItem}>
+            <Text style={styles.performanceLabel}>Taux de complétion</Text>
+            <Text style={styles.performanceValue}>{MOCK_STATS.completion_rate}%</Text>
           </View>
-        </Card>
+          <View style={styles.performanceItem}>
+            <Text style={styles.performanceLabel}>Total avis</Text>
+            <Text style={styles.performanceValue}>{MOCK_STATS.reviews_count}</Text>
+          </View>
+        </View>
+      </Card>
+
+      {/* Today's Bookings */}
+      <View style={styles.todaySection}>
+        <View style={styles.todaySectionHeader}>
+          <Text style={styles.sectionTitle}>Réservations du jour</Text>
+          <TouchableOpacity onPress={() => router.push('/(provider)/bookings')}>
+            <Text style={styles.viewAll}>Voir tout →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {bookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled').length === 0 ? (
+          <Card>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>📅</Text>
+              <Text style={styles.emptyText}>Aucune réservation active</Text>
+            </View>
+          </Card>
+        ) : (
+          bookings
+            .filter(b => b.status !== 'completed' && b.status !== 'cancelled')
+            .map((booking) => (
+              <Card key={booking.id} style={[styles.bookingCard, getCardStyle(booking.status)]}>
+                {/* Header */}
+                <View style={styles.bookingHeader}>
+                  <View style={styles.bookingHeaderLeft}>
+                    <Text style={styles.bookingService}>{booking.service.title}</Text>
+                    <Text style={styles.bookingOrder}>#{booking.order_number}</Text>
+                  </View>
+                  <Badge color={getStatusColor(booking.status)} size="sm" variant="soft">
+                    {getStatusLabel(booking.status)}
+                  </Badge>
+                </View>
+
+                {/* Client Info */}
+                <View style={styles.bookingClient}>
+                  <View style={styles.clientAvatar}>
+                    <Text style={styles.clientAvatarText}>
+                      {booking.user.name.charAt(0)}
+                    </Text>
+                  </View>
+                  <View style={styles.clientInfo}>
+                    <Text style={styles.clientName}>{booking.user.name}</Text>
+                    <Text style={styles.clientPhone}>{booking.user.phone}</Text>
+                  </View>
+                </View>
+
+                {/* Details */}
+                <View style={styles.bookingDetails}>
+                  <Text style={styles.bookingDetail}>
+                    🕐 {booking.booking_time.substring(0, 5)} • {booking.service.duration_minutes} min
+                  </Text>
+                  <Text style={styles.bookingDetail}>
+                    📍 {booking.address}
+                  </Text>
+                  <Text style={styles.bookingPrice}>
+                    💰 {booking.service.price} DH
+                  </Text>
+                </View>
+
+                {/* Actions based on status */}
+                <View style={styles.bookingActions}>
+                  {booking.status === 'pending' && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => handleRejectBooking(booking.id)}
+                        style={styles.rejectButton}
+                        textStyle={styles.rejectButtonText}
+                      >
+                        Refuser
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onPress={() => handleAcceptBooking(booking.id)}
+                        style={styles.acceptButton}
+                      >
+                        Accepter
+                      </Button>
+                    </>
+                  )}
+
+                  {booking.status === 'accepted' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onPress={() => handleStartRoute(booking.id)}
+                      fullWidth
+                    >
+                      🚗 Démarrer (En route)
+                    </Button>
+                  )}
+
+                  {booking.status === 'on_way' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onPress={() => handleArrived(booking.id)}
+                      fullWidth
+                    >
+                      📍 Je suis arrivé
+                    </Button>
+                  )}
+
+                  {booking.status === 'in_progress' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onPress={() => handleCompleteService(booking.id)}
+                      fullWidth
+                    >
+                      ✅ Terminer le service
+                    </Button>
+                  )}
+                </View>
+              </Card>
+            ))
+        )}
       </View>
 
-      {/* Actions rapides */}
-      <View style={styles.section}>
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
         <Text style={styles.sectionTitle}>Actions rapides</Text>
-        <View style={styles.quickActions}>
+        <View style={styles.quickActionsGrid}>
           <TouchableOpacity
-            style={styles.quickAction}
+            style={styles.quickActionButton}
             onPress={() => {
               hapticFeedback.light();
               router.push('/(provider)/bookings');
             }}
           >
-            <Text style={styles.quickActionIcon}>📅</Text>
-            <Text style={styles.quickActionText}>Mes réservations</Text>
+            <Text style={styles.quickActionIcon}>📋</Text>
+            <Text style={styles.quickActionLabel}>Commandes</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={styles.quickAction}
+            style={styles.quickActionButton}
             onPress={() => {
               hapticFeedback.light();
               router.push('/(provider)/earnings');
             }}
           >
             <Text style={styles.quickActionIcon}>💰</Text>
-            <Text style={styles.quickActionText}>Mes gains</Text>
+            <Text style={styles.quickActionLabel}>Revenus</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={styles.quickAction}
+            style={styles.quickActionButton}
             onPress={() => {
               hapticFeedback.light();
-              router.push('/(provider)/profile');
+              router.push('/settings');
             }}
           >
-            <Text style={styles.quickActionIcon}>👤</Text>
-            <Text style={styles.quickActionText}>Mon profil</Text>
+            <Text style={styles.quickActionIcon}>⚙️</Text>
+            <Text style={styles.quickActionLabel}>Paramètres</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => {
+              hapticFeedback.light();
+              Alert.alert('Aide', 'Support: support@glamgo.ma');
+            }}
+          >
+            <Text style={styles.quickActionIcon}>❓</Text>
+            <Text style={styles.quickActionLabel}>Aide</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Spacer for tab bar */}
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -242,10 +519,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray[50],
   },
-  content: {
+  scrollContent: {
     padding: spacing.lg,
     paddingTop: 60,
-    paddingBottom: spacing['3xl'],
   },
 
   // Header
@@ -254,6 +530,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.xl,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  switchModeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.gray[200],
+    ...shadows.sm,
+  },
+  switchModeIcon: {
+    fontSize: 20,
   },
   greeting: {
     fontSize: typography.fontSize.base,
@@ -264,161 +559,312 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.gray[900],
   },
-  availabilityContainer: {
-    flexDirection: 'row',
+  notificationButton: {
+    position: 'relative',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.white,
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    ...shadows.sm,
   },
-  availabilityText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.success,
+  notificationIcon: {
+    fontSize: 24,
   },
-  unavailableText: {
-    color: colors.gray[500],
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 
-  // Stats
-  statsRow: {
+  // Period Selector
+  periodSelector: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: 4,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
+  },
+  periodButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: borderRadius.md,
+  },
+  periodButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  periodButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[600],
+  },
+  periodButtonTextActive: {
+    color: colors.white,
+  },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   statCard: {
-    flex: 1,
+    width: '47%',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    padding: spacing.lg,
+  },
+  statCardBlue: {
+    backgroundColor: '#EFF6FF',
+    borderBottomWidth: 3,
+    borderBottomColor: '#3B82F6',
+  },
+  statCardGreen: {
+    backgroundColor: '#F0FDF4',
+    borderBottomWidth: 3,
+    borderBottomColor: colors.success,
+  },
+  statCardPurple: {
+    backgroundColor: '#FAF5FF',
+    borderBottomWidth: 3,
+    borderBottomColor: '#A855F7',
+  },
+  statCardYellow: {
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 3,
+    borderBottomColor: '#F59E0B',
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
   },
   statValue: {
-    fontSize: typography.fontSize['2xl'],
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
     color: colors.gray[900],
+    marginBottom: 4,
   },
-  earningsValue: {
+  statValueGreen: {
     color: colors.success,
-    fontSize: typography.fontSize.lg,
+  },
+  statValueYellow: {
+    color: '#F59E0B',
   },
   statLabel: {
     fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginTop: 4,
+    color: colors.gray[600],
+    textAlign: 'center',
   },
 
-  // Section
-  section: {
-    marginBottom: spacing.xl,
+  // Performance
+  performanceCard: {
+    marginBottom: spacing.lg,
   },
+  performanceRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    marginTop: spacing.md,
+  },
+  performanceItem: {
+    flex: 1,
+  },
+  performanceLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    marginBottom: 4,
+  },
+  performanceValue: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+
+  // Section Title
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: '600',
     color: colors.gray[900],
-    marginBottom: spacing.md,
   },
 
-  // Empty state
-  emptyCard: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
+  // Today Section
+  todaySection: {
+    marginBottom: spacing.lg,
   },
-  emptyText: {
-    fontSize: typography.fontSize.base,
-    color: colors.gray[500],
+  todaySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  viewAll: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '600',
   },
 
   // Booking Card
   bookingCard: {
     marginBottom: spacing.md,
   },
+  cardPending: {
+    backgroundColor: '#FFFBEB',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+  },
+  cardAccepted: {
+    backgroundColor: '#F0FDF4',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.success,
+  },
+  cardOnWay: {
+    backgroundColor: '#F0FDFA',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent,
+  },
+  cardInProgress: {
+    backgroundColor: '#FFF1F2',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
   bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
   },
-  clientName: {
-    fontSize: typography.fontSize.lg,
+  bookingHeaderLeft: {
+    flex: 1,
+  },
+  bookingService: {
+    fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[900],
+    marginBottom: 4,
   },
-  bookingPrice: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  serviceName: {
-    fontSize: typography.fontSize.base,
-    color: colors.gray[700],
-    marginBottom: spacing.xs,
-  },
-  bookingDateTime: {
+  bookingOrder: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[500],
+  },
+  bookingClient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.gray[100],
     marginBottom: spacing.md,
+  },
+  clientAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientAvatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  clientInfo: {
+    flex: 1,
+  },
+  clientName: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginBottom: 2,
+  },
+  clientPhone: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+  },
+  bookingDetails: {
+    gap: 4,
+    marginBottom: spacing.md,
+  },
+  bookingDetail: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[700],
+  },
+  bookingPrice: {
+    fontSize: typography.fontSize.base,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginTop: 4,
   },
   bookingActions: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  declineButton: {
+  rejectButton: {
     flex: 1,
+    borderWidth: 1,
     borderColor: colors.gray[300],
   },
-  declineButtonText: {
+  rejectButtonText: {
     color: colors.gray[700],
   },
   acceptButton: {
     flex: 1,
   },
 
-  // Performance
-  performanceCard: {
-    padding: spacing.lg,
-  },
-  performanceRow: {
-    flexDirection: 'row',
+  // Empty State
+  emptyState: {
     alignItems: 'center',
+    paddingVertical: spacing.xl,
   },
-  performanceItem: {
-    flex: 1,
-    alignItems: 'center',
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
   },
-  performanceDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.gray[200],
-  },
-  performanceValue: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.gray[900],
-  },
-  performanceLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginTop: 4,
+  emptyText: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
   },
 
   // Quick Actions
   quickActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  quickAction: {
-    flex: 1,
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  quickActionButton: {
+    width: '47%',
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.gray[100],
+    ...shadows.sm,
   },
   quickActionIcon: {
-    fontSize: 28,
-    marginBottom: spacing.xs,
+    fontSize: 32,
+    marginBottom: spacing.sm,
   },
-  quickActionText: {
+  quickActionLabel: {
     fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
-    textAlign: 'center',
+    color: colors.gray[900],
+    fontWeight: '500',
   },
 });
