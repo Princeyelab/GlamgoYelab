@@ -122,10 +122,10 @@ export default function ProfileScreen() {
           <Button
             variant="outline"
             fullWidth
-            onPress={() => Alert.alert('Info', 'Parametres - a venir')}
+            onPress={() => router.push('/settings')}
             style={styles.actionButton}
           >
-            Parametres
+            ⚙️ Paramètres
           </Button>
 
           <Button

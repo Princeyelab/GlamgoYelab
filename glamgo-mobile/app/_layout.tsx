@@ -32,6 +32,7 @@ export default function RootLayout() {
           <Stack.Screen name="booking" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="search" />
+          <Stack.Screen name="settings" />
           <Stack.Screen name="test-components" />
         </Stack>
       </PersistGate>
