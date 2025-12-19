@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { hapticFeedback } from '../../lib/utils/haptics';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -60,12 +61,30 @@ export default function Button({
     ? colors.primary
     : colors.white;
 
+  // Handle press with haptic feedback
+  const handlePress = () => {
+    if (disabled || loading) return;
+
+    // Haptic feedback based on variant
+    if (variant === 'primary') {
+      hapticFeedback.medium();
+    } else {
+      hapticFeedback.light();
+    }
+
+    onPress?.();
+  };
+
   return (
     <TouchableOpacity
       style={buttonStyles}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       activeOpacity={0.7}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={typeof children === 'string' ? children : 'Button'}
+      accessibilityState={{ disabled: disabled || loading }}
     >
       {leftIcon && !loading && (
         <View style={styles.iconLeft}>{leftIcon}</View>
