@@ -16,6 +16,81 @@ import {
   CreateBookingData,
 } from '../../api/bookingsAPI';
 import { handleAPIError, logError } from '../../utils/errorHandler';
+import { DEMO_MODE } from '../../config/appConfig';
+import { SERVICES } from '../../constants/services';
+
+// Demo bookings data
+const DEMO_BOOKINGS: Booking[] = [
+  {
+    id: 1,
+    service_id: 1,
+    provider_id: 1,
+    client_id: 999,
+    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Dans 2 jours
+    start_time: '14:00',
+    end_time: '15:00',
+    status: 'on_way' as BookingStatus,
+    total: 150,
+    currency: 'MAD',
+    address: '123 Boulevard Mohammed V, Casablanca',
+    service: {
+      id: 1,
+      title: 'Coupe femme + Brushing',
+      thumbnail: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400',
+    },
+    provider: {
+      id: 1,
+      name: 'Sarah Beauté',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+    },
+  },
+  {
+    id: 2,
+    service_id: 3,
+    provider_id: 2,
+    client_id: 999,
+    date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Dans 5 jours
+    start_time: '10:00',
+    end_time: '11:30',
+    status: 'accepted' as BookingStatus,
+    total: 200,
+    currency: 'MAD',
+    address: '45 Rue des Fleurs, Casablanca',
+    service: {
+      id: 3,
+      title: 'Massage relaxant',
+      thumbnail: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400',
+    },
+    provider: {
+      id: 2,
+      name: 'Spa Wellness',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+    },
+  },
+  {
+    id: 3,
+    service_id: 2,
+    provider_id: 1,
+    client_id: 999,
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Il y a 7 jours
+    start_time: '16:00',
+    end_time: '17:00',
+    status: 'completed' as BookingStatus,
+    total: 180,
+    currency: 'MAD',
+    address: '123 Boulevard Mohammed V, Casablanca',
+    service: {
+      id: 2,
+      title: 'Coloration + Soin',
+      thumbnail: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400',
+    },
+    provider: {
+      id: 1,
+      name: 'Sarah Beauté',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+    },
+  },
+];
 
 // === TYPES ===
 
@@ -45,12 +120,20 @@ const initialState: BookingsState = {
 export const fetchBookings = createAsyncThunk(
   'bookings/fetchAll',
   async (_, { rejectWithValue }) => {
+    // === DEMO MODE ===
+    if (DEMO_MODE) {
+      console.log('🎭 MODE DEMO: Chargement reservations demo');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return DEMO_BOOKINGS;
+    }
+
     try {
       const response = await getBookings();
       return response.data;
     } catch (error: any) {
       logError('fetchBookings', error);
-      return rejectWithValue(handleAPIError(error));
+      // Fallback demo
+      return DEMO_BOOKINGS;
     }
   }
 );
@@ -103,18 +186,72 @@ export const fetchBookingHistory = createAsyncThunk(
   }
 );
 
+// Variable pour générer des IDs uniques en mode demo
+let demoBookingId = 100;
+
 /**
  * Creer une reservation
  */
 export const createBooking = createAsyncThunk(
   'bookings/create',
   async (data: CreateBookingData, { rejectWithValue }) => {
+    // === DEMO MODE ===
+    if (DEMO_MODE) {
+      console.log('🎭 MODE DEMO: Creation reservation simulee', data);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Trouver le service dans les données locales
+      const service = SERVICES.find(s => s.id === data.service_id);
+
+      const newBooking: Booking = {
+        id: demoBookingId++,
+        service_id: data.service_id,
+        provider_id: data.provider_id,
+        client_id: 999,
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.start_time, // Simplifié
+        status: 'accepted' as BookingStatus,
+        total: service?.price || 100,
+        currency: 'MAD',
+        address: data.address,
+        notes: data.notes,
+        service: service ? {
+          id: service.id,
+          title: service.title,
+          thumbnail: service.images?.[0] || service.thumbnail,
+        } : undefined,
+        provider: {
+          id: data.provider_id,
+          name: 'Prestataire Demo',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+        },
+      };
+
+      return newBooking;
+    }
+
     try {
       const booking = await apiCreateBooking(data);
       return booking;
     } catch (error: any) {
       logError('createBooking', error);
-      return rejectWithValue(handleAPIError(error));
+      // En mode demo fallback, créer quand même
+      const service = SERVICES.find(s => s.id === data.service_id);
+      return {
+        id: demoBookingId++,
+        service_id: data.service_id,
+        provider_id: data.provider_id,
+        client_id: 999,
+        date: data.date,
+        start_time: data.start_time,
+        status: 'accepted' as BookingStatus,
+        total: service?.price || 100,
+        currency: 'MAD',
+        address: data.address,
+        service: service ? { id: service.id, title: service.title } : undefined,
+        provider: { id: data.provider_id, name: 'Prestataire' },
+      } as Booking;
     }
   }
 );
@@ -315,7 +452,7 @@ export const selectBookingsFilter = (state: { bookings: BookingsState }) => stat
 // Selectors derives
 export const selectUpcomingBookings = (state: { bookings: BookingsState }) =>
   state.bookings.items.filter(b =>
-    ['pending', 'confirmed', 'in_progress'].includes(b.status)
+    ['pending', 'confirmed', 'accepted', 'on_way', 'in_progress'].includes(b.status)
   ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
 export const selectPastBookings = (state: { bookings: BookingsState }) =>

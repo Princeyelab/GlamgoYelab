@@ -27,7 +27,11 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth" />
           <Stack.Screen name="services" />
+          <Stack.Screen name="providers" />
+          <Stack.Screen name="reviews" />
           <Stack.Screen name="booking" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="search" />
           <Stack.Screen name="test-components" />
         </Stack>
       </PersistGate>
