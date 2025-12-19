@@ -1,8 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+/**
+ * Client Profile - GlamGo Mobile
+ * Profil utilisateur avec switch vers mode prestataire
+ */
+
+import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
-import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { logoutUser, selectAuth, switchRole } from '../../src/lib/store/slices/authSlice';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
@@ -148,22 +153,59 @@ export default function ProfileScreen() {
           </Button>
         </View>
 
-        {/* Switch to Provider Mode */}
-        <Card style={styles.switchCard}>
-          <View style={styles.switchInfo}>
-            <Text style={styles.switchTitle}>Mode Prestataire</Text>
-            <Text style={styles.switchDescription}>
-              Devenez prestataire et proposez vos services
-            </Text>
-          </View>
-          <Button
-            variant="secondary"
-            size="sm"
-            onPress={handleSwitchToProvider}
-          >
-            Activer
-          </Button>
-        </Card>
+        {/* Switch to Provider Mode - Prominent for existing providers */}
+        {user.is_provider ? (
+          <Card style={styles.providerCard}>
+            <View style={styles.providerIcon}>
+              <Text style={styles.providerIconText}>💼</Text>
+            </View>
+            <View style={styles.providerInfo}>
+              <Text style={styles.providerTitle}>Espace Prestataire</Text>
+              <Text style={styles.providerDescription}>
+                Accédez à votre tableau de bord et gérez vos réservations
+              </Text>
+            </View>
+            <Button
+              variant="primary"
+              size="md"
+              onPress={handleSwitchToProvider}
+            >
+              Accéder →
+            </Button>
+          </Card>
+        ) : (
+          <Card style={styles.switchCard}>
+            <View style={styles.switchInfo}>
+              <Text style={styles.switchTitle}>Devenir Prestataire</Text>
+              <Text style={styles.switchDescription}>
+                Proposez vos services de beauté sur GlamGo
+              </Text>
+            </View>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => {
+                hapticFeedback.medium();
+                Alert.alert(
+                  'Devenir Prestataire',
+                  'Souhaitez-vous créer votre profil prestataire et proposer vos services ?',
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Commencer',
+                      onPress: () => {
+                        dispatch(switchRole('provider'));
+                        router.replace('/(provider)');
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              S'inscrire
+            </Button>
+          </Card>
+        )}
 
         {/* Logout */}
         <Button
@@ -289,14 +331,52 @@ const styles = StyleSheet.create({
   actionButton: {
     marginBottom: spacing.md,
   },
+  // Provider Card (for users who are already providers)
+  providerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    backgroundColor: colors.primary,
+    gap: spacing.md,
+    ...shadows.md,
+  },
+  providerIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerIconText: {
+    fontSize: 26,
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: 4,
+  },
+  providerDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.white,
+    opacity: 0.9,
+    lineHeight: 18,
+  },
+
+  // Switch Card (for non-providers)
   switchCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.lg,
     marginBottom: spacing.xl,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.gray[50],
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.gray[200],
   },
   switchInfo: {
     flex: 1,

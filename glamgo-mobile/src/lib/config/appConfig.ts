@@ -15,6 +15,7 @@ export const API_CONFIG = {
 };
 
 // Demo User (utilisé quand DEMO_MODE = true)
+// is_provider: true permet de tester le switch entre modes Client et Prestataire
 export const DEMO_USER = {
   id: 999,
   name: 'Utilisateur Demo',
@@ -25,6 +26,8 @@ export const DEMO_USER = {
   avatar: 'https://i.pravatar.cc/150?img=32',
   role: 'user' as const,
   email_verified_at: new Date().toISOString(),
+  is_provider: true, // User has provider access
+  provider_id: 1, // Associated provider ID
 };
 
 // Demo Credentials

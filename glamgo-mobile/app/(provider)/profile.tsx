@@ -1,6 +1,6 @@
 /**
  * Provider Profile - GlamGo Mobile
- * Profil du prestataire avec switch vers mode client
+ * Profil complet du prestataire avec stats, services et switch mode
  */
 
 import React from 'react';
@@ -15,25 +15,30 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Card from '../../src/components/ui/Card';
+import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
-import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser, logoutUser, switchRole } from '../../src/lib/store/slices/authSlice';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 
-const DEMO_PROVIDER_STATS = {
+const MOCK_PROVIDER_STATS = {
   rating: 4.8,
-  reviews: 47,
-  completedBookings: 156,
-  responseRate: 98,
-  memberSince: '2023',
+  reviews_count: 156,
+  services_count: 8,
+  completed_bookings: 523,
+  earnings_total: 142500,
+  completion_rate: 96,
+  response_time: '< 5 min',
+  is_verified: true,
+  joined_date: '2023-06-15',
 };
 
-const DEMO_SERVICES = [
-  { id: 1, name: 'Coiffure à domicile', price: 250, duration: 60 },
-  { id: 2, name: 'Maquillage', price: 200, duration: 45 },
-  { id: 3, name: 'Maquillage mariage', price: 500, duration: 120 },
-  { id: 4, name: 'Manucure', price: 150, duration: 45 },
+const MOCK_SERVICES = [
+  { id: 1, title: 'Coupe Femme', price: 150, bookings: 245, active: true },
+  { id: 2, title: 'Coupe Homme', price: 80, bookings: 156, active: true },
+  { id: 3, title: 'Brushing', price: 100, bookings: 89, active: true },
+  { id: 4, title: 'Coloration', price: 250, bookings: 33, active: false },
 ];
 
 export default function ProviderProfileScreen() {
@@ -44,12 +49,12 @@ export default function ProviderProfileScreen() {
   const handleSwitchToClient = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Changer de mode',
-      'Voulez-vous passer en mode Client ?',
+      'Passer en mode Client',
+      'Basculer vers l\'interface client ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: 'Passer en mode Client',
           onPress: () => {
             dispatch(switchRole('user'));
             router.replace('/(client)');
@@ -63,7 +68,7 @@ export default function ProviderProfileScreen() {
     hapticFeedback.warning();
     Alert.alert(
       'Déconnexion',
-      'Voulez-vous vraiment vous déconnecter ?',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -78,130 +83,188 @@ export default function ProviderProfileScreen() {
     );
   };
 
+  const handleManageServices = () => {
+    hapticFeedback.light();
+    router.push('/(provider)/services' as any);
+  };
+
   const handleEditProfile = () => {
     hapticFeedback.light();
     Alert.alert('Info', 'Modification du profil - à venir');
   };
 
-  const handleManageServices = () => {
-    hapticFeedback.light();
-    Alert.alert('Info', 'Gestion des services - à venir');
-  };
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Header with Avatar */}
       <View style={styles.header}>
-        {user?.avatar ? (
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {(user?.first_name || user?.name || 'P').charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <View style={styles.avatarContainer}>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>
+                {(user?.first_name || user?.name || 'P').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          {MOCK_PROVIDER_STATS.is_verified && (
+            <View style={styles.verifiedBadge}>
+              <Text style={styles.verifiedIcon}>✓</Text>
+            </View>
+          )}
+        </View>
+
         <Text style={styles.name}>
           {user?.first_name && user?.last_name
             ? `${user.first_name} ${user.last_name}`
             : user?.name || 'Prestataire'}
         </Text>
         <Text style={styles.email}>{user?.email}</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Prestataire vérifié</Text>
+
+        {/* Header Stats */}
+        <View style={styles.headerStats}>
+          <View style={styles.headerStat}>
+            <Text style={styles.headerStatValue}>⭐ {MOCK_PROVIDER_STATS.rating}</Text>
+            <Text style={styles.headerStatLabel}>{MOCK_PROVIDER_STATS.reviews_count} avis</Text>
+          </View>
+          <View style={styles.headerStatDivider} />
+          <View style={styles.headerStat}>
+            <Text style={styles.headerStatValue}>{MOCK_PROVIDER_STATS.completed_bookings}</Text>
+            <Text style={styles.headerStatLabel}>Services complétés</Text>
+          </View>
         </View>
       </View>
 
-      {/* Stats */}
-      <Card style={styles.statsCard}>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>⭐ {DEMO_PROVIDER_STATS.rating}</Text>
-            <Text style={styles.statLabel}>{DEMO_PROVIDER_STATS.reviews} avis</Text>
+      {/* Performance Card */}
+      <Card style={styles.card}>
+        <Text style={styles.sectionTitle}>Performance</Text>
+
+        <View style={styles.performanceRow}>
+          <Text style={styles.performanceLabel}>Taux de complétion</Text>
+          <View style={styles.performanceValueContainer}>
+            <Text style={styles.performanceValue}>{MOCK_PROVIDER_STATS.completion_rate}%</Text>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${MOCK_PROVIDER_STATS.completion_rate}%` },
+                ]}
+              />
+            </View>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{DEMO_PROVIDER_STATS.completedBookings}</Text>
-            <Text style={styles.statLabel}>Réservations</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{DEMO_PROVIDER_STATS.responseRate}%</Text>
-            <Text style={styles.statLabel}>Réponse</Text>
-          </View>
+        </View>
+
+        <View style={styles.performanceRow}>
+          <Text style={styles.performanceLabel}>Temps de réponse</Text>
+          <Text style={styles.performanceValue}>{MOCK_PROVIDER_STATS.response_time}</Text>
+        </View>
+
+        <View style={styles.performanceRow}>
+          <Text style={styles.performanceLabel}>Services actifs</Text>
+          <Text style={styles.performanceValue}>
+            {MOCK_SERVICES.filter(s => s.active).length}/{MOCK_SERVICES.length}
+          </Text>
+        </View>
+
+        <View style={[styles.performanceRow, { borderBottomWidth: 0 }]}>
+          <Text style={styles.performanceLabel}>Membre depuis</Text>
+          <Text style={styles.performanceValue}>
+            {new Date(MOCK_PROVIDER_STATS.joined_date).toLocaleDateString('fr-FR', {
+              year: 'numeric',
+              month: 'long',
+            })}
+          </Text>
         </View>
       </Card>
 
       {/* Services */}
-      <View style={styles.section}>
+      <Card style={styles.card}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes services</Text>
+          <Text style={styles.sectionTitle}>Mes Services</Text>
           <TouchableOpacity onPress={handleManageServices}>
-            <Text style={styles.editLink}>Modifier</Text>
+            <Text style={styles.manageLink}>Gérer →</Text>
           </TouchableOpacity>
         </View>
-        <Card>
-          {DEMO_SERVICES.map((service, index) => (
-            <View
-              key={service.id}
-              style={[
-                styles.serviceRow,
-                index < DEMO_SERVICES.length - 1 && styles.serviceRowBorder,
-              ]}
-            >
-              <View>
-                <Text style={styles.serviceName}>{service.name}</Text>
-                <Text style={styles.serviceDuration}>{service.duration} min</Text>
-              </View>
-              <Text style={styles.servicePrice}>{service.price} DH</Text>
+
+        {MOCK_SERVICES.map((service, index) => (
+          <View
+            key={service.id}
+            style={[
+              styles.serviceRow,
+              index === MOCK_SERVICES.length - 1 && { borderBottomWidth: 0 },
+            ]}
+          >
+            <View style={styles.serviceInfo}>
+              <Text style={styles.serviceName}>{service.title}</Text>
+              <Text style={styles.serviceBookings}>{service.bookings} réservations</Text>
             </View>
-          ))}
-        </Card>
-      </View>
+            <Text style={styles.servicePrice}>{service.price} DH</Text>
+            <Badge variant={service.active ? 'success' : 'default'} size="sm">
+              {service.active ? 'Actif' : 'Inactif'}
+            </Badge>
+          </View>
+        ))}
+      </Card>
 
-      {/* Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Paramètres</Text>
-
-        <Button
-          variant="outline"
-          fullWidth
-          onPress={handleEditProfile}
-          style={styles.actionButton}
+      {/* Earnings Summary */}
+      <Card style={styles.earningsCard}>
+        <Text style={styles.earningsLabel}>Revenus totaux</Text>
+        <Text style={styles.earningsTotal}>
+          {MOCK_PROVIDER_STATS.earnings_total.toLocaleString()} DH
+        </Text>
+        <Text style={styles.earningsSubtext}>Depuis le début de votre activité</Text>
+        <TouchableOpacity
+          style={styles.earningsButton}
+          onPress={() => router.push('/(provider)/earnings' as any)}
         >
-          Modifier mon profil
-        </Button>
+          <Text style={styles.earningsButtonText}>Voir les détails →</Text>
+        </TouchableOpacity>
+      </Card>
 
-        <Button
-          variant="outline"
-          fullWidth
+      {/* Switch Role */}
+      <Card style={styles.switchCard}>
+        <View style={styles.switchIcon}>
+          <Text style={styles.switchIconText}>🔄</Text>
+        </View>
+        <View style={styles.switchInfo}>
+          <Text style={styles.switchTitle}>Mode Client</Text>
+          <Text style={styles.switchDescription}>
+            Basculer vers l'interface client pour réserver des services
+          </Text>
+        </View>
+        <Button variant="outline" size="sm" onPress={handleSwitchToClient}>
+          Changer
+        </Button>
+      </Card>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity style={styles.quickAction} onPress={handleEditProfile}>
+          <Text style={styles.quickActionIcon}>✏️</Text>
+          <Text style={styles.quickActionText}>Modifier profil</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickAction}
           onPress={() => {
             hapticFeedback.light();
-            router.push('/settings');
+            router.push('/settings' as any);
           }}
-          style={styles.actionButton}
         >
-          ⚙️ Paramètres de l'application
-        </Button>
-      </View>
+          <Text style={styles.quickActionIcon}>⚙️</Text>
+          <Text style={styles.quickActionText}>Paramètres</Text>
+        </TouchableOpacity>
 
-      {/* Switch Mode */}
-      <View style={styles.section}>
-        <Card style={styles.switchCard}>
-          <View style={styles.switchInfo}>
-            <Text style={styles.switchTitle}>Mode Client</Text>
-            <Text style={styles.switchDescription}>
-              Accédez à l'application en tant que client pour réserver des services
-            </Text>
-          </View>
-          <Button
-            variant="secondary"
-            size="sm"
-            onPress={handleSwitchToClient}
-          >
-            Changer
-          </Button>
-        </Card>
+        <TouchableOpacity
+          style={styles.quickAction}
+          onPress={() => {
+            hapticFeedback.light();
+            Alert.alert('Aide', 'Support à venir');
+          }}
+        >
+          <Text style={styles.quickActionIcon}>❓</Text>
+          <Text style={styles.quickActionText}>Aide</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Logout */}
@@ -210,18 +273,13 @@ export default function ProviderProfileScreen() {
         fullWidth
         onPress={handleLogout}
         style={styles.logoutButton}
-        textStyle={styles.logoutText}
       >
-        Se déconnecter
+        <Text style={styles.logoutText}>🚪 Se déconnecter</Text>
       </Button>
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appName}>GlamGo Pro</Text>
-        <Text style={styles.appVersion}>Version 1.0.0</Text>
-        <Text style={styles.memberSince}>
-          Membre depuis {DEMO_PROVIDER_STATS.memberSince}
-        </Text>
+        <Text style={styles.appVersion}>Mode Prestataire • GlamGo v1.0.0</Text>
       </View>
     </ScrollView>
   );
@@ -232,92 +290,105 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray[50],
   },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
+  scrollContent: {
     paddingBottom: spacing['3xl'],
   },
 
   // Header
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    paddingTop: 60,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.white,
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: spacing.md,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: spacing.md,
+    borderWidth: 4,
+    borderColor: colors.white,
+    ...shadows.md,
   },
   avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
   },
   avatarText: {
     fontSize: 40,
     fontWeight: 'bold',
     color: colors.white,
   },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+  verifiedIcon: {
+    fontSize: 16,
+    color: colors.white,
+    fontWeight: 'bold',
+  },
   name: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.gray[900],
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   email: {
     fontSize: typography.fontSize.base,
-    color: colors.gray[500],
-    marginBottom: spacing.sm,
+    color: colors.gray[600],
+    marginBottom: spacing.lg,
   },
-  badge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.success + '20',
-    borderRadius: borderRadius.full,
-  },
-  badgeText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.success,
-    fontWeight: '600',
-  },
-
-  // Stats
-  statsCard: {
-    marginBottom: spacing.xl,
-  },
-  statsRow: {
+  headerStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.sm,
+    gap: spacing.xl,
   },
-  statItem: {
-    flex: 1,
+  headerStat: {
     alignItems: 'center',
   },
-  statDivider: {
+  headerStatDivider: {
     width: 1,
     height: 40,
     backgroundColor: colors.gray[200],
   },
-  statValue: {
-    fontSize: typography.fontSize.lg,
+  headerStatValue: {
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
     color: colors.gray[900],
+    marginBottom: 4,
   },
-  statLabel: {
+  headerStatLabel: {
     fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginTop: 4,
+    color: colors.gray[600],
   },
 
-  // Section
-  section: {
-    marginBottom: spacing.xl,
+  // Cards
+  card: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginBottom: spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -325,59 +396,132 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: typography.fontSize.lg,
+  manageLink: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+
+  // Performance
+  performanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[100],
+  },
+  performanceLabel: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+  },
+  performanceValue: {
+    fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[900],
   },
-  editLink: {
-    fontSize: typography.fontSize.sm,
-    color: colors.primary,
-    fontWeight: '500',
+  performanceValueContainer: {
+    alignItems: 'flex-end',
+  },
+  progressBar: {
+    width: 80,
+    height: 6,
+    backgroundColor: colors.gray[200],
+    borderRadius: 3,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 3,
   },
 
   // Services
   serviceRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.md,
-  },
-  serviceRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[100],
+    gap: spacing.md,
+  },
+  serviceInfo: {
+    flex: 1,
   },
   serviceName: {
     fontSize: typography.fontSize.base,
+    fontWeight: '600',
     color: colors.gray[900],
-    fontWeight: '500',
+    marginBottom: 2,
   },
-  serviceDuration: {
+  serviceBookings: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[500],
-    marginTop: 2,
   },
   servicePrice: {
     fontSize: typography.fontSize.base,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+
+  // Earnings Card
+  earningsCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    backgroundColor: colors.primary + '08',
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
+  },
+  earningsLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    marginBottom: spacing.xs,
+  },
+  earningsTotal: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  earningsSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    marginBottom: spacing.md,
+  },
+  earningsButton: {
+    paddingVertical: spacing.xs,
+  },
+  earningsButtonText: {
+    fontSize: typography.fontSize.sm,
     color: colors.primary,
     fontWeight: '600',
   },
 
-  // Actions
-  actionButton: {
-    marginBottom: spacing.sm,
-  },
-
   // Switch Card
   switchCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  switchIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchIconText: {
+    fontSize: 24,
   },
   switchInfo: {
     flex: 1,
-    marginRight: spacing.md,
   },
   switchTitle: {
     fontSize: typography.fontSize.base,
@@ -388,33 +532,49 @@ const styles = StyleSheet.create({
   switchDescription: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[600],
+    lineHeight: 18,
+  },
+
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  quickAction: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  quickActionIcon: {
+    fontSize: 28,
+    marginBottom: spacing.xs,
+  },
+  quickActionText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    fontWeight: '500',
   },
 
   // Logout
   logoutButton: {
-    marginBottom: spacing.xl,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   logoutText: {
     color: colors.error,
+    fontSize: typography.fontSize.base,
+    fontWeight: '500',
   },
 
   // App Info
   appInfo: {
     alignItems: 'center',
-  },
-  appName: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
+    paddingBottom: spacing.lg,
   },
   appVersion: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[500],
-    marginTop: 2,
-  },
-  memberSince: {
     fontSize: typography.fontSize.xs,
     color: colors.gray[400],
-    marginTop: 4,
   },
 });

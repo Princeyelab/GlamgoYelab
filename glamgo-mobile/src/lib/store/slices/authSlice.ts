@@ -27,6 +27,8 @@ interface User {
   avatar?: string;
   role: 'user' | 'provider' | 'admin';
   email_verified_at?: string;
+  is_provider?: boolean; // User also has a provider profile
+  provider_id?: number; // Associated provider ID if is_provider is true
 }
 
 interface AuthState {
@@ -372,5 +374,6 @@ export const selectToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectIsInitialized = (state: { auth: AuthState }) => state.auth.isInitialized;
 export const selectUserRole = (state: { auth: AuthState }) => state.auth.user?.role || 'user';
 export const selectIsProvider = (state: { auth: AuthState }) => state.auth.user?.role === 'provider';
+export const selectHasProviderAccess = (state: { auth: AuthState }) => state.auth.user?.is_provider === true;
 
 export default authSlice.reducer;
