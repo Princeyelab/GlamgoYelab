@@ -6,8 +6,10 @@ import { useAppSelector } from '../../lib/store/hooks';
 import { selectUpcomingBookings } from '../../lib/store/slices/bookingsSlice';
 import { selectFavorites } from '../../lib/store/slices/servicesSlice';
 
-// Tab configuration
-const TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
+type TabMode = 'client' | 'provider';
+
+// Tab configuration for CLIENT mode
+const CLIENT_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
   index: { icon: '🏠', activeIcon: '🏠', label: 'Accueil' },
   services: { icon: '💇', activeIcon: '💇', label: 'Services' },
   bookings: { icon: '📅', activeIcon: '📅', label: 'Reservations' },
@@ -15,13 +17,28 @@ const TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: stri
   profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
 };
 
-export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+// Tab configuration for PROVIDER mode
+const PROVIDER_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
+  index: { icon: '📊', activeIcon: '📊', label: 'Dashboard' },
+  bookings: { icon: '📅', activeIcon: '📅', label: 'Demandes' },
+  earnings: { icon: '💰', activeIcon: '💰', label: 'Gains' },
+  profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
+};
+
+interface CustomTabBarProps extends BottomTabBarProps {
+  mode?: TabMode;
+}
+
+export default function CustomTabBar({ state, descriptors, navigation, mode = 'client' }: CustomTabBarProps) {
   const upcomingBookings = useAppSelector(selectUpcomingBookings);
   const favorites = useAppSelector(selectFavorites);
 
+  // Use the appropriate tab config based on mode
+  const TAB_CONFIG = mode === 'provider' ? PROVIDER_TAB_CONFIG : CLIENT_TAB_CONFIG;
+
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, mode === 'provider' && styles.providerTabBar]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -105,6 +122,10 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
     ...shadows.lg,
+  },
+  providerTabBar: {
+    backgroundColor: colors.gray[900],
+    borderTopColor: colors.gray[800],
   },
   tab: {
     flex: 1,

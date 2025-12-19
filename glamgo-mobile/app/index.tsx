@@ -3,18 +3,23 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
 import { useAppSelector } from '../src/lib/store/hooks';
-import { selectIsAuthenticated } from '../src/lib/store/slices/authSlice';
+import { selectIsAuthenticated, selectUserRole } from '../src/lib/store/slices/authSlice';
 
 export default function Index() {
   const router = useRouter();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const userRole = useAppSelector(selectUserRole);
 
-  // Rediriger vers tabs si connecte
+  // Rediriger vers le bon mode selon le role
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/(tabs)' as any);
+      if (userRole === 'provider') {
+        router.replace('/(provider)' as any);
+      } else {
+        router.replace('/(client)' as any);
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userRole]);
 
   return (
     <View style={styles.container}>

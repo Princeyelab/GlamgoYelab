@@ -4,12 +4,31 @@ import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
-import { logoutUser, selectAuth } from '../../src/lib/store/slices/authSlice';
+import { logoutUser, selectAuth, switchRole } from '../../src/lib/store/slices/authSlice';
+import { hapticFeedback } from '../../src/lib/utils/haptics';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, isLoading } = useAppSelector(selectAuth);
+
+  const handleSwitchToProvider = () => {
+    hapticFeedback.medium();
+    Alert.alert(
+      'Mode Prestataire',
+      'Voulez-vous passer en mode Prestataire pour gerer vos services ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: () => {
+            dispatch(switchRole('provider'));
+            router.replace('/(provider)');
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -125,21 +144,39 @@ export default function ProfileScreen() {
             onPress={() => router.push('/settings')}
             style={styles.actionButton}
           >
-            ⚙️ Paramètres
-          </Button>
-
-          <Button
-            variant="ghost"
-            fullWidth
-            onPress={handleLogout}
-            loading={isLoading}
-            disabled={isLoading}
-            style={styles.logoutButton}
-            textStyle={styles.logoutText}
-          >
-            Se deconnecter
+            Parametres
           </Button>
         </View>
+
+        {/* Switch to Provider Mode */}
+        <Card style={styles.switchCard}>
+          <View style={styles.switchInfo}>
+            <Text style={styles.switchTitle}>Mode Prestataire</Text>
+            <Text style={styles.switchDescription}>
+              Devenez prestataire et proposez vos services
+            </Text>
+          </View>
+          <Button
+            variant="secondary"
+            size="sm"
+            onPress={handleSwitchToProvider}
+          >
+            Activer
+          </Button>
+        </Card>
+
+        {/* Logout */}
+        <Button
+          variant="ghost"
+          fullWidth
+          onPress={handleLogout}
+          loading={isLoading}
+          disabled={isLoading}
+          style={styles.logoutButton}
+          textStyle={styles.logoutText}
+        >
+          Se deconnecter
+        </Button>
 
         {/* App Version */}
         <Text style={styles.version}>GlamGo v1.0.0</Text>
@@ -247,13 +284,36 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   actions: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   actionButton: {
     marginBottom: spacing.md,
   },
+  switchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    backgroundColor: colors.primary + '10',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  switchInfo: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  switchTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginBottom: 4,
+  },
+  switchDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+  },
   logoutButton: {
-    marginTop: spacing.md,
+    marginBottom: spacing.xl,
   },
   logoutText: {
     color: colors.error,

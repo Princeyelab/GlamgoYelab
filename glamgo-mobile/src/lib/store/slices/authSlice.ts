@@ -256,6 +256,12 @@ const authSlice = createSlice({
       ...initialState,
       isInitialized: true,
     }),
+    // Switch role action pour basculer entre client et provider
+    switchRole: (state, action: PayloadAction<'user' | 'provider'>) => {
+      if (state.user) {
+        state.user.role = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     // === LOGIN ===
@@ -354,7 +360,7 @@ const authSlice = createSlice({
 
 // === EXPORTS ===
 
-export const { setUser, setToken, clearError, setInitialized, resetAuth } = authSlice.actions;
+export const { setUser, setToken, clearError, setInitialized, resetAuth, switchRole } = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
@@ -364,5 +370,7 @@ export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.isLo
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
 export const selectToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectIsInitialized = (state: { auth: AuthState }) => state.auth.isInitialized;
+export const selectUserRole = (state: { auth: AuthState }) => state.auth.user?.role || 'user';
+export const selectIsProvider = (state: { auth: AuthState }) => state.auth.user?.role === 'provider';
 
 export default authSlice.reducer;
