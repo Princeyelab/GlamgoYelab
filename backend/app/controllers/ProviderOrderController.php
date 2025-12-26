@@ -134,22 +134,30 @@ class ProviderOrderController extends Controller
     public function arrive(string $orderId): void
     {
         $providerId = $_SERVER['USER_ID'];
+        error_log("[ARRIVE] Provider $providerId calling arrive for order $orderId");
 
         $order = $this->orderModel->find((int)$orderId);
 
         if (!$order) {
+            error_log("[ARRIVE] Order $orderId not found");
             $this->error('Commande non trouvée', 404);
         }
 
+        error_log("[ARRIVE] Order found: status={$order['status']}, provider_id={$order['provider_id']}");
+
         if ($order['provider_id'] != $providerId) {
+            error_log("[ARRIVE] Access denied: order provider={$order['provider_id']}, request provider=$providerId");
             $this->error('Accès refusé', 403);
         }
 
         if ($order['status'] !== 'on_way') {
+            error_log("[ARRIVE] Wrong status: expected on_way, got {$order['status']}");
             $this->error('Vous devez être en route pour marquer votre arrivée', 400);
         }
 
-        $this->orderModel->updateStatus((int)$orderId, 'arrived');
+        error_log("[ARRIVE] Updating status to arrived...");
+        $result = $this->orderModel->updateStatus((int)$orderId, 'arrived');
+        error_log("[ARRIVE] Update result: " . ($result ? 'success' : 'failed'));
 
         // Notifier le client pour confirmation
         $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
