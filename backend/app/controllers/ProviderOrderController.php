@@ -6,6 +6,8 @@ use App\Core\Controller;
 use App\Models\Order;
 use App\Models\Notification;
 use App\Helpers\AutoPayment;
+use App\Helpers\CancellationService;
+use App\Helpers\PenaltyService;
 
 class ProviderOrderController extends Controller
 {
@@ -60,6 +62,21 @@ class ProviderOrderController extends Controller
     {
         $providerId = $_SERVER['USER_ID'];
 
+        // Vérifier si le prestataire a déjà une commande active
+        $activeOrder = $this->orderModel->hasActiveOrder($providerId);
+        if ($activeOrder) {
+            $statusLabels = [
+                'accepted' => 'acceptée',
+                'on_way' => 'en route',
+                'in_progress' => 'en cours'
+            ];
+            $statusLabel = $statusLabels[$activeOrder['status']] ?? $activeOrder['status'];
+            $this->error(
+                "Vous avez déjà une commande {$statusLabel} (#{$activeOrder['id']} - {$activeOrder['service_name']}). Terminez-la avant d'en accepter une nouvelle.",
+                400
+            );
+        }
+
         $order = $this->orderModel->find((int)$orderId);
 
         if (!$order) {
@@ -109,6 +126,43 @@ class ProviderOrderController extends Controller
         $this->notificationModel->notifyUserOrderStatusChange($updatedOrder, 'on_way');
 
         $this->success(null, 'Statut mis à jour : en route');
+    }
+
+    /**
+     * Indique que le prestataire est arrivé (attend confirmation client)
+     */
+    public function arrive(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        $order = $this->orderModel->find((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        if ($order['provider_id'] != $providerId) {
+            $this->error('Accès refusé', 403);
+        }
+
+        if ($order['status'] !== 'on_way') {
+            $this->error('Vous devez être en route pour marquer votre arrivée', 400);
+        }
+
+        $this->orderModel->updateStatus((int)$orderId, 'arrived');
+
+        // Notifier le client pour confirmation
+        $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+        $this->notificationModel->createNotification([
+            "recipient_type" => "user",
+            "recipient_id" => $order["user_id"],
+            "order_id" => (int)$orderId,
+            "notification_type" => "provider_arrived",
+            "title" => "Votre prestataire est arrivé !",
+            "message" => "Veuillez confirmer son arrivée pour démarrer la prestation."
+        ]);
+
+        $this->success($updatedOrder, 'En attente de confirmation du client');
     }
 
     /**
@@ -167,14 +221,14 @@ class ProviderOrderController extends Controller
 
     /**
      * Annule une commande acceptée par le prestataire
-     * Calcule les frais d'annulation et recherche un remplacement
+     * Applique des pénalités et recherche un remplacement
      */
     public function cancel(string $orderId): void
     {
         $providerId = $_SERVER['USER_ID'];
         $data = $this->getJsonInput();
 
-        $order = $this->orderModel->find((int)$orderId);
+        $order = $this->orderModel->getDetailedOrder((int)$orderId);
 
         if (!$order) {
             $this->error('Commande non trouvée', 404);
@@ -190,15 +244,30 @@ class ProviderOrderController extends Controller
         }
 
         $reason = $data['reason'] ?? 'Non spécifié';
-        $cancellationFee = $data['cancellation_fee'] ?? 0;
+
+        // Calculer les pénalités avec le CancellationService
+        $cancellationService = new CancellationService();
+        $penaltyInfo = $cancellationService->calculateCancellationFee($order, 'provider');
+
+        // Appliquer les pénalités
+        $penaltyService = new PenaltyService();
+        $penaltyResult = null;
+
+        if ($penaltyInfo['penalty_points'] > 0) {
+            $penaltyResult = $penaltyService->addPenalty(
+                $providerId,
+                'cancellation',
+                $penaltyInfo['penalty_points'],
+                (int)$orderId,
+                "Annulation de commande ({$order['status']}): $reason"
+            );
+        }
 
         // Enregistrer l'annulation avec les détails
         $cancellationData = [
-            'provider_cancelled' => 1,
-            'provider_cancel_reason' => $reason,
-            'provider_cancel_fee' => $cancellationFee,
-            'provider_cancelled_at' => date('Y-m-d H:i:s'),
-            'previous_provider_id' => $providerId,
+            'cancelled_by' => 'provider',
+            'cancelled_at' => date('Y-m-d H:i:s'),
+            'cancellation_reason' => $reason,
             'provider_id' => null, // Libérer la commande
             'status' => 'pending'  // Remettre en attente pour un autre prestataire
         ];
@@ -209,19 +278,34 @@ class ProviderOrderController extends Controller
         $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
 
         // Notifier le client de l'annulation
-        $this->notificationModel->notifyUserProviderCancellation($updatedOrder, $reason, $cancellationFee);
+        $this->notificationModel->notifyUserProviderCancellation($updatedOrder, $reason, 0);
 
         // Notifier les autres prestataires disponibles (re-diffuser la commande)
         $this->notificationModel->notifyProvidersForNewOrder($updatedOrder);
 
-        // Incrémenter le compteur d'annulations du prestataire (pour tracking)
-        $this->incrementProviderCancellations($providerId);
+        // Mettre à jour le taux d'annulation du prestataire
+        $penaltyService->updateCancellationRate($providerId);
 
-        $this->success([
+        $response = [
             'order' => $updatedOrder,
-            'cancellation_fee' => $cancellationFee,
             'message' => 'Commande annulée. Un autre prestataire sera recherché.'
-        ], 'Annulation enregistrée');
+        ];
+
+        // Ajouter les infos de pénalité si applicable
+        if ($penaltyResult) {
+            $response['penalty'] = [
+                'points_added' => $penaltyInfo['penalty_points'],
+                'action' => $penaltyResult['suspension']['action'] ?? 'none',
+                'message' => $penaltyResult['suspension']['message'] ?? null
+            ];
+
+            // Avertir si proche de la suspension
+            if ($penaltyResult['suspension']['action'] === 'warning') {
+                $response['warning'] = 'Attention: vous accumulez des points de pénalité. Trop d\'annulations entraînera une suspension de votre compte.';
+            }
+        }
+
+        $this->success($response, 'Annulation enregistrée');
     }
 
     /**

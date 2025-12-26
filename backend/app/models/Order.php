@@ -32,10 +32,12 @@ class Order extends Model
         return $this->query(
             "SELECT o.*, s.name as service_name, s.image as service_image,
                     p.first_name as provider_first_name, p.last_name as provider_last_name,
-                    p.avatar as provider_avatar
+                    p.avatar as provider_avatar, p.phone as provider_phone,
+                    a.address_line, a.city, a.latitude, a.longitude
              FROM orders o
              INNER JOIN services s ON o.service_id = s.id
              LEFT JOIN providers p ON o.provider_id = p.id
+             LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE o.user_id = ?
              ORDER BY o.created_at DESC",
             [$userId]
@@ -67,6 +69,9 @@ class Order extends Model
         }
 
         // Retourne toutes les commandes assignées au prestataire + les commandes en attente disponibles
+        // Inclut: commandes assignées à ce prestataire (tout statut)
+        //         + commandes pending sans prestataire (disponibles pour tous)
+        //         + commandes pending assignées à ce prestataire (en attente d'acceptation)
         return $this->query(
             "SELECT o.*, s.name as service_name,
                     u.first_name as user_first_name, u.last_name as user_last_name,
@@ -80,9 +85,13 @@ class Order extends Model
              WHERE o.provider_id = ?
                    OR (o.provider_id IS NULL AND o.status = 'pending')
              ORDER BY
-                CASE WHEN o.status = 'pending' THEN 0 ELSE 1 END,
+                CASE
+                    WHEN o.status = 'pending' AND o.provider_id = ? THEN 0
+                    WHEN o.status = 'pending' THEN 1
+                    ELSE 2
+                END,
                 o.created_at DESC",
-            [$providerId]
+            [$providerId, $providerId]
         );
     }
 
@@ -147,6 +156,9 @@ class Order extends Model
             case 'accepted':
                 $updateFields['accepted_at'] = date('Y-m-d H:i:s');
                 break;
+            case 'arrived':
+                $updateFields['arrived_at'] = date('Y-m-d H:i:s');
+                break;
             case 'in_progress':
                 $updateFields['started_at'] = date('Y-m-d H:i:s');
                 break;
@@ -173,6 +185,26 @@ class Order extends Model
             'status' => 'accepted',
             'accepted_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    /**
+     * Vérifie si le prestataire a une commande active (en cours)
+     * Statuts actifs: accepted, on_way, arrived, in_progress
+     */
+    public function hasActiveOrder(int $providerId): ?array
+    {
+        $result = $this->query(
+            "SELECT o.id, o.status, o.service_id, s.name as service_name
+             FROM orders o
+             INNER JOIN services s ON o.service_id = s.id
+             WHERE o.provider_id = ?
+               AND o.status IN ('accepted', 'on_way', 'arrived', 'in_progress')
+             ORDER BY o.created_at DESC
+             LIMIT 1",
+            [$providerId]
+        );
+
+        return $result[0] ?? null;
     }
 
     /**

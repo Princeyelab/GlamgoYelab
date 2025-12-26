@@ -77,6 +77,8 @@ $router->get('/api/orders', 'OrderController', 'index')
     ->middleware([AuthMiddleware::class]);
 $router->get('/api/orders/{id}', 'OrderController', 'show')
     ->middleware([AuthMiddleware::class]);
+$router->get('/api/orders/{id}/cancellation-info', 'OrderController', 'getCancellationInfo')
+    ->middleware([AuthMiddleware::class]);
 $router->patch('/api/orders/{id}/cancel', 'OrderController', 'cancel')
     ->middleware([AuthMiddleware::class]);
 $router->patch('/api/orders/{id}', 'OrderController', 'update')
@@ -92,6 +94,18 @@ $router->post('/api/orders/{id}/review', 'ReviewController', 'create')
 $router->get('/api/orders/{id}/review', 'ReviewController', 'getOrderReview')
     ->middleware([AuthMiddleware::class]);
 $router->get('/api/orders/{id}/can-review', 'ReviewController', 'canReview')
+    ->middleware([AuthMiddleware::class]);
+
+// Litiges (Disputes)
+$router->post('/api/disputes', 'DisputeController', 'create')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/disputes', 'DisputeController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/disputes/{id}', 'DisputeController', 'show')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/disputes/{id}/message', 'DisputeController', 'addMessage')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/disputes/{id}/close', 'DisputeController', 'close')
     ->middleware([AuthMiddleware::class]);
 
 // Avis prestataires (public)
@@ -176,6 +190,8 @@ $router->patch('/api/provider/orders/{id}/accept', 'ProviderOrderController', 'a
 $router->patch('/api/provider/orders/{id}/start', 'ProviderOrderController', 'start')
     ->middleware([AuthMiddleware::class]);
 $router->patch('/api/provider/orders/{id}/complete', 'ProviderOrderController', 'complete')
+    ->middleware([AuthMiddleware::class]);
+$router->patch('/api/provider/orders/{id}/arrive', 'ProviderOrderController', 'arrive')
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/provider/orders/{id}/cancel', 'ProviderOrderController', 'cancel')
     ->middleware([AuthMiddleware::class]);
@@ -357,6 +373,9 @@ $router->get('/api/provider/satisfaction-stats', 'SatisfactionController', 'getP
 
 // Routes Publiques - Satisfaction prestataire
 $router->get('/api/providers/{id}/satisfaction', 'SatisfactionController', 'getPublicProviderStats');
+
+// Route Admin - Recalculer tous les ratings (temporaire)
+$router->post('/api/admin/recalculate-ratings', 'SatisfactionController', 'recalculateAllRatings');
 
 // =====================================================
 // ROUTES SYSTEME D'URGENCE
