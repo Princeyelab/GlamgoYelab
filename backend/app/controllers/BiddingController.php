@@ -135,6 +135,22 @@ class BiddingController extends Controller
             $providerId = $this->getProviderIdFromToken();
             $data = $this->getJsonInput();
 
+            // Vérifier si le prestataire a déjà une commande active
+            $orderModel = new Order();
+            $activeOrder = $orderModel->hasActiveOrder($providerId);
+            if ($activeOrder) {
+                $statusLabels = [
+                    'accepted' => 'acceptée',
+                    'on_way' => 'en route',
+                    'in_progress' => 'en cours'
+                ];
+                $statusLabel = $statusLabels[$activeOrder['status']] ?? $activeOrder['status'];
+                $this->error(
+                    "Vous avez déjà une commande {$statusLabel} (#{$activeOrder['id']} - {$activeOrder['service_name']}). Terminez-la avant de faire une nouvelle offre.",
+                    400
+                );
+            }
+
             // Validation
             if (empty($data['order_id'])) {
                 $this->error('L\'ID de la commande est requis', 422);
@@ -146,9 +162,6 @@ class BiddingController extends Controller
 
             $orderId = (int) $data['order_id'];
             $proposedPrice = (float) $data['proposed_price'];
-
-            // Vérifier que la commande existe
-            $orderModel = new Order();
             $order = $orderModel->find($orderId);
 
             if (!$order) {

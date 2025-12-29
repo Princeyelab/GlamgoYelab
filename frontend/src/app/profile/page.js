@@ -11,10 +11,24 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { updateClientTempData } from '@/lib/clientDataHelper';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Clés de villes pour traduction
 const MOROCCAN_CITIES = [
-  'Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger',
-  'Agadir', 'Meknès', 'Oujda', 'Kénitra', 'Tétouan',
-  'Safi', 'Essaouira', 'El Jadida', 'Nador', 'Béni Mellal', 'Mohammedia'
+  { value: 'Casablanca', key: 'cities.casablanca' },
+  { value: 'Rabat', key: 'cities.rabat' },
+  { value: 'Marrakech', key: 'cities.marrakech' },
+  { value: 'Fès', key: 'cities.fes' },
+  { value: 'Tanger', key: 'cities.tanger' },
+  { value: 'Agadir', key: 'cities.agadir' },
+  { value: 'Meknès', key: 'cities.meknes' },
+  { value: 'Oujda', key: 'cities.oujda' },
+  { value: 'Kénitra', key: 'cities.kenitra' },
+  { value: 'Tétouan', key: 'cities.tetouan' },
+  { value: 'Safi', key: 'cities.safi' },
+  { value: 'Essaouira', key: 'cities.essaouira' },
+  { value: 'El Jadida', key: 'cities.eljadida' },
+  { value: 'Nador', key: 'cities.nador' },
+  { value: 'Béni Mellal', key: 'cities.benimellal' },
+  { value: 'Mohammedia', key: 'cities.mohammedia' },
 ];
 
 export default function ProfilePage() {
@@ -387,7 +401,7 @@ export default function ProfilePage() {
                 >
                   <option value="">{t('profile.selectCity')}</option>
                   {MOROCCAN_CITIES.map(city => (
-                    <option key={city} value={city}>{city}</option>
+                    <option key={city.value} value={city.value}>{t(city.key)}</option>
                   ))}
                 </select>
               </div>

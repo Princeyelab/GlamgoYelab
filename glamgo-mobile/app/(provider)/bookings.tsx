@@ -1,9 +1,10 @@
 /**
  * Provider Bookings Management - GlamGo Mobile
  * Gestion complète des commandes du prestataire
+ * Connecte aux vraies APIs avec polling pour synchronisation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,17 +14,28 @@ import {
   RefreshControl,
   Alert,
   Linking,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import {
+  getProviderOrders,
+  acceptOrder,
+  startOrder,
+  arriveAtClient,
+  completeOrder,
+  cancelOrder,
+  ProviderOrder,
+} from '../../src/lib/api/providerAPI';
 
 // Types
 type BookingTab = 'pending' | 'upcoming' | 'in_progress' | 'completed';
-type BookingStatus = 'pending' | 'accepted' | 'on_way' | 'in_progress' | 'completed' | 'cancelled';
+type BookingStatus = 'pending' | 'accepted' | 'on_way' | 'arrived' | 'in_progress' | 'completed' | 'cancelled';
 
 interface BookingService {
   title: string;
@@ -60,85 +72,46 @@ interface BookingsState {
   completed: Booking[];
 }
 
-// Mock bookings par status
-const MOCK_BOOKINGS: BookingsState = {
-  pending: [
-    {
-      id: 1,
-      order_number: 'BK-2024-001',
-      status: 'pending',
-      service: { title: 'Coupe Femme', duration_minutes: 60, price: 150 },
-      user: { name: 'Sophie Martin', phone: '+212 6 12 34 56 78', avatar: null },
-      booking_date: new Date().toISOString().split('T')[0],
-      booking_time: '10:00:00',
-      address: '15 Rue Mohammed V, Marrakech',
-      notes: 'Coupe dégradée avec frange',
-      created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+// Donnees initiales vides pour nouveau prestataire
+const INITIAL_BOOKINGS: BookingsState = {
+  pending: [],
+  upcoming: [],
+  in_progress: [],
+  completed: [],
+};
+
+// Intervalle de polling en ms (10 secondes)
+const POLLING_INTERVAL = 10000;
+
+// Transformer ProviderOrder en Booking local
+const transformOrder = (order: ProviderOrder): Booking => {
+  const scheduledDate = order.scheduled_at ? new Date(order.scheduled_at) : new Date();
+  // Prix: priorite a 'price' (champ DB), puis total_amount, puis service.price
+  const orderAny = order as any;
+  const price = orderAny.price || order.total_amount || orderAny.amount || orderAny.service?.price || 0;
+
+  return {
+    id: order.id,
+    order_number: `BK-${order.id}`,
+    status: order.status as BookingStatus,
+    service: {
+      title: order.service?.title || orderAny.service_name || 'Service',
+      duration_minutes: orderAny.duration || 60,
+      price: price,
     },
-    {
-      id: 2,
-      order_number: 'BK-2024-005',
-      status: 'pending',
-      service: { title: 'Massage Relaxant', duration_minutes: 90, price: 300 },
-      user: { name: 'Karim Alami', phone: '+212 6 23 45 67 89', avatar: null },
-      booking_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      booking_time: '15:00:00',
-      address: '28 Boulevard Hassan II, Marrakech',
-      created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    user: {
+      name: orderAny.user_name
+        || (order.client ? `${order.client.first_name || ''} ${order.client.last_name || ''}`.trim() : '')
+        || (orderAny.user_first_name ? `${orderAny.user_first_name} ${orderAny.user_last_name || ''}`.trim() : '')
+        || 'Client',
+      phone: order.client?.phone || orderAny.user_phone || '',
+      avatar: null,
     },
-  ],
-  upcoming: [
-    {
-      id: 3,
-      order_number: 'BK-2024-002',
-      status: 'accepted',
-      service: { title: 'Manucure', duration_minutes: 45, price: 120 },
-      user: { name: 'Amina Idrissi', phone: '+212 6 34 56 78 90', avatar: null },
-      booking_date: new Date().toISOString().split('T')[0],
-      booking_time: '14:30:00',
-      address: '42 Avenue Zerktouni, Marrakech',
-      notes: 'Vernis rouge',
-    },
-  ],
-  in_progress: [
-    {
-      id: 4,
-      order_number: 'BK-2024-003',
-      status: 'in_progress',
-      service: { title: 'Coupe + Brushing', duration_minutes: 90, price: 200 },
-      user: { name: 'Fatima Zahra', phone: '+212 6 45 67 89 01', avatar: null },
-      booking_date: new Date().toISOString().split('T')[0],
-      booking_time: '11:00:00',
-      address: '8 Rue Ibn Khaldoun, Marrakech',
-      started_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    },
-  ],
-  completed: [
-    {
-      id: 5,
-      order_number: 'BK-2024-004',
-      status: 'completed',
-      service: { title: 'Coupe Homme', duration_minutes: 30, price: 80 },
-      user: { name: 'Hassan Benali', phone: '+212 6 56 78 90 12', avatar: null },
-      booking_date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      booking_time: '16:00:00',
-      address: '55 Rue de la Liberté, Marrakech',
-      completed_at: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
-      rating: 5,
-    },
-    {
-      id: 6,
-      order_number: 'BK-2024-006',
-      status: 'completed',
-      service: { title: 'Maquillage Soirée', duration_minutes: 60, price: 250 },
-      user: { name: 'Leila Bennani', phone: '+212 6 67 89 01 23', avatar: null },
-      booking_date: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().split('T')[0],
-      booking_time: '18:00:00',
-      address: '12 Rue des Roses, Marrakech',
-      completed_at: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString(),
-      rating: 4,
-    },
-  ],
+    booking_date: scheduledDate.toISOString().split('T')[0],
+    booking_time: scheduledDate.toTimeString().substring(0, 8),
+    address: order.address || orderAny.address_line || '',
+    created_at: order.created_at,
+  };
 };
 
 export default function ProviderBookingsScreen() {
@@ -146,13 +119,129 @@ export default function ProviderBookingsScreen() {
 
   const [activeTab, setActiveTab] = useState<BookingTab>('pending');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [bookings, setBookings] = useState<BookingsState>(MOCK_BOOKINGS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bookings, setBookings] = useState<BookingsState>({
+    pending: [],
+    upcoming: [],
+    in_progress: [],
+    completed: [],
+  });
+
+  // Verifier si le prestataire a deja une commande active
+  const activeOrder = [...bookings.upcoming, ...bookings.in_progress].find(b =>
+    b.status === 'accepted' || b.status === 'on_way' || b.status === 'in_progress'
+  );
+  const hasActiveOrder = !!activeOrder;
+
+  // Refs pour le polling
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const appState = useRef(AppState.currentState);
+
+  // Charger les commandes depuis l'API
+  const loadBookings = useCallback(async (showRefresh = false) => {
+    if (showRefresh) setIsRefreshing(true);
+
+    try {
+      const orders = await getProviderOrders();
+
+      // Filtrer les commandes valides (non annulees et assignees a ce prestataire)
+      const validOrders = (orders || []).filter((order: any) => {
+        // Exclure les commandes annulees (cancelled_at renseigne)
+        if (order.cancelled_at) return false;
+        // Exclure les commandes sans provider_id (pas encore assignees)
+        if (order.provider_id === null) return false;
+        return true;
+      });
+
+      // Categoriser les commandes par statut
+      const categorized: BookingsState = {
+        pending: [],
+        upcoming: [],
+        in_progress: [],
+        completed: [],
+      };
+
+      validOrders.forEach((order: any) => {
+        const booking = transformOrder(order);
+        switch (order.status) {
+          case 'pending':
+            categorized.pending.push(booking);
+            break;
+          case 'accepted':
+            categorized.upcoming.push(booking);
+            break;
+          case 'on_way':
+          case 'arrived':
+          case 'in_progress':
+            categorized.in_progress.push(booking);
+            break;
+          case 'completed':
+            categorized.completed.push(booking);
+            break;
+          // Les 'cancelled' sont deja exclues par le filtre
+        }
+      });
+
+      setBookings(categorized);
+    } catch (error) {
+      console.error('Erreur chargement commandes:', error);
+      // Garder les donnees vides en cas d'erreur
+    } finally {
+      setIsRefreshing(false);
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Demarrer le polling
+  const startPolling = useCallback(() => {
+    if (pollingInterval.current) return;
+    pollingInterval.current = setInterval(() => {
+      loadBookings(false);
+    }, POLLING_INTERVAL);
+  }, [loadBookings]);
+
+  // Arreter le polling
+  const stopPolling = useCallback(() => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  }, []);
+
+  // Gerer le changement d'etat de l'app (background/foreground)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App revient en foreground - recharger et redemarrer le polling
+        loadBookings(false);
+        startPolling();
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App passe en background - arreter le polling
+        stopPolling();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [loadBookings, startPolling, stopPolling]);
+
+  // Charger au montage et quand l'ecran devient actif
+  useFocusEffect(
+    useCallback(() => {
+      loadBookings(true);
+      startPolling();
+
+      return () => {
+        stopPolling();
+      };
+    }, [loadBookings, startPolling, stopPolling])
+  );
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
     hapticFeedback.light();
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
+    await loadBookings(true);
   };
 
   const handleCallClient = (phone: string) => {
@@ -161,6 +250,17 @@ export default function ProviderBookingsScreen() {
   };
 
   const handleAcceptBooking = (bookingId: number) => {
+    // Bloquer si une commande est deja active
+    if (hasActiveOrder && activeOrder) {
+      hapticFeedback.warning();
+      Alert.alert(
+        '⚠️ Commande en cours',
+        `Vous avez déjà une commande active (#${activeOrder.order_number} - ${activeOrder.service.title}).\n\nTerminez-la avant d'en accepter une nouvelle.`,
+        [{ text: 'Compris' }]
+      );
+      return;
+    }
+
     hapticFeedback.success();
     Alert.alert(
       'Accepter la réservation',
@@ -169,14 +269,24 @@ export default function ProviderBookingsScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Accepter',
-          onPress: () => {
-            const booking = bookings.pending.find(b => b.id === bookingId);
-            if (booking) {
-              setBookings(prev => ({
-                ...prev,
-                pending: prev.pending.filter(b => b.id !== bookingId),
-                upcoming: [...prev.upcoming, { ...booking, status: 'accepted' as BookingStatus }],
-              }));
+          onPress: async () => {
+            try {
+              // Appel API reel
+              await acceptOrder(bookingId);
+              hapticFeedback.success();
+              Alert.alert('✅ Commande acceptée', 'Vous pouvez maintenant démarrer le trajet.');
+              // Recharger les donnees
+              await loadBookings(false);
+            } catch (error: any) {
+              console.error('Erreur acceptation:', error);
+              hapticFeedback.error();
+
+              // Afficher le message d'erreur du backend
+              const errorMessage = error?.response?.data?.message
+                || error?.response?.data?.error
+                || 'Impossible d\'accepter la commande. Elle a peut-être déjà été prise.';
+
+              Alert.alert('Erreur', errorMessage);
             }
           },
         },
@@ -194,43 +304,84 @@ export default function ProviderBookingsScreen() {
         {
           text: 'Refuser',
           style: 'destructive',
-          onPress: () => {
-            setBookings(prev => ({
-              ...prev,
-              pending: prev.pending.filter(b => b.id !== bookingId),
-            }));
+          onPress: async () => {
+            try {
+              // Appel API reel - utiliser cancelOrder pour refuser
+              await cancelOrder(bookingId, 'Refusee par le prestataire');
+              hapticFeedback.success();
+              // Recharger les donnees
+              await loadBookings(false);
+            } catch (error) {
+              console.error('Erreur refus:', error);
+              hapticFeedback.error();
+              Alert.alert('Erreur', 'Impossible de refuser la commande. Reessayez.');
+              // Fallback local
+              setBookings(prev => ({
+                ...prev,
+                pending: prev.pending.filter(b => b.id !== bookingId),
+              }));
+            }
           },
         },
       ]
     );
   };
 
-  const handleStartJourney = (bookingId: number) => {
+  const handleStartJourney = async (bookingId: number) => {
     hapticFeedback.medium();
-    const booking = bookings.upcoming.find(b => b.id === bookingId);
-    if (booking) {
-      setBookings(prev => ({
-        ...prev,
-        upcoming: prev.upcoming.filter(b => b.id !== bookingId),
-        in_progress: [...prev.in_progress, {
-          ...booking,
-          status: 'on_way' as BookingStatus,
-          started_at: new Date().toISOString(),
-        }],
-      }));
+    try {
+      // Appel API reel
+      await startOrder(bookingId);
+      // Recharger les donnees
+      await loadBookings(false);
       // Navigate to journey tracking screen
       router.push(`/(provider)/booking/journey/${bookingId}` as any);
+    } catch (error) {
+      console.error('Erreur demarrage trajet:', error);
+      hapticFeedback.error();
+      Alert.alert('Erreur', 'Impossible de demarrer le trajet. Reessayez.');
+      // Fallback local
+      const booking = bookings.upcoming.find(b => b.id === bookingId);
+      if (booking) {
+        setBookings(prev => ({
+          ...prev,
+          upcoming: prev.upcoming.filter(b => b.id !== bookingId),
+          in_progress: [...prev.in_progress, {
+            ...booking,
+            status: 'on_way' as BookingStatus,
+            started_at: new Date().toISOString(),
+          }],
+        }));
+        router.push(`/(provider)/booking/journey/${bookingId}` as any);
+      }
     }
   };
 
-  const handleArrived = (bookingId: number) => {
+  const handleArrived = async (bookingId: number) => {
+    console.log('[BOOKINGS] handleArrived called for booking:', bookingId);
     hapticFeedback.medium();
-    setBookings(prev => ({
-      ...prev,
-      in_progress: prev.in_progress.map(b =>
-        b.id === bookingId ? { ...b, status: 'in_progress' as BookingStatus } : b
-      ),
-    }));
+    try {
+      console.log('[BOOKINGS] Calling arriveAtClient...');
+      await arriveAtClient(bookingId);
+      console.log('[BOOKINGS] arriveAtClient success');
+      // Mettre a jour le statut local vers 'arrived'
+      setBookings(prev => ({
+        ...prev,
+        in_progress: prev.in_progress.map(b =>
+          b.id === bookingId ? { ...b, status: 'arrived' as BookingStatus } : b
+        ),
+      }));
+      hapticFeedback.success();
+      Alert.alert(
+        '📍 Arrivée signalée',
+        'Le client a été notifié. Attendez sa confirmation pour démarrer la prestation.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('[BOOKINGS] arriveAtClient error:', error);
+      hapticFeedback.error();
+      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée');
+    }
   };
 
   const handleCompleteBooking = (bookingId: number) => {
@@ -242,18 +393,30 @@ export default function ProviderBookingsScreen() {
         { text: 'Non', style: 'cancel' },
         {
           text: 'Oui, terminer',
-          onPress: () => {
-            const booking = bookings.in_progress.find(b => b.id === bookingId);
-            if (booking) {
-              setBookings(prev => ({
-                ...prev,
-                in_progress: prev.in_progress.filter(b => b.id !== bookingId),
-                completed: [...prev.completed, {
-                  ...booking,
-                  status: 'completed' as BookingStatus,
-                  completed_at: new Date().toISOString(),
-                }],
-              }));
+          onPress: async () => {
+            try {
+              // Appel API reel
+              await completeOrder(bookingId);
+              hapticFeedback.success();
+              // Recharger les donnees
+              await loadBookings(false);
+            } catch (error) {
+              console.error('Erreur completion:', error);
+              hapticFeedback.error();
+              Alert.alert('Erreur', 'Impossible de terminer la commande. Reessayez.');
+              // Fallback local
+              const booking = bookings.in_progress.find(b => b.id === bookingId);
+              if (booking) {
+                setBookings(prev => ({
+                  ...prev,
+                  in_progress: prev.in_progress.filter(b => b.id !== bookingId),
+                  completed: [...prev.completed, {
+                    ...booking,
+                    status: 'completed' as BookingStatus,
+                    completed_at: new Date().toISOString(),
+                  }],
+                }));
+              }
             }
           },
         },
@@ -266,7 +429,9 @@ export default function ProviderBookingsScreen() {
       pending: { color: 'warning', label: '⏳ Nouveau' },
       accepted: { color: 'success', label: '✅ Accepté' },
       on_way: { color: 'accent', label: '🚗 En route' },
+      arrived: { color: 'success', label: '📍 Arrivé' },
       in_progress: { color: 'primary', label: '🔨 En cours' },
+      completed_pending_review: { color: 'warning', label: '⭐ Avis en attente' },
       completed: { color: 'default', label: '✓ Terminé' },
       cancelled: { color: 'error', label: '✕ Annulé' },
     };
@@ -290,6 +455,8 @@ export default function ProviderBookingsScreen() {
         return styles.cardAccepted;
       case 'on_way':
         return styles.cardOnWay;
+      case 'arrived':
+        return styles.cardArrived;
       case 'in_progress':
         return styles.cardInProgress;
       case 'completed':
@@ -319,42 +486,26 @@ export default function ProviderBookingsScreen() {
         <View style={styles.clientSection}>
           <View style={styles.clientAvatar}>
             <Text style={styles.clientAvatarText}>
-              {booking.user.name.charAt(0)}
+              {booking.user.name.charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={styles.clientInfo}>
             <Text style={styles.clientName}>{booking.user.name}</Text>
-            <Text style={styles.clientPhone}>{booking.user.phone}</Text>
           </View>
           <TouchableOpacity
-            style={styles.callButton}
-            onPress={() => handleCallClient(booking.user.phone)}
+            style={styles.chatButton}
+            onPress={() => router.push(`/chat/${booking.id}` as any)}
           >
-            <Text style={styles.callIcon}>📞</Text>
+            <Text style={styles.chatButtonText}>💬 Chat</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Details */}
+        {/* Details - Compact */}
         <View style={styles.detailsSection}>
-          <Text style={styles.detailRow}>
-            📅 {new Date(booking.booking_date).toLocaleDateString('fr-FR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
-          </Text>
           <Text style={styles.detailRow}>
             🕐 {booking.booking_time.substring(0, 5)} • {booking.service.duration_minutes} min
           </Text>
-          <Text style={styles.detailRow}>📍 {booking.address}</Text>
-
-          {booking.notes && (
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesLabel}>Notes du client :</Text>
-              <Text style={styles.notesText}>{booking.notes}</Text>
-            </View>
-          )}
-
+          <Text style={styles.detailRow} numberOfLines={1}>📍 {booking.address}</Text>
           <Text style={styles.price}>💰 {booking.service.price} DH</Text>
         </View>
 
@@ -387,9 +538,9 @@ export default function ProviderBookingsScreen() {
                 variant="primary"
                 size="sm"
                 onPress={() => handleAcceptBooking(booking.id)}
-                style={styles.acceptButton}
+                style={[styles.acceptButton, hasActiveOrder && styles.buttonDisabled]}
               >
-                Accepter
+                {hasActiveOrder ? '🔒 Terminez d\'abord' : 'Accepter'}
               </Button>
             </>
           )}
@@ -414,6 +565,13 @@ export default function ProviderBookingsScreen() {
             >
               📍 Je suis arrivé
             </Button>
+          )}
+
+          {booking.status === 'arrived' && (
+            <View style={styles.waitingConfirmation}>
+              <Text style={styles.waitingIcon}>⏳</Text>
+              <Text style={styles.waitingText}>En attente de confirmation du client</Text>
+            </View>
           )}
 
           {booking.status === 'in_progress' && (
@@ -626,6 +784,11 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: colors.accent,
   },
+  cardArrived: {
+    backgroundColor: '#EDE9FE',
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+  },
   cardInProgress: {
     backgroundColor: '#FFF1F2',
     borderLeftWidth: 4,
@@ -668,15 +831,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   clientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clientAvatarText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.white,
   },
@@ -689,20 +852,16 @@ const styles = StyleSheet.create({
     color: colors.gray[900],
     marginBottom: 2,
   },
-  clientPhone: {
+  chatButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  chatButtonText: {
     fontSize: typography.fontSize.sm,
-    color: colors.gray[600],
-  },
-  callButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.success + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  callIcon: {
-    fontSize: 20,
+    color: colors.white,
+    fontWeight: '600',
   },
 
   // Details
@@ -763,6 +922,10 @@ const styles = StyleSheet.create({
   acceptButton: {
     flex: 1,
   },
+  buttonDisabled: {
+    opacity: 0.5,
+    backgroundColor: colors.gray[400],
+  },
 
   // Rating
   ratingContainer: {
@@ -802,5 +965,26 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.gray[600],
     textAlign: 'center',
+  },
+
+  // Waiting Confirmation
+  waitingConfirmation: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EDE9FE',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    gap: spacing.sm,
+  },
+  waitingIcon: {
+    fontSize: 20,
+  },
+  waitingText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: '#6B21A8',
   },
 });

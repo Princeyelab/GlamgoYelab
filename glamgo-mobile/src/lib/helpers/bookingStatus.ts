@@ -1,32 +1,32 @@
 import { BookingStatus, BOOKING_STATUS_CONFIG } from '../../types/booking';
 
 /**
- * Helper pour gérer les status de bookings
+ * Helper pour gerer les status de bookings
  */
 
 // Obtenir config d'un status
 export const getBookingStatusConfig = (status: BookingStatus) => {
-  return BOOKING_STATUS_CONFIG[status];
+  return BOOKING_STATUS_CONFIG[status] || BOOKING_STATUS_CONFIG['pending'];
 };
 
-// Vérifier si un booking est modifiable
+// Verifier si un booking est modifiable
 export const canCancelBooking = (status: BookingStatus): boolean => {
   return status === 'pending' || status === 'accepted';
 };
 
-// Vérifier si peut contacter provider
+// Verifier si peut contacter provider
 export const canContactProvider = (status: BookingStatus): boolean => {
-  return status !== 'cancelled' && status !== 'completed';
+  return status !== 'cancelled' && status !== 'completed' && status !== 'completed_pending_review';
 };
 
-// Vérifier si peut tracker provider
+// Verifier si peut tracker provider
 export const canTrackProvider = (status: BookingStatus): boolean => {
-  return status === 'on_way' || status === 'in_progress';
+  return status === 'on_way' || status === 'arrived' || status === 'in_progress';
 };
 
-// Vérifier si peut laisser un avis
+// Verifier si peut laisser un avis
 export const canLeaveReview = (status: BookingStatus): boolean => {
-  return status === 'completed';
+  return status === 'completed_pending_review';
 };
 
 // Mapper status → actions disponibles
@@ -39,9 +39,9 @@ export const getAvailableActions = (status: BookingStatus) => {
   };
 };
 
-// Vérifier si booking est actif (pas terminé/annulé)
+// Verifier si booking est actif (pas termine/annule)
 export const isActiveBooking = (status: BookingStatus): boolean => {
-  return status !== 'completed' && status !== 'cancelled';
+  return status !== 'completed' && status !== 'completed_pending_review' && status !== 'cancelled';
 };
 
 // Obtenir le prochain status possible
@@ -50,8 +50,10 @@ export const getNextStatus = (status: BookingStatus): BookingStatus | null => {
     pending: 'accepted',
     accepted: 'on_way',
     confirmed: 'on_way',
-    on_way: 'in_progress',
-    in_progress: 'completed',
+    on_way: 'arrived',
+    arrived: 'in_progress',
+    in_progress: 'completed_pending_review',
+    completed_pending_review: 'completed',
     completed: null,
     cancelled: null,
     rejected: null,

@@ -62,6 +62,12 @@ apiClient.interceptors.request.use(
 
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+        // Log du token pour debug (premiers 20 chars seulement)
+        if (__DEV__) {
+          console.log(`[API] Token present: ${token.substring(0, 20)}...`);
+        }
+      } else if (__DEV__) {
+        console.warn(`[API] NO TOKEN for ${config.method?.toUpperCase()} ${config.url}`);
       }
     } catch (error) {
       console.error('[API Client] Erreur lecture token:', error);
@@ -92,6 +98,18 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Debug: Log detaille pour erreurs 401
+    if (__DEV__ && error.response?.status === 401) {
+      console.error(`[API] 401 ERROR on ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`);
+      console.error('[API] 401 Response:', JSON.stringify(error.response?.data));
+      const currentToken = await AsyncStorage.getItem(TOKEN_KEY);
+      console.error('[API] Current token exists?', !!currentToken);
+      if (currentToken) {
+        console.error('[API] Token preview:', currentToken.substring(0, 30) + '...');
+      }
+      console.error('[API] Auth header sent:', originalRequest?.headers?.Authorization ? 'Yes' : 'No');
+    }
+
     // Si erreur 401 et pas deja en retry
     if (error.response?.status === 401 && !originalRequest._retry) {
 
@@ -116,8 +134,9 @@ apiClient.interceptors.response.use(
         const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
 
         if (!refreshToken) {
-          // Pas de refresh token, deconnecter l'utilisateur
-          await clearTokens();
+          // Pas de refresh token - continuer sans refresh (le token principal peut encore etre valide)
+          // Ne pas deconnecter l'utilisateur, juste rejeter cette requete
+          console.warn('[API] No refresh token available for retry');
           processQueue(new Error('No refresh token'), null);
           return Promise.reject(error);
         }
@@ -155,8 +174,8 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Log erreur en dev
-    if (__DEV__) {
+    // Log erreur en dev (sauf 409 qui est gere par l'UI)
+    if (__DEV__ && error.response?.status !== 409) {
       console.error(`[API] Error ${error.response?.status} ${originalRequest?.url}:`, error.message);
     }
 

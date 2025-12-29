@@ -5,11 +5,11 @@
 .priorityBadge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 4px 10px;
   border: none;
-  border-radius: 20px;
-  font-size: 13px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -52,7 +52,7 @@
 }
 
 .icon {
-  font-size: 16px;
+  font-size: 12px;
 }
 
 .label {
@@ -73,14 +73,22 @@
   }
 }
 
+.overlay {
+  display: none;
+}
+
+.closeButton {
+  display: none;
+}
+
 .priorityDetails {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
   z-index: 100;
 
-  width: 320px;
-  padding: 20px;
+  width: 280px;
+  padding: 16px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -244,26 +252,99 @@
 }
 
 // Responsive
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .priorityBadge {
+    padding: 3px 8px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .icon {
+    font-size: 10px;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .closeButton {
+    display: flex;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 1;
+
+    &:hover {
+      background: #e0e0e0;
+    }
+  }
+
   .priorityDetails {
-    width: calc(100vw - 40px);
-    right: -10px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: calc(100vw - 32px);
+    max-width: 320px;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 14px;
+    padding-top: 40px;
   }
 
   .statsGrid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
   }
 
   .statItem {
-    padding: 10px 6px;
+    padding: 8px 4px;
   }
 
   .statValue {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .statLabel {
-    font-size: 10px;
+    font-size: 9px;
+  }
+
+  .description {
+    padding: 10px;
+    margin-bottom: 12px;
+
+    p {
+      font-size: 12px;
+    }
+  }
+
+  .thresholds {
+    h4 {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+  }
+
+  .threshold {
+    padding: 6px 10px;
+    font-size: 11px;
   }
 }

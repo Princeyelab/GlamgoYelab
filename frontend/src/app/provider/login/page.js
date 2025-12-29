@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
@@ -12,8 +12,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const { t } = useLanguage();
+
+  // Récupérer l'URL de redirection depuis les paramètres
+  const redirectUrl = searchParams.get('redirect') || '/provider/dashboard';
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -95,7 +100,8 @@ export default function ProviderLoginPage() {
           localStorage.setItem('showWelcomePopupProvider', 'true');
         }
 
-        router.push('/provider/dashboard');
+        // Rediriger vers l'URL demandée ou le dashboard
+        router.push(redirectUrl);
       } else {
         setServerError(response.message || t('login.wrongCredentials'));
       }

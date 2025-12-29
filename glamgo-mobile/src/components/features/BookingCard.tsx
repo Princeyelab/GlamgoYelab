@@ -11,6 +11,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 // French day names
 const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
@@ -32,14 +33,8 @@ function formatDateFrench(dateStr: string, time: string): string {
   return `${dayName} ${day} ${month} - ${formattedTime}`;
 }
 
-/**
- * Format price with currency
- */
-function formatPrice(price: number, currency: string = 'MAD'): string {
-  return `${price} ${currency}`;
-}
-
 export default function BookingCard(props: BookingCardProps) {
+  const { formatPrice } = useCurrency();
   const {
     id,
     service,
@@ -53,6 +48,7 @@ export default function BookingCard(props: BookingCardProps) {
     onContact,
     onViewDetails,
     onTrackProvider,
+    onReview,
   } = props;
   // Support both new and legacy field names
   const booking_date = props.booking_date || props.date || '';
@@ -102,6 +98,12 @@ export default function BookingCard(props: BookingCardProps) {
       onPress={onViewDetails ? handlePress : undefined}
     >
       <View style={styles.container}>
+        {/* Order Number */}
+        <View style={styles.orderNumberRow}>
+          <Text style={styles.orderNumberLabel}>Commande</Text>
+          <Text style={styles.orderNumber}>#{id}</Text>
+        </View>
+
         {/* Header: Service Image + Info */}
         <View style={styles.header}>
           {/* Service Image */}
@@ -179,8 +181,8 @@ export default function BookingCard(props: BookingCardProps) {
 
         {/* Price */}
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Total</Text>
-          <Text style={styles.priceValue}>{formatPrice(total, currency)}</Text>
+          <Text style={styles.priceLabel}>Prix</Text>
+          <Text style={styles.priceValue}>{formatPrice(total)}</Text>
         </View>
 
         {/* Notes (if present) */}
@@ -207,7 +209,7 @@ export default function BookingCard(props: BookingCardProps) {
             </Button>
           )}
 
-          {/* Bouton Contacter */}
+          {/* Bouton Chat */}
           {actions.canContact && onContact && (
             <Button
               variant="outline"
@@ -215,7 +217,7 @@ export default function BookingCard(props: BookingCardProps) {
               onPress={handleContact}
               style={styles.actionButton}
             >
-              💬 Contacter
+              💬 Chat
             </Button>
           )}
 
@@ -233,11 +235,11 @@ export default function BookingCard(props: BookingCardProps) {
           )}
 
           {/* Bouton Laisser un avis (si completed) */}
-          {normalizedStatus === 'completed' && actions.canReview && (
+          {normalizedStatus === 'completed_pending_review' && actions.canReview && (
             <Button
               variant="primary"
               size="sm"
-              onPress={() => onViewDetails?.(id)}
+              onPress={() => onReview?.(id)}
               style={styles.actionButton}
             >
               Laisser un avis
@@ -246,10 +248,26 @@ export default function BookingCard(props: BookingCardProps) {
 
           {/* Message si cancelled */}
           {normalizedStatus === 'cancelled' && (
-            <View style={styles.cancelledMessage}>
-              <Text style={styles.cancelledText}>
-                Cette reservation a ete annulee
-              </Text>
+            <View style={styles.cancelledContainer}>
+              <View style={styles.cancelledHeader}>
+                <Text style={styles.cancelledIcon}>❌</Text>
+                <Text style={styles.cancelledTitle}>Reservation annulee</Text>
+              </View>
+              {props.cancelled_by && (
+                <Text style={styles.cancelledBy}>
+                  Par: {props.cancelled_by === 'client' ? 'Client' : 'Prestataire'}
+                </Text>
+              )}
+              {props.cancellation_reason && (
+                <Text style={styles.cancelledReason}>
+                  Motif: {props.cancellation_reason}
+                </Text>
+              )}
+              {props.cancellation_fee && props.cancellation_fee > 0 && (
+                <Text style={styles.cancelledFee}>
+                  Frais d'annulation: {props.cancellation_fee.toFixed(2)} MAD
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -261,6 +279,24 @@ export default function BookingCard(props: BookingCardProps) {
 const styles = StyleSheet.create({
   container: {
     padding: spacing.base,
+  },
+  orderNumberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[100],
+  },
+  orderNumberLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+  },
+  orderNumber: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -413,15 +449,43 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   // Cancelled
-  cancelledMessage: {
+  cancelledContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.error + '10',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error,
   },
-  cancelledText: {
+  cancelledHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  cancelledIcon: {
+    fontSize: 16,
+    marginRight: spacing.xs,
+  },
+  cancelledTitle: {
     fontSize: typography.fontSize.sm,
-    color: colors.gray[500],
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.error,
+  },
+  cancelledBy: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    marginTop: spacing.xs,
+  },
+  cancelledReason: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    marginTop: spacing.xs,
     fontStyle: 'italic',
+  },
+  cancelledFee: {
+    fontSize: typography.fontSize.xs,
+    color: colors.error,
+    marginTop: spacing.xs,
+    fontWeight: typography.fontWeight.medium,
   },
 });

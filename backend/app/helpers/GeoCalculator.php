@@ -83,8 +83,8 @@ class GeoCalculator
                     p.phone,
                     p.email,
                     p.avatar,
-                    p.current_latitude as latitude,
-                    p.current_longitude as longitude,
+                    COALESCE(p.current_latitude, p.latitude) as latitude,
+                    COALESCE(p.current_longitude, p.longitude) as longitude,
                     p.rating,
                     p.total_reviews,
                     p.account_status as status,
@@ -101,10 +101,10 @@ class GeoCalculator
                 INNER JOIN services s ON ps.service_id = s.id
                 INNER JOIN categories c ON s.category_id = c.id
                 WHERE ps.service_id = :service_id
-                  AND p.current_latitude IS NOT NULL
-                  AND p.current_longitude IS NOT NULL
-                  AND p.current_latitude BETWEEN :min_lat AND :max_lat
-                  AND p.current_longitude BETWEEN :min_lng AND :max_lng";
+                  AND (p.current_latitude IS NOT NULL OR p.latitude IS NOT NULL)
+                  AND (p.current_longitude IS NOT NULL OR p.longitude IS NOT NULL)
+                  AND COALESCE(p.current_latitude, p.latitude) BETWEEN :min_lat AND :max_lat
+                  AND COALESCE(p.current_longitude, p.longitude) BETWEEN :min_lng AND :max_lng";
 
         // En mode test, ne pas filtrer par is_verified
         if (!$testMode) {
@@ -159,6 +159,11 @@ class GeoCalculator
                 $filteredProviders[] = $provider;
             }
         }
+
+        // Trier par distance croissante pour que le premier soit le plus proche
+        usort($filteredProviders, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
 
         return $filteredProviders;
     }

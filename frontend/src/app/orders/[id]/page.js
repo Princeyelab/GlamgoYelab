@@ -26,7 +26,7 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
-  const { t, language } = useLanguage();
+  const { t, language, isRTL, toArabicNumerals } = useLanguage();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +42,7 @@ export default function OrderDetailPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showAcceptBidModal, setShowAcceptBidModal] = useState({ show: false, bidId: null });
+  const [cancellationInfo, setCancellationInfo] = useState({ hasFee: false, fee: 0, percentage: 0 });
 
   // Fonction pour afficher un toast
   const showToast = (message, type = 'success') => {
@@ -96,6 +97,12 @@ export default function OrderDetailPage() {
         // Si c'est une commande bidding, charger les offres
         if (response.data.pricing_mode === 'bidding') {
           fetchBids();
+        }
+
+        // Charger les infos d'annulation si la commande peut être annulée
+        const cancellableStatuses = ['pending', 'accepted', 'on_way'];
+        if (cancellableStatuses.includes(response.data.status)) {
+          fetchCancellationInfo();
         }
 
         // Restaurer la position de scroll après une mise à jour silencieuse
@@ -190,13 +197,38 @@ export default function OrderDetailPage() {
   const formatDate = (dateString) => {
     if (!dateString) return t('orderDetail.notDefined');
     const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'fr-FR', {
+    const formatted = date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+    // Appliquer la conversion des chiffres arabes
+    return toArabicNumerals(formatted);
+  };
+
+  // Récupérer les informations d'annulation depuis l'API
+  const fetchCancellationInfo = async () => {
+    try {
+      const response = await apiClient.getCancellationInfo(params.id);
+      if (response.success) {
+        const data = response.data;
+        setCancellationInfo({
+          canCancel: data.can_cancel,
+          hasFee: data.fee > 0,
+          fee: data.fee || 0,
+          percentage: data.percentage || 0,
+          reason: data.reason,
+          hoursUntilAppointment: data.hours_until_appointment
+        });
+        console.log('📋 Cancellation info loaded:', data);
+      }
+    } catch (err) {
+      console.error('Error fetching cancellation info:', err);
+      // Fallback: pas de frais si erreur
+      setCancellationInfo({ canCancel: true, hasFee: false, fee: 0, percentage: 0 });
+    }
   };
 
   const handleCancelOrder = async () => {
@@ -204,7 +236,10 @@ export default function OrderDetailPage() {
     setShowCancelModal(false);
 
     try {
-      const response = await apiClient.cancelOrder(params.id);
+      const response = await apiClient.cancelOrder(params.id, {
+        cancellation_fee: cancellationInfo.fee,
+        fee_percentage: cancellationInfo.percentage
+      });
       if (response.success) {
         showToast(t('orderDetail.orderCancelled'), 'success');
         fetchOrder();
@@ -279,7 +314,7 @@ export default function OrderDetailPage() {
         </Link>
 
         <div className={styles.orderHeader}>
-          <h1 className={styles.title}>{t('orderDetail.orderNumber', { id: order.id })}</h1>
+          <h1 className={styles.title}>{t('orderDetail.orderNumber', { id: toArabicNumerals(order.id) })}</h1>
           <span className={`${styles.status} ${getStatusClass(order.status)}`}>
             {getStatusLabel(order.status)}
           </span>
@@ -688,13 +723,14 @@ export default function OrderDetailPage() {
             </div>
           )}
 
-          {order.provider_id && ['on_way', 'in_progress'].includes(order.status) && (
+          {/* GPS tracking uniquement quand le prestataire est en route (masqué après confirmation d'arrivée) */}
+          {order.provider_id && order.status === 'on_way' && (
             <div className={styles.locationSharingSection}>
               <ClientLocationSharing orderId={order.id} />
             </div>
           )}
 
-          {order.provider_id && ['on_way', 'in_progress'].includes(order.status) && (
+          {order.provider_id && order.status === 'on_way' && (
             <div className={styles.trackingSection}>
               <ProviderLocationMap
                 orderId={order.id}
@@ -706,13 +742,14 @@ export default function OrderDetailPage() {
           )}
 
           <div className={styles.actions}>
-            {(order.status === 'pending' || order.status === 'accepted') && (
+            {(order.status === 'pending' || order.status === 'accepted' || order.status === 'on_way') && (
               <Button
                 variant="outline"
                 onClick={() => setShowCancelModal(true)}
                 disabled={actionLoading.cancel}
               >
                 {actionLoading.cancel ? t('orderDetail.cancelling') : t('orderDetail.cancelOrder')}
+                {cancellationInfo.hasFee && ` (${t('orderDetail.withFees')})`}
               </Button>
             )}
             <Link href="/orders">
@@ -798,14 +835,33 @@ export default function OrderDetailPage() {
             </div>
             <div className={styles.modalBody}>
               <p>{t('orderDetail.cancelConfirm')}</p>
-              <p className={styles.modalHint}>{t('orderDetail.cancelWarning')}</p>
+
+              {cancellationInfo.hasFee ? (
+                <div className={styles.cancellationFeeWarning}>
+                  <p className={styles.feeTitle}>⚠️ {t('orderDetail.cancellationFeeApplies')}</p>
+                  <p className={styles.feeExplanation}>
+                    {t('orderDetail.lessThan2Hours')}
+                  </p>
+                  <div className={styles.feeAmount}>
+                    <span className={styles.feeLabel}>{t('orderDetail.cancellationFee')}:</span>
+                    <span className={styles.feeValue}>
+                      <Price amount={cancellationInfo.fee} />
+                      <span className={styles.feePercentage}>({cancellationInfo.percentage}%)</span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className={styles.modalHint}>{t('orderDetail.cancelWarning')}</p>
+              )}
             </div>
             <div className={styles.modalActions}>
               <Button variant="outline" onClick={() => setShowCancelModal(false)}>
                 {t('orderDetail.keepOrder')}
               </Button>
               <Button variant="danger" onClick={handleCancelOrder}>
-                {t('orderDetail.yesCancel')}
+                {cancellationInfo.hasFee
+                  ? t('orderDetail.yesCancelWithFee')
+                  : t('orderDetail.yesCancel')}
               </Button>
             </div>
           </div>

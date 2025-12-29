@@ -164,4 +164,106 @@ class MigrationController extends Controller
             $this->error('Erreur: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Migration pour le système d'annulation
+     * Ajoute les colonnes nécessaires à la table orders
+     */
+    public function migrateCancellation(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Colonnes à ajouter à la table orders
+            $columns = [
+                'cancelled_at' => 'DATETIME NULL',
+                'cancelled_by' => "VARCHAR(20) NULL",
+                'cancellation_reason' => 'TEXT NULL',
+                'cancellation_fee' => 'DECIMAL(10, 2) DEFAULT 0.00',
+                'cancellation_fee_percentage' => 'INT DEFAULT 0',
+                'cancellation_provider_lat' => 'DECIMAL(10, 8) NULL',
+                'cancellation_provider_lng' => 'DECIMAL(11, 8) NULL',
+                'cancellation_distance_traveled' => 'DECIMAL(10, 2) NULL'
+            ];
+
+            foreach ($columns as $columnName => $columnDef) {
+                // Vérifier si la colonne existe
+                $stmt = $db->query("SHOW COLUMNS FROM orders LIKE '{$columnName}'");
+
+                if ($stmt->rowCount() > 0) {
+                    $results[] = "✓ Colonne '{$columnName}' existe deja";
+                } else {
+                    try {
+                        $db->exec("ALTER TABLE orders ADD COLUMN {$columnName} {$columnDef}");
+                        $results[] = "✅ Colonne '{$columnName}' ajoutee";
+                    } catch (\PDOException $e) {
+                        $results[] = "❌ Erreur '{$columnName}': " . $e->getMessage();
+                    }
+                }
+            }
+
+            // Créer la table cancellation_rules
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS cancellation_rules (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        status VARCHAR(20) NOT NULL,
+                        cancelled_by VARCHAR(20) NOT NULL,
+                        hours_before_appointment INT NULL,
+                        min_fee_percentage INT DEFAULT 0,
+                        max_fee_percentage INT DEFAULT 0,
+                        provider_penalty_points INT DEFAULT 0,
+                        description TEXT NULL,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
+                $results[] = "✅ Table 'cancellation_rules' creee/verifiee";
+            } catch (\PDOException $e) {
+                $results[] = "❌ Erreur cancellation_rules: " . $e->getMessage();
+            }
+
+            // Insérer les règles par défaut
+            $stmt = $db->query("SELECT COUNT(*) as cnt FROM cancellation_rules");
+            $count = $stmt->fetch()['cnt'];
+
+            if ($count == 0) {
+                $rules = [
+                    ['pending', 'client', null, 0, 0, 0, 'Client annule commande en attente - Gratuit'],
+                    ['accepted', 'client', 2, 0, 0, 0, 'Client annule > 2h avant RDV - Gratuit'],
+                    ['accepted', 'client', 0, 50, 50, 0, 'Client annule < 2h avant RDV - 50% frais'],
+                    ['on_way', 'client', null, 50, 100, 0, 'Client annule prestataire en route - 50-100%'],
+                    ['pending', 'provider', null, 0, 0, 1, 'Prestataire refuse commande - 1 point'],
+                    ['accepted', 'provider', 2, 0, 0, 2, 'Prestataire annule > 2h avant - 2 points'],
+                    ['accepted', 'provider', 0, 0, 0, 5, 'Prestataire annule < 2h avant - 5 points'],
+                    ['on_way', 'provider', null, 0, 0, 10, 'Prestataire annule en route - 10 points'],
+                ];
+
+                $insertStmt = $db->prepare("
+                    INSERT INTO cancellation_rules
+                    (status, cancelled_by, hours_before_appointment, min_fee_percentage, max_fee_percentage, provider_penalty_points, description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+
+                foreach ($rules as $rule) {
+                    try {
+                        $insertStmt->execute($rule);
+                    } catch (\PDOException $e) {
+                        // Ignorer doublons
+                    }
+                }
+                $results[] = "✅ Regles d'annulation inserees";
+            } else {
+                $results[] = "✓ Regles existent deja ({$count} regles)";
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration annulation terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
 }

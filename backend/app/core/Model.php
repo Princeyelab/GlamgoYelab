@@ -92,6 +92,9 @@ abstract class Model
      */
     public function update(int $id, array $data): bool
     {
+        // Convertir les booleens en entiers pour MySQL
+        $data = $this->convertBooleans($data);
+
         $setParts = [];
         foreach (array_keys($data) as $column) {
             $setParts[] = "{$column} = ?";
@@ -99,12 +102,20 @@ abstract class Model
         $setClause = implode(', ', $setParts);
 
         $sql = "UPDATE {$this->table} SET {$setClause} WHERE {$this->primaryKey} = ?";
-        $stmt = $this->db->prepare($sql);
 
-        $values = array_values($data);
-        $values[] = $id;
+        try {
+            $stmt = $this->db->prepare($sql);
 
-        return $stmt->execute($values);
+            $values = array_values($data);
+            $values[] = $id;
+
+            return $stmt->execute($values);
+        } catch (\PDOException $e) {
+            error_log("[Model::update] Error updating {$this->table} #{$id}: " . $e->getMessage());
+            error_log("[Model::update] SQL: {$sql}");
+            error_log("[Model::update] Data: " . json_encode($data));
+            throw $e;
+        }
     }
 
     /**

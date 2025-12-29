@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function NotificationsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [notificationsData, setNotificationsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +141,7 @@ export default function NotificationsPage() {
           <h1 className={styles.title}>
             {t('notifications.title')}
             {unreadCount > 0 && (
-              <span className={styles.badge}>{unreadCount}</span>
+              <span className={styles.badge}>{toArabicNumerals(unreadCount)}</span>
             )}
           </h1>
           {notificationsData.length > 0 && unreadCount > 0 && (

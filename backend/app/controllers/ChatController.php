@@ -316,13 +316,13 @@ class ChatController extends Controller
             if ($userType === 'user') {
                 $stmt = $db->prepare("
                     SELECT last_seen_at FROM providers
-                    WHERE id = ? AND last_seen_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+                    WHERE id = ? AND last_seen_at > NOW() - INTERVAL '5 minutes'
                 ");
                 $stmt->execute([$order['provider_id']]);
             } else {
                 $stmt = $db->prepare("
                     SELECT last_seen_at FROM users
-                    WHERE id = ? AND last_seen_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+                    WHERE id = ? AND last_seen_at > NOW() - INTERVAL '5 minutes'
                 ");
                 $stmt->execute([$order['user_id']]);
             }

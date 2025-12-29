@@ -19,11 +19,11 @@ export const ENDPOINTS = {
 
   // === UTILISATEURS ===
   USERS: {
-    PROFILE: '/api/users/profile',
-    UPDATE_PROFILE: '/api/users/profile',
-    CHANGE_PASSWORD: '/api/users/change-password',
-    UPLOAD_AVATAR: '/api/users/avatar',
-    DELETE_ACCOUNT: '/api/users/account',
+    PROFILE: '/api/user/profile',
+    UPDATE_PROFILE: '/api/user/profile',
+    CHANGE_PASSWORD: '/api/user/change-password',
+    UPLOAD_AVATAR: '/api/user/avatar',
+    DELETE_ACCOUNT: '/api/user/account',
   },
 
   // === SERVICES ===
@@ -34,16 +34,17 @@ export const ENDPOINTS = {
     SEARCH: '/api/services/search',
     FEATURED: '/api/services/featured',
     POPULAR: '/api/services/popular',
+    NEARBY_PROVIDERS: (serviceId: number | string) => `/api/services/${serviceId}/nearby-providers`,
   },
 
   // === CATEGORIES ===
   CATEGORIES: {
     LIST: '/api/categories',
     DETAIL: (id: number | string) => `/api/categories/${id}`,
-    WITH_SERVICES: '/api/categories/with-services',
+    SERVICES: (id: number | string) => `/api/categories/${id}/services`,
   },
 
-  // === PRESTATAIRES ===
+  // === PRESTATAIRES (consultation publique) ===
   PROVIDERS: {
     LIST: '/api/providers',
     DETAIL: (id: number | string) => `/api/providers/${id}`,
@@ -53,14 +54,55 @@ export const ENDPOINTS = {
     AVAILABILITY: (id: number | string) => `/api/providers/${id}/availability`,
   },
 
+  // === ESPACE PRESTATAIRE (authentifié) ===
+  PROVIDER: {
+    REGISTER: '/api/provider/register',
+    LOGIN: '/api/provider/login',
+    PROFILE: '/api/provider/profile',
+    UPDATE_PROFILE: '/api/provider/profile',
+    UPLOAD_IMAGE: '/api/provider/profile/image',
+    UPLOAD_DOCUMENTS: '/api/provider/documents',
+    // Services du prestataire
+    SERVICES: '/api/provider/services',
+    ADD_SERVICE: '/api/provider/services',
+    REMOVE_SERVICE: (id: number | string) => `/api/provider/services/${id}`,
+    // Commandes du prestataire
+    ORDERS: '/api/provider/orders',
+    ORDER_DETAIL: (id: number | string) => `/api/provider/orders/${id}`,
+    ACCEPT_ORDER: (id: number | string) => `/api/provider/orders/${id}/accept`,
+    START_ORDER: (id: number | string) => `/api/provider/orders/${id}/start`,
+    ARRIVE_ORDER: (id: number | string) => `/api/provider/orders/${id}/arrive`,
+    COMPLETE_ORDER: (id: number | string) => `/api/provider/orders/${id}/complete-service`,
+    CANCEL_ORDER: (id: number | string) => `/api/provider/orders/${id}/cancel`,
+    // Localisation
+    UPDATE_LOCATION: '/api/provider/location',
+    CLIENT_LOCATION: (orderId: number | string) => `/api/provider/orders/${orderId}/client-location`,
+    // Notifications
+    NOTIFICATIONS: '/api/provider/notifications',
+    MARK_NOTIFICATION_READ: (id: number | string) => `/api/provider/notifications/${id}/read`,
+    MARK_ALL_NOTIFICATIONS_READ: '/api/provider/notifications/read-all',
+    UNREAD_COUNT: '/api/provider/notifications/unread-count',
+    // Enchères
+    AVAILABLE_ORDERS: '/api/provider/available-orders',
+    MY_BIDS: '/api/provider/my-bids',
+    // Gains et statistiques
+    EARNINGS: '/api/provider/earnings',
+    EARNINGS_STATS: '/api/provider/earnings/stats',
+    TRANSACTIONS: '/api/provider/transactions',
+    WITHDRAW: '/api/provider/withdraw',
+  },
+
   // === RESERVATIONS / BOOKINGS (uses /api/orders in backend) ===
   BOOKINGS: {
     LIST: '/api/orders',
     CREATE: '/api/orders',
     DETAIL: (id: number | string) => `/api/orders/${id}`,
     CANCEL: (id: number | string) => `/api/orders/${id}/cancel`,
+    CANCELLATION_FEE: (id: number | string) => `/api/orders/${id}/cancellation-info`,
     CONFIRM: (id: number | string) => `/api/orders/${id}/accept`,  // Provider accepts
+    CONFIRM_ARRIVAL: (id: number | string) => `/api/orders/${id}/confirm-arrival`,
     COMPLETE: (id: number | string) => `/api/orders/${id}/confirm-complete`,
+    SATISFACTION: (id: number | string) => `/api/orders/${id}/satisfaction`,
     HISTORY: '/api/orders',  // Same endpoint with status filter
     UPCOMING: '/api/orders', // Same endpoint with status filter
   },
@@ -96,6 +138,7 @@ export const ENDPOINTS = {
   // === NOTIFICATIONS ===
   NOTIFICATIONS: {
     LIST: '/api/notifications',
+    UNREAD_COUNT: '/api/notifications/unread-count',
     MARK_READ: (id: number | string) => `/api/notifications/${id}/read`,
     MARK_ALL_READ: '/api/notifications/read-all',
     SETTINGS: '/api/notifications/settings',

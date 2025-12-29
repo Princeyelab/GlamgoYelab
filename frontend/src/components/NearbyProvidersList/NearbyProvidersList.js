@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import styles from './NearbyProvidersList.module.scss';
 import ProviderCard from '@/components/ProviderCard';
 import { useNearbyProviders, useClientLocation } from '@/hooks/useNearbyProviders';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Import dynamique de la carte Leaflet (côté client uniquement)
 const ProvidersMap = dynamic(() => import('./ProvidersMap'), {
@@ -12,7 +13,6 @@ const ProvidersMap = dynamic(() => import('./ProvidersMap'), {
   loading: () => (
     <div className={styles.mapLoading}>
       <div className={styles.spinner} />
-      <span>Chargement de la carte...</span>
     </div>
   )
 });
@@ -39,7 +39,8 @@ export default function NearbyProvidersList({
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('distance');
   const [showMap, setShowMap] = useState(true);
-  const [radius, setRadius] = useState(30);
+  const [radius, setRadius] = useState(15); // 15km = rayon d'intervention gratuit
+  const { t, toArabicNumerals } = useLanguage();
 
   // Géolocalisation du client
   const {
@@ -128,20 +129,20 @@ export default function NearbyProvidersList({
       <div className={styles.nearbyProviders}>
         <div className={styles.locationError}>
           <div className={styles.errorIcon}>📍</div>
-          <h3>Localisation requise</h3>
-          <p>Pour voir les prestataires à proximité, nous avons besoin de votre position.</p>
+          <h3>{t('nearbyProviders.locationRequired')}</h3>
+          <p>{t('nearbyProviders.locationRequiredDesc')}</p>
           <div className={styles.locationOptions}>
             <button
               className={styles.btnPrimary}
               onClick={() => setManualLocation(defaultLocation.lat, defaultLocation.lng)}
             >
-              Utiliser Marrakech centre
+              {t('nearbyProviders.useMarrakechCenter')}
             </button>
             <button
               className={styles.btnSecondary}
               onClick={requestLocation}
             >
-              Réessayer la géolocalisation
+              {t('nearbyProviders.retryGeolocation')}
             </button>
           </div>
         </div>
@@ -155,7 +156,7 @@ export default function NearbyProvidersList({
       <div className={styles.nearbyProviders}>
         <div className={styles.loading}>
           <div className={styles.spinner} />
-          <p>Récupération de votre position...</p>
+          <p>{t('nearbyProviders.gettingPosition')}</p>
         </div>
       </div>
     );
@@ -166,9 +167,9 @@ export default function NearbyProvidersList({
       {/* En-tête */}
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <h2 className={styles.title}>Prestataires à proximité</h2>
+          <h2 className={styles.title}>{t('nearbyProviders.title')}</h2>
           <span className={styles.count}>
-            {totalFound} {totalFound > 1 ? 'prestataires trouvés' : 'prestataire trouvé'}
+            {toArabicNumerals(totalFound)} {totalFound > 1 ? t('nearbyProviders.providersFound') : t('nearbyProviders.providerFound')}
           </span>
         </div>
 
@@ -178,39 +179,44 @@ export default function NearbyProvidersList({
           onClick={() => setShowMap(!showMap)}
         >
           <span className={styles.mapIcon}>🗺️</span>
-          {showMap ? 'Masquer carte' : 'Afficher carte'}
+          {showMap ? t('nearbyProviders.hideMap') : t('nearbyProviders.showMap')}
         </button>
       </div>
 
       {/* Filtres */}
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
-          <label>Filtrer :</label>
+          <label>{t('nearbyProviders.filter')}:</label>
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="all">Tous</option>
-            <option value="available_now">Disponibles maintenant</option>
-            <option value="within_5km">À moins de 5 km</option>
-            <option value="within_10km">À moins de 10 km</option>
+            <option value="all">{t('nearbyProviders.all')}</option>
+            <option value="available_now">{t('nearbyProviders.availableNow')}</option>
+            <option value="within_5km">{t('nearbyProviders.within5km')}</option>
+            <option value="within_10km">{t('nearbyProviders.within10km')}</option>
           </select>
         </div>
 
         <div className={styles.filterGroup}>
-          <label>Trier par :</label>
+          <label>{t('nearbyProviders.sortBy')}:</label>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="distance">Distance</option>
-            <option value="price">Prix</option>
-            <option value="rating">Note</option>
+            <option value="distance">{t('nearbyProviders.distance')}</option>
+            <option value="price">{t('nearbyProviders.price')}</option>
+            <option value="rating">{t('nearbyProviders.rating')}</option>
           </select>
         </div>
 
         <div className={styles.filterGroup}>
-          <label>Rayon :</label>
+          <label>{t('nearbyProviders.radius')}:</label>
           <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-            <option value={5}>5 km</option>
-            <option value={10}>10 km</option>
-            <option value={20}>20 km</option>
-            <option value={30}>30 km</option>
-            <option value={50}>50 km</option>
+            <option value={5}>5 {t('common.km')}</option>
+            <option value={10}>10 {t('common.km')}</option>
+            <option value={15}>15 {t('common.km')} (Gratuit)</option>
+            <option value={20}>20 {t('common.km')}</option>
+            <option value={30}>30 {t('common.km')}</option>
+            <option value={50}>50 {t('common.km')}</option>
+            <option value={100}>100 {t('common.km')}</option>
+            <option value={200}>200 {t('common.km')}</option>
+            <option value={300}>300 {t('common.km')}</option>
+            <option value={500}>500 {t('common.km')} (Tout le Maroc)</option>
           </select>
         </div>
       </div>
@@ -234,7 +240,7 @@ export default function NearbyProvidersList({
         <div className={styles.error}>
           <span className={styles.errorIcon}>⚠️</span>
           <span>{error}</span>
-          <button onClick={refetch}>Réessayer</button>
+          <button onClick={refetch}>{t('nearbyProviders.retry')}</button>
         </div>
       )}
 
@@ -242,7 +248,7 @@ export default function NearbyProvidersList({
       {loading && (
         <div className={styles.loadingOverlay}>
           <div className={styles.spinner} />
-          <span>Recherche des prestataires...</span>
+          <span>{t('nearbyProviders.searching')}</span>
         </div>
       )}
 
@@ -251,10 +257,10 @@ export default function NearbyProvidersList({
         {!loading && filteredProviders.length === 0 ? (
           <div className={styles.noResults}>
             <div className={styles.noResultsIcon}>🔍</div>
-            <h3>Aucun prestataire trouvé</h3>
-            <p>Essayez d'augmenter le rayon de recherche ou de modifier les filtres.</p>
-            <button className={styles.btnSecondary} onClick={() => setRadius(50)}>
-              Étendre à 50 km
+            <h3>{t('nearbyProviders.noProviderFound')}</h3>
+            <p>{t('nearbyProviders.tryIncreaseRadius')}</p>
+            <button className={styles.btnSecondary} onClick={() => setRadius(500)}>
+              {t('nearbyProviders.extendTo')} {toArabicNumerals(500)} {t('common.km')} (Tout le Maroc)
             </button>
           </div>
         ) : (

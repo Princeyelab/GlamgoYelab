@@ -6,7 +6,7 @@
 // ============================================
 // 🚨 DEMO MODE - Mettre true pour tester sans API
 // ============================================
-export const DEMO_MODE = true;
+export const DEMO_MODE = false;
 
 // API Configuration
 export const API_CONFIG = {

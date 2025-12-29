@@ -19,75 +19,44 @@ import Card from '../src/components/ui/Card';
 import Loading from '../src/components/ui/Loading';
 import { colors, spacing, typography, borderRadius, shadows } from '../src/lib/constants/theme';
 import { useAppSelector } from '../src/lib/store/hooks';
-import { selectUser } from '../src/lib/store/slices/authSlice';
+import { selectUser, selectUserRole } from '../src/lib/store/slices/authSlice';
+import apiClient from '../src/lib/api/client';
+import { ENDPOINTS } from '../src/lib/api/endpoints';
 
 // Types
+type NotificationType = 'booking' | 'promo' | 'system' | 'review' | 'reminder' | 'new_order' | 'order_accepted' | 'order_completed' | 'provider_cancelled';
+
 interface Notification {
   id: number;
-  type: 'booking' | 'promo' | 'system' | 'review' | 'reminder';
+  type: NotificationType;
   title: string;
   message: string;
   is_read: boolean;
   created_at: string;
   data?: {
     booking_id?: number;
+    order_id?: number;
     service_id?: number;
     provider_id?: number;
     promo_code?: string;
   };
 }
 
-// Donnees demo
-const DEMO_NOTIFICATIONS: Notification[] = [
-  {
-    id: 1,
-    type: 'booking',
-    title: 'Reservation confirmee',
-    message: 'Votre reservation pour "Coupe femme" a ete confirmee pour demain a 14h30.',
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-    data: { booking_id: 123 },
-  },
-  {
-    id: 2,
-    type: 'promo',
-    title: '🎉 Offre speciale !',
-    message: 'Profitez de -20% sur votre prochaine reservation avec le code GLAMGO20.',
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    data: { promo_code: 'GLAMGO20' },
-  },
-  {
-    id: 3,
-    type: 'reminder',
-    title: 'Rappel de reservation',
-    message: 'N\'oubliez pas votre rendez-vous demain a 10h00 pour "Massage relaxant".',
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    data: { booking_id: 122 },
-  },
-  {
-    id: 4,
-    type: 'review',
-    title: 'Donnez votre avis',
-    message: 'Comment s\'est passe votre rendez-vous avec Sarah Beaute ? Partagez votre experience.',
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    data: { booking_id: 121, provider_id: 5 },
-  },
-  {
-    id: 5,
-    type: 'system',
-    title: 'Mise a jour de l\'application',
-    message: 'Une nouvelle version de GlamGo est disponible avec de nouvelles fonctionnalites.',
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-  },
-];
+// Mapper les types de notification DB vers les types d'icones
+const getNotificationType = (dbType: string): NotificationType => {
+  if (dbType.includes('order') || dbType.includes('booking')) return 'booking';
+  if (dbType.includes('promo')) return 'promo';
+  if (dbType.includes('review')) return 'review';
+  if (dbType.includes('reminder')) return 'reminder';
+  return 'system';
+};
+
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const user = useAppSelector(selectUser);
+  const userRole = useAppSelector(selectUserRole);
+  const isProvider = userRole === 'provider';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,16 +64,63 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [isProvider]);
 
   const loadNotifications = async () => {
     try {
-      // En production, appeler l'API
-      // Pour l'instant, utiliser les donnees demo
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setNotifications(DEMO_NOTIFICATIONS);
+      // Utiliser le bon endpoint selon le role (provider ou client)
+      const endpoint = isProvider
+        ? ENDPOINTS.PROVIDER.NOTIFICATIONS
+        : ENDPOINTS.NOTIFICATIONS.LIST;
+
+      console.log('[Notifications] Loading from:', endpoint, 'isProvider:', isProvider);
+
+      const response = await apiClient.get(endpoint);
+      console.log('[Notifications] Raw response:', JSON.stringify(response.data, null, 2));
+
+      // L'API retourne { success: true, data: { notifications: [...], unread_count: X } }
+      const rawData = response.data?.data?.notifications
+        || response.data?.notifications
+        || response.data?.data
+        || response.data
+        || [];
+
+      // S'assurer que c'est un tableau
+      const data = Array.isArray(rawData) ? rawData : [];
+
+      console.log('[Notifications] Parsed:', data.length, 'notifications');
+
+      // Transformer les données API au format attendu
+      // La DB utilise notification_type, pas type
+      // Le champ data peut etre une string JSON ou deja parse
+      const notifications = data.map((n: any) => {
+        let parsedData = {};
+        if (n.data) {
+          try {
+            parsedData = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+          } catch (e) {
+            parsedData = {};
+          }
+        }
+
+        const rawType = n.notification_type || n.type || 'system';
+        return {
+          id: n.id,
+          type: getNotificationType(rawType),
+          title: n.title || 'Notification',
+          message: n.message || n.body || n.content || '',
+          is_read: n.is_read === true || n.is_read === 1 || !!n.read_at,
+          created_at: n.created_at,
+          data: parsedData,
+        };
+      });
+
+      console.log('[Notifications] Mapped notifications:', notifications);
+      setNotifications(notifications);
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.log('[Notifications] Error loading:', error);
+      // Pas de notifications ou erreur API
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -116,8 +132,21 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   };
 
-  const handleNotificationPress = (notification: Notification) => {
-    // Marquer comme lu
+  const handleNotificationPress = async (notification: Notification) => {
+    // Marquer comme lu via l'API
+    if (!notification.is_read) {
+      try {
+        const endpoint = isProvider
+          ? ENDPOINTS.PROVIDER.MARK_NOTIFICATION_READ(notification.id)
+          : ENDPOINTS.NOTIFICATIONS.MARK_READ(notification.id);
+
+        await apiClient.patch(endpoint);
+      } catch (error) {
+        console.log('[Notifications] Error marking as read:', error);
+      }
+    }
+
+    // Mettre a jour l'etat local
     setNotifications(prev =>
       prev.map(n =>
         n.id === notification.id ? { ...n, is_read: true } : n
@@ -125,27 +154,65 @@ export default function NotificationsScreen() {
     );
 
     // Navigation selon le type
+    // order_id ou booking_id peuvent etre utilises
+    const orderId = notification.data?.order_id || notification.data?.booking_id;
+
     switch (notification.type) {
       case 'booking':
       case 'reminder':
-        if (notification.data?.booking_id) {
-          router.push(`/bookings/${notification.data.booking_id}` as any);
+        if (orderId) {
+          // Naviguer vers la bonne route selon le role
+          if (isProvider) {
+            router.push(`/(provider)/booking/journey/${orderId}` as any);
+          } else {
+            // Client: aller vers le suivi de commande
+            router.push(`/booking/track/${orderId}` as any);
+          }
         }
         break;
       case 'review':
-        if (notification.data?.booking_id) {
-          router.push(`/bookings/${notification.data.booking_id}` as any);
+        if (orderId) {
+          // Aller vers la page d'avis
+          router.push(`/booking/review/${orderId}` as any);
+        }
+        break;
+      case 'satisfaction_received':
+        // Prestataire a recu une evaluation - aller vers ses gains ou bookings
+        if (isProvider) {
+          router.push('/(provider)/earnings' as any);
+        } else if (orderId) {
+          router.push(`/booking/track/${orderId}` as any);
         }
         break;
       case 'promo':
-        router.push('/(tabs)/services');
+        router.push('/(client)/services' as any);
         break;
       default:
+        // Pour les autres types, navigation selon le role
+        if (orderId) {
+          if (isProvider) {
+            router.push(`/(provider)/booking/journey/${orderId}` as any);
+          } else {
+            router.push(`/booking/track/${orderId}` as any);
+          }
+        }
         break;
     }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    try {
+      // Appeler le bon endpoint selon le role
+      const endpoint = isProvider
+        ? ENDPOINTS.PROVIDER.MARK_ALL_NOTIFICATIONS_READ
+        : ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ;
+
+      await apiClient.patch(endpoint);
+    } catch (error) {
+      console.log('[Notifications] Error marking all as read:', error);
+    }
+
+    // Mettre a jour l'etat local
     setNotifications(prev =>
       prev.map(n => ({ ...n, is_read: true }))
     );

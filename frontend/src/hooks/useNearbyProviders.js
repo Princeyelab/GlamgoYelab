@@ -246,8 +246,8 @@ export function useNearbyProviders(serviceId, location, formula = 'standard', op
 // =============================================================================
 const DEV_MODE_LOCATION = true;
 const DEV_LOCATION = {
-  lat: 33.5731,  // Casablanca, Maroc
-  lng: -7.5898,
+  lat: 31.6295,  // Marrakech, Maroc (Jemaa el-Fna)
+  lng: -7.9811,
   accuracy: 10,
   timestamp: Date.now(),
   manual: true,

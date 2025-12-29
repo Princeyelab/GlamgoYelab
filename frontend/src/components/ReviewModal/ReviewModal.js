@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import TranslatedText from '@/components/TranslatedText';
 
 export default function ReviewModal({ order, onClose, onSuccess }) {
-  const { t } = useLanguage();
+  const { t, toArabicNumerals } = useLanguage();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [serviceQuality, setServiceQuality] = useState(0);
@@ -166,7 +166,7 @@ export default function ReviewModal({ order, onClose, onSuccess }) {
               disabled={submitting}
               maxLength={500}
             />
-            <span className={styles.charCount}>{comment.length}/500</span>
+            <span className={styles.charCount}>{toArabicNumerals(comment.length)}/{toArabicNumerals(500)}</span>
           </div>
 
           {error && (

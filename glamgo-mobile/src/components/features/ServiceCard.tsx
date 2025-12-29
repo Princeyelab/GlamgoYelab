@@ -5,11 +5,27 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  ImageSourcePropType,
 } from 'react-native';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
+import { hapticFeedback } from '../../lib/utils/haptics';
 import { ServiceCardProps } from '../../types/service';
+import { useCurrency } from '../../contexts/CurrencyContext';
+
+// Images locales par defaut
+const DEFAULT_LOCAL_IMAGES: Record<string, ImageSourcePropType> = {
+  epilation: require('../../../assets/images/defaults/epilation.jpg'),
+  coiffure: require('../../../assets/images/defaults/coiffure.jpg'),
+  massage: require('../../../assets/images/defaults/massage.jpg'),
+  beaute: require('../../../assets/images/defaults/beaute.jpg'),
+  maison: require('../../../assets/images/defaults/maison.jpg'),
+  voiture: require('../../../assets/images/defaults/voiture.jpg'),
+  animaux: require('../../../assets/images/defaults/animaux.jpg'),
+  manucure: require('../../../assets/images/defaults/manucure.jpg'),
+};
 
 export default function ServiceCard({
   id,
@@ -33,15 +49,50 @@ export default function ServiceCard({
   onFavoritePress,
 }: ServiceCardProps) {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+  const [imageError, setImageError] = useState(false);
+  const { formatPrice } = useCurrency();
 
-  // Get display image (first from images array or thumbnail)
-  const displayImage = images && images.length > 0 ? images[0] : thumbnail || '';
+  // Get display image (first from images array, thumbnail, or default by category)
+  const getCategorySlug = () => {
+    const catName = category?.name?.toLowerCase() || '';
+    const serviceTitle = title?.toLowerCase() || '';
 
-  // Get provider info with fallbacks
-  const providerName = 'name' in provider ? provider.name : 'Prestataire';
-  const providerAvatar = 'avatar' in provider ? provider.avatar : undefined;
+    // Verifier dans le nom de categorie ET le titre du service
+    if (catName.includes('epilation') || catName.includes('épilation') ||
+        serviceTitle.includes('epilation') || serviceTitle.includes('smooth')) return 'epilation';
+    if (catName.includes('coiffure') || serviceTitle.includes('coupe') ||
+        serviceTitle.includes('barbe') || serviceTitle.includes('cheveux')) return 'coiffure';
+    if (catName.includes('maquillage') || serviceTitle.includes('maquillage')) return 'maquillage';
+    if (catName.includes('manucure') || catName.includes('pédicure') ||
+        serviceTitle.includes('manucure') || serviceTitle.includes('pédicure')) return 'manucure';
+    if (catName.includes('massage') || serviceTitle.includes('massage')) return 'massage';
+    if (catName.includes('bien') || catName.includes('yoga') || catName.includes('coach') ||
+        serviceTitle.includes('yoga') || serviceTitle.includes('pilates')) return 'bien-etre';
+    if (catName.includes('ménage') || catName.includes('menage') || catName.includes('maison') ||
+        serviceTitle.includes('nettoyage') || serviceTitle.includes('ménage')) return 'maison';
+    if (catName.includes('voiture') || catName.includes('lavage') || catName.includes('auto') ||
+        serviceTitle.includes('lavage') || serviceTitle.includes('auto')) return 'voiture';
+    if (catName.includes('animaux') || catName.includes('chien') || catName.includes('chat') ||
+        serviceTitle.includes('chien') || serviceTitle.includes('animal')) return 'animaux';
+    if (catName.includes('beauté') || catName.includes('beaute')) return 'beaute';
+    return 'beaute';
+  };
+
+  // Verifier si une image URL est valide
+  const isValidImage = (img: string | undefined | null): boolean => {
+    return !!img && img.length > 5 && (img.startsWith('http') || img.startsWith('/'));
+  };
+
+  const firstImage = images && images.length > 0 ? images[0] : null;
+  const hasValidRemoteImage = isValidImage(firstImage) || isValidImage(thumbnail);
+  const remoteImageUrl = isValidImage(firstImage) ? firstImage! : (isValidImage(thumbnail) ? thumbnail! : null);
+
+  // Image locale par defaut selon la categorie
+  const categorySlug = getCategorySlug();
+  const localFallbackImage = DEFAULT_LOCAL_IMAGES[categorySlug] || DEFAULT_LOCAL_IMAGES['beaute'];
 
   const handleFavoritePress = () => {
+    hapticFeedback.light();
     const newFavoriteState = !isFavorite;
     setIsFavorite(newFavoriteState);
     onFavoritePress?.(id, newFavoriteState);
@@ -55,19 +106,25 @@ export default function ServiceCard({
     >
       {/* Image Container */}
       <View style={styles.imageContainer}>
-        {displayImage ? (
+        {!imageError && hasValidRemoteImage && remoteImageUrl ? (
           <Image
-            source={{ uri: displayImage }}
+            source={{ uri: remoteImageUrl }}
+            style={[
+              styles.image,
+              variant === 'compact' && styles.compactImage,
+            ]}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <Image
+            source={localFallbackImage}
             style={[
               styles.image,
               variant === 'compact' && styles.compactImage,
             ]}
             resizeMode="cover"
           />
-        ) : (
-          <View style={[styles.image, styles.imagePlaceholder, variant === 'compact' && styles.compactImage]}>
-            <Text style={styles.imagePlaceholderText}>💇</Text>
-          </View>
         )}
 
         {/* Overlays sur image */}
@@ -119,60 +176,41 @@ export default function ServiceCard({
       {/* Content */}
       <View style={styles.content}>
         {/* Titre */}
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
 
         {/* Description */}
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={styles.description} numberOfLines={3}>
           {description}
         </Text>
 
-        {/* Duration */}
-        {duration_minutes && (
-          <View style={styles.durationContainer}>
-            <Text style={styles.durationIcon}>⏱️</Text>
-            <Text style={styles.durationText}>
-              {duration_minutes} min
-            </Text>
-          </View>
-        )}
-
-        {/* Provider Info */}
-        <View style={styles.providerContainer}>
-          {providerAvatar ? (
-            <Image
-              source={{ uri: providerAvatar }}
-              style={styles.providerAvatar}
-            />
-          ) : (
-            <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
-              <Text style={styles.providerAvatarText}>
-                {providerName.charAt(0).toUpperCase()}
+        {/* Footer (Prix + Duration | Rating) - Style Web App */}
+        <View style={styles.footer}>
+          {/* Left: Prix + Duration */}
+          <View style={styles.priceSection}>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceValue}>
+                {formatPrice(price)}
               </Text>
+              <Text style={styles.priceLabel}> / service</Text>
+            </View>
+            {duration_minutes && (
+              <View style={styles.durationRow}>
+                <Text style={styles.durationIcon}>⏱</Text>
+                <Text style={styles.durationText}>{duration_minutes} min</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Right: Rating */}
+          {rating > 0 && (
+            <View style={styles.ratingContainer}>
+              <Text style={styles.ratingStar}>★</Text>
+              <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+              <Text style={styles.ratingCount}>({reviews_count})</Text>
             </View>
           )}
-          <Text style={styles.providerName} numberOfLines={1}>
-            {providerName}
-          </Text>
-        </View>
-
-        {/* Footer (Rating + Prix) */}
-        <View style={styles.footer}>
-          {/* Rating */}
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingStar}>⭐</Text>
-            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({reviews_count})</Text>
-          </View>
-
-          {/* Prix */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>A partir de</Text>
-            <Text style={styles.priceValue}>
-              {price} {currency}
-            </Text>
-          </View>
         </View>
 
         {/* Status Badge (debug) */}
@@ -200,21 +238,16 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     width: '100%',
+    overflow: 'hidden',
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 200,
   },
   compactImage: {
-    height: 150,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.gray[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagePlaceholderText: {
-    fontSize: 48,
+    height: 160,
   },
 
   // Image Overlays
@@ -226,32 +259,37 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   newBadge: {
     position: 'absolute',
     top: spacing.sm,
-    right: spacing.sm + 44,
+    right: spacing.sm + 48,
   },
   featuredBadge: {
     position: 'absolute',
     top: spacing.sm,
-    right: spacing.sm + 44,
+    right: spacing.sm + 48,
   },
   favoriteButton: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   favoriteIcon: {
     fontSize: 18,
@@ -259,11 +297,15 @@ const styles = StyleSheet.create({
 
   // Content
   content: {
-    padding: spacing.base,
+    padding: spacing.md,
+    paddingTop: spacing.md,
+    backgroundColor: colors.white,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
   },
   title: {
     fontSize: typography.fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: colors.gray[900],
     marginBottom: spacing.xs,
   },
@@ -271,92 +313,72 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[600],
     lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-
-  // Duration
-  durationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  durationIcon: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  durationText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[600],
-  },
-
-  // Provider
-  providerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: spacing.md,
-  },
-  providerAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: spacing.sm,
-  },
-  providerAvatarPlaceholder: {
-    backgroundColor: colors.gray[200],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerAvatarText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.gray[600],
-  },
-  providerName: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
     flex: 1,
   },
 
-  // Footer
+  // Footer - Style Web App
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
   },
 
-  // Rating
-  ratingContainer: {
+  // Prix Section (left)
+  priceSection: {
+    flex: 1,
+  },
+  priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
   },
-  ratingStar: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  ratingValue: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.gray[900],
-    marginRight: 4,
-  },
-  ratingCount: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-  },
-
-  // Prix
-  priceContainer: {
-    alignItems: 'flex-end',
+  priceValue: {
+    fontSize: typography.fontSize.base,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
   priceLabel: {
     fontSize: typography.fontSize.xs,
     color: colors.gray[500],
-    marginBottom: 2,
+    fontWeight: 'normal',
   },
-  priceValue: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.primary,
+
+  // Duration Row (under price)
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  durationIcon: {
+    fontSize: 11,
+    color: colors.gray[500],
+    marginRight: 4,
+  },
+  durationText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+  },
+
+  // Rating (right)
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingStar: {
+    fontSize: 12,
+    color: '#F59E0B',
+  },
+  ratingValue: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+  },
+  ratingCount: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
   },
 
   // Status Badge

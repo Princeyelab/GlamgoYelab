@@ -23,7 +23,7 @@ export default function PriceBreakdown({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { currency } = useCurrency();
-  const { t } = useLanguage();
+  const { t, toArabicNumerals } = useLanguage();
 
   // Si un breakdown est passé en prop, l'utiliser directement
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function PriceBreakdown({
                 {t('price.distanceFee')}
                 {breakdown.extra_distance_km > 0 && (
                   <span className={styles.distanceDetail}>
-                    {' '}({Math.ceil(breakdown.extra_distance_km)} km × {breakdown.price_per_extra_km || 5} {currency})
+                    {' '}({toArabicNumerals(Math.ceil(breakdown.extra_distance_km))} km × {toArabicNumerals(breakdown.price_per_extra_km || 5)} {currency})
                   </span>
                 )}
               </span>
@@ -151,7 +151,7 @@ export default function PriceBreakdown({
                 {t('price.nightSupplement')} 🌙
                 {breakdown.night_nights_count > 1 && (
                   <span className={styles.nightsBadge}>
-                    {breakdown.night_nights_count} {t('price.nights')}
+                    {toArabicNumerals(breakdown.night_nights_count)} {t('price.nights')}
                   </span>
                 )}
               </span>
@@ -213,9 +213,9 @@ export default function PriceBreakdown({
           <div className={styles.breakdownItem}>
             <div className={styles.itemLabel}>
               <span className={styles.itemIcon}>⏱️</span>
-              <span>{t('price.duration')} ({breakdown.duration_hours}h)</span>
+              <span>{t('price.duration')} ({toArabicNumerals(breakdown.duration_hours)}h)</span>
             </div>
-            <span className={styles.itemValue}>×{breakdown.duration_hours}</span>
+            <span className={styles.itemValue}>×{toArabicNumerals(breakdown.duration_hours)}</span>
           </div>
         )}
 
@@ -226,7 +226,7 @@ export default function PriceBreakdown({
               <span className={styles.itemIcon}>📦</span>
               <span>{t('price.quantity')}</span>
             </div>
-            <span className={styles.itemValue}>×{breakdown.quantity}</span>
+            <span className={styles.itemValue}>×{toArabicNumerals(breakdown.quantity)}</span>
           </div>
         )}
 
@@ -245,19 +245,19 @@ export default function PriceBreakdown({
             <div className={styles.distanceExplanation}>
               <div className={styles.distanceRow}>
                 <span>{t('price.totalDistance')}</span>
-                <span>{(breakdown.distance_km || 0).toFixed(1)} km</span>
+                <span>{toArabicNumerals((breakdown.distance_km || 0).toFixed(1))} km</span>
               </div>
               <div className={styles.distanceRow}>
                 <span>{t('price.freeRadius')}</span>
-                <span>{breakdown.intervention_radius_km || 10} km</span>
+                <span>{toArabicNumerals(breakdown.intervention_radius_km || 10)} km</span>
               </div>
               <div className={styles.distanceRow}>
                 <span>{t('price.excessDistance')}</span>
-                <span>{Math.ceil(breakdown.extra_distance_km || 0)} km</span>
+                <span>{toArabicNumerals(Math.ceil(breakdown.extra_distance_km || 0))} km</span>
               </div>
               <div className={styles.distanceRow}>
                 <span>{t('price.rate')}</span>
-                <span>{breakdown.price_per_extra_km || 5} {currency}/km</span>
+                <span>{toArabicNumerals(breakdown.price_per_extra_km || 5)} {currency}/km</span>
               </div>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function PriceBreakdown({
           <div className={styles.breakdownItem}>
             <div className={styles.itemLabel}>
               <span className={styles.itemIcon}>✅</span>
-              <span>{t('price.travel')} ({(breakdown.distance_km || 0).toFixed(1)} km)</span>
+              <span>{t('price.travel')} ({toArabicNumerals((breakdown.distance_km || 0).toFixed(1))} km)</span>
             </div>
             <span className={`${styles.itemValue} ${styles.included}`}>
               {t('price.included')}
@@ -283,7 +283,7 @@ export default function PriceBreakdown({
                   {t('price.nightSupplement')}
                   {breakdown.night_nights_count > 1 && (
                     <span className={styles.nightsBadgeDetail}>
-                      ({breakdown.night_nights_count} {t('price.consecutiveNights')})
+                      ({toArabicNumerals(breakdown.night_nights_count)} {t('price.consecutiveNights')})
                     </span>
                   )}
                 </span>

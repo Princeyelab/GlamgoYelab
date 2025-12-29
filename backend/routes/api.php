@@ -15,6 +15,7 @@ $router->get('/api/health', 'HealthController', 'check');
 
 // Migration (à supprimer après utilisation)
 $router->get('/api/migrate', 'MigrationController', 'run');
+$router->get('/api/migrate-cancellation', 'MigrationController', 'migrateCancellation');
 $router->get('/api/debug', 'MigrationController', 'debug');
 $router->get('/api/activate-providers', 'MigrationController', 'activateProviders');
 

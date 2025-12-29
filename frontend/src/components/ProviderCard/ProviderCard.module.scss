@@ -8,12 +8,11 @@
   border-radius: $radius-lg;
   padding: $spacing-md;
   cursor: pointer;
-  transition: all $transition-normal;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
     border-color: $primary-color;
     box-shadow: $shadow-md;
-    transform: translateY(-2px);
   }
 
   &.selected {
@@ -437,14 +436,355 @@
   font-size: $font-size-base;
   font-weight: $font-weight-semibold;
   cursor: pointer;
-  transition: all $transition-normal;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    transform: translateY(-1px);
+    opacity: 0.9;
     box-shadow: $shadow-md;
   }
 
   &.selectedBtn {
     background: $success;
+  }
+}
+
+// Bouton rating cliquable
+.ratingButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: none;
+  border: none;
+  padding: $spacing-xs;
+  margin: -$spacing-xs;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($primary-color, 0.1);
+
+    .seeReviewsLink {
+      opacity: 1;
+      color: $primary-color;
+    }
+  }
+}
+
+.seeReviewsLink {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  opacity: 0.7;
+  text-decoration: underline;
+  transition: all $transition-fast;
+}
+
+// Modal des avis
+.reviewsModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($black, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-md;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.reviewsModal {
+  background: $white;
+  border-radius: $radius-xl;
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-2xl;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reviewsModalHeader {
+  padding: $spacing-lg;
+  border-bottom: 1px solid $gray-200;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  position: relative;
+}
+
+.reviewsModalTitle {
+  flex: 1;
+
+  h3 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin: 0;
+  }
+
+  p {
+    font-size: $font-size-sm;
+    color: $gray-600;
+    margin: $spacing-xs 0 0;
+  }
+}
+
+.reviewsModalRating {
+  text-align: center;
+
+  .ratingBig {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  .ratingNumber {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $warning;
+  }
+
+  .ratingStars {
+    font-size: $font-size-lg;
+  }
+
+  .totalReviews {
+    font-size: $font-size-xs;
+    color: $gray-500;
+    display: block;
+    margin-top: 2px;
+  }
+}
+
+.closeModalBtn {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: $gray-100;
+  border-radius: $radius-full;
+  cursor: pointer;
+  font-size: $font-size-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-600;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-200;
+    color: $black;
+  }
+}
+
+.reviewsModalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-lg;
+}
+
+.reviewsLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-3xl;
+  gap: $spacing-md;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid $gray-200;
+    border-top-color: $primary-color;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  p {
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.noReviews {
+  text-align: center;
+  padding: $spacing-3xl;
+
+  .noReviewsIcon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: $spacing-md;
+  }
+
+  p {
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.reviewItem {
+  padding: $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-lg;
+  border: 1px solid $gray-200;
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-sm;
+}
+
+.reviewerInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.reviewerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
+}
+
+.reviewerName {
+  display: block;
+  font-weight: $font-weight-semibold;
+  color: $black;
+  font-size: $font-size-sm;
+}
+
+.reviewDate {
+  display: block;
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.reviewRating {
+  .starFull, .starHalf {
+    color: $warning;
+  }
+  .starEmpty {
+    color: $gray-300;
+  }
+}
+
+.reviewService {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  background: $white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  display: inline-block;
+  margin-bottom: $spacing-sm;
+}
+
+.reviewComment {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.providerResponse {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: rgba($primary-color, 0.05);
+  border-left: 3px solid $primary-color;
+  border-radius: 0 $radius-sm $radius-sm 0;
+
+  .responseLabel {
+    font-size: $font-size-xs;
+    color: $primary-color;
+    font-weight: $font-weight-semibold;
+    display: block;
+    margin-bottom: $spacing-xs;
+  }
+
+  p {
+    font-size: $font-size-sm;
+    color: $gray-700;
+    margin: 0;
+  }
+}
+
+.reviewsModalFooter {
+  padding: $spacing-md $spacing-lg;
+  border-top: 1px solid $gray-200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.closeBtn {
+  padding: $spacing-sm $spacing-xl;
+  background: $gray-100;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $gray-700;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-200;
+  }
+}
+
+// Responsive
+@include mobile {
+  .reviewsModal {
+    max-height: 90vh;
+    margin: $spacing-sm;
+  }
+
+  .reviewsModalHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-right: $spacing-3xl;
+  }
+
+  .reviewsModalRating {
+    margin-top: $spacing-sm;
   }
 }

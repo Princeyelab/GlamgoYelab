@@ -44,11 +44,11 @@ if ($payment_method_filter !== 'all') {
 }
 
 if ($date_filter === 'today') {
-    $where_clauses[] = "DATE(t.created_at) = CURDATE()";
+    $where_clauses[] = "DATE(t.created_at) = CURRENT_DATE";
 } elseif ($date_filter === 'week') {
-    $where_clauses[] = "t.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+    $where_clauses[] = "t.created_at >= NOW() - INTERVAL '7 days'";
 } elseif ($date_filter === 'month') {
-    $where_clauses[] = "t.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+    $where_clauses[] = "t.created_at >= NOW() - INTERVAL '30 days'";
 }
 
 $where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";

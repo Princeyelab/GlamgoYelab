@@ -16,18 +16,24 @@ import { useState, useCallback } from 'react';
 import apiClient from '@/lib/apiClient';
 import Price from '@/components/Price';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import styles from './SatisfactionModal.module.scss';
 
 /**
  * Composant etoile pour les ratings
  */
-const StarRating = ({ value, onChange, size = 'normal', disabled = false }) => {
+const StarRating = ({ value, onChange, size = 'normal', disabled = false, t }) => {
   const [hoverValue, setHoverValue] = useState(0);
 
   const handleClick = (rating) => {
     if (!disabled && onChange) {
       onChange(rating);
     }
+  };
+
+  const getStarLabel = (star) => {
+    if (star === 1) return t('satisfaction.starLabel', { n: star });
+    return t('satisfaction.starsLabel', { n: star });
   };
 
   return (
@@ -40,7 +46,7 @@ const StarRating = ({ value, onChange, size = 'normal', disabled = false }) => {
           onMouseEnter={() => !disabled && setHoverValue(star)}
           onMouseLeave={() => !disabled && setHoverValue(0)}
           role="button"
-          aria-label={`${star} etoile${star > 1 ? 's' : ''}`}
+          aria-label={getStarLabel(star)}
         >
           {(hoverValue || value) >= star ? '\u2605' : '\u2606'}
         </span>
@@ -50,21 +56,22 @@ const StarRating = ({ value, onChange, size = 'normal', disabled = false }) => {
 };
 
 /**
- * Labels descriptifs pour les notes
+ * Labels descriptifs pour les notes (clés de traduction)
  */
-const ratingLabels = {
-  0: 'Cliquez pour noter',
-  1: 'Tres insatisfait',
-  2: 'Insatisfait',
-  3: 'Correct',
-  4: 'Satisfait',
-  5: 'Excellent !'
+const ratingLabelKeys = {
+  0: 'satisfaction.ratingClick',
+  1: 'satisfaction.ratingVeryUnsatisfied',
+  2: 'satisfaction.ratingUnsatisfied',
+  3: 'satisfaction.ratingCorrect',
+  4: 'satisfaction.ratingSatisfied',
+  5: 'satisfaction.ratingExcellent'
 };
 
 export default function SatisfactionModal({ order, onClose, onSubmit }) {
   // Etape actuelle (1, 2 ou 3)
   const [step, setStep] = useState(1);
   const { currency } = useCurrency();
+  const { t, isRTL, language, toArabicNumerals, formatNumber } = useLanguage();
 
   // Donnees du formulaire
   const [formData, setFormData] = useState({
@@ -96,7 +103,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
    */
   const validateStep1 = () => {
     if (formData.quality_rating === 0) {
-      setError('Veuillez donner une note de qualite');
+      setError(t('satisfaction.errorQuality'));
       return false;
     }
     return true;
@@ -107,11 +114,11 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
    */
   const validateStep2 = () => {
     if (formData.punctuality === null) {
-      setError('Veuillez indiquer si le prestataire etait ponctuel');
+      setError(t('satisfaction.errorPunctuality'));
       return false;
     }
     if (formData.price_respected === null) {
-      setError('Veuillez indiquer si le prix a ete respecte');
+      setError(t('satisfaction.errorPrice'));
       return false;
     }
     return true;
@@ -164,10 +171,10 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
         }
         onClose();
       } else {
-        setError(response.message || 'Erreur lors de l\'envoi');
+        setError(response.message || t('satisfaction.errorSubmit'));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de l\'envoi de l\'evaluation');
+      setError(err.message || t('satisfaction.errorGeneric'));
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +194,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
   // Formater la date
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return new Date(dateString).toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
@@ -195,13 +202,13 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={onClose} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className={styles.header}>
-          <h2>Evaluez votre prestation</h2>
-          <p>Votre avis nous aide a ameliorer nos services</p>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Fermer">
+          <h2>{t('satisfaction.title')}</h2>
+          <p>{t('satisfaction.subtitle')}</p>
+          <button className={styles.closeButton} onClick={onClose} aria-label={t('satisfaction.close')}>
             &times;
           </button>
         </div>
@@ -209,18 +216,18 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
         {/* Stepper */}
         <div className={styles.stepper}>
           <div className={`${styles.step} ${step >= 1 ? styles.active : ''} ${step > 1 ? styles.completed : ''}`}>
-            <span className={styles.stepNumber}>1</span>
-            <span className={styles.stepLabel}>Qualite</span>
+            <span className={styles.stepNumber}>{toArabicNumerals(1)}</span>
+            <span className={styles.stepLabel}>{t('satisfaction.stepQuality')}</span>
           </div>
           <div className={styles.stepLine}></div>
           <div className={`${styles.step} ${step >= 2 ? styles.active : ''} ${step > 2 ? styles.completed : ''}`}>
-            <span className={styles.stepNumber}>2</span>
-            <span className={styles.stepLabel}>Details</span>
+            <span className={styles.stepNumber}>{toArabicNumerals(2)}</span>
+            <span className={styles.stepLabel}>{t('satisfaction.stepDetails')}</span>
           </div>
           <div className={styles.stepLine}></div>
           <div className={`${styles.step} ${step >= 3 ? styles.active : ''}`}>
-            <span className={styles.stepNumber}>3</span>
-            <span className={styles.stepLabel}>Commentaire</span>
+            <span className={styles.stepNumber}>{toArabicNumerals(3)}</span>
+            <span className={styles.stepLabel}>{t('satisfaction.stepComment')}</span>
           </div>
         </div>
 
@@ -229,16 +236,17 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
           {/* Etape 1: Note qualite */}
           {step === 1 && (
             <div className={styles.stepContent}>
-              <h3>Comment evaluez-vous la qualite du service ?</h3>
+              <h3>{t('satisfaction.qualityQuestion')}</h3>
 
               <div className={styles.ratingContainer}>
                 <StarRating
                   value={formData.quality_rating}
                   onChange={(val) => updateField('quality_rating', val)}
                   size="large"
+                  t={t}
                 />
                 <p className={styles.ratingLabel}>
-                  {ratingLabels[formData.quality_rating]}
+                  {t(ratingLabelKeys[formData.quality_rating])}
                 </p>
               </div>
 
@@ -247,7 +255,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                 disabled={formData.quality_rating === 0}
                 onClick={nextStep}
               >
-                Suivant
+                {t('satisfaction.next')}
               </button>
             </div>
           )}
@@ -256,60 +264,61 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
           {step === 2 && (
             <div className={styles.stepContent}>
               <div className={styles.question}>
-                <label>Le prestataire etait-il ponctuel ?</label>
+                <label>{t('satisfaction.punctualityQuestion')}</label>
                 <div className={styles.radioGroup}>
                   <button
                     className={`${styles.radioBtn} ${formData.punctuality === true ? styles.selected : ''}`}
                     onClick={() => updateField('punctuality', true)}
                   >
-                    <span className={styles.radioIcon}>&#10003;</span> Oui
+                    <span className={styles.radioIcon}>&#10003;</span> {t('satisfaction.yes')}
                   </button>
                   <button
                     className={`${styles.radioBtn} ${formData.punctuality === false ? styles.selected : ''}`}
                     onClick={() => updateField('punctuality', false)}
                   >
-                    <span className={styles.radioIcon}>&#10007;</span> Non
+                    <span className={styles.radioIcon}>&#10007;</span> {t('satisfaction.no')}
                   </button>
                 </div>
               </div>
 
               <div className={styles.question}>
-                <label>Le prix annonce a-t-il ete respecte ?</label>
+                <label>{t('satisfaction.priceQuestion')}</label>
                 <div className={styles.radioGroup}>
                   <button
                     className={`${styles.radioBtn} ${formData.price_respected === true ? styles.selected : ''}`}
                     onClick={() => updateField('price_respected', true)}
                   >
-                    <span className={styles.radioIcon}>&#10003;</span> Oui
+                    <span className={styles.radioIcon}>&#10003;</span> {t('satisfaction.yes')}
                   </button>
                   <button
                     className={`${styles.radioBtn} ${formData.price_respected === false ? styles.selected : ''}`}
                     onClick={() => updateField('price_respected', false)}
                   >
-                    <span className={styles.radioIcon}>&#10007;</span> Non
+                    <span className={styles.radioIcon}>&#10007;</span> {t('satisfaction.no')}
                   </button>
                 </div>
               </div>
 
               <div className={styles.question}>
-                <label>Professionnalisme (optionnel)</label>
+                <label>{t('satisfaction.professionalismLabel')}</label>
                 <StarRating
                   value={formData.professionalism_rating}
                   onChange={(val) => updateField('professionalism_rating', val)}
                   size="small"
+                  t={t}
                 />
               </div>
 
               <div className={styles.stepActions}>
                 <button className={styles.btnBack} onClick={prevStep}>
-                  Retour
+                  {t('satisfaction.back')}
                 </button>
                 <button
                   className={styles.btnNext}
                   disabled={formData.punctuality === null || formData.price_respected === null}
                   onClick={nextStep}
                 >
-                  Suivant
+                  {t('satisfaction.next')}
                 </button>
               </div>
             </div>
@@ -324,8 +333,8 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                   <div className={styles.tipHeader}>
                     <span className={styles.tipIcon}>💝</span>
                     <div>
-                      <label>Laisser un pourboire ?</label>
-                      <p className={styles.tipHint}>Remerciez {order.provider_name || order.provider_first_name} pour son travail</p>
+                      <label>{t('satisfaction.tipQuestion')}</label>
+                      <p className={styles.tipHint}>{t('satisfaction.tipHint', { providerName: order.provider_name || order.provider_first_name })}</p>
                     </div>
                   </div>
 
@@ -341,7 +350,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                           updateField('showCustomTip', false);
                         }}
                       >
-                        {amount === 0 ? 'Non merci' : `${amount} ${currency}`}
+                        {amount === 0 ? t('satisfaction.tipNoThanks') : `${toArabicNumerals(amount)} ${currency}`}
                       </button>
                     ))}
                     <button
@@ -355,7 +364,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                         setTimeout(() => document.getElementById('customTipInput')?.focus(), 100);
                       }}
                     >
-                      Autre
+                      {t('satisfaction.tipOther')}
                     </button>
                   </div>
 
@@ -365,7 +374,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                         id="customTipInput"
                         type="number"
                         className={styles.customTipInput}
-                        placeholder={`Montant en ${currency}`}
+                        placeholder={t('satisfaction.tipAmountPlaceholder', { currency })}
                         value={formData.customTip}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -382,29 +391,29 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
                   {(formData.tip > 0 || formData.customTip) && (
                     <div className={styles.tipConfirmation}>
                       <span className={styles.tipAmount}>
-                        Pourboire : <strong>{formData.customTip || formData.tip} {currency}</strong>
+                        {t('satisfaction.tipLabel')} : <strong>{toArabicNumerals(formData.customTip || formData.tip)} {currency}</strong>
                       </span>
-                      <span className={styles.tipMessage}>sera débité de votre carte</span>
+                      <span className={styles.tipMessage}>{t('satisfaction.tipWillBeCharged')}</span>
                     </div>
                   )}
                 </div>
               )}
 
               <div className={styles.question}>
-                <label>Commentaire (optionnel)</label>
+                <label>{t('satisfaction.commentLabel')}</label>
                 <textarea
                   className={styles.textarea}
-                  placeholder="Partagez votre experience..."
+                  placeholder={t('satisfaction.commentPlaceholder')}
                   value={formData.comment}
                   onChange={(e) => updateField('comment', e.target.value)}
                   maxLength={1000}
                   rows={5}
                 />
-                <span className={styles.charCount}>{formData.comment.length}/1000</span>
+                <span className={styles.charCount}>{toArabicNumerals(formData.comment.length)}/{toArabicNumerals(1000)}</span>
               </div>
 
               <div className={styles.question}>
-                <label>Photos avant/apres (optionnel)</label>
+                <label>{t('satisfaction.photosLabel')}</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -431,14 +440,14 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
 
               <div className={styles.stepActions}>
                 <button className={styles.btnBack} onClick={prevStep}>
-                  Retour
+                  {t('satisfaction.back')}
                 </button>
                 <button
                   className={styles.btnSubmit}
                   onClick={handleSubmit}
                   disabled={submitting}
                 >
-                  {submitting ? 'Envoi...' : 'Envoyer mon evaluation'}
+                  {submitting ? t('satisfaction.submitting') : t('satisfaction.submit')}
                 </button>
               </div>
             </div>
@@ -454,23 +463,23 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
 
         {/* Resume commande */}
         <div className={styles.orderSummary}>
-          <h4>Recapitulatif</h4>
+          <h4>{t('satisfaction.summary')}</h4>
           <div className={styles.summaryItem}>
-            <span>Service :</span>
+            <span>{t('satisfaction.service')} :</span>
             <span>{order.service_name}</span>
           </div>
           <div className={styles.summaryItem}>
-            <span>Prestataire :</span>
+            <span>{t('satisfaction.provider')} :</span>
             <span>{order.provider_name || `${order.provider_first_name || ''} ${order.provider_last_name || ''}`}</span>
           </div>
           {order.completed_at && (
             <div className={styles.summaryItem}>
-              <span>Date :</span>
+              <span>{t('satisfaction.date')} :</span>
               <span>{formatDate(order.completed_at)}</span>
             </div>
           )}
           <div className={styles.summaryItem}>
-            <span>Prix :</span>
+            <span>{t('satisfaction.price')} :</span>
             <span><Price amount={order.total || order.price} /></span>
           </div>
         </div>

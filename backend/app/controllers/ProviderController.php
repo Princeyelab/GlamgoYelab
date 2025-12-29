@@ -239,6 +239,10 @@ class ProviderController extends Controller
             'bio', 'experience_years', 'starting_price',
             'specialties', 'coverage_area', 'availability_schedule'
         ];
+
+        // Champs numeriques qui doivent etre convertis en null si vides
+        $numericFields = ['latitude', 'longitude', 'experience_years', 'starting_price'];
+
         $updateData = [];
 
         foreach ($allowedFields as $field) {
@@ -248,6 +252,10 @@ class ProviderController extends Controller
                     $updateData[$field] = is_array($data[$field]) || is_object($data[$field])
                         ? json_encode($data[$field])
                         : $data[$field];
+                } elseif (in_array($field, $numericFields)) {
+                    // Convertir les chaines vides en null pour les champs numeriques
+                    $value = $data[$field];
+                    $updateData[$field] = ($value === '' || $value === null) ? null : (float) $value;
                 } else {
                     $updateData[$field] = $data[$field];
                 }
@@ -256,7 +264,8 @@ class ProviderController extends Controller
 
         // Mapper intervention_radius vers intervention_radius_km
         if (isset($data['intervention_radius'])) {
-            $updateData['intervention_radius_km'] = (int) $data['intervention_radius'];
+            $value = $data['intervention_radius'];
+            $updateData['intervention_radius_km'] = ($value === '' || $value === null) ? null : (int) $value;
         }
 
         if (empty($updateData)) {

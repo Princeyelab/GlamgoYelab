@@ -347,7 +347,7 @@ export default function ProviderDetailScreen() {
           style={styles.bottomButtonOutline}
           onPress={() => {/* TODO: Contact */}}
         >
-          💬 Contacter
+          💬 Chat
         </Button>
         <Button
           variant="primary"

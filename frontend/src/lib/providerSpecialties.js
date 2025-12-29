@@ -366,3 +366,15 @@ export const SERVICE_TO_DB_NAME = {
 export const getServiceDBName = (serviceValue) => {
   return SERVICE_TO_DB_NAME[serviceValue] || serviceValue;
 };
+
+// Mapping inverse: nom BDD -> clé service
+export const DB_NAME_TO_SERVICE_KEY = Object.fromEntries(
+  Object.entries(SERVICE_TO_DB_NAME).map(([key, value]) => [value, key])
+);
+
+// Fonction pour vérifier si un service requiert un diplôme par son nom BDD
+export const serviceRequiresDiplomaByDBName = (dbName) => {
+  const serviceKey = DB_NAME_TO_SERVICE_KEY[dbName];
+  if (!serviceKey) return false;
+  return serviceRequiresDiploma(serviceKey);
+};

@@ -137,7 +137,7 @@ class ProviderPriorityController extends Controller
                        COALESCE(p.rating, 0) as rating,
                        COALESCE(p.total_reviews, 0) as total_reviews,
                        (SELECT COUNT(*) FROM orders WHERE provider_id = p.id AND status = 'completed') as completed_orders,
-                       (SELECT COUNT(*) FROM orders WHERE provider_id = p.id AND status = 'cancelled' AND cancelled_by = 'provider') as cancelled_orders
+                       (SELECT COUNT(*) FROM orders WHERE provider_id = p.id AND status = 'cancelled') as cancelled_orders
                 FROM providers p
                 WHERE 1=1";
 
@@ -626,13 +626,12 @@ class ProviderPriorityController extends Controller
                        COUNT(*) as total_reviews
                 FROM reviews
                 WHERE provider_id = :provider_id
-                AND created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+                AND created_at >= NOW() - INTERVAL '{$days} days'
                 GROUP BY DATE(created_at)
                 ORDER BY date ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':provider_id', $providerId, PDO::PARAM_INT);
-        $stmt->bindValue(':days', $days, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -646,20 +645,24 @@ class ProviderPriorityController extends Controller
         $provider = $this->providerModel->find($providerId);
 
         // Verifier si deja bloque
-        if ($provider['is_blocked']) {
+        $isBlocked = $provider['is_blocked'] ?? false;
+        $blockedUntil = $provider['blocked_until'] ?? null;
+        $blockReason = $provider['block_reason'] ?? null;
+
+        if ($isBlocked) {
             return [
                 'is_blocked' => true,
                 'block_type' => 'permanent',
-                'reason' => $provider['block_reason'] ?? 'Blocage permanent'
+                'reason' => $blockReason ?? 'Blocage permanent'
             ];
         }
 
-        if ($provider['blocked_until'] && strtotime($provider['blocked_until']) > time()) {
+        if ($blockedUntil && strtotime($blockedUntil) > time()) {
             return [
                 'is_blocked' => true,
                 'block_type' => 'temporary',
-                'blocked_until' => $provider['blocked_until'],
-                'reason' => $provider['block_reason'] ?? 'Suspension temporaire'
+                'blocked_until' => $blockedUntil,
+                'reason' => $blockReason ?? 'Suspension temporaire'
             ];
         }
 
@@ -685,7 +688,7 @@ class ProviderPriorityController extends Controller
     {
         $sql = "SELECT
                     (SELECT COUNT(*) FROM orders WHERE provider_id = :pid1 AND status = 'completed') as completed_orders,
-                    (SELECT COUNT(*) FROM orders WHERE provider_id = :pid2 AND status = 'cancelled' AND cancelled_by = 'provider') as cancelled_orders,
+                    (SELECT COUNT(*) FROM orders WHERE provider_id = :pid2 AND status = 'cancelled') as cancelled_orders,
                     (SELECT COUNT(*) FROM orders WHERE provider_id = :pid3) as total_orders";
 
         $stmt = $this->db->prepare($sql);
@@ -755,7 +758,7 @@ class ProviderPriorityController extends Controller
                        (SELECT AVG(r.rating)
                         FROM reviews r
                         WHERE r.provider_id = p.id
-                        AND r.created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_rating
+                        AND r.created_at < NOW() - INTERVAL '30 days') as old_rating
                 FROM providers p
                 WHERE (p.is_blocked = 0 OR p.is_blocked IS NULL)
                 HAVING old_rating IS NOT NULL AND (old_rating - current_rating) >= 1.0";

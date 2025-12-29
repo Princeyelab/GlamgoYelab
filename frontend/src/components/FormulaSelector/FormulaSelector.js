@@ -15,7 +15,7 @@ export default function FormulaSelector({
   scheduledTime,
   className
 }) {
-  const { t, language, translateDynamicBatch } = useLanguage();
+  const { t, language, translateDynamicBatch, toArabicNumerals } = useLanguage();
   const [formulas, setFormulas] = useState([]);
   const [translatedDescriptions, setTranslatedDescriptions] = useState({});
   const [service, setService] = useState(null);
@@ -177,7 +177,7 @@ export default function FormulaSelector({
                   <span className={styles.formulaName}>{meta.label}</span>
                   <span className={styles.formulaBadge}>
                     {formula.price_modifier_type === 'percentage'
-                      ? `${formula.price_modifier_value >= 0 ? '+' : ''}${formula.price_modifier_value}%`
+                      ? `${formula.price_modifier_value >= 0 ? '+' : ''}${toArabicNumerals(formula.price_modifier_value)}%`
                       : `${formula.price_modifier_value >= 0 ? '+' : ''}${formatPrice(Math.abs(formula.price_modifier_value))}`
                     }
                   </span>

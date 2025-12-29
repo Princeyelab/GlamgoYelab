@@ -27,6 +27,22 @@
   padding-left: $spacing-2xl !important;
 }
 
+.loadingIcon {
+  position: absolute;
+  right: $spacing-sm;
+  font-size: $font-size-base;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .loadingIndicator {
   font-size: $font-size-xs;
   color: $gray-500;

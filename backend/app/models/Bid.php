@@ -277,13 +277,14 @@ class Bid extends Model
         $db = Database::getInstance();
         $stmt = $db->prepare(
             "UPDATE bids b
-             INNER JOIN orders o ON b.order_id = o.id
-             SET b.status = 'expired', b.updated_at = NOW()
-             WHERE b.status = 'pending'
-               AND b.created_at < DATE_SUB(NOW(), INTERVAL ? HOUR)
+             SET status = 'expired', updated_at = NOW()
+             FROM orders o
+             WHERE b.order_id = o.id
+               AND b.status = 'pending'
+               AND b.created_at < NOW() - INTERVAL '{$hoursOld} hours'
                AND o.status = 'pending'"
         );
-        $stmt->execute([$hoursOld]);
+        $stmt->execute();
 
         return $stmt->rowCount();
     }

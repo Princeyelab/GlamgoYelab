@@ -1,6 +1,7 @@
 /**
  * Provider Journey Mode - GlamGo Mobile
  * Écran de suivi en temps réel pendant le trajet vers le client
+ * Connecte aux vraies donnees de reservation via API
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -14,14 +15,24 @@ import {
   Platform,
   Dimensions,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Card from '../../../../src/components/ui/Card';
 import Button from '../../../../src/components/ui/Button';
+import EmergencyButton from '../../../../src/components/features/EmergencyButton';
+import CancellationModal from '../../../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../../src/lib/constants/theme';
 import { hapticFeedback } from '../../../../src/lib/utils/haptics';
+import {
+  getProviderOrderDetail,
+  arriveAtClient,
+  completeOrder,
+  updateProviderLocation,
+  ProviderOrder,
+} from '../../../../src/lib/api/providerAPI';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -43,19 +54,19 @@ interface BookingDetails {
   };
 }
 
-// Demo booking data
-const DEMO_BOOKING: BookingDetails = {
-  id: 1,
-  clientName: 'Sarah Martin',
-  clientPhone: '+212 6 12 34 56 78',
-  clientAvatar: 'SM',
-  service: 'Coiffure à domicile',
-  address: '123 Rue Mohammed V, Casablanca',
-  scheduledTime: '14:00',
-  price: 350,
-  notes: 'Appartement 3ème étage, code 1234',
+// Donnees initiales vides pour la reservation
+const INITIAL_BOOKING: BookingDetails = {
+  id: 0,
+  clientName: '',
+  clientPhone: '',
+  clientAvatar: '',
+  service: '',
+  address: '',
+  scheduledTime: '',
+  price: 0,
+  notes: '',
   clientLocation: {
-    latitude: 33.5731,
+    latitude: 33.5731, // Default Casablanca
     longitude: -7.5898,
   },
 };
@@ -67,14 +78,88 @@ export default function JourneyScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const [status, setStatus] = useState<JourneyStatus>('on_way');
-  const [booking] = useState<BookingDetails>(DEMO_BOOKING);
+  const [booking, setBooking] = useState<BookingDetails>(INITIAL_BOOKING);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [providerLocation, setProviderLocation] = useState({
-    latitude: 33.5631, // Slightly south of client
+    latitude: 33.5631,
     longitude: -7.5998,
   });
-  const [eta, setEta] = useState(12); // minutes
-  const [distance, setDistance] = useState(3.5); // km
-  const [elapsedTime, setElapsedTime] = useState(0); // for in_progress
+  const [eta, setEta] = useState(0);
+  const [distance, setDistance] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+
+  // Charger les donnees de la reservation depuis l'API
+  useEffect(() => {
+    const loadBookingData = async () => {
+      if (!id) {
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const orderData = await getProviderOrderDetail(parseInt(id, 10));
+
+        if (!orderData || !orderData.id) {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Convertir les donnees API vers le format BookingDetails
+        const clientLat = orderData.client_latitude || orderData.latitude || 33.5731;
+        const clientLng = orderData.client_longitude || orderData.longitude || -7.5898;
+
+        // Extraire le nom du client (API retourne user_name, user_first_name, user_last_name)
+        const clientName = orderData.user_name
+          || (orderData.user_first_name && orderData.user_last_name
+              ? `${orderData.user_first_name} ${orderData.user_last_name}`
+              : orderData.user_first_name)
+          || orderData.client?.name
+          || orderData.client_name
+          || 'Client';
+
+        // Extraire le prix (API retourne price, pas total)
+        const price = orderData.price || orderData.total || orderData.amount || orderData.service?.price || 0;
+
+        const bookingData: BookingDetails = {
+          id: orderData.id,
+          clientName: clientName,
+          clientPhone: orderData.user_phone || orderData.client?.phone || orderData.client_phone || '',
+          clientAvatar: clientName.substring(0, 2).toUpperCase(),
+          service: orderData.service?.title || orderData.service_name || 'Service',
+          address: orderData.address || orderData.client_address || 'Adresse non specifiee',
+          scheduledTime: orderData.start_time || orderData.scheduled_time || '',
+          price: price,
+          notes: orderData.notes || orderData.client_notes,
+          clientLocation: {
+            latitude: clientLat,
+            longitude: clientLng,
+          },
+        };
+
+        setBooking(bookingData);
+
+        // Mettre a jour le statut selon l'etat de la commande
+        if (orderData.status === 'in_progress' || orderData.status === 'started') {
+          setStatus('in_progress');
+        } else if (orderData.status === 'completed') {
+          setStatus('completed');
+        } else if (orderData.status === 'arrived') {
+          setStatus('arrived');
+        }
+      } catch (error) {
+        console.error('Erreur chargement reservation:', error);
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadBookingData();
+  }, [id]);
 
   // Pulse animation for current location marker
   useEffect(() => {
@@ -96,21 +181,6 @@ export default function JourneyScreen() {
     return () => pulse.stop();
   }, []);
 
-  // Simulate location updates
-  useEffect(() => {
-    if (status !== 'on_way') return;
-
-    const interval = setInterval(() => {
-      setProviderLocation(prev => ({
-        latitude: prev.latitude + 0.0005,
-        longitude: prev.longitude + 0.0005,
-      }));
-      setEta(prev => Math.max(0, prev - 0.5));
-      setDistance(prev => Math.max(0, prev - 0.2));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [status]);
 
   // Elapsed time counter for in_progress
   useEffect(() => {
@@ -123,20 +193,98 @@ export default function JourneyScreen() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Request location permissions
+  // Polling pour detecter quand le client confirme l'arrivee
   useEffect(() => {
-    (async () => {
+    if (status !== 'arrived' || !id) return;
+
+    const checkClientConfirmation = async () => {
+      try {
+        const orderData = await getProviderOrderDetail(parseInt(id, 10));
+        if (orderData?.status === 'in_progress') {
+          setStatus('in_progress');
+          setElapsedTime(0);
+          hapticFeedback.success();
+          Alert.alert(
+            '✅ Client a confirmé',
+            'Le client a confirmé votre arrivée. La prestation peut commencer !',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (error) {
+        console.log('Error checking confirmation:', error);
+      }
+    };
+
+    // Verifier toutes les 5 secondes
+    const interval = setInterval(checkClientConfirmation, 5000);
+    return () => clearInterval(interval);
+  }, [status, id]);
+
+  // Get real GPS location
+  useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+
+    const startLocationTracking = async () => {
       const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
       if (permStatus !== 'granted') {
         Alert.alert('Permission requise', 'L\'accès à la localisation est nécessaire pour le suivi.');
+        return;
       }
-    })();
+
+      // Get initial position
+      try {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setProviderLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch (error) {
+        console.log('Error getting initial location:', error);
+      }
+
+      // Watch position updates
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 10,
+        },
+        (location) => {
+          setProviderLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+      );
+    };
+
+    startLocationTracking();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, []);
 
-  const handleCallClient = () => {
-    hapticFeedback.light();
-    Linking.openURL(`tel:${booking.clientPhone.replace(/\s/g, '')}`);
-  };
+  // Recalculer distance et ETA en temps reel
+  useEffect(() => {
+    if (!booking.clientLocation || !providerLocation) return;
+
+    const clientLat = booking.clientLocation.latitude;
+    const clientLng = booking.clientLocation.longitude;
+
+    // Calculer la distance en km (formule Haversine simplifiee)
+    const distKm = Math.sqrt(
+      Math.pow((clientLat - providerLocation.latitude) * 111, 2) +
+      Math.pow((clientLng - providerLocation.longitude) * 111 * Math.cos(clientLat * Math.PI / 180), 2)
+    );
+
+    setDistance(Math.round(distKm * 10) / 10);
+    setEta(Math.max(1, Math.round(distKm * 2))); // ~2 min par km en ville, minimum 1 min
+  }, [providerLocation, booking.clientLocation]);
 
   const handleOpenMaps = () => {
     hapticFeedback.light();
@@ -157,33 +305,29 @@ export default function JourneyScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Confirmer',
-          onPress: () => {
-            setStatus('arrived');
-            hapticFeedback.success();
+          onPress: async () => {
+            console.log('[JOURNEY] handleArrivedAtClient - Starting API call for order:', id);
+            try {
+              if (id) {
+                console.log('[JOURNEY] Calling arriveAtClient with id:', parseInt(id, 10));
+                const result = await arriveAtClient(parseInt(id, 10));
+                console.log('[JOURNEY] arriveAtClient success:', result);
+              }
+              setStatus('arrived');
+              hapticFeedback.success();
+              Alert.alert('✅ Arrivée confirmée', 'En attente de la confirmation du client.');
+            } catch (error: any) {
+              console.error('[JOURNEY] arriveAtClient error:', error);
+              console.error('[JOURNEY] Error details:', error?.response?.data || error?.message);
+              hapticFeedback.error();
+              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée. Réessayez.');
+            }
           },
         },
       ]
     );
   };
 
-  const handleStartService = () => {
-    hapticFeedback.medium();
-    Alert.alert(
-      'Démarrer la prestation',
-      'Le chronomètre va commencer. Confirmer ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Démarrer',
-          onPress: () => {
-            setStatus('in_progress');
-            setElapsedTime(0);
-            hapticFeedback.success();
-          },
-        },
-      ]
-    );
-  };
 
   const handleCompleteService = () => {
     hapticFeedback.medium();
@@ -194,13 +338,27 @@ export default function JourneyScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Terminer',
-          onPress: () => {
-            setStatus('completed');
-            hapticFeedback.success();
-            // Navigate back after short delay
-            setTimeout(() => {
-              router.back();
-            }, 2000);
+          onPress: async () => {
+            try {
+              // Appeler l'API pour terminer la commande
+              if (id) {
+                await completeOrder(parseInt(id, 10));
+              }
+              setStatus('completed');
+              hapticFeedback.success();
+              // Navigate back after short delay
+              setTimeout(() => {
+                router.back();
+              }, 2000);
+            } catch (error) {
+              console.error('Erreur completion:', error);
+              // Mettre a jour l'etat local meme si l'API echoue
+              setStatus('completed');
+              hapticFeedback.success();
+              setTimeout(() => {
+                router.back();
+              }, 2000);
+            }
           },
         },
       ]
@@ -253,6 +411,37 @@ export default function JourneyScreen() {
 
   const statusInfo = getStatusInfo();
 
+  // Afficher un loader pendant le chargement
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>
+          Chargement de la reservation...
+        </Text>
+      </View>
+    );
+  }
+
+  // Afficher une erreur si la reservation n'est pas trouvee
+  if (hasError || !booking.id) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorIcon}>❌</Text>
+        <Text style={styles.errorTitle}>Reservation introuvable</Text>
+        <Text style={styles.errorText}>
+          Cette reservation n'existe pas ou a ete annulee.
+        </Text>
+        <TouchableOpacity
+          style={styles.errorButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.errorButtonText}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const renderActionButton = () => {
     switch (status) {
       case 'on_way':
@@ -268,14 +457,15 @@ export default function JourneyScreen() {
         );
       case 'arrived':
         return (
-          <Button
-            variant="primary"
-            size="lg"
-            onPress={handleStartService}
-            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-          >
-            Démarrer la prestation
-          </Button>
+          <View style={styles.waitingConfirmation}>
+            <Text style={styles.waitingIcon}>⏳</Text>
+            <Text style={styles.waitingText}>
+              En attente de confirmation du client
+            </Text>
+            <Text style={styles.waitingSubtext}>
+              Le client doit confirmer votre arrivée pour démarrer la prestation
+            </Text>
+          </View>
         );
       case 'in_progress':
         return (
@@ -304,7 +494,6 @@ export default function JourneyScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
         initialRegion={{
           latitude: (providerLocation.latitude + booking.clientLocation.latitude) / 2,
           longitude: (providerLocation.longitude + booking.clientLocation.longitude) / 2,
@@ -406,10 +595,6 @@ export default function JourneyScreen() {
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickAction} onPress={handleCallClient}>
-              <Text style={styles.quickActionIcon}>📞</Text>
-              <Text style={styles.quickActionText}>Appeler</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction} onPress={handleOpenMaps}>
               <Text style={styles.quickActionIcon}>🗺️</Text>
               <Text style={styles.quickActionText}>Navigation</Text>
@@ -418,18 +603,52 @@ export default function JourneyScreen() {
               style={styles.quickAction}
               onPress={() => {
                 hapticFeedback.light();
-                // TODO: Open chat
+                router.push(`/chat/${booking.id}` as any);
               }}
             >
               <Text style={styles.quickActionIcon}>💬</Text>
               <Text style={styles.quickActionText}>Message</Text>
             </TouchableOpacity>
+            {status === 'on_way' && (
+              <TouchableOpacity
+                style={styles.quickAction}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setShowCancellationModal(true);
+                }}
+              >
+                <Text style={styles.quickActionIcon}>❌</Text>
+                <Text style={[styles.quickActionText, { color: colors.error }]}>Annuler</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Card>
 
         {/* Action Button */}
         {renderActionButton()}
       </View>
+
+      {/* Emergency Button - visible during active service */}
+      {['on_way', 'arrived', 'in_progress'].includes(status) && (
+        <EmergencyButton
+          orderId={booking.id}
+          clientName={booking.clientName}
+          isProvider={true}
+        />
+      )}
+
+      {/* Cancellation Modal */}
+      <CancellationModal
+        visible={showCancellationModal}
+        onClose={() => setShowCancellationModal(false)}
+        onSuccess={() => {
+          setShowCancellationModal(false);
+          router.replace('/(provider)/bookings');
+        }}
+        orderId={booking.id}
+        userType="provider"
+        orderStatus={status}
+      />
     </View>
   );
 }
@@ -438,6 +657,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[100],
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: spacing.lg,
+  },
+  errorTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: 'bold',
+    color: colors.gray[900],
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  errorButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  errorButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.white,
   },
 
   // Map
@@ -708,5 +964,31 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.success,
+  },
+
+  // Waiting Confirmation
+  waitingConfirmation: {
+    alignItems: 'center',
+    backgroundColor: '#EDE9FE',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.sm,
+  },
+  waitingIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
+  },
+  waitingText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: '#6B21A8',
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  waitingSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: '#7C3AED',
+    textAlign: 'center',
   },
 });

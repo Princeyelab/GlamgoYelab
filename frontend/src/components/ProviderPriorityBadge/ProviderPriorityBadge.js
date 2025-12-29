@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import styles from './ProviderPriorityBadge.module.scss';
 import apiClient from '@/lib/apiClient';
-import { calculatePriorityLevel, generatePerformanceReport, PRIORITY_CONFIG } from '@/lib/providerPriority';
+import { calculatePriorityLevel, PRIORITY_CONFIG } from '@/lib/providerPriority';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderPriorityBadge({ provider, showDetails = false }) {
+  const { t, isRTL } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priorityData, setPriorityData] = useState(null);
@@ -38,54 +40,57 @@ export default function ProviderPriorityBadge({ provider, showDetails = false })
   const getPriorityDescription = () => {
     switch (priority.level) {
       case 'EXCELLENT':
-        return 'Vous recevez les commandes en priorite absolue';
+        return t('providerPriority.descExcellent');
       case 'GOOD':
-        return 'Vous recevez les commandes avec un leger delai';
+        return t('providerPriority.descGood');
       case 'AVERAGE':
-        return 'Vous recevez les commandes normalement';
+        return t('providerPriority.descAverage');
       case 'LOW':
-        return 'Votre priorite est reduite. Ameliorez vos notes!';
+        return t('providerPriority.descLow');
       case 'CRITICAL':
-        return 'Attention! Risque de suspension si la note ne s\'ameliore pas';
+        return t('providerPriority.descCritical');
       case 'NEW':
-        return 'Completez plus de prestations pour augmenter votre priorite';
+        return t('providerPriority.descNew');
       default:
         return '';
     }
   };
 
   return (
-    <div className={styles.priorityBadgeContainer}>
+    <div className={styles.priorityBadgeContainer} dir={isRTL ? 'rtl' : 'ltr'}>
       <button
         className={`${styles.priorityBadge} ${styles[priority.level.toLowerCase()]}`}
         onClick={() => showDetails && setExpanded(!expanded)}
         title={getPriorityDescription()}
       >
         <span className={styles.icon}>{priority.icon}</span>
-        <span className={styles.label}>{priority.label}</span>
+        <span className={styles.label}>{t(priority.labelKey)}</span>
         {showDetails && (
           <span className={styles.expandIcon}>{expanded ? '▲' : '▼'}</span>
         )}
       </button>
 
       {showDetails && expanded && (
-        <div className={styles.priorityDetails}>
-          {loading ? (
-            <div className={styles.loading}>Chargement...</div>
-          ) : (
-            <>
-              <div className={styles.statsGrid}>
+        <>
+          <div className={styles.overlay} onClick={() => setExpanded(false)} />
+          <div className={styles.priorityDetails}>
+            <button className={styles.closeButton} onClick={() => setExpanded(false)}>✕</button>
+            {loading ? (
+              <div className={styles.loading}>{t('providerPriority.loading')}</div>
+            ) : (
+              <>
+                <div className={styles.statsGrid}>
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{rating.toFixed(1)}</span>
-                  <span className={styles.statLabel}>Note moyenne</span>
+                  <span className={styles.statLabel}>{t('providerPriority.averageRating')}</span>
                 </div>
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{reviewCount}</span>
-                  <span className={styles.statLabel}>Avis recus</span>
+                  <span className={styles.statLabel}>{t('providerPriority.reviewsReceived')}</span>
                 </div>
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{priority.delay}s</span>
-                  <span className={styles.statLabel}>Delai reception</span>
+                  <span className={styles.statLabel}>{t('providerPriority.receptionDelay')}</span>
                 </div>
               </div>
 
@@ -94,23 +99,23 @@ export default function ProviderPriorityBadge({ provider, showDetails = false })
               </div>
 
               <div className={styles.thresholds}>
-                <h4>Seuils de priorite</h4>
+                <h4>{t('providerPriority.thresholds')}</h4>
                 <div className={styles.thresholdsList}>
                   <div className={`${styles.threshold} ${rating >= PRIORITY_CONFIG.EXCELLENT_RATING ? styles.active : ''}`}>
                     <span className={styles.thresholdIcon}>⭐</span>
-                    <span>Excellent: {PRIORITY_CONFIG.EXCELLENT_RATING}+ etoiles</span>
+                    <span>{t('providerPriority.excellent')}: {PRIORITY_CONFIG.EXCELLENT_RATING}+ {t('providerPriority.stars')}</span>
                   </div>
                   <div className={`${styles.threshold} ${rating >= PRIORITY_CONFIG.GOOD_RATING && rating < PRIORITY_CONFIG.EXCELLENT_RATING ? styles.active : ''}`}>
                     <span className={styles.thresholdIcon}>✨</span>
-                    <span>Bon: {PRIORITY_CONFIG.GOOD_RATING}+ etoiles</span>
+                    <span>{t('providerPriority.good')}: {PRIORITY_CONFIG.GOOD_RATING}+ {t('providerPriority.stars')}</span>
                   </div>
                   <div className={`${styles.threshold} ${rating >= PRIORITY_CONFIG.AVERAGE_RATING && rating < PRIORITY_CONFIG.GOOD_RATING ? styles.active : ''}`}>
                     <span className={styles.thresholdIcon}>📊</span>
-                    <span>Normal: {PRIORITY_CONFIG.AVERAGE_RATING}+ etoiles</span>
+                    <span>{t('providerPriority.normal')}: {PRIORITY_CONFIG.AVERAGE_RATING}+ {t('providerPriority.stars')}</span>
                   </div>
                   <div className={`${styles.threshold} ${rating < PRIORITY_CONFIG.AVERAGE_RATING ? styles.active : ''}`}>
                     <span className={styles.thresholdIcon}>⚠️</span>
-                    <span>Faible: moins de {PRIORITY_CONFIG.AVERAGE_RATING} etoiles</span>
+                    <span>{t('providerPriority.low')}: {t('providerPriority.lessThan')} {PRIORITY_CONFIG.AVERAGE_RATING} {t('providerPriority.stars')}</span>
                   </div>
                 </div>
               </div>
@@ -119,26 +124,27 @@ export default function ProviderPriorityBadge({ provider, showDetails = false })
                 <div className={styles.warning}>
                   <span className={styles.warningIcon}>🚨</span>
                   <div>
-                    <strong>Attention!</strong>
-                    <p>Votre compte risque une suspension si votre note reste en dessous de {PRIORITY_CONFIG.BLOCK_RATING_THRESHOLD} etoiles.</p>
+                    <strong>{t('providerPriority.warning')}</strong>
+                    <p>{t('providerPriority.warningText', { threshold: PRIORITY_CONFIG.BLOCK_RATING_THRESHOLD })}</p>
                   </div>
                 </div>
               )}
 
               {priority.level === 'LOW' && (
                 <div className={styles.tips}>
-                  <h4>Conseils pour ameliorer votre note</h4>
+                  <h4>{t('providerPriority.tipsTitle')}</h4>
                   <ul>
-                    <li>Soyez ponctuel a vos rendez-vous</li>
-                    <li>Communiquez clairement avec vos clients</li>
-                    <li>Assurez un service de qualite</li>
-                    <li>Demandez des avis apres chaque prestation</li>
+                    <li>{t('providerPriority.tip1')}</li>
+                    <li>{t('providerPriority.tip2')}</li>
+                    <li>{t('providerPriority.tip3')}</li>
+                    <li>{t('providerPriority.tip4')}</li>
                   </ul>
                 </div>
               )}
             </>
           )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -110,7 +110,7 @@ export default function ProvidersMap({
           <span class="${styles.priceValue}">${priceText}</span>
           ${distanceFeeText ? `<span class="${styles.distanceFee}">${distanceFeeText}</span>` : ''}
         </div>
-        <button class="${styles.popupButton}" data-provider-id="${provider.id}">
+        <button type="button" class="${styles.popupButton}" data-provider-id="${provider.id}">
           Sélectionner
         </button>
       </div>
@@ -254,26 +254,40 @@ export default function ProvidersMap({
 
       const marker = L.marker([lat, lng], { icon })
         .addTo(map)
-        .bindPopup(createProviderPopupContent(provider));
+        .bindPopup(createProviderPopupContent(provider), {
+          closeButton: true,
+          autoClose: true,
+          className: styles.leafletPopup
+        });
 
-      marker.on('click', () => {
-        if (onProviderSelect) {
-          onProviderSelect(provider);
-        }
+      // Clic sur le marqueur → ouvre le popup avec les infos (sans sélectionner)
+      marker.on('click', (e) => {
+        e.originalEvent?.stopPropagation();
+        marker.openPopup();
       });
 
-      // Gérer le clic sur le bouton dans le popup
+      // Gérer le clic sur le bouton "Sélectionner" dans le popup
       marker.on('popupopen', () => {
-        const popupEl = marker.getPopup().getElement();
-        const btn = popupEl?.querySelector(`[data-provider-id="${provider.id}"]`);
-        if (btn) {
-          btn.onclick = (e) => {
-            e.stopPropagation();
-            if (onProviderSelect) {
-              onProviderSelect(provider);
+        // Attendre que le DOM soit prêt
+        setTimeout(() => {
+          const popupEl = marker.getPopup().getElement();
+          const btn = popupEl?.querySelector(`[data-provider-id="${provider.id}"]`);
+          if (btn) {
+            // Supprimer les anciens listeners pour éviter les doublons
+            btn.replaceWith(btn.cloneNode(true));
+            const newBtn = popupEl.querySelector(`[data-provider-id="${provider.id}"]`);
+            if (newBtn) {
+              newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onProviderSelect) {
+                  onProviderSelect(provider);
+                  marker.closePopup();
+                }
+              });
             }
-          };
-        }
+          }
+        }, 50);
       });
 
       markersRef.current.push(marker);

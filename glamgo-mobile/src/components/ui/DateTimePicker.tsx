@@ -56,16 +56,30 @@ export default function DateTimePicker({
     return dates;
   };
 
-  // Generate time slots
+  // Generate time slots (8h-23h, avec heures de nuit 20h-8h)
   const generateTimeSlots = () => {
     const slots: string[] = [];
+    // Heures normales: 8h-20h
     for (let hour = 8; hour < 20; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(time);
       }
     }
+    // Heures de nuit: 20h-23h (+25%)
+    for (let hour = 20; hour <= 23; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push(time);
+      }
+    }
     return slots;
+  };
+
+  // Verifier si c'est une heure de nuit (20h-8h)
+  const isNightHour = (timeString: string): boolean => {
+    const hour = parseInt(timeString.split(':')[0], 10);
+    return hour >= 20 || hour < 8;
   };
 
   const formatDate = (date: Date): string => {
@@ -259,24 +273,31 @@ export default function DateTimePicker({
                   <View style={styles.timesGrid}>
                     {generateTimeSlots().map((time, index) => {
                       const isSelected = formatTime(tempDate) === time;
+                      const isNight = isNightHour(time);
                       return (
                         <TouchableOpacity
                           key={index}
                           style={[
                             styles.timeOption,
+                            isNight && styles.timeOptionNight,
                             isSelected && styles.timeOptionSelected,
                           ]}
                           onPress={() => handleTimeSelect(time)}
                         >
                           <Text style={[
                             styles.timeText,
+                            isNight && styles.timeTextNight,
                             isSelected && styles.timeTextSelected,
                           ]}>
-                            {time}
+                            {isNight ? `🌙 ${time}` : time}
                           </Text>
                         </TouchableOpacity>
                       );
                     })}
+                  </View>
+                  {/* Legende */}
+                  <View style={styles.timeLegend}>
+                    <Text style={styles.timeLegendText}>🌙 = Horaire de nuit (+25%)</Text>
                   </View>
                 </ScrollView>
               </View>
@@ -468,6 +489,22 @@ const styles = StyleSheet.create({
   },
   timeTextSelected: {
     color: colors.white,
+  },
+  timeOptionNight: {
+    backgroundColor: '#1e1b4b', // Violet fonce pour la nuit
+  },
+  timeTextNight: {
+    color: colors.white,
+    fontSize: typography.fontSize.xs,
+  },
+  timeLegend: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  timeLegendText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
   },
 
   // Preview

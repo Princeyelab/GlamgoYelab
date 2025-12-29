@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
+  StyleProp,
   Image,
   ImageSourcePropType,
 } from 'react-native';
@@ -21,8 +22,8 @@ interface CardProps {
   onPress?: () => void;
   disabled?: boolean;
   badge?: React.ReactNode;
-  style?: ViewStyle;
-  contentStyle?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
 }
 
 export default function Card({
@@ -75,9 +76,10 @@ export default function Card({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     backgroundColor: colors.white,
     overflow: 'hidden',
+    marginBottom: spacing.lg,
   },
   imageContainer: {
     position: 'relative',
@@ -98,8 +100,8 @@ const styles = StyleSheet.create({
 
 const variantStyles = StyleSheet.create({
   elevated: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 6,
@@ -110,10 +112,10 @@ const variantStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray[200],
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   flat: {
     backgroundColor: colors.gray[50],

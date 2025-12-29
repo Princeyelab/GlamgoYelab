@@ -128,12 +128,26 @@ export const fetchBookings = createAsyncThunk(
     }
 
     try {
+      console.log('[BookingsSlice] Fetching bookings from API...');
       const response = await getBookings();
+      console.log('[BookingsSlice] API returned', response.data.length, 'bookings');
+      // Debug: verifier les prix et adresses
+      if (response.data.length > 0) {
+        const sample = response.data[0];
+        console.log('[BookingsSlice] Sample booking:', {
+          id: sample.id,
+          price: sample.price,
+          total: sample.total,
+          address: sample.address,
+          status: sample.status
+        });
+      }
       return response.data;
     } catch (error: any) {
+      console.error('[BookingsSlice] API Error:', error.message || error);
       logError('fetchBookings', error);
-      // Fallback demo
-      return DEMO_BOOKINGS;
+      // Retourner tableau vide au lieu de demo data
+      return [];
     }
   }
 );
@@ -450,15 +464,37 @@ export const selectBookingsError = (state: { bookings: BookingsState }) => state
 export const selectBookingsFilter = (state: { bookings: BookingsState }) => state.bookings.filter;
 
 // Selectors derives
-export const selectUpcomingBookings = (state: { bookings: BookingsState }) =>
-  state.bookings.items.filter(b =>
-    ['pending', 'confirmed', 'accepted', 'on_way', 'in_progress'].includes(b.status)
-  ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+// Filtrer les reservations des 7 derniers jours seulement
+const DAYS_TO_SHOW = 7;
+const getDateThreshold = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - DAYS_TO_SHOW);
+  return date;
+};
 
-export const selectPastBookings = (state: { bookings: BookingsState }) =>
-  state.bookings.items.filter(b =>
-    ['completed', 'cancelled', 'rejected', 'no_show'].includes(b.status)
+export const selectUpcomingBookings = (state: { bookings: BookingsState }) => {
+  // Pour "A venir": commandes actives recentes (derniers 7 jours ou futures)
+  // Inclut completed_pending_review pour que le client puisse evaluer
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  return state.bookings.items.filter(b => {
+    if (!['pending', 'confirmed', 'accepted', 'on_way', 'arrived', 'in_progress', 'completed_pending_review'].includes(b.status)) {
+      return false;
+    }
+    // Garder si date >= 7 jours avant (inclut futures et recentes)
+    const bookingDate = new Date(b.date);
+    return bookingDate >= sevenDaysAgo;
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
+export const selectPastBookings = (state: { bookings: BookingsState }) => {
+  const threshold = getDateThreshold();
+  return state.bookings.items.filter(b =>
+    ['completed_pending_review', 'completed', 'cancelled', 'rejected', 'no_show'].includes(b.status) &&
+    new Date(b.date) >= threshold
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
 
 export const selectPendingBookings = (state: { bookings: BookingsState }) =>
   state.bookings.items.filter(b => b.status === 'pending');
@@ -478,15 +514,23 @@ export const selectBookingById = (id: number) => (state: { bookings: BookingsSta
 export const selectBookingsByStatus = (status: BookingStatus) => (state: { bookings: BookingsState }) =>
   state.bookings.items.filter(b => b.status === status);
 
-export const selectBookingsCount = (state: { bookings: BookingsState }) => ({
-  total: state.bookings.items.length,
-  upcoming: state.bookings.items.filter(b =>
-    ['pending', 'confirmed', 'in_progress'].includes(b.status)
-  ).length,
-  past: state.bookings.items.filter(b =>
-    ['completed', 'cancelled', 'rejected', 'no_show'].includes(b.status)
-  ).length,
-  pending: state.bookings.items.filter(b => b.status === 'pending').length,
-});
+export const selectBookingsCount = (state: { bookings: BookingsState }) => {
+  const pastThreshold = getDateThreshold();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  return {
+    total: state.bookings.items.length,
+    upcoming: state.bookings.items.filter(b =>
+      ['pending', 'confirmed', 'accepted', 'on_way', 'arrived', 'in_progress'].includes(b.status) &&
+      new Date(b.date) >= sevenDaysAgo
+    ).length,
+    past: state.bookings.items.filter(b =>
+      ['completed_pending_review', 'completed', 'cancelled', 'rejected', 'no_show'].includes(b.status) &&
+      new Date(b.date) >= pastThreshold
+    ).length,
+    pending: state.bookings.items.filter(b => b.status === 'pending').length,
+  };
+};
 
 export default bookingsSlice.reducer;

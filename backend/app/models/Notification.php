@@ -262,7 +262,7 @@ class Notification extends Model
     {
         $stmt = $this->db->prepare(
             "DELETE FROM {$this->table}
-             WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY) AND is_read = TRUE"
+             WHERE created_at < NOW() - INTERVAL '30 days' AND is_read = TRUE"
         );
         $stmt->execute();
         return $stmt->rowCount();

@@ -48,7 +48,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
   if (reviewCount < 3) {
     return {
       level: 'NEW',
-      label: 'Nouveau prestataire',
+      labelKey: 'providerPriority.labelNew',
       delay: PRIORITY_CONFIG.PRIORITY_DELAYS.AVERAGE,
       color: '#6c757d',
       icon: '🆕'
@@ -58,7 +58,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
   if (rating >= PRIORITY_CONFIG.EXCELLENT_RATING) {
     return {
       level: 'EXCELLENT',
-      label: 'Priorite maximale',
+      labelKey: 'providerPriority.labelExcellent',
       delay: PRIORITY_CONFIG.PRIORITY_DELAYS.EXCELLENT,
       color: '#28a745',
       icon: '⭐'
@@ -68,7 +68,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
   if (rating >= PRIORITY_CONFIG.GOOD_RATING) {
     return {
       level: 'GOOD',
-      label: 'Priorite haute',
+      labelKey: 'providerPriority.labelGood',
       delay: PRIORITY_CONFIG.PRIORITY_DELAYS.GOOD,
       color: '#20c997',
       icon: '✨'
@@ -78,7 +78,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
   if (rating >= PRIORITY_CONFIG.AVERAGE_RATING) {
     return {
       level: 'AVERAGE',
-      label: 'Priorite normale',
+      labelKey: 'providerPriority.labelAverage',
       delay: PRIORITY_CONFIG.PRIORITY_DELAYS.AVERAGE,
       color: '#ffc107',
       icon: '📊'
@@ -88,7 +88,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
   if (rating >= PRIORITY_CONFIG.LOW_RATING) {
     return {
       level: 'LOW',
-      label: 'Priorite basse',
+      labelKey: 'providerPriority.labelLow',
       delay: PRIORITY_CONFIG.PRIORITY_DELAYS.LOW,
       color: '#fd7e14',
       icon: '⚠️'
@@ -97,7 +97,7 @@ export function calculatePriorityLevel(rating, reviewCount) {
 
   return {
     level: 'CRITICAL',
-    label: 'Priorite critique',
+    labelKey: 'providerPriority.labelCritical',
     delay: PRIORITY_CONFIG.PRIORITY_DELAYS.CRITICAL,
     color: '#dc3545',
     icon: '🚨'

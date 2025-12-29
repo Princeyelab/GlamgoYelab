@@ -6,7 +6,9 @@ export type BookingStatus =
   | 'accepted'
   | 'confirmed'
   | 'on_way'
+  | 'arrived'
   | 'in_progress'
+  | 'completed_pending_review'
   | 'completed'
   | 'cancelled'
   | 'rejected'
@@ -21,7 +23,9 @@ export const BOOKING_STATUS_CONFIG: Record<BookingStatus, {
   accepted: { label: 'Accepte', color: 'success', description: 'Prestataire a confirme' },
   confirmed: { label: 'Confirme', color: 'success', description: 'Reservation confirmee' },
   on_way: { label: 'En route', color: 'accent', description: 'Prestataire en route' },
+  arrived: { label: 'Arrive', color: 'accent', description: 'Prestataire est arrive' },
   in_progress: { label: 'En cours', color: 'primary', description: 'Service en cours' },
+  completed_pending_review: { label: 'Avis en attente', color: 'warning', description: 'En attente de l\'avis client' },
   completed: { label: 'Termine', color: 'default', description: 'Service termine' },
   cancelled: { label: 'Annule', color: 'error', description: 'Reservation annulee' },
   rejected: { label: 'Refuse', color: 'error', description: 'Reservation refusee' },
@@ -74,10 +78,16 @@ export interface BookingCardProps {
   address?: string;
   notes?: string;
   variant?: 'upcoming' | 'past';
+  // Cancellation info
+  cancellation_reason?: string;
+  cancelled_by?: 'client' | 'provider';
+  cancelled_at?: string;
+  cancellation_fee?: number;
   onCancel?: (id: number | string) => void;
   onContact?: (id: number | string) => void;
   onViewDetails?: (id: number | string) => void;
   onTrackProvider?: (id: number | string) => void;
+  onReview?: (id: number | string) => void;
 }
 
 export type OrderStatus = BookingStatus;

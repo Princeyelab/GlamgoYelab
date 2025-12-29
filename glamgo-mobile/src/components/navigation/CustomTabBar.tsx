@@ -17,12 +17,13 @@ const CLIENT_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; labe
   profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
 };
 
-// Tab configuration for PROVIDER mode
+// Tab configuration for PROVIDER mode (5 tabs - gains supprime)
 const PROVIDER_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
   index: { icon: '📊', activeIcon: '📊', label: 'Dashboard' },
   bookings: { icon: '📅', activeIcon: '📅', label: 'Demandes' },
-  earnings: { icon: '💰', activeIcon: '💰', label: 'Gains' },
   profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
+  booking: { icon: '🚗', activeIcon: '🚗', label: 'Trajet' },
+  onboarding: { icon: '⚙️', activeIcon: '⚙️', label: 'Services' },
 };
 
 interface CustomTabBarProps extends BottomTabBarProps {
@@ -36,13 +37,17 @@ export default function CustomTabBar({ state, descriptors, navigation, mode = 'c
   // Use the appropriate tab config based on mode
   const TAB_CONFIG = mode === 'provider' ? PROVIDER_TAB_CONFIG : CLIENT_TAB_CONFIG;
 
+  // Filtrer les routes pour n'afficher que celles configurées dans TAB_CONFIG
+  const visibleRoutes = state.routes.filter(route => TAB_CONFIG[route.name] !== undefined);
+
   return (
     <View style={styles.container}>
       <View style={[styles.tabBar, mode === 'provider' && styles.providerTabBar]}>
-        {state.routes.map((route, index) => {
+        {visibleRoutes.map((route) => {
+          const routeIndex = state.routes.findIndex(r => r.key === route.key);
           const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
-          const config = TAB_CONFIG[route.name] || { icon: '•', activeIcon: '•', label: route.name };
+          const isFocused = state.index === routeIndex;
+          const config = TAB_CONFIG[route.name];
 
           const onPress = () => {
             const event = navigation.emit({
@@ -96,12 +101,22 @@ export default function CustomTabBar({ state, descriptors, navigation, mode = 'c
                 )}
               </View>
               <Text
-                style={[styles.label, isFocused && styles.labelActive]}
+                style={[
+                  styles.label,
+                  isFocused && styles.labelActive,
+                  mode === 'provider' && styles.labelProvider,
+                  mode === 'provider' && isFocused && styles.labelProviderActive,
+                ]}
                 numberOfLines={1}
               >
                 {config.label}
               </Text>
-              {isFocused && <View style={styles.activeIndicator} />}
+              {isFocused && (
+                <View style={[
+                  styles.activeIndicator,
+                  mode === 'provider' && styles.activeIndicatorProvider,
+                ]} />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -124,8 +139,9 @@ const styles = StyleSheet.create({
     ...shadows.lg,
   },
   providerTabBar: {
-    backgroundColor: colors.gray[900],
-    borderTopColor: colors.gray[800],
+    backgroundColor: colors.white,
+    borderTopColor: colors.primary + '20',
+    borderTopWidth: 2,
   },
   tab: {
     flex: 1,
@@ -183,5 +199,15 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: colors.primary,
     borderRadius: 2,
+  },
+  // Provider mode styles
+  labelProvider: {
+    color: colors.gray[500],
+  },
+  labelProviderActive: {
+    color: colors.primary,
+  },
+  activeIndicatorProvider: {
+    backgroundColor: colors.primary,
   },
 });

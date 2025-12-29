@@ -7,7 +7,6 @@ import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
 import ProviderNotificationDropdown from '@/components/ProviderNotificationDropdown';
-import UnreadBadge from '@/components/UnreadBadge';
 import { fixEncoding } from '@/lib/textUtils';
 import Chat from '@/components/Chat';
 import TranslatedText from '@/components/TranslatedText';
@@ -20,7 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +37,9 @@ export default function ProviderDashboardPage() {
   const [cancelModal, setCancelModal] = useState({ show: false, order: null });
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+
+  // État pour le modal d'erreur (commande active bloquante)
+  const [errorModal, setErrorModal] = useState({ show: false, message: '' });
 
   // États pour les actions et les toasts
   const [actionLoading, setActionLoading] = useState({});
@@ -149,10 +151,22 @@ export default function ProviderDashboardPage() {
         showToast(t('providerDashboard.orderAccepted'), 'success');
         fetchOrders();
       } else {
-        showToast(response.message || t('providerDashboard.errorAccepting'), 'error');
+        // Vérifier si c'est une erreur de commande active bloquante
+        const errorMsg = response.message || t('providerDashboard.errorAccepting');
+        if (errorMsg.includes('déjà une commande') || errorMsg.includes('Terminez-la')) {
+          setErrorModal({ show: true, message: errorMsg });
+        } else {
+          showToast(errorMsg, 'error');
+        }
       }
     } catch (err) {
-      showToast(err.message || t('providerDashboard.errorAccepting'), 'error');
+      const errorMsg = err.message || t('providerDashboard.errorAccepting');
+      // Vérifier si c'est une erreur de commande active bloquante
+      if (errorMsg.includes('déjà une commande') || errorMsg.includes('Terminez-la')) {
+        setErrorModal({ show: true, message: errorMsg });
+      } else {
+        showToast(errorMsg, 'error');
+      }
     } finally {
       setActionLoading(prev => ({ ...prev, [`accept_${orderId}`]: false }));
     }
@@ -378,7 +392,9 @@ export default function ProviderDashboardPage() {
 
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'available') {
-      return order.status === 'pending' && !order.provider_id;
+      // Inclure: commandes pending sans prestataire OU commandes pending assignées à ce prestataire
+      // (pré-sélection par le client qui nécessite validation manuelle)
+      return order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id);
     }
     if (activeTab === 'active') {
       // Inclure aussi completed_pending_review car la commande est toujours "active" cote prestataire
@@ -386,6 +402,10 @@ export default function ProviderDashboardPage() {
     }
     if (activeTab === 'completed') {
       return order.status === 'completed';
+    }
+    if (activeTab === 'cancelled') {
+      // Commandes annulées où ce prestataire était assigné
+      return order.status === 'cancelled' && order.provider_id == provider?.id;
     }
     return true;
   });
@@ -415,9 +435,6 @@ export default function ProviderDashboardPage() {
 
           <div className={styles.headerActions}>
             <LanguageSwitcher compact />
-            <div className={styles.messagesIcon} title={t('providerDashboard.unreadMessages')}>
-              <UnreadBadge />
-            </div>
             <ProviderNotificationDropdown />
             <div className={styles.providerInfo}>
               <Link href="/provider/profile" className={styles.profileLink}>
@@ -427,6 +444,14 @@ export default function ProviderDashboardPage() {
                 {t('nav.logout')}
               </button>
             </div>
+            {/* Bouton déconnexion mobile */}
+            <button onClick={handleLogout} className={styles.mobileLogoutBtn} title={t('nav.logout')}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -482,25 +507,25 @@ export default function ProviderDashboardPage() {
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
-                {orders.filter(o => o.status === 'pending' && !o.provider_id).length}
+                {toArabicNumerals(orders.filter(o => o.status === 'pending' && (!o.provider_id || o.provider_id == provider?.id)).length)}
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.availableOrders')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
-                {orders.filter(o => ['accepted', 'on_way', 'in_progress'].includes(o.status)).length}
+                {toArabicNumerals(orders.filter(o => ['accepted', 'on_way', 'in_progress'].includes(o.status)).length)}
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.activeOrders')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
-                {orders.filter(o => o.status === 'completed').length}
+                {toArabicNumerals(orders.filter(o => o.status === 'completed').length)}
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.completedOrders')}</div>
             </div>
             <div className={`${styles.statCard} ${styles.earningsCard}`}>
               <div className={styles.statValue}>
-                {orders
+                {toArabicNumerals(orders
                   .filter(o => o.status === 'completed')
                   .reduce((sum, o) => {
                     const providerAmount = parseFloat(o.provider_amount);
@@ -509,13 +534,13 @@ export default function ProviderDashboardPage() {
                     if (totalPrice > 0) return sum + (totalPrice * 0.8);
                     return sum;
                   }, 0)
-                  .toFixed(0)} MAD
+                  .toFixed(0))} MAD
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.yourEarnings')}</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
-                {provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0'}
+                {toArabicNumerals(provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0')}
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.averageRating')}</div>
             </div>
@@ -541,6 +566,12 @@ export default function ProviderDashboardPage() {
               >
                 {t('providerDashboard.tabCompleted')}
               </button>
+              <button
+                className={`${styles.tab} ${styles.cancelledTab} ${activeTab === 'cancelled' ? styles.active : ''}`}
+                onClick={() => setActiveTab('cancelled')}
+              >
+                {t('providerDashboard.tabCancelled') || 'Annulées'}
+              </button>
             </div>
 
             <div className={styles.ordersList}>
@@ -551,12 +582,13 @@ export default function ProviderDashboardPage() {
                   {activeTab === 'available' && t('providerDashboard.noAvailableOrders')}
                   {activeTab === 'active' && t('providerDashboard.noActiveOrders')}
                   {activeTab === 'completed' && t('providerDashboard.noCompletedOrders')}
+                  {activeTab === 'cancelled' && (t('providerDashboard.noCancelledOrders') || 'Aucune commande annulée')}
                 </div>
               ) : (
                 filteredOrders.map(order => (
                   <div key={order.id} className={styles.orderCard}>
                     <div className={styles.orderHeader}>
-                      <span className={styles.orderId}>{t('providerDashboard.orderNumber', { id: order.id })}</span>
+                      <span className={styles.orderId}>{t('providerDashboard.orderNumber', { id: toArabicNumerals(order.id) })}</span>
                       <span className={`${styles.status} ${getStatusClass(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
@@ -580,19 +612,19 @@ export default function ProviderDashboardPage() {
                         <div className={styles.infoItem}>
                           <span className={styles.infoLabel}>{t('providerDashboard.clientTotal')}:</span>
                           <span className={styles.price}>
-                            {(order.total || order.price) ? parseFloat(order.total || order.price).toFixed(0) : '0'} MAD
+                            {toArabicNumerals((order.total || order.price) ? parseFloat(order.total || order.price).toFixed(0) : '0')} MAD
                           </span>
                         </div>
                         <div className={styles.infoItem}>
                           <span className={styles.infoLabel}>{t('providerDashboard.yourEarnings')}:</span>
                           <span className={styles.earnings}>
-                            {(() => {
+                            {toArabicNumerals((() => {
                               const providerAmount = parseFloat(order.provider_amount);
                               const totalPrice = parseFloat(order.total || order.price || 0);
                               if (providerAmount > 0) return providerAmount.toFixed(0);
                               if (totalPrice > 0) return (totalPrice * 0.8).toFixed(0);
                               return '0';
-                            })()} MAD
+                            })())} MAD
                           </span>
                         </div>
                       </div>
@@ -603,8 +635,8 @@ export default function ProviderDashboardPage() {
                       )}
                     </div>
 
-                    {/* LiveLocationTracker pour les commandes en route (seulement si la commande est assignée à ce prestataire) */}
-                    {(order.status === 'on_way' || order.status === 'in_progress') && order.provider_id && (
+                    {/* LiveLocationTracker pour les commandes en route uniquement (masqué après confirmation d'arrivée) */}
+                    {order.status === 'on_way' && order.provider_id && (
                       <div className={styles.gpsTrackerSection}>
                         <LiveLocationTracker
                           orderId={order.id}
@@ -617,15 +649,22 @@ export default function ProviderDashboardPage() {
                     )}
 
                     <div className={styles.orderActions}>
-                      {order.status === 'pending' && !order.provider_id && (
-                        <Button
-                          variant="primary"
-                          size="small"
-                          onClick={() => handleAcceptOrder(order.id)}
-                          disabled={actionLoading[`accept_${order.id}`]}
-                        >
-                          {actionLoading[`accept_${order.id}`] ? t('providerDashboard.accepting') : t('providerDashboard.accept')}
-                        </Button>
+                      {order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id) && (
+                        <>
+                          {order.provider_id == provider?.id && (
+                            <div className={styles.preselectedBadge}>
+                              ⭐ {t('providerDashboard.selectedByClient') || 'Sélectionné par le client'}
+                            </div>
+                          )}
+                          <Button
+                            variant="primary"
+                            size="small"
+                            onClick={() => handleAcceptOrder(order.id)}
+                            disabled={actionLoading[`accept_${order.id}`]}
+                          >
+                            {actionLoading[`accept_${order.id}`] ? t('providerDashboard.accepting') : t('providerDashboard.accept')}
+                          </Button>
+                        </>
                       )}
                       {order.status === 'accepted' && (
                         <>
@@ -706,6 +745,37 @@ export default function ProviderDashboardPage() {
                           </div>
                         </div>
                       )}
+                      {order.status === 'cancelled' && (
+                        <div className={styles.cancelledOrderInfo}>
+                          <div className={styles.cancelledHeader}>
+                            <span className={styles.cancelledIcon}>❌</span>
+                            <span className={styles.cancelledTitle}>
+                              {order.cancelled_by === 'client'
+                                ? (t('providerDashboard.cancelledByClient') || 'Annulée par le client')
+                                : (t('providerDashboard.cancelledByProvider') || 'Annulée par vous')}
+                            </span>
+                          </div>
+                          {order.cancelled_at && (
+                            <div className={styles.cancelledDate}>
+                              📅 {new Date(order.cancelled_at).toLocaleString(isRTL ? 'ar-MA' : 'fr-FR')}
+                            </div>
+                          )}
+                          {order.cancellation_reason && (
+                            <div className={styles.cancelledReason}>
+                              <strong>{t('providerDashboard.reason') || 'Motif'}:</strong> {order.cancellation_reason}
+                            </div>
+                          )}
+                          {order.cancellation_fee > 0 && order.cancelled_by === 'client' && (
+                            <div className={styles.compensationInfo}>
+                              <span className={styles.compensationIcon}>💰</span>
+                              <span className={styles.compensationText}>
+                                {t('providerDashboard.compensationReceived') || 'Indemnisation'}:
+                                <strong> {toArabicNumerals(Math.round(order.cancellation_fee * 0.8))} MAD</strong>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
@@ -719,7 +789,7 @@ export default function ProviderDashboardPage() {
         <div className={styles.chatModal}>
           <div className={styles.chatModalContent}>
             <div className={styles.chatModalHeader}>
-              <h3>{t('providerDashboard.chatOrder', { id: selectedOrderForChat.id })}</h3>
+              <h3>{t('providerDashboard.chatOrder', { id: toArabicNumerals(selectedOrderForChat.id) })}</h3>
               <button
                 className={styles.closeChat}
                 onClick={() => setSelectedOrderForChat(null)}
@@ -749,17 +819,17 @@ export default function ProviderDashboardPage() {
             <div className={styles.completeModalBody}>
               <div className={styles.orderSummary}>
                 <p className={styles.orderId}>
-                  {t('providerDashboard.orderNumber', { id: completeModal.order.id })}
+                  {t('providerDashboard.orderNumber', { id: toArabicNumerals(completeModal.order.id) })}
                 </p>
                 <TranslatedText as="p" className={styles.serviceName} text={completeModal.order.service_name} fallback="Service" />
                 <p className={styles.clientName}>
                   {t('providerDashboard.client')}: {completeModal.order.user_name || t('providerDashboard.client')}
                 </p>
                 <p className={styles.orderTotal}>
-                  {t('providerDashboard.total')}: {(completeModal.order.total || completeModal.order.price) ? parseFloat(completeModal.order.total || completeModal.order.price).toFixed(0) : '0'} MAD
+                  {t('providerDashboard.total')}: {toArabicNumerals((completeModal.order.total || completeModal.order.price) ? parseFloat(completeModal.order.total || completeModal.order.price).toFixed(0) : '0')} MAD
                 </p>
                 <p className={styles.orderEarnings}>
-                  {t('providerDashboard.yourEarnings')}: {(completeModal.order.total || completeModal.order.price) ? (parseFloat(completeModal.order.total || completeModal.order.price) * 0.8).toFixed(0) : '0'} MAD
+                  {t('providerDashboard.yourEarnings')}: {toArabicNumerals((completeModal.order.total || completeModal.order.price) ? (parseFloat(completeModal.order.total || completeModal.order.price) * 0.8).toFixed(0) : '0')} MAD
                 </p>
               </div>
 
@@ -822,7 +892,7 @@ export default function ProviderDashboardPage() {
             <div className={styles.cancelModalBody}>
               <div className={styles.orderSummary}>
                 <p className={styles.orderId}>
-                  {t('providerDashboard.orderNumber', { id: cancelModal.order.id })}
+                  {t('providerDashboard.orderNumber', { id: toArabicNumerals(cancelModal.order.id) })}
                 </p>
                 <TranslatedText as="p" className={styles.serviceName} text={cancelModal.order.service_name} fallback="Service" />
                 <p className={styles.clientName}>
@@ -838,7 +908,7 @@ export default function ProviderDashboardPage() {
                 const { fee, level } = calculateCancellationFee(cancelModal.order);
                 const message = fee === 0
                   ? t('providerDashboard.cancelFree')
-                  : t('providerDashboard.cancelFee', { fee });
+                  : t('providerDashboard.cancelFee', { fee: toArabicNumerals(fee) });
                 return (
                   <div className={`${styles.cancellationFee} ${styles[level]}`}>
                     <div className={styles.feeIcon}>
@@ -894,6 +964,29 @@ export default function ProviderDashboardPage() {
                 {cancelling ? t('providerDashboard.cancelling') : t('providerDashboard.confirmCancel')}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'erreur - commande active bloquante */}
+      {errorModal.show && (
+        <div className={styles.errorModal}>
+          <div className={styles.errorModalContent}>
+            <div className={styles.errorModalIcon}>⚠️</div>
+            <h3 className={styles.errorModalTitle}>
+              {t('providerDashboard.cannotAcceptTitle') || 'Impossible d\'accepter'}
+            </h3>
+            <p className={styles.errorModalMessage}>{errorModal.message}</p>
+            <p className={styles.errorModalHint}>
+              {t('providerDashboard.finishCurrentOrderHint') || 'Veuillez terminer votre prestation en cours avant d\'accepter une nouvelle commande.'}
+            </p>
+            <Button
+              variant="primary"
+              onClick={() => setErrorModal({ show: false, message: '' })}
+              className={styles.errorModalButton}
+            >
+              {t('common.understood') || 'Compris'}
+            </Button>
           </div>
         </div>
       )}

@@ -13,8 +13,11 @@ class EmergencyReport extends Model
      */
     const REASON_LABELS = [
         'behavior' => 'Comportement inapproprie du prestataire',
+        'client_behavior' => 'Comportement inapproprie du client',
         'safety' => 'Je ne me sens pas en securite',
+        'aggression' => 'Agression ou menace',
         'service_issue' => 'Probleme grave avec le service',
+        'address_issue' => 'Probleme d\'acces a l\'adresse',
         'fraud' => 'Tentative de fraude ou arnaque',
         'other' => 'Autre urgence'
     ];
@@ -24,9 +27,12 @@ class EmergencyReport extends Model
      */
     const REASON_PRIORITIES = [
         'safety' => 'critical',
+        'aggression' => 'critical',
         'fraud' => 'high',
         'behavior' => 'high',
+        'client_behavior' => 'high',
         'service_issue' => 'medium',
+        'address_issue' => 'medium',
         'other' => 'medium'
     ];
 
@@ -35,13 +41,20 @@ class EmergencyReport extends Model
      */
     public function createReport(array $data): int
     {
+        // Info sur qui a fait le signalement (ajouté à additional_info si la colonne n'existe pas)
+        $reporterType = $data['reporter_type'] ?? 'client';
+        $additionalInfo = $data['additional_info'] ?? '';
+        if ($reporterType === 'provider') {
+            $additionalInfo = "[Signalé par le prestataire] " . $additionalInfo;
+        }
+
         $insertData = [
             'order_id' => $data['order_id'],
             'user_id' => $data['user_id'],
             'provider_id' => $data['provider_id'],
             'reason' => $data['reason'],
             'reason_label' => self::REASON_LABELS[$data['reason']] ?? 'Autre urgence',
-            'additional_info' => $data['additional_info'] ?? null,
+            'additional_info' => $additionalInfo ?: null,
             'status' => 'pending',
             'priority' => self::REASON_PRIORITIES[$data['reason']] ?? 'medium',
             'client_latitude' => $data['client_latitude'] ?? null,

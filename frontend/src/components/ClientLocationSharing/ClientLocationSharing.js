@@ -10,7 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
  * Utilisé quand le prestataire est "en route" vers le client
  */
 export default function ClientLocationSharing({ orderId }) {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [isSharing, setIsSharing] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [error, setError] = useState('');
@@ -147,13 +147,13 @@ export default function ClientLocationSharing({ orderId }) {
             <div className={styles.positionInfo}>
               <p>
                 <strong>{t('gps.yourPosition')} :</strong><br />
-                {currentPosition.latitude.toFixed(6)}, {currentPosition.longitude.toFixed(6)}
+                {toArabicNumerals(currentPosition.latitude.toFixed(6))}, {toArabicNumerals(currentPosition.longitude.toFixed(6))}
               </p>
               <p className={styles.accuracy}>
-                {t('gps.accuracy')} : ±{Math.round(currentPosition.accuracy)}m
+                {t('gps.accuracy')} : ±{toArabicNumerals(Math.round(currentPosition.accuracy))}m
               </p>
               <p className={styles.updates}>
-                {t('gps.updates')} : {updateCount}
+                {t('gps.updates')} : {toArabicNumerals(updateCount)}
               </p>
             </div>
           )}

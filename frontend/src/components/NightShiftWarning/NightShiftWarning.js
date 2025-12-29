@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import styles from './NightShiftWarning.module.css';
 import apiClient from '@/lib/apiClient';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * NightShiftWarning - Composant d'avertissement pour interventions nocturnes
@@ -26,6 +27,7 @@ export default function NightShiftWarning({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { currency } = useCurrency();
+  const { toArabicNumerals } = useLanguage();
 
   useEffect(() => {
     if (!scheduledTime) {
@@ -96,11 +98,11 @@ export default function NightShiftWarning({
       <div className={styles.compactWarning}>
         <span className={styles.compactIcon}>🌙</span>
         <span className={styles.compactText}>
-          Nuit : +{nightCalc.fee.toFixed(0)} {currency}
+          Nuit : +{toArabicNumerals(nightCalc.fee.toFixed(0))} {currency}
         </span>
         {nightCalc.nights_count > 1 && (
           <span className={styles.nightsBadge}>
-            {nightCalc.nights_count} nuits
+            {toArabicNumerals(nightCalc.nights_count)} nuits
           </span>
         )}
       </div>
@@ -132,7 +134,7 @@ export default function NightShiftWarning({
         {nightCalc.nights_count > 1 && (
           <div className={styles.multiNightBadge}>
             <span className={styles.badgeIcon}>⚠️</span>
-            <span>{nightCalc.nights_count} nuits consécutives</span>
+            <span>{toArabicNumerals(nightCalc.nights_count)} nuits consécutives</span>
           </div>
         )}
 
@@ -154,7 +156,7 @@ export default function NightShiftWarning({
         {/* Affichage des frais */}
         <div className={styles.feeDisplay}>
           <span className={styles.feeLabel}>Commission de nuit</span>
-          <span className={styles.feeAmount}>+{nightCalc.fee.toFixed(2)} {currency}</span>
+          <span className={styles.feeAmount}>+{toArabicNumerals(nightCalc.fee.toFixed(2))} {currency}</span>
         </div>
       </div>
 

@@ -9,7 +9,7 @@ import Price from '@/components/Price';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ServiceCard({ service }) {
-  const { t, language, translateDynamicBatch } = useLanguage();
+  const { t, language, translateDynamicBatch, toArabicNumerals } = useLanguage();
   const {
     id,
     name,
@@ -99,7 +99,7 @@ export default function ServiceCard({ service }) {
             </div>
             {(estimated_duration || duration_minutes) && (
               <div className={styles.duration}>
-                ⏱ {estimated_duration || `${duration_minutes} min`}
+                ⏱ {estimated_duration || `${toArabicNumerals(duration_minutes)} ${t('common.min')}`}
               </div>
             )}
           </div>
@@ -108,7 +108,7 @@ export default function ServiceCard({ service }) {
             <div className={styles.rating}>
               <span className={styles.star}>★</span>
               <span>
-                {parseFloat(average_rating).toFixed(1)} ({total_reviews || 0})
+                {toArabicNumerals(parseFloat(average_rating).toFixed(1))} ({toArabicNumerals(total_reviews || 0)})
               </span>
             </div>
           )}

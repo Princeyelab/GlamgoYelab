@@ -296,3 +296,73 @@
     transform: translateY(0);
   }
 }
+
+// Permission refusée
+.permissionDenied {
+  padding: $spacing-xl;
+  background: linear-gradient(135deg, rgba($warning, 0.1), rgba($error, 0.05));
+  border: 2px solid $warning;
+  margin: $spacing-md;
+  border-radius: $radius-lg;
+  text-align: center;
+
+  h4 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin: $spacing-md 0;
+  }
+
+  > p {
+    font-size: $font-size-base;
+    color: $gray-700;
+    margin: 0 0 $spacing-lg 0;
+    line-height: 1.6;
+  }
+}
+
+.permissionIcon {
+  font-size: 48px;
+}
+
+.permissionSteps {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  text-align: left;
+
+  h5 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin: 0 0 $spacing-md 0;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: $spacing-lg;
+
+    li {
+      font-size: $font-size-sm;
+      color: $gray-700;
+      margin-bottom: $spacing-sm;
+      line-height: 1.5;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+.permissionActions {
+  display: flex;
+  gap: $spacing-md;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  button {
+    min-width: 160px;
+  }
+}

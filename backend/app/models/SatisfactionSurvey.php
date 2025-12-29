@@ -128,10 +128,10 @@ class SatisfactionSurvey extends Model
         $result = $this->query(
             "SELECT
                 COUNT(*) as total_reviews,
-                ROUND(AVG(quality_rating), 2) as avg_quality_rating,
-                ROUND(AVG(professionalism_rating), 2) as avg_professionalism,
-                ROUND((SUM(CASE WHEN punctuality = 1 THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as punctuality_rate,
-                ROUND((SUM(CASE WHEN price_respected = 1 THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as price_respect_rate,
+                ROUND(AVG(quality_rating)::numeric, 2) as avg_quality_rating,
+                ROUND(AVG(professionalism_rating)::numeric, 2) as avg_professionalism,
+                ROUND((SUM(CASE WHEN punctuality = true THEN 1 ELSE 0 END)::numeric / COUNT(*)) * 100, 1) as punctuality_rate,
+                ROUND((SUM(CASE WHEN price_respected = true THEN 1 ELSE 0 END)::numeric / COUNT(*)) * 100, 1) as price_respect_rate,
                 SUM(CASE WHEN quality_rating = 5 THEN 1 ELSE 0 END) as five_stars,
                 SUM(CASE WHEN quality_rating = 4 THEN 1 ELSE 0 END) as four_stars,
                 SUM(CASE WHEN quality_rating = 3 THEN 1 ELSE 0 END) as three_stars,

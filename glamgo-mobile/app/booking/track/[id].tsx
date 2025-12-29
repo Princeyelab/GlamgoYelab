@@ -13,7 +13,6 @@ import {
   Dimensions,
   Image,
   Animated,
-  Linking,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,6 +20,8 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import Card from '../../../src/components/ui/Card';
 import Button from '../../../src/components/ui/Button';
 import Loading from '../../../src/components/ui/Loading';
+import EmergencyButton from '../../../src/components/features/EmergencyButton';
+import CancellationModal from '../../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../src/lib/constants/theme';
 import {
   useLocation,
@@ -29,6 +30,7 @@ import {
   estimateArrivalTime,
   LocationCoords,
 } from '../../../src/lib/hooks/useLocation';
+import apiClient from '../../../src/lib/api/client';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -61,39 +63,13 @@ interface BookingData {
     address: string;
   };
   scheduled_at: string;
-  status: 'on_way' | 'arrived' | 'in_progress' | 'completed';
+  status: 'pending' | 'accepted' | 'on_way' | 'arrived' | 'in_progress' | 'completed' | 'cancelled';
 }
 
-// Casablanca coordinates for demo
+// Casablanca coordinates (fallback)
 const CASABLANCA_CENTER = {
   latitude: 33.5731,
   longitude: -7.5898,
-};
-
-// Mock data
-const MOCK_BOOKING: BookingData = {
-  id: 1,
-  service: {
-    id: 1,
-    title: 'Coupe femme + Brushing',
-  },
-  provider: {
-    id: 1,
-    name: 'Sarah Beauté',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    phone: '+212 6 12 34 56 78',
-    latitude: 33.5831, // Start position (north of client)
-    longitude: -7.5898,
-    heading: 180, // Heading south
-    lastUpdated: new Date().toISOString(),
-  },
-  client_location: {
-    latitude: 33.5731,
-    longitude: -7.5898,
-    address: '123 Boulevard Mohammed V, Casablanca',
-  },
-  scheduled_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min from now
-  status: 'on_way',
 };
 
 export default function TrackingScreen() {
@@ -106,6 +82,8 @@ export default function TrackingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [eta, setEta] = useState<number>(0);
   const [distance, setDistance] = useState<number>(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
 
   // Animation for provider marker
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -119,41 +97,19 @@ export default function TrackingScreen() {
     getCurrentLocation();
   }, [id]);
 
-  // Simulate provider movement
+  // Rafraichir les donnees periodiquement
   useEffect(() => {
-    if (!booking || booking.status !== 'on_way') return;
+    if (!booking) return;
 
-    const interval = setInterval(() => {
-      setProviderLocation(prev => {
-        if (!prev) return prev;
+    // Rafraichir toutes les 10 secondes pour les statuts actifs
+    if (['pending', 'accepted', 'on_way', 'in_progress'].includes(booking.status)) {
+      const interval = setInterval(() => {
+        loadBooking();
+      }, 10000);
 
-        // Move provider closer to client
-        const newLat = prev.latitude - 0.0005; // Move south
-        const newLng = prev.longitude + (Math.random() - 0.5) * 0.0002;
-
-        // Check if arrived
-        const dist = calculateDistance(
-          { latitude: newLat, longitude: newLng },
-          booking.client_location
-        );
-
-        if (dist < 0.05) {
-          // Less than 50m
-          clearInterval(interval);
-          setBooking(b => b ? { ...b, status: 'arrived' } : null);
-        }
-
-        return {
-          ...prev,
-          latitude: newLat,
-          longitude: newLng,
-          lastUpdated: new Date().toISOString(),
-        };
-      });
-    }, 3000); // Update every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [booking?.status]);
+      return () => clearInterval(interval);
+    }
+  }, [booking?.status, id]);
 
   // Calculate distance and ETA
   useEffect(() => {
@@ -189,26 +145,79 @@ export default function TrackingScreen() {
 
   const loadBooking = async () => {
     try {
-      // En production, charger depuis l'API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBooking(MOCK_BOOKING);
-      setProviderLocation(MOCK_BOOKING.provider);
+      // Charger les details de la commande depuis l'API
+      const response = await apiClient.get(`/api/orders/${id}`);
+      const order = response.data?.data || response.data;
+
+      console.log('[Track] Order loaded:', order);
+
+      if (order) {
+        // Construire le nom du prestataire
+        const providerName = order.provider_name ||
+          [order.provider_first_name, order.provider_last_name].filter(Boolean).join(' ') ||
+          'Prestataire';
+
+        // Construire l'adresse
+        const address = [order.address_line, order.city].filter(Boolean).join(', ') ||
+          order.address || 'Adresse non disponible';
+
+        // Mapper les donnees
+        const bookingData: BookingData = {
+          id: order.id,
+          service: {
+            id: order.service_id,
+            title: order.service_name || 'Service',
+          },
+          provider: {
+            id: order.provider_id || 0,
+            name: providerName,
+            avatar: order.provider_avatar,
+            phone: order.provider_phone || '',
+            latitude: order.provider_latitude || order.latitude || CASABLANCA_CENTER.latitude,
+            longitude: order.provider_longitude || order.longitude || CASABLANCA_CENTER.longitude,
+            lastUpdated: new Date().toISOString(),
+          },
+          client_location: {
+            latitude: order.latitude || CASABLANCA_CENTER.latitude,
+            longitude: order.longitude || CASABLANCA_CENTER.longitude,
+            address: address,
+          },
+          scheduled_at: order.scheduled_at || order.created_at,
+          status: order.status as BookingData['status'],
+        };
+
+        setBooking(bookingData);
+        setProviderLocation(bookingData.provider);
+      }
     } catch (error) {
-      console.error('Error loading booking:', error);
+      console.error('[Track] Error loading booking:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCall = () => {
-    if (providerLocation?.phone) {
-      Linking.openURL(`tel:${providerLocation.phone}`);
+  // Compter les messages non lus via chat-status (ne marque pas comme lu)
+  const fetchUnreadMessages = async () => {
+    try {
+      const response = await apiClient.get(`/api/orders/${id}/chat-status`);
+      const count = response.data?.data?.unread_count ?? 0;
+      setUnreadMessages(count);
+    } catch (error) {
+      console.log('[Track] Error fetching chat status:', error);
     }
   };
 
+  // Charger les messages non lus au demarrage et periodiquement
+  useEffect(() => {
+    fetchUnreadMessages();
+    const interval = setInterval(fetchUnreadMessages, 10000);
+    return () => clearInterval(interval);
+  }, [id]);
+
   const handleMessage = () => {
-    // Navigate to chat
-    router.push(`/chat/${booking?.provider.id}` as any);
+    // Reinitialiser le badge et naviguer vers le chat
+    setUnreadMessages(0);
+    router.push(`/chat/${id}` as any);
   };
 
   const handleCenterMap = () => {
@@ -228,6 +237,20 @@ export default function TrackingScreen() {
 
   const getStatusInfo = () => {
     switch (booking?.status) {
+      case 'pending':
+        return {
+          label: 'En attente',
+          color: colors.warning,
+          icon: '⏳',
+          message: 'En attente de confirmation du prestataire',
+        };
+      case 'accepted':
+        return {
+          label: 'Acceptée',
+          color: colors.success,
+          icon: '✅',
+          message: 'Le prestataire a accepté votre demande',
+        };
       case 'on_way':
         return {
           label: 'En route',
@@ -239,7 +262,7 @@ export default function TrackingScreen() {
         return {
           label: 'Arrivé(e)',
           color: colors.success,
-          icon: '✅',
+          icon: '📍',
           message: 'Le prestataire est arrivé !',
         };
       case 'in_progress':
@@ -255,6 +278,13 @@ export default function TrackingScreen() {
           color: colors.gray[500],
           icon: '🎉',
           message: 'Prestation terminée',
+        };
+      case 'cancelled':
+        return {
+          label: 'Annulée',
+          color: colors.error,
+          icon: '❌',
+          message: 'Cette réservation a été annulée',
         };
       default:
         return {
@@ -403,14 +433,15 @@ export default function TrackingScreen() {
             <Text style={styles.serviceName}>{booking.service.title}</Text>
           </View>
 
-          <View style={styles.providerActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
-              <Text style={styles.actionIcon}>📞</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
-              <Text style={styles.actionIcon}>💬</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.chatButton} onPress={handleMessage}>
+            <Text style={styles.chatButtonIcon}>💬</Text>
+            <Text style={styles.chatButtonText}>Chat</Text>
+            {unreadMessages > 0 && (
+              <View style={styles.chatBadge}>
+                <Text style={styles.chatBadgeText}>{unreadMessages}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* ETA & Distance */}
@@ -438,7 +469,43 @@ export default function TrackingScreen() {
             {booking.client_location.address}
           </Text>
         </View>
+
+        {/* Cancel Button - visible for cancellable statuses */}
+        {['pending', 'accepted', 'on_way'].includes(booking.status) && (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setShowCancellationModal(true)}
+          >
+            <Text style={styles.cancelButtonText}>Annuler la reservation</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Emergency Button - visible during active service */}
+      {['on_way', 'arrived', 'in_progress'].includes(booking.status) && (
+        <EmergencyButton
+          orderId={booking.id}
+          providerName={providerLocation.name}
+          isProvider={false}
+        />
+      )}
+
+      {/* Cancellation Modal */}
+      <CancellationModal
+        visible={showCancellationModal}
+        onClose={() => setShowCancellationModal(false)}
+        onSuccess={() => {
+          setShowCancellationModal(false);
+          router.replace('/(client)/bookings');
+        }}
+        orderId={booking.id}
+        userType="client"
+        orderStatus={booking.status}
+        providerLocation={providerLocation ? {
+          lat: providerLocation.latitude,
+          lng: providerLocation.longitude,
+        } : null}
+      />
     </View>
   );
 }
@@ -610,20 +677,42 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[600],
   },
-  providerActions: {
+  chatButton: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    ...shadows.md,
   },
-  actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.gray[100],
+  chatButtonIcon: {
+    fontSize: 18,
+    marginRight: spacing.xs,
+  },
+  chatButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  chatBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.white,
   },
-  actionIcon: {
-    fontSize: 20,
+  chatBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: 'bold',
   },
 
   // ETA
@@ -680,6 +769,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[700],
     lineHeight: 20,
+  },
+
+  // Cancel Button
+  cancelButton: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.error,
+    fontWeight: '500',
   },
 
   // Error

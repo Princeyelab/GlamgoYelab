@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Input from '../../src/components/ui/Input';
-import { colors, spacing, typography } from '../../src/lib/constants/theme';
+import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { loginUser, clearError, selectAuth } from '../../src/lib/store/slices/authSlice';
+
+type AccountType = 'client' | 'provider';
 
 export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
 
+  const [accountType, setAccountType] = useState<AccountType>('client');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -60,9 +63,9 @@ export default function LoginScreen() {
 
     if (hasError) return;
 
-    // Dispatch Redux action
+    // Dispatch Redux action avec le type de compte
     try {
-      await dispatch(loginUser({ email, password })).unwrap();
+      await dispatch(loginUser({ email, password, accountType })).unwrap();
       // Success - navigation automatique via useEffect
     } catch (err) {
       const errorMessage = typeof err === 'string' ? err : 'Connexion echouee';
@@ -83,6 +86,47 @@ export default function LoginScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Connexion</Text>
           <Text style={styles.subtitle}>Bienvenue sur GlamGo</Text>
+        </View>
+
+        {/* Selecteur Client / Prestataire */}
+        <View style={styles.accountTypeContainer}>
+          <TouchableOpacity
+            style={[
+              styles.accountTypeButton,
+              accountType === 'client' && styles.accountTypeButtonActive,
+            ]}
+            onPress={() => setAccountType('client')}
+            disabled={isLoading}
+          >
+            <Text style={styles.accountTypeIcon}>👤</Text>
+            <Text
+              style={[
+                styles.accountTypeText,
+                accountType === 'client' && styles.accountTypeTextActive,
+              ]}
+            >
+              Client
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.accountTypeButton,
+              accountType === 'provider' && styles.accountTypeButtonActive,
+            ]}
+            onPress={() => setAccountType('provider')}
+            disabled={isLoading}
+          >
+            <Text style={styles.accountTypeIcon}>💼</Text>
+            <Text
+              style={[
+                styles.accountTypeText,
+                accountType === 'provider' && styles.accountTypeTextActive,
+              ]}
+            >
+              Prestataire
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.form}>
@@ -152,16 +196,7 @@ export default function LoginScreen() {
           <Button
             variant="outline"
             fullWidth
-            onPress={() => router.push('/auth/signup')}
-            disabled={isLoading}
-          >
-            Creer un compte
-          </Button>
-
-          <Button
-            variant="ghost"
-            onPress={() => router.push('/welcome')}
-            style={styles.backButton}
+            onPress={() => router.push('/')}
             disabled={isLoading}
           >
             Retour a l'accueil
@@ -197,6 +232,43 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: typography.fontSize.base,
     color: colors.gray[500],
+  },
+  accountTypeContainer: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    backgroundColor: colors.gray[100],
+    borderRadius: borderRadius.lg,
+    padding: 4,
+  },
+  accountTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  accountTypeButtonActive: {
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  accountTypeIcon: {
+    fontSize: 18,
+  },
+  accountTypeText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '500',
+    color: colors.gray[500],
+  },
+  accountTypeTextActive: {
+    color: colors.gray[900],
+    fontWeight: '600',
   },
   form: {
     paddingHorizontal: spacing.xl,

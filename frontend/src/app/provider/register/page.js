@@ -46,7 +46,6 @@ export default function ProviderRegisterPage() {
     password: '',
     password_confirmation: '',
     date_of_birth: '',
-    bio: '',
     experience_years: '',
     profile_photo: null,
     profile_photo_preview: null,
@@ -187,12 +186,6 @@ export default function ProviderRegisterPage() {
       newErrors.password_confirmation = t('register.passwordsDontMatch');
     }
 
-    if (!formData.bio.trim()) {
-      newErrors.bio = t('providerRegister.bioRequired');
-    } else if (formData.bio.length < 50) {
-      newErrors.bio = t('providerRegister.bioMinLength');
-    }
-
     if (!formData.experience_years) {
       newErrors.experience_years = t('providerRegister.experienceRequired');
     } else if (isNaN(formData.experience_years) || formData.experience_years < 0) {
@@ -315,7 +308,6 @@ export default function ProviderRegisterPage() {
       formDataToSend.append('password', formData.password);
       formDataToSend.append('password_confirmation', formData.password_confirmation);
       formDataToSend.append('date_of_birth', formData.date_of_birth);
-      formDataToSend.append('bio', formData.bio);
       formDataToSend.append('experience_years', formData.experience_years);
       formDataToSend.append('address', formData.address);
       formDataToSend.append('city', formData.city);
@@ -359,7 +351,6 @@ export default function ProviderRegisterPage() {
           city: formData.city,
           latitude: formData.latitude,
           longitude: formData.longitude,
-          bio: formData.bio,
           experience_years: formData.experience_years,
           intervention_radius: formData.intervention_radius,
           availability_schedule: formData.availability_schedule,
@@ -708,23 +699,6 @@ export default function ProviderRegisterPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="bio" className={styles.label}>
-                    {t('providerRegister.serviceDescription')} <span className={styles.required}>*</span>
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    className={`${styles.textarea} ${errors.bio ? styles.inputError : ''}`}
-                    placeholder={t('providerRegister.descPlaceholder')}
-                    rows={4}
-                  />
-                  {errors.bio && <span className={styles.error}>{errors.bio}</span>}
-                  <small className={styles.hint}>{formData.bio.length}/50 {t('providerRegister.minChars')}</small>
-                </div>
-
-                <div className={styles.formGroup}>
                   <label htmlFor="experience_years" className={styles.label}>
                     {t('providerRegister.experienceYears')} <span className={styles.required}>*</span>
                   </label>
@@ -803,19 +777,19 @@ export default function ProviderRegisterPage() {
                     className={`${styles.input} ${errors.city ? styles.inputError : ''}`}
                   >
                     <option value="">{t('register.selectCity')}</option>
-                    <option value="Casablanca">Casablanca</option>
-                    <option value="Rabat">Rabat</option>
-                    <option value="Marrakech">Marrakech</option>
-                    <option value="Fès">Fès</option>
-                    <option value="Tanger">Tanger</option>
-                    <option value="Agadir">Agadir</option>
-                    <option value="Meknès">Meknès</option>
-                    <option value="Oujda">Oujda</option>
-                    <option value="Kenitra">Kenitra</option>
-                    <option value="Tétouan">Tétouan</option>
-                    <option value="Safi">Safi</option>
-                    <option value="Mohammédia">Mohammédia</option>
-                    <option value="El Jadida">El Jadida</option>
+                    <option value="Casablanca">{t('cities.casablanca')}</option>
+                    <option value="Rabat">{t('cities.rabat')}</option>
+                    <option value="Marrakech">{t('cities.marrakech')}</option>
+                    <option value="Fès">{t('cities.fes')}</option>
+                    <option value="Tanger">{t('cities.tanger')}</option>
+                    <option value="Agadir">{t('cities.agadir')}</option>
+                    <option value="Meknès">{t('cities.meknes')}</option>
+                    <option value="Oujda">{t('cities.oujda')}</option>
+                    <option value="Kenitra">{t('cities.kenitra')}</option>
+                    <option value="Tétouan">{t('cities.tetouan')}</option>
+                    <option value="Safi">{t('cities.safi')}</option>
+                    <option value="Mohammédia">{t('cities.mohammedia')}</option>
+                    <option value="El Jadida">{t('cities.eljadida')}</option>
                   </select>
                   {errors.city && <span className={styles.error}>{errors.city}</span>}
                 </div>

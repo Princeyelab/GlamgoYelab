@@ -20,6 +20,13 @@ class MessageFilter
             '/\b\d{10,}\b/',                          // Générique : 10+ chiffres consécutifs
             '/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/',   // Format international
             '/\b\d{2}[-.\s]\d{2}[-.\s]\d{2}[-.\s]\d{2}[-.\s]\d{2}\b/', // Format FR: 06 12 34 56 78
+
+            // Numéros déguisés avec * # ou autres caractères spéciaux
+            '/0[5-7][\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}/i',  // 06*07#03*45*67
+            '/\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}/i',           // XX*XX*XX*XX*XX
+            '/(?:zero|zéro|0)\s*[5-7][\s*#._\-x]*(?:\d[\s*#._\-x]*){8}/i',                            // zero 6*1*2*3...
+            '/[0o][5-7](?:[\s*#._\-x]+\d{1,2}){4,}/i',                                                // O6*12*34*56*78 (avec O lettre)
+            '/\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d/i',  // X*X*X*X*X*X*X*X*X*X
         ],
         'email' => [
             '/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/i',

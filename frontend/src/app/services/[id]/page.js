@@ -14,7 +14,7 @@ import { useTranslatedTexts } from '@/hooks/useDeepLTranslation';
 
 export default function ServiceDetailPage() {
   const params = useParams();
-  const { t, language } = useLanguage();
+  const { t, language, toArabicNumerals } = useLanguage();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,7 +84,7 @@ export default function ServiceDetailPage() {
 
   const imageUrl = getServiceImageUrl(service, '800x600');
   const displayPrice = price || base_price;
-  const displayDuration = estimated_duration || (duration_minutes ? `${duration_minutes} min` : null);
+  const displayDuration = estimated_duration || (duration_minutes ? `${toArabicNumerals(duration_minutes)} ${t('common.min')}` : null);
 
   // Utiliser les traductions DeepL
   const translatedName = translated.name || fixEncoding(name);
@@ -119,10 +119,10 @@ export default function ServiceDetailPage() {
               <div className={styles.rating}>
                 <span className={styles.star}>★</span>
                 <span className={styles.ratingValue}>
-                  {parseFloat(average_rating).toFixed(1)}
+                  {toArabicNumerals(parseFloat(average_rating).toFixed(1))}
                 </span>
                 <span className={styles.reviewsCount}>
-                  ({total_reviews || 0} {t('serviceDetail.reviews')})
+                  ({toArabicNumerals(total_reviews || 0)} {t('serviceDetail.reviews')})
                 </span>
               </div>
             )}

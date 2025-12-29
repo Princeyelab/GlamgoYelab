@@ -8,6 +8,9 @@ COPY package*.json ./
 # Installation des dépendances
 RUN npm install
 
+# Invalider le cache - v3
+ARG CACHEBUST=1
+
 # Copie du reste des fichiers
 COPY . .
 

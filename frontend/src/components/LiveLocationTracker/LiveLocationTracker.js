@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './LiveLocationTracker.module.scss';
 import Button from '../Button';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Composant pour le prestataire : Partage de position GPS en temps réel
@@ -20,11 +21,26 @@ export default function LiveLocationTracker({
   const [isTracking, setIsTracking] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [error, setError] = useState('');
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [updateCount, setUpdateCount] = useState(0);
   const [clientLocation, setClientLocation] = useState(null);
   const watchIdRef = useRef(null);
   const updateIntervalRef = useRef(null);
   const clientLocationIntervalRef = useRef(null);
+  const { t: translate, toArabicNumerals } = useLanguage();
+
+  // Protection contre t undefined
+  const t = (key) => {
+    if (typeof translate === 'function') {
+      return translate(key);
+    }
+    // Fallback values
+    const fallbacks = {
+      'common.seconds': 's',
+      'common.min': ' min'
+    };
+    return fallbacks[key] || '';
+  };
 
   // Utiliser les coordonnées passées en props ou récupérées via API
   const clientLatNum = clientLocation?.latitude ?? (clientLat ? parseFloat(clientLat) : null);
@@ -86,7 +102,7 @@ export default function LiveLocationTracker({
       {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000,
+        timeout: 30000,  // 30 secondes pour la première position
       }
     );
 
@@ -100,8 +116,8 @@ export default function LiveLocationTracker({
       },
       {
         enableHighAccuracy: true,  // Utiliser le GPS (haute précision)
-        maximumAge: 5000,           // Cache de 5 secondes max
-        timeout: 10000,             // Timeout de 10 secondes
+        maximumAge: 10000,          // Cache de 10 secondes max
+        timeout: 20000,             // Timeout de 20 secondes
       }
     );
 
@@ -160,7 +176,9 @@ export default function LiveLocationTracker({
 
     switch (err.code) {
       case err.PERMISSION_DENIED:
-        errorMessage = 'Vous avez refusé l\'accès à votre position';
+        errorMessage = 'Accès à la position refusé';
+        setPermissionDenied(true);
+        setIsTracking(false);
         break;
       case err.POSITION_UNAVAILABLE:
         errorMessage = 'Position indisponible. Vérifiez que le GPS est activé';
@@ -179,7 +197,7 @@ export default function LiveLocationTracker({
   const formatSpeed = (speedMs) => {
     if (!speedMs) return 'N/A';
     const speedKmh = (speedMs * 3.6).toFixed(1);
-    return `${speedKmh} km/h`;
+    return `${toArabicNumerals(speedKmh)} km/h`;
   };
 
   const formatHeading = (heading) => {
@@ -187,16 +205,16 @@ export default function LiveLocationTracker({
 
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
     const index = Math.round(heading / 45) % 8;
-    return `${directions[index]} (${Math.round(heading)}°)`;
+    return `${directions[index]} (${toArabicNumerals(Math.round(heading))}°)`;
   };
 
   const getTimeSinceUpdate = () => {
     if (!currentPosition) return 'N/A';
 
     const seconds = Math.floor((Date.now() - currentPosition.timestamp) / 1000);
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${toArabicNumerals(seconds)}${t('common.seconds')}`;
     const minutes = Math.floor(seconds / 60);
-    return `${minutes}min ${seconds % 60}s`;
+    return `${toArabicNumerals(minutes)}${t('common.min')} ${toArabicNumerals(seconds % 60)}${t('common.seconds')}`;
   };
 
   // Calculer la distance jusqu'au client
@@ -225,17 +243,17 @@ export default function LiveLocationTracker({
   const formatDistance = (distanceKm) => {
     if (!distanceKm) return 'N/A';
     if (distanceKm < 1) {
-      return `${Math.round(distanceKm * 1000)} m`;
+      return `${toArabicNumerals(Math.round(distanceKm * 1000))} m`;
     }
-    return `${distanceKm.toFixed(1)} km`;
+    return `${toArabicNumerals(distanceKm.toFixed(1))} km`;
   };
 
   const estimatedTime = (distanceKm) => {
     if (!distanceKm) return 'N/A';
     const hours = distanceKm / 30; // Vitesse moyenne 30 km/h
     const minutes = Math.round(hours * 60);
-    if (minutes < 1) return '< 1 min';
-    return `~${minutes} min`;
+    if (minutes < 1) return `< ${toArabicNumerals(1)} ${t('common.min')}`;
+    return `~${toArabicNumerals(minutes)} ${t('common.min')}`;
   };
 
   // Navigation vers le client
@@ -305,6 +323,44 @@ export default function LiveLocationTracker({
         </div>
       )}
 
+      {/* Instructions si permission refusée */}
+      {permissionDenied && (
+        <div className={styles.permissionDenied}>
+          <div className={styles.permissionIcon}>🔒</div>
+          <h4>Autorisation GPS requise</h4>
+          <p>Pour partager votre position avec le client, vous devez autoriser l'accès à votre localisation.</p>
+
+          <div className={styles.permissionSteps}>
+            <h5>Comment activer :</h5>
+            <ol>
+              <li>Cliquez sur l'icône 🔒 dans la barre d'adresse de votre navigateur</li>
+              <li>Trouvez "Localisation" ou "Position"</li>
+              <li>Changez de "Bloquer" à "Autoriser"</li>
+              <li>Rechargez la page</li>
+            </ol>
+          </div>
+
+          <div className={styles.permissionActions}>
+            <Button
+              onClick={() => {
+                setPermissionDenied(false);
+                setError('');
+                startTracking();
+              }}
+              variant="primary"
+            >
+              🔄 Réessayer
+            </Button>
+            <Button
+              onClick={() => window.location.reload()}
+              variant="secondary"
+            >
+              🔃 Recharger la page
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Informations du client et navigation - Visible si coordonnées ou adresse disponibles */}
       {(clientLatNum && clientLngNum) || clientAddress ? (
         <div className={styles.clientSection}>
@@ -320,7 +376,7 @@ export default function LiveLocationTracker({
               <div className={styles.clientCoords}>
                 <strong>Coordonnées GPS :</strong>
                 <span className={styles.coords}>
-                  {clientLatNum.toFixed(6)}, {clientLngNum.toFixed(6)}
+                  {toArabicNumerals(clientLatNum.toFixed(6))}, {toArabicNumerals(clientLngNum.toFixed(6))}
                 </span>
               </div>
             )}
@@ -369,13 +425,13 @@ export default function LiveLocationTracker({
             <div className={styles.statItem}>
               <span className={styles.statLabel}>Votre Position</span>
               <span className={styles.statValue}>
-                {currentPosition.latitude.toFixed(6)}, {currentPosition.longitude.toFixed(6)}
+                {toArabicNumerals(currentPosition.latitude.toFixed(6))}, {toArabicNumerals(currentPosition.longitude.toFixed(6))}
               </span>
             </div>
 
             <div className={styles.statItem}>
               <span className={styles.statLabel}>Précision</span>
-              <span className={styles.statValue}>±{Math.round(currentPosition.accuracy)}m</span>
+              <span className={styles.statValue}>±{toArabicNumerals(Math.round(currentPosition.accuracy))}m</span>
             </div>
 
             {currentPosition.speed !== null && (
@@ -394,7 +450,7 @@ export default function LiveLocationTracker({
 
             <div className={styles.statItem}>
               <span className={styles.statLabel}>Mises à jour</span>
-              <span className={styles.statValue}>{updateCount}</span>
+              <span className={styles.statValue}>{toArabicNumerals(updateCount)}</span>
             </div>
 
             <div className={styles.statItem}>

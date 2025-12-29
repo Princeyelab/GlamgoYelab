@@ -5,16 +5,19 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Review;
 use App\Models\Order;
+use App\Models\SatisfactionSurvey;
 
 class ReviewController extends Controller
 {
     private Review $reviewModel;
     private Order $orderModel;
+    private SatisfactionSurvey $surveyModel;
 
     public function __construct()
     {
         $this->reviewModel = new Review();
         $this->orderModel = new Order();
+        $this->surveyModel = new SatisfactionSurvey();
     }
 
     /**
@@ -109,14 +112,33 @@ class ReviewController extends Controller
 
     /**
      * Récupère les avis d'un prestataire (public)
+     * Utilise satisfaction_surveys qui contient les vrais avis
      */
     public function getProviderReviews(string $providerId): void
     {
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
-        $reviews = $this->reviewModel->getProviderReviews((int)$providerId, $limit, $offset);
-        $stats = $this->reviewModel->getProviderReviewStats((int)$providerId);
+        // Récupérer les avis depuis satisfaction_surveys
+        $surveys = $this->surveyModel->getProviderSurveys((int)$providerId, $limit);
+
+        // Transformer les surveys en format review pour le frontend
+        $reviews = array_map(function($survey) {
+            return [
+                'id' => $survey['id'],
+                'rating' => $survey['quality_rating'],
+                'comment' => $survey['comment'],
+                'created_at' => $survey['submitted_at'] ?? $survey['created_at'],
+                'user_first_name' => $survey['user_first_name'],
+                'user_last_name' => $survey['user_last_name'],
+                'service_name' => $survey['service_name'],
+                'punctuality' => $survey['punctuality'],
+                'price_respected' => $survey['price_respected'],
+                'professionalism_rating' => $survey['professionalism_rating']
+            ];
+        }, $surveys);
+
+        // Récupérer les stats depuis satisfaction_surveys
+        $stats = $this->surveyModel->getProviderStats((int)$providerId);
 
         $this->success([
             'reviews' => $reviews,

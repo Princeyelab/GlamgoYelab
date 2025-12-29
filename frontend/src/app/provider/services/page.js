@@ -1,17 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
 import Button from '@/components/Button';
 import apiClient from '@/lib/apiClient';
-import ServicePrice from '@/components/Price/ServicePrice';
 import { fixEncoding } from '@/lib/textUtils';
 import { getServiceImageUrl } from '@/lib/serviceImages';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslatedTexts } from '@/hooks/useDeepLTranslation';
+import { serviceRequiresDiplomaByDBName } from '@/lib/providerSpecialties';
+import ProviderNotificationDropdown from '@/components/ProviderNotificationDropdown';
+
+// Mapping des clés de services (onboarding) vers les noms de la BDD
+const SERVICE_KEY_TO_DB_NAME = {
+  coiffure_homme_simple: 'Coiffure Homme Simple',
+  coiffure_homme_premium: 'Coiffure Homme Premium',
+  coiffure_express: 'Coiffure Express',
+  coiffure_classique: 'Coiffure Classique',
+  coiffure_mariage: 'Coiffure Mariage & Événement',
+  taille_barbe: 'Taille de Barbe',
+  pack_coiffure_barbe: 'Pack Coiffure + Barbe',
+  smooth_femme: 'Smooth Femme',
+  full_smooth_femme: 'Full Smooth Femme',
+  smooth_homme: 'Smooth Homme',
+  full_smooth_homme: 'Full Smooth Homme',
+  menage: 'Ménage',
+  petits_bricolages: 'Petits Bricolages',
+  jardinage: 'Jardinage',
+  chef_2_personnes: 'Chef à Domicile - 2 Personnes',
+  chef_4_personnes: 'Chef à Domicile - 4 Personnes',
+  chef_8_personnes: 'Chef à Domicile - 8 Personnes',
+  nettoyage_auto_complet: 'Nettoyage Auto Complet',
+  nettoyage_auto_externe: 'Nettoyage Auto Externe',
+  nettoyage_auto_interne: 'Nettoyage Auto Interne',
+  gardiennage_animaux: 'Gardiennage d\'Animaux',
+  promenade_animaux: 'Promenade d\'Animaux',
+  massage_relaxant: 'Massage Relaxant',
+  hammam_gommage: 'Hammam & Gommage',
+  soin_argan: 'Soin Premium Argan',
+  yoga: 'Yoga',
+  coach_sportif: 'Coach Sportif',
+  danse_orientale: 'Danse Orientale'
+};
 
 export default function ProviderServicesPage() {
   const router = useRouter();
@@ -20,17 +53,25 @@ export default function ProviderServicesPage() {
   const [allServices, setAllServices] = useState([]);
   const [providerServices, setProviderServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState('my-services'); // 'my-services' ou 'available-services'
+  const [activeTab, setActiveTab] = useState('my-services');
+  const hasSyncedRef = useRef(false);
+
+  // État pour le modal de diplôme
+  const [showDiplomaModal, setShowDiplomaModal] = useState(false);
+  const [pendingService, setPendingService] = useState(null);
+  const [diplomaFile, setDiplomaFile] = useState(null);
+  const [diplomaError, setDiplomaError] = useState('');
+  const [uploadingDiploma, setUploadingDiploma] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
-    // Vérifier provider_token dans localStorage puis sessionStorage
     let token = localStorage.getItem('provider_token');
     let isFromLocalStorage = true;
 
@@ -60,14 +101,12 @@ export default function ProviderServicesPage() {
       }
     } catch (err) {
       console.error('❌ [Services] Auth error:', err);
-      // Ne rediriger que si c'est une vraie erreur d'authentification (401)
       if (err.isAuthError || err.status === 401) {
         console.log('🔒 [Services] Token expiré, nettoyage et redirection');
         localStorage.removeItem('provider_token');
         sessionStorage.removeItem('provider_token');
         router.push('/provider/login');
       } else {
-        // Erreur réseau ou autre - afficher l'erreur mais ne pas déconnecter
         setError(t('providerServices.connectionError') || 'Erreur de connexion au serveur. Veuillez réessayer.');
       }
     } finally {
@@ -75,22 +114,112 @@ export default function ProviderServicesPage() {
     }
   };
 
-  const loadServices = async () => {
+  // Synchroniser les services de l'onboarding avec le backend
+  const syncOnboardingServices = async (dbServices, currentProviderServices) => {
+    if (hasSyncedRef.current) return;
+
     try {
-      // Charger tous les services disponibles
-      const allServicesResponse = await apiClient.getAllServices();
-      if (allServicesResponse.success) {
-        setAllServices(allServicesResponse.data || []);
+      const providerTempData = JSON.parse(localStorage.getItem('provider_temp_data') || '{}');
+      const onboardingServices = providerTempData.services || [];
+
+      if (onboardingServices.length === 0) {
+        console.log('📋 [Services] Pas de services onboarding à synchroniser');
+        return;
       }
 
-      // Charger les services du prestataire
+      // Si le prestataire a déjà des services, ne pas re-synchroniser
+      if (currentProviderServices.length > 0) {
+        console.log('📋 [Services] Prestataire a déjà des services, pas de sync');
+        hasSyncedRef.current = true;
+        return;
+      }
+
+      console.log('🔄 [Services] Synchronisation des services onboarding:', onboardingServices);
+      setSyncing(true);
+
+      // Pour chaque service de l'onboarding, trouver l'ID correspondant dans la BDD
+      for (const serviceKey of onboardingServices) {
+        const dbName = SERVICE_KEY_TO_DB_NAME[serviceKey];
+        if (!dbName) {
+          console.warn(`⚠️ Service non trouvé dans le mapping: ${serviceKey}`);
+          continue;
+        }
+
+        // Chercher le service dans la liste des services de la BDD
+        const dbService = dbServices.find(s =>
+          s.name === dbName ||
+          s.name.toLowerCase() === dbName.toLowerCase()
+        );
+
+        if (dbService) {
+          console.log(`➕ Ajout du service: ${dbName} (ID: ${dbService.id})`);
+          try {
+            await apiClient.addProviderService(dbService.id);
+          } catch (e) {
+            console.warn(`Erreur ajout service ${dbName}:`, e.message);
+          }
+        } else {
+          console.warn(`⚠️ Service non trouvé dans la BDD: ${dbName}`);
+        }
+      }
+
+      hasSyncedRef.current = true;
+      setSuccess(t('providerServices.servicesSynced') || 'Services synchronisés avec succès !');
+      setTimeout(() => setSuccess(''), 3000);
+
+      // Recharger les services
       const providerServicesResponse = await apiClient.getProviderServices();
       if (providerServicesResponse.success) {
         setProviderServices(providerServicesResponse.data || []);
       }
+
+    } catch (err) {
+      console.error('❌ Erreur sync onboarding:', err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      // Charger tous les services disponibles
+      const allServicesResponse = await apiClient.getAllServices();
+      let dbServices = [];
+      if (allServicesResponse.success) {
+        dbServices = allServicesResponse.data || [];
+        setAllServices(dbServices);
+      }
+
+      // Charger les services du prestataire
+      const providerServicesResponse = await apiClient.getProviderServices();
+      let currentProviderServices = [];
+      if (providerServicesResponse.success) {
+        currentProviderServices = providerServicesResponse.data || [];
+        setProviderServices(currentProviderServices);
+      }
+
+      // Synchroniser les services de l'onboarding si nécessaire
+      await syncOnboardingServices(dbServices, currentProviderServices);
+
     } catch (err) {
       setError(t('providerServices.errorLoadingServices'));
       console.error(err);
+    }
+  };
+
+  // Vérifier si un diplôme est requis et gérer l'ajout
+  const handleAddServiceClick = (service) => {
+    const requiresDiploma = serviceRequiresDiplomaByDBName(service.name);
+
+    if (requiresDiploma) {
+      // Ouvrir le modal pour demander le diplôme
+      setPendingService(service);
+      setDiplomaFile(null);
+      setDiplomaError('');
+      setShowDiplomaModal(true);
+    } else {
+      // Ajouter directement le service
+      handleAddService(service.id);
     }
   };
 
@@ -112,6 +241,71 @@ export default function ProviderServicesPage() {
       setError(err.message || t('providerServices.errorAddingService'));
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Gérer le changement de fichier diplôme
+  const handleDiplomaFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setDiplomaError(t('providerOnboarding.fileTooLarge') || 'Fichier trop volumineux (max 5MB)');
+        return;
+      }
+      setDiplomaFile(file);
+      setDiplomaError('');
+    }
+  };
+
+  // Soumettre le diplôme et ajouter le service
+  const handleDiplomaSubmit = async () => {
+    if (!diplomaFile) {
+      setDiplomaError(t('providerServices.diplomaRequired') || 'Veuillez ajouter votre diplôme/certificat');
+      return;
+    }
+
+    setUploadingDiploma(true);
+    setDiplomaError('');
+
+    try {
+      // D'abord, uploader le diplôme
+      const formData = new FormData();
+      formData.append('diploma_certificate', diplomaFile);
+
+      const token = apiClient.getToken();
+      const uploadResponse = await fetch(`${apiClient.baseURL}/provider/documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        console.warn('Upload diplôme: réponse non-OK, mais on continue');
+      }
+
+      // Ensuite, ajouter le service
+      await handleAddService(pendingService.id);
+
+      // Fermer le modal
+      setShowDiplomaModal(false);
+      setPendingService(null);
+      setDiplomaFile(null);
+
+    } catch (err) {
+      console.error('Erreur upload diplôme:', err);
+      // Même si l'upload échoue, essayer d'ajouter le service
+      try {
+        await handleAddService(pendingService.id);
+        setShowDiplomaModal(false);
+        setPendingService(null);
+        setDiplomaFile(null);
+      } catch (addErr) {
+        setDiplomaError(t('providerServices.errorAddingService') || 'Erreur lors de l\'ajout du service');
+      }
+    } finally {
+      setUploadingDiploma(false);
     }
   };
 
@@ -172,6 +366,7 @@ export default function ProviderServicesPage() {
 
           <div className={styles.headerActions}>
             <LanguageSwitcher compact />
+            <ProviderNotificationDropdown />
             <Link href="/provider/dashboard" className={styles.backLink}>
               {isRTL ? '→' : '←'} {t('providerProfile.backToDashboard')}
             </Link>
@@ -193,6 +388,13 @@ export default function ProviderServicesPage() {
               {t('providerServices.subtitle')}
             </p>
           </div>
+
+          {syncing && (
+            <div className={styles.syncingAlert}>
+              <div className={styles.spinner}></div>
+              <span>Synchronisation des services...</span>
+            </div>
+          )}
 
           {error && <div className={styles.errorAlert}>{error}</div>}
           {success && <div className={styles.successAlert}>{success}</div>}
@@ -253,7 +455,7 @@ export default function ProviderServicesPage() {
                         key={service.id}
                         service={service}
                         isProviderService={false}
-                        onAdd={() => handleAddService(service.id)}
+                        onAdd={() => handleAddServiceClick(service)}
                         actionLoading={actionLoading}
                       />
                     ))}
@@ -264,6 +466,77 @@ export default function ProviderServicesPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal de diplôme */}
+      {showDiplomaModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowDiplomaModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <button className={styles.modalClose} onClick={() => setShowDiplomaModal(false)}>
+              ×
+            </button>
+
+            <div className={styles.modalHeader}>
+              <span className={styles.modalIcon}>🎓</span>
+              <h2>{t('providerServices.diplomaRequiredTitle') || 'Diplôme requis'}</h2>
+            </div>
+
+            <div className={styles.modalBody}>
+              <p className={styles.modalDescription}>
+                {t('providerServices.diplomaRequiredDesc') ||
+                  `Le service "${pendingService?.name}" nécessite un diplôme ou certificat professionnel. Veuillez le télécharger pour continuer.`}
+              </p>
+
+              {diplomaError && (
+                <div className={styles.modalError}>{diplomaError}</div>
+              )}
+
+              <div className={styles.fileInputWrapper}>
+                <label
+                  htmlFor="diplomaFile"
+                  className={`${styles.fileInputLabel} ${diplomaFile ? styles.hasFile : ''}`}
+                >
+                  <span className={styles.fileIcon}>📄</span>
+                  <div className={styles.fileText}>
+                    <strong>
+                      {diplomaFile
+                        ? diplomaFile.name
+                        : (t('providerOnboarding.uploadDiploma') || 'Cliquez pour ajouter votre diplôme')}
+                    </strong>
+                    <span>PDF, JPG, PNG - max 5MB</span>
+                  </div>
+                </label>
+                <input
+                  type="file"
+                  id="diplomaFile"
+                  onChange={handleDiplomaFileChange}
+                  className={styles.fileInputHidden}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button
+                variant="outline"
+                onClick={() => setShowDiplomaModal(false)}
+                disabled={uploadingDiploma}
+              >
+                {t('common.cancel') || 'Annuler'}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleDiplomaSubmit}
+                loading={uploadingDiploma}
+                disabled={!diplomaFile || uploadingDiploma}
+              >
+                {uploadingDiploma
+                  ? (t('common.loading') || 'Chargement...')
+                  : (t('providerServices.addWithDiploma') || 'Ajouter le service')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -272,6 +545,9 @@ export default function ProviderServicesPage() {
 function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoading }) {
   const { t } = useLanguage();
   const imageUrl = getServiceImageUrl(service, '400x300');
+
+  // Vérifier si le service nécessite un diplôme
+  const requiresDiploma = serviceRequiresDiplomaByDBName(service.name);
 
   // Traduction DeepL
   const { translated } = useTranslatedTexts({
@@ -284,10 +560,18 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
   const displayDesc = translated.description || fixEncoding(service.description);
   const displayCategory = translated.category || (service.category_name ? fixEncoding(service.category_name) : '');
 
+  // Prix en DH
+  const priceInDH = (service.price || service.base_price || 0);
+
   return (
     <div className={styles.serviceCard}>
       <div className={styles.serviceImage}>
         <img src={imageUrl} alt={displayName} />
+        {requiresDiploma && (
+          <span className={styles.diplomaBadge} title={t('providerServices.requiresDiploma') || 'Diplôme requis'}>
+            🎓
+          </span>
+        )}
       </div>
 
       <div className={styles.serviceContent}>
@@ -306,10 +590,8 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
         <div className={styles.serviceDetails}>
           <div className={styles.fixedPriceInfo}>
             <div className={styles.priceDisplay}>
-              <ServicePrice
-                amount={service.price || service.base_price}
-                label={t('providerServices.price')}
-              />
+              <span className={styles.priceAmount}>{priceInDH} DH</span>
+              <span className={styles.priceLabel}>{t('providerServices.price') || 'Prix'}</span>
             </div>
             {service.estimated_duration && (
               <div className={styles.duration}>
@@ -339,7 +621,9 @@ function ServiceCard({ service, isProviderService, onAdd, onRemove, actionLoadin
               fullWidth
               disabled={actionLoading}
             >
-              {t('providerServices.addToMyServices')}
+              {requiresDiploma
+                ? (t('providerServices.addWithDiploma') || '🎓 Ajouter (diplôme requis)')
+                : t('providerServices.addToMyServices')}
             </Button>
           )}
         </div>

@@ -56,17 +56,27 @@ const FORBIDDEN_WORDS_AR = [
   'لحوى', 'سربي', 'سرباي', 'خنزير', 'وجه الخنزير',
   'زعطوط', 'بهيم', 'حيوان', 'بوزبال',
   // Abreviations darija en lettres latines
-  'zml', 'zaml', 'zamil', 'zeml', 'zmla', 'zamlat',
-  'qhba', 'qahba', 'kahba', '9ahba', '9hba', 'khba',
-  'tboun', 'tbon', 'tbonk', 'tbounk', 'tbnek',
-  'nik', 'nік', 'n9', 'neek', 'nyk', 'nikni', 'nikmok', 'nikbok',
-  'zb', 'zbi', 'zebi', 'zebb', 'zob', 'zobi',
-  'm9wd', 'me9wed', 'mekwed', 'm9wed',
-  '3yoor', '3ayor', 'ma3yoor', 'ma3yora',
-  'kelb', 'klb', '7mar', 'hmar', 'bghl', 'bral',
-  'khanzir', '5nzir', 'knzir',
-  'bhim', 'bhima', 'byhem', 'behim',
-  'lhwa', 'l7wa', 'lahwa', 'serbi', 'srbay', 'serbay',
+  'zml', 'zaml', 'zamil', 'zeml', 'zmla', 'zamlat', 'zamel', 'zemmel', 'zemmla',
+  'zaaml', 'zaamel', 'z4ml', 'z4mel', 'zam3l', 'zemlat', 'zmelt', 'zmelat',
+  'qhba', 'qahba', 'kahba', '9ahba', '9hba', 'khba', 'ka7ba', 'ga7ba', 'gahba',
+  '9a7ba', 'qe7ba', 'kehba', '9ehba', 'kahbat', '9ahbat', 'qahbat',
+  'tboun', 'tbon', 'tbonk', 'tbounk', 'tbnek', 'tebon', 'teboun', 'tbounek',
+  'nik', 'nік', 'n9', 'neek', 'nyk', 'nikni', 'nikmok', 'nikbok', 'nayek', 'nayak',
+  'nik omok', 'nikomok', 'nik mok', 'nekomok', 'nekom', 'nykomok',
+  'zb', 'zbi', 'zebi', 'zebb', 'zob', 'zobi', 'zbbi', 'z3bi', 'zebbi', 'zeebi',
+  'm9wd', 'me9wed', 'mekwed', 'm9wed', 'mqawed', 'mqwed', 'me9wad',
+  '3yoor', '3ayor', 'ma3yoor', 'ma3yora', '3ayyar', 'ma3your', '3ayour',
+  'kelb', 'klb', '7mar', 'hmar', 'bghl', 'bral', 'bghel', '7mara', 'hmara',
+  'khanzir', '5nzir', 'knzir', '7anzir', 'khenzir', '5anzir',
+  'bhim', 'bhima', 'byhem', 'behim', 'bhayem', 'bahim',
+  'lhwa', 'l7wa', 'lahwa', 'serbi', 'srbay', 'serbay', 'l7waya', 'l7way',
+  // Nouvelles insultes darija
+  'manyok', 'manyak', 'manyaka', 'mnyok', 'mnyak',
+  'wld l9hba', 'wld l9ahba', 'weld l9ahba', 'weld kahba',
+  'bent l9hba', 'bent kahba', 'bnt kahba', 'bnt l9hba',
+  'l3az', 'l3ezz', 'le3az', '3azzi', '3ezzi',
+  'tfouh', 'tfou', 'tfo', 'tfeh',
+  'mrd', 'merde', 'khara', '5ara', '5ra', 'khra',
 
   // Insultes arabes standard
   'كس', 'كسك', 'طيز', 'خرا', 'عاهرة', 'شرموط', 'شرموطة',
@@ -90,7 +100,14 @@ const CONTACT_PATTERNS = [
   /(?:facebook|instagram|whatsapp|telegram|snapchat|tiktok|twitter|linkedin)[\s:@]?\s*[\w.]+/gi,
   /(?:fb|insta|snap|tg|wa)[\s:@]?\s*[\w.]+/gi,
   /wa\.me\/\d+/gi,                      // Liens WhatsApp
-  /@[\w]+/g                              // Handles sociaux
+  /@[\w]+/g,                            // Handles sociaux
+
+  // Numeros deguises avec * # ou autres caracteres speciaux
+  /0[567][\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}[\s*#._\-x]+\d{1,2}/gi,  // 06*07#03*45*67
+  /\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}[\s*#._\-x]+\d{2}/gi,           // XX*XX*XX*XX*XX
+  /(?:zero|zéro|0)\s*[567][\s*#._\-x]*(?:\d[\s*#._\-x]*){8}/gi,                            // zero 6*1*2*3...
+  /[0o][567](?:[\s*#._\-x]+\d{1,2}){4,}/gi,                                                // O6*12*34*56*78 (avec O lettre)
+  /\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d[\s*#._\-x]\d/gi  // X*X*X*X*X*X*X*X*X*X
 ];
 
 /**

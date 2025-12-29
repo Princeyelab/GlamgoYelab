@@ -4,7 +4,10 @@ export default function BookingLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="create" />
+      <Stack.Screen name="confirmation" />
       <Stack.Screen name="track" />
+      <Stack.Screen name="payment" />
+      <Stack.Screen name="review" />
     </Stack>
   );
 }

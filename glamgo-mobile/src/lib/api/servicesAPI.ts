@@ -211,30 +211,96 @@ export const getCategoryById = async (id: number | string): Promise<Category> =>
 
 /**
  * Recuperer les categories avec leurs services
+ * Combine /api/categories et /api/services
  */
 export const getCategoriesWithServices = async (): Promise<(Category & { services: Service[] })[]> => {
-  const response = await apiClient.get<{ success: boolean; data: (Category & { services: Service[] })[] }>(
-    ENDPOINTS.CATEGORIES.WITH_SERVICES
-  );
+  // Recuperer categories et services en parallele
+  const [categoriesRes, servicesRes] = await Promise.all([
+    apiClient.get<{ success: boolean; data: Category[] }>(ENDPOINTS.CATEGORIES.LIST),
+    apiClient.get<{ success: boolean; data: Service[] }>(ENDPOINTS.SERVICES.LIST),
+  ]);
 
-  return response.data.data.map(cat => ({
-    ...transformCategoryImages(cat),
-    services: cat.services.map(transformServiceImages),
-  }));
+  const categories = categoriesRes.data.data || [];
+  const services = servicesRes.data.data || [];
+
+  console.log('[API] Categories:', categories.length, categories.map(c => ({ id: c.id, name: c.name })));
+  console.log('[API] Services:', services.length, services.slice(0, 3).map(s => ({ id: s.id, title: s.title, name: s.name, category_id: s.category_id })));
+
+  // Grouper les services par categorie (comparer en tant que nombres)
+  return categories.map(cat => {
+    const catId = typeof cat.id === 'string' ? parseInt(cat.id, 10) : cat.id;
+    const catServices = services.filter(s => {
+      const sCatId = typeof s.category_id === 'string' ? parseInt(s.category_id, 10) : s.category_id;
+      return sCatId === catId;
+    });
+    console.log(`[API] Category ${cat.name} (${catId}): ${catServices.length} services`);
+    return {
+      ...transformCategoryImages(cat),
+      services: catServices.map(transformServiceImages),
+    };
+  });
 };
 
 // === PRESTATAIRES ===
 
 /**
- * Recuperer les prestataires a proximite
+ * Recuperer les prestataires a proximite pour un service
+ * Endpoint: GET /api/services/{id}/nearby-providers?lat=...&lng=...&radius=...
  */
 export const getNearbyProviders = async (params: NearbyProvidersParams): Promise<Provider[]> => {
-  const response = await apiClient.get<{ success: boolean; data: Provider[] }>(
-    ENDPOINTS.PROVIDERS.NEARBY,
-    { params }
-  );
+  if (!params.service_id) {
+    console.warn('[getNearbyProviders] service_id requis');
+    return [];
+  }
 
-  return response.data.data;
+  console.log('[getNearbyProviders] Fetching providers for service', params.service_id, 'at', params.latitude, params.longitude);
+
+  try {
+    const response = await apiClient.get<{ success: boolean; data: Provider[]; nearest?: Provider; alternatives?: Provider[] }>(
+      ENDPOINTS.SERVICES.NEARBY_PROVIDERS(params.service_id),
+      {
+        params: {
+          lat: params.latitude,
+          lng: params.longitude,
+          radius: params.radius || 50,
+          test_mode: 'true', // Pour le developpement - ignorer is_verified
+          // only_available par defaut = true (masque les prestataires hors ligne)
+        }
+      }
+    );
+
+    console.log('[getNearbyProviders] Response:', JSON.stringify(response.data, null, 2));
+
+    // L'API retourne { success, message, data: { nearest, alternatives, ... } }
+    const responseData = response.data?.data || response.data;
+
+    // L'API peut retourner { nearest, alternatives }
+    if (responseData?.nearest || responseData?.alternatives) {
+      const providers: Provider[] = [];
+      if (responseData.nearest) {
+        // Transformer le format API vers le format Provider attendu
+        const nearestProvider = transformApiProviderToProvider(responseData.nearest);
+        providers.push(nearestProvider);
+      }
+      if (responseData.alternatives && Array.isArray(responseData.alternatives)) {
+        const altProviders = responseData.alternatives.map(transformApiProviderToProvider);
+        providers.push(...altProviders);
+      }
+      console.log('[getNearbyProviders] Found providers:', providers.length);
+      return providers;
+    }
+
+    // S'assurer que data est un tableau
+    if (Array.isArray(responseData)) {
+      return responseData;
+    }
+
+    console.log('[getNearbyProviders] No providers found in response');
+    return [];
+  } catch (error) {
+    console.error('[getNearbyProviders] Error:', error);
+    return [];
+  }
 };
 
 /**
@@ -309,13 +375,60 @@ export const getServiceReviews = async (
 // === HELPERS ===
 
 /**
+ * Transformer le format API du prestataire vers le format Provider attendu par l'app
+ */
+const transformApiProviderToProvider = (apiProvider: any): Provider => {
+  return {
+    id: apiProvider.id,
+    name: `${apiProvider.first_name || ''} ${apiProvider.last_name || ''}`.trim(),
+    avatar: apiProvider.avatar ? getImageUrl(apiProvider.avatar) : undefined,
+    email: apiProvider.email,
+    phone: apiProvider.phone,
+    rating: parseFloat(apiProvider.rating) || 0,
+    reviews_count: apiProvider.total_reviews || 0,
+    completed_orders: apiProvider.completed_orders || 0,
+    services: [],
+    location: apiProvider.latitude && apiProvider.longitude ? {
+      latitude: parseFloat(apiProvider.latitude),
+      longitude: parseFloat(apiProvider.longitude),
+      address: '',
+      city: '',
+    } : undefined,
+    is_available: apiProvider.is_available ?? true,
+    distance: apiProvider.distance,
+    // Garder les données brutes pour le booking
+    ...apiProvider,
+  };
+};
+
+/**
  * Transformer les URLs des images d'un service
+ * Gere les deux formats: 'image' (API) et 'images' (array)
  */
 const transformServiceImages = (service: Service): Service => {
+  // L'API retourne 'image' (singulier), le mobile attend 'images' (array)
+  const imageFromApi = (service as any).image;
+
+  // Construire le tableau d'images
+  let images: string[] = [];
+
+  if (service.images && service.images.length > 0) {
+    // Si deja un tableau d'images, l'utiliser
+    images = service.images.map(img => getImageUrl(img));
+  } else if (imageFromApi) {
+    // Sinon, utiliser le champ 'image' de l'API
+    images = [getImageUrl(imageFromApi)];
+  }
+
+  // Utiliser la premiere image comme thumbnail si pas defini
+  const thumbnail = service.thumbnail
+    ? getImageUrl(service.thumbnail)
+    : (images.length > 0 ? images[0] : undefined);
+
   return {
     ...service,
-    thumbnail: service.thumbnail ? getImageUrl(service.thumbnail) : undefined,
-    images: service.images?.map(img => getImageUrl(img)) || [],
+    thumbnail,
+    images,
   };
 };
 

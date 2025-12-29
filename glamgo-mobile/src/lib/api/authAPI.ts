@@ -66,7 +66,10 @@ export interface ChangePasswordData {
 
 export interface UpdateProfileData {
   name?: string;
+  first_name?: string;
+  last_name?: string;
   phone?: string;
+  address?: string;
   avatar?: string;
 }
 
@@ -191,6 +194,7 @@ export const updateProfile = async (data: UpdateProfileData): Promise<User> => {
     ENDPOINTS.USERS.UPDATE_PROFILE,
     data
   );
+  console.log('[updateProfile] Response:', JSON.stringify(response.data, null, 2));
   return response.data.data;
 };
 

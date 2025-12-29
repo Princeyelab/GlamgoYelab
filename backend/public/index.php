@@ -8,6 +8,47 @@ mb_http_output('UTF-8');
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+// Servir les fichiers statiques directement (images, uploads, etc.)
+$requestUri = $_SERVER['REQUEST_URI'];
+$requestPath = parse_url($requestUri, PHP_URL_PATH);
+
+// Liste des extensions de fichiers statiques à servir directement
+$staticExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico', 'css', 'js', 'pdf', 'doc', 'docx'];
+$extension = strtolower(pathinfo($requestPath, PATHINFO_EXTENSION));
+
+if (in_array($extension, $staticExtensions)) {
+    $filePath = __DIR__ . $requestPath;
+
+    if (file_exists($filePath) && is_file($filePath)) {
+        // Définir le Content-Type approprié
+        $mimeTypes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+
+        $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+
+        // Headers CORS pour les fichiers statiques aussi
+        header('Access-Control-Allow-Origin: *');
+        header('Content-Type: ' . $mimeType);
+        header('Content-Length: ' . filesize($filePath));
+        header('Cache-Control: public, max-age=31536000'); // Cache 1 an pour les images
+
+        readfile($filePath);
+        exit();
+    }
+}
+
 // Headers CORS pour permettre les requêtes du frontend
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');

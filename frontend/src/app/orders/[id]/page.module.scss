@@ -1301,3 +1301,61 @@
   text-align: center;
   margin: $spacing-md 0 !important;
 }
+
+// ========== Cancellation Fee Warning ==========
+
+.cancellationFeeWarning {
+  background: linear-gradient(135deg, rgba($warning, 0.1), rgba(#ff6b35, 0.1));
+  border: 2px solid $warning;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.feeTitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: darken($warning, 15%);
+  margin-bottom: $spacing-xs;
+}
+
+.feeExplanation {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  margin-bottom: $spacing-md;
+  line-height: 1.5;
+}
+
+.feeAmount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: $white;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  border: 1px solid rgba($warning, 0.3);
+}
+
+.feeLabel {
+  font-size: $font-size-sm;
+  color: $gray-700;
+  font-weight: $font-weight-medium;
+}
+
+.feeValue {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $error;
+}
+
+.feePercentage {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: $font-weight-normal;
+}

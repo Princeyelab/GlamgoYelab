@@ -15,14 +15,28 @@ import { useLanguage } from '@/contexts/LanguageContext';
 const UPLOADS_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080';
 import {
   SPECIALTIES_BY_CATEGORY,
-  CATEGORY_LABELS,
-  getSpecialtyLabel
+  CATEGORY_LABEL_KEYS,
+  getSpecialtyLabelKey
 } from '@/lib/providerSpecialties';
 
+// Clés de villes pour traduction
 const MOROCCAN_CITIES = [
-  'Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger',
-  'Agadir', 'Meknès', 'Oujda', 'Kénitra', 'Tétouan',
-  'Safi', 'Essaouira', 'El Jadida', 'Nador', 'Béni Mellal', 'Mohammedia'
+  { value: 'Casablanca', key: 'cities.casablanca' },
+  { value: 'Rabat', key: 'cities.rabat' },
+  { value: 'Marrakech', key: 'cities.marrakech' },
+  { value: 'Fès', key: 'cities.fes' },
+  { value: 'Tanger', key: 'cities.tanger' },
+  { value: 'Agadir', key: 'cities.agadir' },
+  { value: 'Meknès', key: 'cities.meknes' },
+  { value: 'Oujda', key: 'cities.oujda' },
+  { value: 'Kénitra', key: 'cities.kenitra' },
+  { value: 'Tétouan', key: 'cities.tetouan' },
+  { value: 'Safi', key: 'cities.safi' },
+  { value: 'Essaouira', key: 'cities.essaouira' },
+  { value: 'El Jadida', key: 'cities.eljadida' },
+  { value: 'Nador', key: 'cities.nador' },
+  { value: 'Béni Mellal', key: 'cities.benimellal' },
+  { value: 'Mohammedia', key: 'cities.mohammedia' },
 ];
 
 // Les labels des jours sont maintenant gérés via les traductions
@@ -40,7 +54,7 @@ const DEFAULT_AVAILABILITY = {
 
 export default function ProviderProfilePage() {
   const router = useRouter();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -402,12 +416,19 @@ export default function ProviderProfilePage() {
                         src={`${UPLOADS_BASE_URL}${provider.avatar}`}
                         alt={`${provider.first_name} ${provider.last_name}`}
                         className={styles.avatarImage}
+                        onError={(e) => {
+                          // Si l'image n'existe pas, afficher le placeholder
+                          e.target.style.display = 'none';
+                          e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                        }}
                       />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        <span>{provider.first_name?.charAt(0)}{provider.last_name?.charAt(0)}</span>
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      className={styles.avatarPlaceholder}
+                      style={{ display: provider.avatar ? 'none' : 'flex' }}
+                    >
+                      <span>{provider.first_name?.charAt(0)}{provider.last_name?.charAt(0)}</span>
+                    </div>
 
                     {uploadingPhoto ? (
                       <div className={styles.uploadOverlay}>
@@ -445,8 +466,8 @@ export default function ProviderProfilePage() {
                   </div>
                   {provider.total_reviews > 0 && (
                     <div className={styles.reviewsInfo}>
-                      <span>⭐ {parseFloat(provider.rating || 0).toFixed(1)}</span>
-                      <span className={styles.reviewCount}>({provider.total_reviews} {t('providerProfile.reviews')})</span>
+                      <span>⭐ {toArabicNumerals(parseFloat(provider.rating || 0).toFixed(1))}</span>
+                      <span className={styles.reviewCount}>({toArabicNumerals(provider.total_reviews)} {t('providerProfile.reviews')})</span>
                     </div>
                   )}
                 </div>
@@ -506,7 +527,7 @@ export default function ProviderProfilePage() {
                       <div className={styles.infoItem}>
                         <span className={styles.label}>{t('providerProfile.gpsCoordinates')}:</span>
                         <span className={styles.value}>
-                          {parseFloat(provider.latitude).toFixed(6)}, {parseFloat(provider.longitude).toFixed(6)}
+                          {toArabicNumerals(parseFloat(provider.latitude).toFixed(6))}, {toArabicNumerals(parseFloat(provider.longitude).toFixed(6))}
                         </span>
                       </div>
                     )}
@@ -519,24 +540,24 @@ export default function ProviderProfilePage() {
                     <div className={styles.infoItem}>
                       <span className={styles.label}>{t('providerProfile.basePrice')}:</span>
                       <span className={styles.value}>
-                        {provider.starting_price ? `${provider.starting_price} DH` : t('providerProfile.notSpecified')}
+                        {provider.starting_price ? `${toArabicNumerals(provider.starting_price)} DH` : t('providerProfile.notSpecified')}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
                       <span className={styles.label}>{t('providerProfile.interventionRadius')}:</span>
                       <span className={styles.value}>
-                        {provider.intervention_radius ? `${provider.intervention_radius} km` : `10 ${t('providerProfile.kmDefault')}`}
+                        {provider.intervention_radius ? `${toArabicNumerals(provider.intervention_radius)} km` : `${toArabicNumerals(10)} ${t('providerProfile.kmDefault')}`}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
                       <span className={styles.label}>{t('providerProfile.yearsExperience')}:</span>
-                      <span className={styles.value}>{provider.experience_years || t('providerProfile.notSpecified')}</span>
+                      <span className={styles.value}>{provider.experience_years ? toArabicNumerals(provider.experience_years) : t('providerProfile.notSpecified')}</span>
                     </div>
                     <div className={styles.infoItem}>
                       <span className={styles.label}>{t('providerProfile.averageRating')}:</span>
                       <span className={styles.value}>
-                        ⭐ {provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0'}
-                        {provider.total_reviews > 0 && ` (${provider.total_reviews} ${t('providerProfile.reviews')})`}
+                        ⭐ {toArabicNumerals(provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0')}
+                        {provider.total_reviews > 0 && ` (${toArabicNumerals(provider.total_reviews)} ${t('providerProfile.reviews')})`}
                       </span>
                     </div>
                   </div>
@@ -554,7 +575,7 @@ export default function ProviderProfilePage() {
                       <div className={styles.tags}>
                         {(typeof provider.specialties === 'string' ?
                           JSON.parse(provider.specialties) : provider.specialties).map((specialty, index) => (
-                          <span key={index} className={styles.tag}>{getSpecialtyLabel(specialty)}</span>
+                          <span key={index} className={styles.tag}>{t(getSpecialtyLabelKey(specialty))}</span>
                         ))}
                       </div>
                     </div>
@@ -713,7 +734,7 @@ export default function ProviderProfilePage() {
                       >
                         <option value="">{t('providerProfile.selectCity')}</option>
                         {MOROCCAN_CITIES.map(city => (
-                          <option key={city} value={city}>{city}</option>
+                          <option key={city.value} value={city.value}>{t(city.key)}</option>
                         ))}
                       </select>
                       {errors.city && <span className={styles.error}>{errors.city}</span>}
@@ -748,7 +769,7 @@ export default function ProviderProfilePage() {
                         size="5"
                       >
                         {MOROCCAN_CITIES.map(city => (
-                          <option key={city} value={city}>{city}</option>
+                          <option key={city.value} value={city.value}>{t(city.key)}</option>
                         ))}
                       </select>
                       <span className={styles.hint}>
@@ -824,10 +845,10 @@ export default function ProviderProfilePage() {
                         size="10"
                       >
                         {Object.entries(SPECIALTIES_BY_CATEGORY).map(([categorySlug, specialties]) => (
-                          <optgroup key={categorySlug} label={CATEGORY_LABELS[categorySlug]}>
+                          <optgroup key={categorySlug} label={t(CATEGORY_LABEL_KEYS[categorySlug])}>
                             {specialties.map(specialty => (
                               <option key={specialty.value} value={specialty.value}>
-                                {specialty.label}
+                                {t(specialty.labelKey)}
                               </option>
                             ))}
                           </optgroup>

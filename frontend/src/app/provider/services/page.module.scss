@@ -45,6 +45,24 @@
   gap: $spacing-md;
 }
 
+.messagesIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: rgba($white, 0.9);
+  font-size: $font-size-lg;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($white, 0.1);
+  }
+}
+
 .backLink {
   color: $white;
   text-decoration: none;
@@ -155,6 +173,30 @@
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
+}
+
+.syncingAlert {
+  background-color: rgba($primary-color, 0.1);
+  border: 1px solid $primary-color;
+  border-radius: $radius-md;
+  color: $primary-color;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+  text-align: center;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid $primary-color;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
 }
 
 .tabs {
@@ -317,6 +359,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.priceAmount {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.priceLabel {
+  font-size: $font-size-xs;
+  color: $gray-600;
+  text-transform: uppercase;
 }
 
 .duration {
@@ -507,5 +561,206 @@
 
   .serviceHeader {
     flex-direction: row;
+  }
+}
+
+// ============================================
+// Diploma Badge & Modal Styles
+// ============================================
+
+.diplomaBadge {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  background: rgba($white, 0.95);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-full;
+  font-size: $font-size-lg;
+  box-shadow: $shadow-md;
+  z-index: 1;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($black, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-md;
+}
+
+.modal {
+  background: $white;
+  border-radius: $radius-xl;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: $shadow-2xl;
+}
+
+.modalClose {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  background: $gray-100;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-full;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-600;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: $gray-200;
+    color: $black;
+  }
+}
+
+.modalHeader {
+  padding: $spacing-xl $spacing-xl $spacing-md;
+  text-align: center;
+}
+
+.modalIcon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.modalHeader h2 {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0;
+}
+
+.modalBody {
+  padding: 0 $spacing-xl $spacing-xl;
+}
+
+.modalDescription {
+  font-size: $font-size-base;
+  color: $gray-600;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+  line-height: 1.5;
+}
+
+.modalError {
+  background: rgba($error, 0.1);
+  border: 1px solid $error;
+  color: $error;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.modalActions {
+  padding: $spacing-md $spacing-xl $spacing-xl;
+  display: flex;
+  gap: $spacing-md;
+  justify-content: flex-end;
+
+  button {
+    min-width: 120px;
+  }
+}
+
+// File Input Styles
+.fileInputWrapper {
+  margin-top: $spacing-md;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  border: 2px dashed $gray-300;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: all $transition-normal;
+  background: $gray-50;
+
+  &:hover {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.hasFile {
+    border-color: $success;
+    background: rgba($success, 0.05);
+    border-style: solid;
+  }
+}
+
+.fileIcon {
+  font-size: 32px;
+}
+
+.fileText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: $font-size-base;
+    color: $black;
+  }
+
+  span {
+    font-size: $font-size-xs;
+    color: $gray-500;
+  }
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+// Mobile adjustments for modal
+@include mobile {
+  .modal {
+    margin: $spacing-md;
+    max-height: 85vh;
+  }
+
+  .modalHeader {
+    padding: $spacing-lg $spacing-lg $spacing-sm;
+  }
+
+  .modalBody {
+    padding: 0 $spacing-lg $spacing-lg;
+  }
+
+  .modalActions {
+    padding: $spacing-sm $spacing-lg $spacing-lg;
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .fileInputLabel {
+    padding: $spacing-md;
+  }
+
+  .fileIcon {
+    font-size: 24px;
   }
 }

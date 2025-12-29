@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontFamily: typography.fontFamily.medium,
     color: colors.gray[700],
     marginBottom: spacing.xs,
   },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: borderRadius.md,
     backgroundColor: colors.white,
-    minHeight: 48,
+    minHeight: 44,
   },
   inputContainerFocused: {
     borderWidth: 2,
@@ -169,10 +169,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: typography.fontSize.base,
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.regular,
     color: colors.gray[900],
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   inputWithLeftIcon: {
     paddingLeft: 0,
@@ -184,11 +185,11 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
   },
   leftIconContainer: {
-    paddingLeft: spacing.base,
+    paddingLeft: spacing.sm,
     paddingRight: spacing.xs,
   },
   rightIconContainer: {
-    paddingRight: spacing.base,
+    paddingRight: spacing.sm,
     paddingLeft: spacing.xs,
   },
   passwordToggle: {
@@ -196,12 +197,14 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.regular,
     color: colors.gray[500],
     marginTop: spacing.xs,
     marginLeft: spacing.xs,
   },
   errorText: {
     fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.regular,
     color: colors.error,
     marginTop: spacing.xs,
     marginLeft: spacing.xs,

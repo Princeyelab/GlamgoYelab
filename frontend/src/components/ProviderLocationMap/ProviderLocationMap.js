@@ -10,7 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
  * La carte iframe est masquée par défaut pour éviter les problèmes de scroll
  */
 export default function ProviderLocationMap({ orderId, clientAddress, clientLat, clientLng }) {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [providerLocation, setProviderLocation] = useState(null);
   const [mapUrl, setMapUrl] = useState(null);
   const [showMap, setShowMap] = useState(false); // Carte masquée par défaut
@@ -123,25 +123,25 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
   const formatDistance = (distanceKm) => {
     if (!distanceKm) return 'N/A';
     if (distanceKm < 1) {
-      return `${Math.round(distanceKm * 1000)} m`;
+      return `${toArabicNumerals(Math.round(distanceKm * 1000))} m`;
     }
-    return `${distanceKm.toFixed(1)} km`;
+    return `${toArabicNumerals(distanceKm.toFixed(1))} km`;
   };
 
   const estimatedTime = (distanceKm) => {
     if (!distanceKm) return 'N/A';
     const hours = distanceKm / 30;
     const minutes = Math.round(hours * 60);
-    if (minutes < 1) return '< 1 min';
-    return `~${minutes} min`;
+    if (minutes < 1) return `< ${toArabicNumerals(1)} ${t('common.min')}`;
+    return `~${toArabicNumerals(minutes)} ${t('common.min')}`;
   };
 
   const getTimeSinceUpdate = () => {
     if (!lastUpdate) return 'N/A';
     const seconds = Math.floor((Date.now() - lastUpdate) / 1000);
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${toArabicNumerals(seconds)}${t('common.seconds')}`;
     const minutes = Math.floor(seconds / 60);
-    return `${minutes}min`;
+    return `${toArabicNumerals(minutes)}${t('common.min')}`;
   };
 
   const openInGoogleMaps = () => {

@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   text: {
-    fontWeight: '600',
+    fontFamily: typography.fontFamily.medium,
     textAlign: 'center',
   },
   fullWidth: {

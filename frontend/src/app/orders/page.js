@@ -15,7 +15,7 @@ import TranslatedText from '@/components/TranslatedText';
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -119,13 +119,14 @@ export default function OrdersPage() {
   const formatDate = (dateString) => {
     if (!dateString) return t('ordersPage.notPlanned');
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    const formatted = date.toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+    return toArabicNumerals(formatted);
   };
 
   const openCancelModal = (orderId) => {
@@ -244,7 +245,7 @@ export default function OrdersPage() {
               <div key={order.id} className={styles.orderCard}>
                 <div className={styles.orderHeader}>
                   <div className={styles.orderHeaderLeft}>
-                    <span className={styles.orderId}>{t('ordersPage.orderNumber', { id: order.id })}</span>
+                    <span className={styles.orderId}>{t('ordersPage.orderNumber', { id: toArabicNumerals(order.id) })}</span>
                     {order.pricing_mode === 'bidding' && (
                       <span className={styles.biddingBadge}>🎯 {t('ordersPage.biddingMode')}</span>
                     )}

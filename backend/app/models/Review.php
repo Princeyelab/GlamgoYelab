@@ -120,10 +120,7 @@ class Review extends Model
     {
         $sql = "SELECT
                     COUNT(*) as total_reviews,
-                    AVG(rating) as average_rating,
-                    AVG(service_quality) as avg_service_quality,
-                    AVG(punctuality) as avg_punctuality,
-                    AVG(professionalism) as avg_professionalism,
+                    COALESCE(AVG(rating), 0) as average_rating,
                     SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_stars,
                     SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_stars,
                     SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_stars,
@@ -139,9 +136,6 @@ class Review extends Model
         return $stats ?: [
             'total_reviews' => 0,
             'average_rating' => 0,
-            'avg_service_quality' => 0,
-            'avg_punctuality' => 0,
-            'avg_professionalism' => 0,
             'five_stars' => 0,
             'four_stars' => 0,
             'three_stars' => 0,

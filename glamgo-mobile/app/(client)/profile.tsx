@@ -7,15 +7,19 @@ import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } fr
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
+import CurrencySelector from '../../src/components/features/CurrencySelector';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
-import { logoutUser, selectAuth, switchRole } from '../../src/lib/store/slices/authSlice';
+import { logoutUser, selectAuth, switchRole, resetAuth } from '../../src/lib/store/slices/authSlice';
+import { persistor } from '../../src/lib/store';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, isLoading } = useAppSelector(selectAuth);
+  const { currencyInfo } = useCurrency();
 
   const handleSwitchToProvider = () => {
     hapticFeedback.medium();
@@ -45,12 +49,15 @@ export default function ProfileScreen() {
           text: 'Deconnexion',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await dispatch(logoutUser()).unwrap();
-              router.replace('/welcome');
-            } catch (err) {
-              Alert.alert('Erreur', 'Deconnexion echouee');
-            }
+            // Vider l'etat auth immediatement
+            dispatch(resetAuth());
+            // Purger et flush le stockage persistant
+            await persistor.flush();
+            await persistor.purge();
+            // Appeler l'API logout en arriere-plan
+            dispatch(logoutUser());
+            // Naviguer vers login (route qui existe)
+            router.replace('/auth/login');
           },
         },
       ]
@@ -132,12 +139,25 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
+        {/* Preferences Card */}
+        <Card variant="outlined" style={styles.card}>
+          <Text style={styles.cardTitle}>Preferences</Text>
+
+          <View style={styles.preferenceRow}>
+            <View style={styles.preferenceInfo}>
+              <Text style={styles.preferenceLabel}>Devise</Text>
+              <Text style={styles.preferenceHint}>{currencyInfo.name}</Text>
+            </View>
+            <CurrencySelector />
+          </View>
+        </Card>
+
         {/* Actions */}
         <View style={styles.actions}>
           <Button
             variant="outline"
             fullWidth
-            onPress={() => Alert.alert('Info', 'Modifier profil - a venir')}
+            onPress={() => router.push('/edit-profile')}
             style={styles.actionButton}
           >
             Modifier le profil
@@ -324,6 +344,25 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.gray[900],
     fontWeight: '500',
+  },
+  preferenceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  preferenceInfo: {
+    flex: 1,
+  },
+  preferenceLabel: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[900],
+    fontWeight: '500',
+  },
+  preferenceHint: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    marginTop: 2,
   },
   actions: {
     marginBottom: spacing.lg,

@@ -8,6 +8,7 @@ import PriceBreakdown from '@/components/PriceBreakdown';
 import { DistanceFeeModal } from '@/components/DistanceFeeExplainer';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import apiClient from '@/lib/apiClient';
 
 /**
  * Carte affichant un prestataire avec ses informations de distance et prix
@@ -37,8 +38,11 @@ export default function ProviderCard({
   const [imageError, setImageError] = useState(false);
   const [dynamicPrice, setDynamicPrice] = useState(null);
   const [showDistanceModal, setShowDistanceModal] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const { currency } = useCurrency();
-  const { t } = useLanguage();
+  const { t, toArabicNumerals, isRTL } = useLanguage();
 
   // Réinitialiser le prix dynamique quand la formule change
   useEffect(() => {
@@ -131,6 +135,47 @@ export default function ProviderCard({
     setShowDistanceModal(true);
   };
 
+  // Ouvrir le modal des avis et charger les avis
+  const openReviewsModal = async (e) => {
+    e.stopPropagation();
+    setShowReviewsModal(true);
+
+    // Charger les avis si pas encore chargés
+    if (reviews.length === 0 && !reviewsLoading) {
+      setReviewsLoading(true);
+      try {
+        const response = await apiClient.get(`/providers/${id}/reviews`);
+        console.log('Reviews API response:', response);
+        if (response.success && response.data) {
+          // L'API retourne { reviews: [...], stats: {...} }
+          const reviewsData = response.data.reviews || response.data || [];
+          setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+        }
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    }
+  };
+
+  // Fermer le modal des avis
+  const closeReviewsModal = (e) => {
+    if (e) e.stopPropagation();
+    setShowReviewsModal(false);
+  };
+
+  // Formater la date d'un avis
+  const formatReviewDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   // Générer les étoiles de rating
   const renderStars = (rating) => {
     const stars = [];
@@ -190,11 +235,17 @@ export default function ProviderCard({
           {business_name && business_name !== name && (
             <p className={styles.businessName}>{business_name}</p>
           )}
-          <div className={styles.rating}>
+          <button
+            type="button"
+            className={styles.ratingButton}
+            onClick={openReviewsModal}
+            title={t('provider.seeReviews')}
+          >
             <div className={styles.stars}>{renderStars(parseFloat(rating) || 0)}</div>
-            <span className={styles.ratingValue}>{(parseFloat(rating) || 0).toFixed(1)}</span>
-            <span className={styles.reviewCount}>({total_reviews || 0} {t('common.reviews')})</span>
-          </div>
+            <span className={styles.ratingValue}>{toArabicNumerals((parseFloat(rating) || 0).toFixed(1))}</span>
+            <span className={styles.reviewCount}>({toArabicNumerals(total_reviews || 0)} {t('common.reviews')})</span>
+            <span className={styles.seeReviewsLink}>{t('provider.see')}</span>
+          </button>
         </div>
       </div>
 
@@ -204,7 +255,7 @@ export default function ProviderCard({
           <div className={styles.distance}>
             <span className={styles.distanceIcon}>📍</span>
             <span className={styles.distanceText}>
-              {t('provider.distance', { distance: distance_formatted || `${distance?.toFixed(1)} km` })}
+              {t('provider.distance', { distance: distance_formatted || `${toArabicNumerals(distance?.toFixed(1))} km` })}
             </span>
           </div>
 
@@ -222,7 +273,7 @@ export default function ProviderCard({
             >
               <span className={styles.badgeIconSmall}>ℹ️</span>
               <span className={styles.distanceFeeAmount}>
-                {t('provider.distanceFeeAmount', { fee: distanceCalculation.fee.toFixed(0), currency })}
+                {t('provider.distanceFeeAmount', { fee: toArabicNumerals(distanceCalculation.fee.toFixed(0)), currency })}
               </span>
               <span className={styles.infoLink}>{t('provider.seeDetails')}</span>
             </button>
@@ -233,9 +284,9 @@ export default function ProviderCard({
         {showDistanceDetails && !distanceCalculation.is_in_radius && !compact && (
           <div className={styles.distanceFeeDetails}>
             <div className={styles.feeBreakdown}>
-              <span>{t('provider.interventionRadius', { radius: distanceCalculation.intervention_radius_km })}</span>
-              <span>{t('provider.extraDistance', { distance: Math.ceil(distanceCalculation.extra_distance_km) })}</span>
-              <span>{t('provider.rate', { rate: distanceCalculation.price_per_extra_km, currency })}</span>
+              <span>{t('provider.interventionRadius', { radius: toArabicNumerals(distanceCalculation.intervention_radius_km) })}</span>
+              <span>{t('provider.extraDistance', { distance: toArabicNumerals(Math.ceil(distanceCalculation.extra_distance_km)) })}</span>
+              <span>{t('provider.rate', { rate: toArabicNumerals(distanceCalculation.price_per_extra_km), currency })}</span>
             </div>
           </div>
         )}
@@ -299,7 +350,7 @@ export default function ProviderCard({
       {duration_minutes && !compact && (
         <div className={styles.duration}>
           <span className={styles.durationIcon}>⏱️</span>
-          <span>{t('provider.estimatedDurationMin', { duration: duration_minutes })}</span>
+          <span>{t('provider.estimatedDurationMin', { duration: toArabicNumerals(duration_minutes) })}</span>
         </div>
       )}
 
@@ -322,6 +373,99 @@ export default function ProviderCard({
         clientLocation={clientLocation}
         distanceCalculation={distanceCalculation}
       />
+
+      {/* Modal des avis */}
+      {showReviewsModal && (
+        <div className={styles.reviewsModalOverlay} onClick={closeReviewsModal}>
+          <div className={styles.reviewsModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.reviewsModalHeader}>
+              <div className={styles.reviewsModalTitle}>
+                <h3>{t('provider.reviewsTitle')}</h3>
+                <p>{name}</p>
+              </div>
+              <div className={styles.reviewsModalRating}>
+                <div className={styles.ratingBig}>
+                  <span className={styles.ratingNumber}>{toArabicNumerals((parseFloat(rating) || 0).toFixed(1))}</span>
+                  <span className={styles.ratingStars}>{renderStars(parseFloat(rating) || 0)}</span>
+                </div>
+                <span className={styles.totalReviews}>{toArabicNumerals(total_reviews || 0)} {t('common.reviews')}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.closeModalBtn}
+                onClick={closeReviewsModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.reviewsModalBody}>
+              {reviewsLoading ? (
+                <div className={styles.reviewsLoading}>
+                  <div className={styles.spinner}></div>
+                  <p>{t('common.loading')}</p>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className={styles.noReviews}>
+                  <span className={styles.noReviewsIcon}>📝</span>
+                  <p>{t('provider.noReviews')}</p>
+                </div>
+              ) : (
+                <div className={styles.reviewsList}>
+                  {reviews.map((review, index) => (
+                    <div key={review.id || index} className={styles.reviewItem}>
+                      <div className={styles.reviewHeader}>
+                        <div className={styles.reviewerInfo}>
+                          <div className={styles.reviewerAvatar}>
+                            {(review.user_first_name || review.user_name || review.client_name || 'C').charAt(0)}
+                          </div>
+                          <div>
+                            <span className={styles.reviewerName}>
+                              {review.user_first_name
+                                ? `${review.user_first_name} ${review.user_last_name || ''}`.trim()
+                                : review.user_name || review.client_name || t('provider.anonymousClient')}
+                            </span>
+                            <span className={styles.reviewDate}>
+                              {formatReviewDate(review.created_at)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={styles.reviewRating}>
+                          {renderStars(parseFloat(review.rating) || 0)}
+                        </div>
+                      </div>
+                      {review.service_name && (
+                        <div className={styles.reviewService}>
+                          📋 {review.service_name}
+                        </div>
+                      )}
+                      {review.comment && (
+                        <p className={styles.reviewComment}>{review.comment}</p>
+                      )}
+                      {review.provider_response && (
+                        <div className={styles.providerResponse}>
+                          <span className={styles.responseLabel}>💬 {t('provider.response')}:</span>
+                          <p>{review.provider_response}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.reviewsModalFooter}>
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={closeReviewsModal}
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

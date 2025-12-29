@@ -1,25 +1,44 @@
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
 import { useAppSelector } from '../src/lib/store/hooks';
 import { selectIsAuthenticated, selectUserRole } from '../src/lib/store/slices/authSlice';
+import { store } from '../src/lib/store';
 
 export default function Index() {
   const router = useRouter();
+  const { logout } = useLocalSearchParams();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const userRole = useAppSelector(selectUserRole);
 
   // Rediriger vers le bon mode selon le role
+  // SAUF si on vient de se deconnecter (parametre logout)
   useEffect(() => {
-    if (isAuthenticated) {
-      if (userRole === 'provider') {
-        router.replace('/(provider)' as any);
-      } else {
-        router.replace('/(client)' as any);
-      }
+    // Si parametre logout present, ne pas rediriger
+    if (logout) {
+      return;
     }
-  }, [isAuthenticated, userRole]);
+
+    if (!isAuthenticated) return;
+
+    const timer = setTimeout(() => {
+      // Verifier l'etat ACTUEL du store (pas la closure)
+      const currentState = store.getState();
+      const stillAuthenticated = currentState.auth.isAuthenticated;
+
+      if (stillAuthenticated) {
+        const role = currentState.auth.user?.role || 'user';
+        if (role === 'provider') {
+          router.replace('/(provider)' as any);
+        } else {
+          router.replace('/(client)' as any);
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, logout]);
 
   return (
     <View style={styles.container}>
@@ -32,37 +51,47 @@ export default function Index() {
           />
           <Text style={styles.logoText}>GlamGo</Text>
         </View>
-        <Text style={styles.title}>Services à domicile à Marrakech</Text>
+        <Text style={styles.title}>Services a domicile a Marrakech</Text>
         <Text style={styles.subtitle}>
-          Beauté, ménage, réparations...{'\n'}Tout ce dont vous avez besoin, à portée de main
+          Beaute, menage, reparations...{'\n'}Tout ce dont vous avez besoin, a portee de main
         </Text>
       </View>
 
       <View style={styles.buttons}>
-        <Link href="/auth/login" asChild>
-          <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Se connecter</Text>
+        {/* Devenir Client */}
+        <Link href="/auth/signup-client" asChild>
+          <TouchableOpacity style={styles.clientButton}>
+            <Text style={styles.clientButtonIcon}>👤</Text>
+            <Text style={styles.clientButtonText}>Devenir Client</Text>
           </TouchableOpacity>
         </Link>
 
-        <Link href="/auth/signup" asChild>
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Créer un compte</Text>
+        {/* Devenir Prestataire */}
+        <Link href="/auth/signup-provider" asChild>
+          <TouchableOpacity style={styles.providerButton}>
+            <Text style={styles.providerButtonIcon}>💼</Text>
+            <Text style={styles.providerButtonText}>Devenir Prestataire</Text>
+          </TouchableOpacity>
+        </Link>
+
+        {/* Comment ca marche */}
+        <Link href="/how-it-works" asChild>
+          <TouchableOpacity style={styles.howItWorksButton}>
+            <Text style={styles.howItWorksIcon}>❓</Text>
+            <Text style={styles.howItWorksText}>Comment ca marche ?</Text>
+          </TouchableOpacity>
+        </Link>
+
+        {/* Deja inscrit */}
+        <Link href="/auth/login" asChild>
+          <TouchableOpacity style={styles.loginLink}>
+            <Text style={styles.loginLinkText}>Deja inscrit ? Se connecter</Text>
           </TouchableOpacity>
         </Link>
       </View>
 
       <View style={styles.footerContainer}>
-        <View style={styles.testLinks}>
-          <Link href="/test-components">
-            <Text style={styles.testLink}>Test Composants</Text>
-          </Link>
-          <Text style={styles.testSeparator}>•</Text>
-          <Link href="/test-api">
-            <Text style={styles.testLink}>Test API</Text>
-          </Link>
-        </View>
-        <Text style={styles.footer}>📍 Marrakech, Maroc</Text>
+        <Text style={styles.footer}>Marrakech, Maroc</Text>
       </View>
     </View>
   );
@@ -93,72 +122,109 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 36,
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: typography.fontFamily.bold,
     color: colors.primary,
   },
   title: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: typography.fontFamily.bold,
     color: colors.gray[900],
     marginBottom: spacing.base,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.regular,
     color: colors.gray[600],
     textAlign: 'center',
     lineHeight: 24,
   },
   buttons: {
-    gap: spacing.base,
+    gap: spacing.sm,
   },
-  primaryButton: {
+  // Client Button
+  clientButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
-    paddingVertical: spacing.base,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
-    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  primaryButtonText: {
+  clientButtonIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  clientButtonText: {
     color: colors.white,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.medium,
   },
-  secondaryButton: {
-    backgroundColor: colors.white,
-    paddingVertical: spacing.base,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
+  // Provider Button
+  providerButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  secondaryButtonText: {
+  providerButtonIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  providerButtonText: {
     color: colors.primary,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.medium,
+  },
+  // How it works Button
+  howItWorksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gray[100],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+  },
+  howItWorksIcon: {
+    fontSize: 16,
+    marginRight: spacing.sm,
+  },
+  howItWorksText: {
+    color: colors.gray[700],
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.medium,
+  },
+  // Login Link
+  loginLink: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  loginLinkText: {
+    color: colors.gray[500],
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.medium,
+    textDecorationLine: 'underline',
   },
   footerContainer: {
     alignItems: 'center',
     gap: spacing.sm,
   },
-  testLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  testLink: {
-    color: colors.accent,
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-  },
-  testSeparator: {
-    color: colors.gray[400],
-    fontSize: typography.fontSize.sm,
-  },
   footer: {
     textAlign: 'center',
     color: colors.gray[400],
     fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.regular,
   },
 });

@@ -46,20 +46,36 @@ export async function apiRequest(endpoint, options = {}) {
 
 /**
  * Récupère le token JWT du localStorage
+ * Utilise la même logique que apiClient.js pour éviter les conflits
  */
 export function getToken() {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token')
+    const lastLoginType = localStorage.getItem('last_login_type');
+
+    if (lastLoginType === 'provider') {
+      return localStorage.getItem('provider_token') || sessionStorage.getItem('provider_token');
+    } else if (lastLoginType === 'client') {
+      return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    }
+
+    // Fallback: vérifier les deux (pour migration)
+    return localStorage.getItem('provider_token') ||
+           sessionStorage.getItem('provider_token') ||
+           localStorage.getItem('auth_token') ||
+           sessionStorage.getItem('auth_token');
   }
   return null
 }
 
 /**
  * Sauvegarde le token JWT dans le localStorage
+ * @deprecated Utilisez apiClient.setToken() à la place
  */
 export function setToken(token) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token)
+    // Ne plus utiliser 'token' générique, utiliser auth_token pour les clients
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('last_login_type', 'client');
   }
 }
 
@@ -68,7 +84,12 @@ export function setToken(token) {
  */
 export function removeToken() {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('token')
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('provider_token');
+    localStorage.removeItem('last_login_type');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('provider_token');
   }
 }
 

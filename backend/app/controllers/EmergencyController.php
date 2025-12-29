@@ -31,16 +31,12 @@ class EmergencyController extends Controller
     /**
      * Signaler une urgence pour une commande
      * POST /api/orders/{id}/emergency
+     * Peut etre appele par le client OU le prestataire
      */
     public function report(int $id): void
     {
         $userId = $_SERVER['USER_ID'];
         $userType = $_SERVER['USER_TYPE'] ?? 'user';
-
-        // Verifier que c'est bien un client
-        if ($userType !== 'user') {
-            $this->error('Seul le client peut signaler une urgence', 403);
-        }
 
         // Recuperer la commande
         $order = $this->orderModel->find($id);
@@ -48,10 +44,16 @@ class EmergencyController extends Controller
             $this->error('Commande introuvable', 404);
         }
 
-        // Verifier que le client est bien le proprietaire de la commande
-        if ((int) $order['user_id'] !== (int) $userId) {
+        // Verifier que l'utilisateur est soit le client soit le prestataire de cette commande
+        $isClient = ($userType === 'user' && (int) $order['user_id'] === (int) $userId);
+        $isProvider = ($userType === 'provider' && (int) $order['provider_id'] === (int) $userId);
+
+        if (!$isClient && !$isProvider) {
             $this->error('Vous n\'etes pas autorise a signaler cette commande', 403);
         }
+
+        // Determiner qui signale (pour le rapport)
+        $reporterType = $isClient ? 'client' : 'provider';
 
         // Verifier que la commande est en cours (on_way ou in_progress)
         $allowedStatuses = ['on_way', 'in_progress', 'accepted'];
@@ -59,25 +61,38 @@ class EmergencyController extends Controller
             $this->error('Le signalement n\'est possible que pendant une prestation active', 400);
         }
 
-        // Verifier qu'il n'y a pas deja un signalement actif
-        if ($this->emergencyModel->hasActiveReport($id, $userId)) {
+        // Verifier qu'il n'y a pas deja un signalement actif pour cette commande
+        // On verifie avec l'ID du client de la commande (car c'est la cle dans la table)
+        if ($this->emergencyModel->hasActiveReport($id, $order['user_id'])) {
             $this->error('Un signalement est deja en cours pour cette commande', 409);
         }
 
         // Recuperer les donnees du signalement
         $data = $this->getJsonInput();
 
-        // Valider la raison
-        $validReasons = ['behavior', 'safety', 'service_issue', 'fraud', 'other'];
+        // Valider la raison (raisons client ET prestataire)
+        $validReasons = [
+            'behavior',           // Comportement inapproprie (client signale prestataire)
+            'client_behavior',    // Comportement inapproprie (prestataire signale client)
+            'safety',             // Je ne me sens pas en securite
+            'aggression',         // Agression ou menace
+            'service_issue',      // Probleme grave avec le service
+            'address_issue',      // Probleme d'acces a l'adresse
+            'fraud',              // Tentative de fraude ou arnaque
+            'other'               // Autre urgence
+        ];
         if (!isset($data['reason']) || !in_array($data['reason'], $validReasons)) {
             $this->error('Raison de signalement invalide', 400);
         }
 
         // Creer le signalement
+        // user_id = client de la commande, provider_id = prestataire de la commande
+        // reporter_type indique qui a fait le signalement
         $reportData = [
             'order_id' => $id,
-            'user_id' => $userId,
+            'user_id' => $order['user_id'],
             'provider_id' => $order['provider_id'],
+            'reporter_type' => $reporterType,
             'reason' => $data['reason'],
             'additional_info' => $data['additional_info'] ?? null,
             'client_latitude' => $data['client_latitude'] ?? null,
@@ -115,14 +130,10 @@ class EmergencyController extends Controller
             $response['police_message'] = 'Nous avons note votre demande d\'alerte police. En cas de danger immediat, appelez le ' . self::POLICE_NUMBER;
         }
 
-        // Si c'est une urgence critique (safety), suspendre temporairement la commande
-        if ($data['reason'] === 'safety') {
-            $this->orderModel->update($id, [
-                'status' => 'paused',
-                'notes' => 'Commande suspendue suite a un signalement de securite'
-            ]);
-            $response['order_paused'] = true;
-            $response['message'] = 'URGENT: Votre signalement de securite a ete pris en compte. La prestation est suspendue. Notre equipe vous contacte immediatement.';
+        // Si c'est une urgence critique (safety ou aggression), message urgent
+        if (in_array($data['reason'], ['safety', 'aggression'])) {
+            $response['is_critical'] = true;
+            $response['message'] = 'URGENT: Votre signalement de securite a ete pris en compte. Notre equipe vous contacte immediatement. En cas de danger, appelez le ' . self::POLICE_NUMBER;
         }
 
         $this->success($response, 'Signalement enregistre');
@@ -281,15 +292,9 @@ class EmergencyController extends Controller
             $data['assigned_to'] ?? null
         );
 
-        // Si resolu, reprendre la commande si elle etait en pause
+        // Log la resolution pour le suivi
         if (($data['status'] ?? '') === 'resolved') {
-            $order = $this->orderModel->find($report['order_id']);
-            if ($order && $order['status'] === 'paused') {
-                $this->orderModel->update($order['id'], [
-                    'status' => 'in_progress',
-                    'notes' => 'Commande reprise apres resolution du signalement'
-                ]);
-            }
+            error_log("[EMERGENCY] Signalement #{$id} resolu");
         }
 
         $this->success(

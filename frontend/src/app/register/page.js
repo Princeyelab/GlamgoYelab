@@ -599,22 +599,22 @@ export default function RegisterPage() {
                   className={`${styles.input} ${errors.city ? styles.inputError : ''}`}
                 >
                   <option value="">{t('register.selectCity')}</option>
-                  <option value="Casablanca">Casablanca</option>
-                  <option value="Rabat">Rabat</option>
-                  <option value="Marrakech">Marrakech</option>
-                  <option value="Fès">Fès</option>
-                  <option value="Tanger">Tanger</option>
-                  <option value="Agadir">Agadir</option>
-                  <option value="Meknès">Meknès</option>
-                  <option value="Oujda">Oujda</option>
-                  <option value="Kenitra">Kenitra</option>
-                  <option value="Tétouan">Tétouan</option>
-                  <option value="Safi">Safi</option>
-                  <option value="Mohammédia">Mohammédia</option>
-                  <option value="El Jadida">El Jadida</option>
-                  <option value="Khouribga">Khouribga</option>
-                  <option value="Béni Mellal">Béni Mellal</option>
-                  <option value="Nador">Nador</option>
+                  <option value="Casablanca">{t('cities.casablanca')}</option>
+                  <option value="Rabat">{t('cities.rabat')}</option>
+                  <option value="Marrakech">{t('cities.marrakech')}</option>
+                  <option value="Fès">{t('cities.fes')}</option>
+                  <option value="Tanger">{t('cities.tanger')}</option>
+                  <option value="Agadir">{t('cities.agadir')}</option>
+                  <option value="Meknès">{t('cities.meknes')}</option>
+                  <option value="Oujda">{t('cities.oujda')}</option>
+                  <option value="Kenitra">{t('cities.kenitra')}</option>
+                  <option value="Tétouan">{t('cities.tetouan')}</option>
+                  <option value="Safi">{t('cities.safi')}</option>
+                  <option value="Mohammédia">{t('cities.mohammedia')}</option>
+                  <option value="El Jadida">{t('cities.eljadida')}</option>
+                  <option value="Khouribga">{t('cities.khouribga')}</option>
+                  <option value="Béni Mellal">{t('cities.benimellal')}</option>
+                  <option value="Nador">{t('cities.nador')}</option>
                 </select>
                 {errors.city && <span className={styles.error}>{errors.city}</span>}
               </div>

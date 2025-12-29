@@ -228,8 +228,9 @@ class ProviderOrderController extends Controller
     }
 
     /**
-     * Annule une commande acceptée par le prestataire
-     * Applique des pénalités et recherche un remplacement
+     * Annule ou refuse une commande par le prestataire
+     * - pending: refus simple sans pénalité
+     * - accepted/on_way: annulation avec pénalités et recherche de remplacement
      */
     public function cancel(string $orderId): void
     {
@@ -242,11 +243,32 @@ class ProviderOrderController extends Controller
             $this->error('Commande non trouvée', 404);
         }
 
+        // Log pour debug
+        error_log("[ProviderOrderController] Cancel order #{$orderId} - Status: " . $order['status']);
+
+        // Pour les commandes pending: refus simple (pas besoin d'être assigné)
+        if ($order['status'] === 'pending') {
+            $reason = $data['reason'] ?? 'Refusé par le prestataire';
+
+            // Utiliser 'cancelled' car 'rejected' n'est pas dans la contrainte CHECK
+            // On distingue par cancelled_by = 'provider' et le statut pending d'origine
+            $this->orderModel->updateStatus((int)$orderId, 'cancelled', [
+                'cancellation_reason' => $reason,
+                'cancelled_by' => 'provider',
+                'cancelled_at' => date('Y-m-d H:i:s')
+            ]);
+
+            $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+            $this->success(['order' => $updatedOrder], 'Commande refusée');
+            return;
+        }
+
+        // Pour les commandes acceptées: vérifier que c'est bien le prestataire assigné
         if ($order['provider_id'] != $providerId) {
             $this->error('Accès refusé', 403);
         }
 
-        // Seules les commandes acceptées ou en route peuvent être annulées par le prestataire
+        // Seules les commandes acceptées ou en route peuvent être annulées
         if (!in_array($order['status'], ['accepted', 'on_way'])) {
             $this->error('Impossible d\'annuler cette commande', 400);
         }

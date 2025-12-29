@@ -11,103 +11,60 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import ServiceCard from '../../src/components/features/ServiceCard';
 import SkeletonServiceCard from '../../src/components/features/SkeletonServiceCard';
 import Badge from '../../src/components/ui/Badge';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import {
-  setServices,
   setCategories,
   toggleFavorite,
   setSelectedCategory,
   selectServices,
   selectFavorites,
   selectSelectedCategory,
+  selectCategories,
+  selectServicesLoading,
+  fetchServices,
+  fetchCategories,
 } from '../../src/lib/store/slices/servicesSlice';
-
-// VRAIES DONNEES APP WEB
-import { SERVICES } from '../../src/lib/constants/services';
 import { CATEGORIES } from '../../src/lib/constants/categories';
-import { Service } from '../../src/types/service';
-
-// Test Agent
-import { testAgent, TestReport } from '../../src/lib/testing/testAgent';
-import TestReportModal from '../../src/components/debug/TestReportModal';
-import { shouldRunAutoTests } from '../../src/lib/constants/config';
+import { Service, Category } from '../../src/types/service';
 
 export default function ServicesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
 
   // Redux state
   const services = useAppSelector(selectServices);
   const favorites = useAppSelector(selectFavorites);
   const selectedCategory = useAppSelector(selectSelectedCategory);
+  const apiCategories = useAppSelector(selectCategories);
 
   // Local state - search query reste local pour eviter re-render
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
 
-  // Test Agent state
-  const [testReport, setTestReport] = useState<TestReport | null>(null);
-  const [showTestReport, setShowTestReport] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-
-  // Load services on mount (avec tests auto)
+  // Appliquer le filtre de categorie si passe en parametre
   useEffect(() => {
-    initializeScreen();
+    if (categoryId) {
+      dispatch(setSelectedCategory(Number(categoryId)));
+    }
+  }, [categoryId]);
+
+  // Load services on mount
+  useEffect(() => {
+    loadServices();
   }, []);
-
-  const initializeScreen = async () => {
-    if (shouldRunAutoTests()) {
-      await runTests();
-    } else {
-      await loadServices();
-    }
-  };
-
-  const runTests = async () => {
-    setIsTesting(true);
-    setIsLoading(true);
-
-    try {
-      const report = await testAgent.runAllTests();
-      setTestReport(report);
-
-      if (report.failed > 0) {
-        // Tests echoues - afficher rapport
-        setShowTestReport(true);
-      } else {
-        // Tests OK - charger services
-        await loadServices();
-      }
-    } catch (error) {
-      console.error('Test error:', error);
-      // En cas d'erreur, charger quand meme les donnees locales
-      await loadServices();
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const handleContinueAfterTests = async () => {
-    setShowTestReport(false);
-    await loadServices();
-  };
-
-  const handleRetryTests = async () => {
-    setShowTestReport(false);
-    await runTests();
-  };
 
   const loadServices = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      dispatch(setServices(SERVICES));
-      dispatch(setCategories(CATEGORIES));
+      // Charger depuis l'API (vrais IDs de la base de donnees)
+      await dispatch(fetchServices(undefined)).unwrap();
+      await dispatch(fetchCategories()).unwrap();
     } catch (error) {
       console.error('Error loading services:', error);
     } finally {
@@ -138,7 +95,12 @@ export default function ServicesScreen() {
     let filtered = services;
 
     if (selectedCategory) {
-      filtered = filtered.filter(s => s.category_id === selectedCategory);
+      // Inclure les services de la categorie selectionnee ET de ses sous-categories
+      const subCategoryIds = apiCategories
+        .filter(c => c.parent_id === selectedCategory)
+        .map(c => c.id);
+      const categoryIds = [selectedCategory, ...subCategoryIds];
+      filtered = filtered.filter(s => categoryIds.includes(s.category_id));
     }
 
     if (searchText.trim()) {
@@ -151,11 +113,21 @@ export default function ServicesScreen() {
     }
 
     return filtered;
-  }, [services, selectedCategory, searchText]);
+  }, [services, selectedCategory, searchText, apiCategories]);
 
   // Render Service Card
   const renderServiceCard = ({ item }: { item: Service }) => {
-    const category = item.category || { id: item.category_id || 0, name: 'Service', color: colors.gray[500] };
+    // Trouver la vraie categorie depuis l'API
+    let category = item.category;
+    if (!category && item.category_id) {
+      const apiCat = apiCategories.find(c => c.id === item.category_id);
+      if (apiCat) {
+        category = { id: apiCat.id, name: apiCat.name, color: apiCat.color };
+      }
+    }
+    if (!category) {
+      category = { id: item.category_id || 0, name: 'Service', color: colors.gray[500] };
+    }
     const provider = item.provider || { id: 0, name: 'Prestataire' };
 
     return (
@@ -208,11 +180,6 @@ export default function ServicesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.skeletonHeader}>
-          {isTesting && (
-            <View style={styles.testingBanner}>
-              <Text style={styles.testingText}>🧪 Test API en cours...</Text>
-            </View>
-          )}
           <View style={styles.skeletonTitle} />
           <View style={styles.skeletonSubtitle} />
           <View style={styles.skeletonSearch} />
@@ -241,7 +208,7 @@ export default function ServicesScreen() {
         {/* Title */}
         <Text style={styles.title}>Services GlamGo</Text>
         <Text style={styles.subtitle}>
-          {SERVICES.length} services a domicile a Marrakech
+          {services.length} services a domicile a Marrakech
         </Text>
 
         {/* Search Bar - State local */}
@@ -286,29 +253,40 @@ export default function ServicesScreen() {
                 !selectedCategory && styles.categoryChipTextActive,
               ]}
             >
-              Tous ({SERVICES.length})
+              Tous ({services.length})
             </Text>
           </TouchableOpacity>
 
-          {CATEGORIES.map((category) => {
-            const count = SERVICES.filter(s => s.category_id === category.id).length;
+          {CATEGORIES.map((localCat) => {
+            // Trouver la categorie API correspondante par slug
+            const apiCat = apiCategories.find(c => c.slug === localCat.slug);
+            const apiCatId = apiCat?.id;
+
+            // Compter services de cette categorie ET de ses sous-categories
+            const subCatIds = apiCat ? apiCategories.filter(c => c.parent_id === apiCat.id).map(c => c.id) : [];
+            const allCatIds = apiCatId ? [apiCatId, ...subCatIds] : [];
+            const count = services.filter(s => allCatIds.includes(s.category_id)).length;
+
+            // Utiliser l'ID de l'API pour le filtrage
+            const filterCatId = apiCatId ? Number(apiCatId) : Number(localCat.id);
+
             return (
               <TouchableOpacity
-                key={category.id}
+                key={localCat.id}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category.id && styles.categoryChipActive,
+                  selectedCategory === filterCatId && styles.categoryChipActive,
                 ]}
-                onPress={() => handleCategoryFilter(Number(category.id))}
+                onPress={() => handleCategoryFilter(filterCatId)}
               >
-                <Text style={styles.categoryChipIcon}>{category.icon}</Text>
+                <Text style={styles.categoryChipIcon}>{localCat.icon}</Text>
                 <Text
                   style={[
                     styles.categoryChipText,
-                    selectedCategory === category.id && styles.categoryChipTextActive,
+                    selectedCategory === filterCatId && styles.categoryChipTextActive,
                   ]}
                 >
-                  {category.name} ({count})
+                  {localCat.name} ({count})
                 </Text>
               </TouchableOpacity>
             );
@@ -349,15 +327,6 @@ export default function ServicesScreen() {
         maxToRenderPerBatch={10}
         windowSize={10}
         showsVerticalScrollIndicator={false}
-      />
-
-      {/* Test Report Modal */}
-      <TestReportModal
-        visible={showTestReport}
-        report={testReport}
-        onClose={() => setShowTestReport(false)}
-        onContinue={handleContinueAfterTests}
-        onRetry={handleRetryTests}
       />
     </KeyboardAvoidingView>
   );
@@ -498,20 +467,6 @@ const styles = StyleSheet.create({
   },
   clearSearchText: {
     color: colors.white,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-
-  // Testing Banner
-  testingBanner: {
-    backgroundColor: '#EFF6FF',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    alignItems: 'center',
-  },
-  testingText: {
-    color: '#1E40AF',
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
   },

@@ -13,21 +13,8 @@ class ApiClient {
     this.rememberMe = false;
     this.isProvider = false;
     this._currentTokenType = null;
-
-    // Charger le token au demarrage selon last_login_type
-    // Cela garantit que la session persiste apres rafraichissement
-    if (typeof window !== 'undefined') {
-      const lastLoginType = localStorage.getItem('last_login_type');
-
-      if (lastLoginType === 'provider') {
-        this._loadProviderToken();
-        if (this.token) this._currentTokenType = 'provider';
-      } else if (lastLoginType === 'client') {
-        this._loadClientToken();
-        if (this.token) this._currentTokenType = 'client';
-      }
-      // Si pas de last_login_type, on ne charge rien (nouvel utilisateur)
-    }
+    // Le token sera charge par loadTokenForContext() dans AuthContext
+    // selon le contexte de la page (client vs provider)
   }
 
   /**
@@ -97,33 +84,25 @@ class ApiClient {
     this.isProvider = isProvider;
 
     const tokenKey = isProvider ? 'provider_token' : 'auth_token';
-    const altTokenKey = isProvider ? 'auth_token' : 'provider_token';
 
     if (typeof window !== 'undefined') {
       if (token) {
         // Sauvegarder le type de connexion pour le rechargement de page
         localStorage.setItem('last_login_type', isProvider ? 'provider' : 'client');
+        this._currentTokenType = isProvider ? 'provider' : 'client';
 
         if (remember) {
           localStorage.setItem(tokenKey, token);
           sessionStorage.removeItem(tokenKey);
-          // Nettoyer l'autre type de token
-          localStorage.removeItem(altTokenKey);
-          sessionStorage.removeItem(altTokenKey);
         } else {
           sessionStorage.setItem(tokenKey, token);
           localStorage.removeItem(tokenKey);
-          // Nettoyer l'autre type de token
-          localStorage.removeItem(altTokenKey);
-          sessionStorage.removeItem(altTokenKey);
         }
+        // NE PAS nettoyer l'autre type de token - permet les sessions simultanees client/provider
       } else {
+        // Nettoyer uniquement le token du type actuel
         localStorage.removeItem(tokenKey);
-        localStorage.removeItem(altTokenKey);
-        localStorage.removeItem('token');
-        localStorage.removeItem('last_login_type');
         sessionStorage.removeItem(tokenKey);
-        sessionStorage.removeItem(altTokenKey);
       }
     }
   }
@@ -143,19 +122,34 @@ class ApiClient {
   }
 
   /**
-   * Supprimer le token d'authentification
+   * Supprimer le token d'authentification du contexte actuel uniquement
    */
   clearToken() {
+    const wasProvider = this.isProvider;
+    const tokenKey = wasProvider ? 'provider_token' : 'auth_token';
+
     this.token = null;
     this.rememberMe = false;
     this.isProvider = false;
+    this._currentTokenType = null;
+
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('provider_token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('last_login_type');
-      sessionStorage.removeItem('auth_token');
-      sessionStorage.removeItem('provider_token');
+      // Nettoyer uniquement le token du contexte actuel
+      localStorage.removeItem(tokenKey);
+      sessionStorage.removeItem(tokenKey);
+      localStorage.removeItem('token'); // legacy
+
+      // Mettre a jour last_login_type si on a encore un autre token
+      const otherToken = wasProvider
+        ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'))
+        : (localStorage.getItem('provider_token') || sessionStorage.getItem('provider_token'));
+
+      if (otherToken) {
+        // Basculer vers l'autre type
+        localStorage.setItem('last_login_type', wasProvider ? 'client' : 'provider');
+      } else {
+        localStorage.removeItem('last_login_type');
+      }
     }
   }
 
@@ -350,8 +344,12 @@ class ApiClient {
     return this.get(`/orders/${orderId}/status`);
   }
 
-  async cancelOrder(orderId) {
-    return this.patch(`/orders/${orderId}/cancel`);
+  async getCancellationInfo(orderId) {
+    return this.get(`/orders/${orderId}/cancellation-info`);
+  }
+
+  async cancelOrder(orderId, data = {}) {
+    return this.patch(`/orders/${orderId}/cancel`, data);
   }
 
   async confirmArrival(orderId) {

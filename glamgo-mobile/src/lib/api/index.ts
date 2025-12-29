@@ -105,3 +105,40 @@ export type {
   Review,
   Favorite,
 } from './bookingsAPI';
+
+// Provider API
+export { default as providerAPI } from './providerAPI';
+export {
+  registerProvider,
+  loginProvider,
+  getProviderProfile,
+  updateProviderProfile,
+  uploadProviderImage,
+  uploadProviderDocuments,
+  getProviderServices,
+  addProviderService,
+  addProviderServices,
+  removeProviderService,
+  getProviderOrders,
+  getProviderOrderDetail,
+  acceptOrder,
+  startOrder,
+  completeOrder,
+  cancelOrder,
+  updateProviderLocation,
+  getClientLocation,
+  getProviderNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getUnreadNotificationsCount,
+  getAvailableOrders,
+  getMyBids,
+} from './providerAPI';
+export type {
+  ProviderRegisterData,
+  Provider as ProviderProfile,
+  ProviderAuthResponse,
+  ProviderService,
+  ProviderOrder,
+  DocumentUpload,
+} from './providerAPI';

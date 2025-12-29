@@ -4,6 +4,7 @@
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { REHYDRATE } from 'redux-persist';
 import {
   login,
   register,
@@ -12,6 +13,7 @@ import {
   updateProfile,
   User as APIUser,
 } from '../../api/authAPI';
+import { loginProvider } from '../../api/providerAPI';
 import { handleAPIError, logError } from '../../utils/errorHandler';
 import { DEMO_MODE, DEMO_USER, DEMO_CREDENTIALS } from '../../config/appConfig';
 
@@ -24,6 +26,7 @@ interface User {
   last_name?: string;
   email: string;
   phone?: string;
+  address?: string;
   avatar?: string;
   role: 'user' | 'provider' | 'admin';
   email_verified_at?: string;
@@ -57,18 +60,24 @@ const initialState: AuthState = {
 
 /**
  * Login utilisateur
+ * Utilise le type de compte choisi (client ou prestataire)
  * En DEMO_MODE, accepte n'importe quel email/password
  */
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+  async (credentials: { email: string; password: string; accountType?: 'client' | 'provider' }, { rejectWithValue }) => {
+    const { email, password, accountType = 'client' } = credentials;
+
     // === DEMO MODE ===
     if (DEMO_MODE) {
-      console.log('🎭 MODE DEMO: Connexion automatique');
-      // Simuler un delai reseau
+      console.log('MODE DEMO: Connexion automatique');
       await new Promise(resolve => setTimeout(resolve, 500));
       return {
-        user: DEMO_USER,
+        user: {
+          ...DEMO_USER,
+          role: accountType === 'provider' ? 'provider' as const : 'user' as const,
+          is_provider: accountType === 'provider',
+        },
         token: 'demo-token-123',
         refreshToken: 'demo-refresh-token-456',
       };
@@ -76,30 +85,53 @@ export const loginUser = createAsyncThunk(
 
     // === MODE PRODUCTION ===
     try {
-      const response = await login(credentials);
+      if (accountType === 'provider') {
+        // Login prestataire
+        console.log('[loginUser] Connexion prestataire...');
+        const providerResponse = await loginProvider({ email, password });
 
-      if (response.success && response.data) {
-        const { user, token, refresh_token } = response.data;
-        return {
-          user: {
-            ...user,
-            role: 'user' as const,
-          },
-          token,
-          refreshToken: refresh_token,
-        };
+        if (providerResponse.success && providerResponse.data) {
+          const { provider, token, refresh_token } = providerResponse.data;
+          return {
+            user: {
+              id: provider.id,
+              name: provider.business_name || `${provider.first_name || ''} ${provider.last_name || ''}`.trim(),
+              first_name: provider.first_name,
+              last_name: provider.last_name,
+              email: provider.email,
+              phone: provider.phone,
+              avatar: provider.avatar || provider.profile_image,
+              role: 'provider' as const,
+              is_provider: true,
+              provider_id: provider.id,
+            },
+            token,
+            refreshToken: refresh_token,
+          };
+        }
+        return rejectWithValue(providerResponse.message || 'Connexion echouee');
+      } else {
+        // Login client
+        console.log('[loginUser] Connexion client...');
+        const response = await login({ email, password });
+
+        if (response.success && response.data) {
+          const { user, token, refresh_token } = response.data;
+          return {
+            user: {
+              ...user,
+              role: 'user' as const,
+            },
+            token,
+            refreshToken: refresh_token,
+          };
+        }
+        return rejectWithValue(response.message || 'Connexion echouee');
       }
-
-      return rejectWithValue(response.message || 'Connexion echouee');
     } catch (error: any) {
       logError('loginUser', error);
-      // En cas d'erreur API, fallback sur demo
-      console.log('🎭 API indisponible, fallback DEMO');
-      return {
-        user: DEMO_USER,
-        token: 'demo-token-123',
-        refreshToken: 'demo-refresh-token-456',
-      };
+      const errorMessage = error?.response?.data?.message || error?.message || 'Email ou mot de passe incorrect';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -111,12 +143,37 @@ export const loginUser = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (
-    userData: { first_name: string; last_name: string; email: string; phone?: string; password: string },
+    userData: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone?: string;
+      password: string;
+      role?: 'client' | 'provider';
+      // Client-specific fields
+      date_of_birth?: string;
+      address?: string;
+      city?: string;
+      latitude?: number;
+      longitude?: number;
+      preferred_payment_method?: 'card' | 'cash';
+      preferred_services?: number[];
+      terms_accepted_at?: string | null;
+      // Provider-specific fields
+      business_name?: string;
+      categories?: number[];
+      experience?: string;
+      bio?: string;
+      intervention_radius?: number;
+      documents?: string[];
+    },
     { rejectWithValue }
   ) => {
+    const isProvider = userData.role === 'provider';
+
     // === DEMO MODE ===
     if (DEMO_MODE) {
-      console.log('🎭 MODE DEMO: Inscription simulee');
+      console.log('MODE DEMO: Inscription simulee -', userData.role || 'client');
       await new Promise(resolve => setTimeout(resolve, 500));
       return {
         user: {
@@ -126,6 +183,8 @@ export const registerUser = createAsyncThunk(
           name: `${userData.first_name} ${userData.last_name}`,
           email: userData.email,
           phone: userData.phone,
+          role: isProvider ? 'provider' as const : 'user' as const,
+          is_provider: isProvider,
         },
         token: 'demo-token-123',
         refreshToken: 'demo-refresh-token-456',
@@ -141,7 +200,8 @@ export const registerUser = createAsyncThunk(
         return {
           user: {
             ...user,
-            role: 'user' as const,
+            role: isProvider ? 'provider' as const : 'user' as const,
+            is_provider: isProvider,
           },
           token,
           refreshToken: refresh_token,
@@ -151,18 +211,8 @@ export const registerUser = createAsyncThunk(
       return rejectWithValue(response.message || 'Inscription echouee');
     } catch (error: any) {
       logError('registerUser', error);
-      // Fallback demo
-      return {
-        user: {
-          ...DEMO_USER,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          name: `${userData.first_name} ${userData.last_name}`,
-          email: userData.email,
-        },
-        token: 'demo-token-123',
-        refreshToken: 'demo-refresh-token-456',
-      };
+      const errorMessage = error?.response?.data?.message || error?.message || 'Inscription echouee';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -186,7 +236,6 @@ export const logoutUser = createAsyncThunk(
 
 /**
  * Recuperer le profil utilisateur (check auth)
- * En DEMO_MODE, retourne l'utilisateur demo
  */
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
@@ -205,8 +254,7 @@ export const fetchCurrentUser = createAsyncThunk(
       };
     } catch (error: any) {
       logError('fetchCurrentUser', error);
-      // Fallback demo au lieu d'erreur
-      return DEMO_USER;
+      return rejectWithValue('Session expiree');
     }
   }
 );
@@ -216,7 +264,7 @@ export const fetchCurrentUser = createAsyncThunk(
  */
 export const updateUserProfile = createAsyncThunk(
   'auth/updateProfile',
-  async (data: { name?: string; phone?: string }, { rejectWithValue }) => {
+  async (data: { first_name?: string; last_name?: string; phone?: string; address?: string; avatar?: string }, { rejectWithValue }) => {
     try {
       const user = await updateProfile(data);
       return {
@@ -266,6 +314,19 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // === REHYDRATE - Reset isLoading quand l'app redemarre ===
+    builder.addCase(REHYDRATE, (state, action: any) => {
+      // Si on a des donnees persistees, les fusionner mais forcer isLoading a false
+      if (action.payload?.auth) {
+        return {
+          ...action.payload.auth,
+          isLoading: false, // Toujours reset isLoading
+          error: null, // Aussi reset les erreurs
+        };
+      }
+      return state;
+    });
+
     // === LOGIN ===
     builder
       .addCase(loginUser.pending, (state) => {
@@ -351,7 +412,12 @@ const authSlice = createSlice({
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
+        // Fusionner avec les données existantes pour ne pas perdre role, is_provider, etc.
+        if (state.user) {
+          state.user = { ...state.user, ...action.payload };
+        } else {
+          state.user = action.payload;
+        }
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;

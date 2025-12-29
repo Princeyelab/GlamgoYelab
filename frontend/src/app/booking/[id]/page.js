@@ -19,13 +19,15 @@ import { usePriceCalculation } from '@/hooks/usePriceCalculation';
 import { useClientLocation } from '@/hooks/useNearbyProviders';
 import NightShiftWarning from '@/components/NightShiftWarning';
 import { useNightShiftDetection } from '@/hooks/useNightShiftDetection';
+import DatePicker from '@/components/DatePicker/DatePicker';
+import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
 export default function BookingPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
-  const { t, language, translateDynamicBatch } = useLanguage();
+  const { user, loading: authLoading, checkAuth } = useAuth();
+  const { t, language, translateDynamicBatch, isRTL, toArabicNumerals } = useLanguage();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -88,11 +90,28 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     loading: nightLoading
   } = useNightShiftDetection(scheduledDateTime, service?.duration_minutes ? Math.ceil(service.duration_minutes / 60) : 2);
 
+  // Au montage, forcer une re-vérification de l'auth pour s'assurer que le token est toujours valide
+  useEffect(() => {
+    checkAuth(true); // forceCheck = true pour re-vérifier même si déjà checked
+  }, []);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push(`/login?redirect=/booking/${params.id}`);
     }
   }, [user, authLoading, router, params.id]);
+
+  // Pré-remplir l'adresse avec celle du profil utilisateur
+  useEffect(() => {
+    if (user && user.address && !formData.address) {
+      setFormData(prev => ({
+        ...prev,
+        address: user.address,
+        latitude: user.latitude || null,
+        longitude: user.longitude || null,
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (params.id) {
@@ -156,6 +175,8 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     if (provider?.price_breakdown) {
       setPriceBreakdown(provider.price_breakdown);
     }
+    // Fermer la liste après sélection pour afficher la bannière
+    setShowProviders(false);
   };
 
   const toggleProvidersView = async () => {
@@ -200,6 +221,12 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       return;
     }
 
+    // Validation prestataire obligatoire
+    if (!selectedProvider) {
+      setError(t('bookingPage.selectProviderRequired'));
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -207,6 +234,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       const scheduledAt = `${formData.date} ${formData.time}:00`;
       const response = await apiClient.createOrder({
         service_id: parseInt(params.id),
+        provider_id: selectedProvider.id, // ID du prestataire sélectionné
         address: formData.address,
         latitude: formData.latitude,
         longitude: formData.longitude,
@@ -285,7 +313,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
   const imageUrl = getServiceImageUrl(service, '600x400');
   const displayPrice = priceBreakdown?.total || selectedFormula?.calculated_price || service.price || service.base_price;
-  const displayDuration = service.estimated_duration || (service.duration_minutes ? `${service.duration_minutes} min` : null);
+  const displayDuration = service.estimated_duration || (service.duration_minutes ? `${toArabicNumerals(service.duration_minutes)} ${t('common.min')}` : null);
 
   return (
     <div className={styles.bookingPage}>
@@ -475,15 +503,14 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     <label htmlFor="date" className={styles.label}>
                       {t('bookingPage.date')} <span className={styles.required}>*</span>
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       id="date"
                       name="date"
                       value={formData.date}
-                      onChange={handleChange}
-                      min={getMinDate()}
-                      max={getMaxDate()}
-                      className={styles.input}
+                      onChange={(date) => setFormData(prev => ({ ...prev, date }))}
+                      minDate={getMinDate()}
+                      maxDate={getMaxDate()}
+                      placeholder={t('datePicker.selectDate')}
                       required
                     />
                   </div>
@@ -601,14 +628,22 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     <label htmlFor="address" className={styles.label}>
                       {t('bookingPage.address')} <span className={styles.required}>*</span>
                     </label>
-                    <input
-                      type="text"
+                    <AddressAutocomplete
                       id="address"
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
+                      onPlaceSelected={({ address, latitude, longitude }) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          address: address || prev.address,
+                          latitude: latitude || prev.latitude,
+                          longitude: longitude || prev.longitude,
+                        }));
+                        // Réinitialiser le prestataire sélectionné car la distance change
+                        setSelectedProvider(null);
+                      }}
                       className={styles.input}
-                      placeholder="Ex: 123 Avenue Mohammed V, Guéliz, Marrakech"
                       required
                     />
                   </div>
@@ -641,11 +676,11 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       </div>
                     )}
 
-                    {selectedProvider && (
+                    {selectedProvider && !showProviders && (
                       <div className={styles.selectedProviderBanner}>
                         <span className={styles.checkIcon}>✓</span>
                         <div className={styles.providerInfo}>
-                          <strong>{selectedProvider.name}</strong>
+                          <strong>{selectedProvider.first_name} {selectedProvider.last_name}</strong>
                           <span>À {selectedProvider.distance_formatted || `${selectedProvider.distance?.toFixed(1)} km`}</span>
                         </div>
                         <button
@@ -792,7 +827,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {selectedProvider && (
                       <div className={styles.summaryItem}>
                         <span>{t('bookingPage.provider')}</span>
-                        <span>{selectedProvider.name} ({selectedProvider.distance_formatted || `${selectedProvider.distance?.toFixed(1)} km`})</span>
+                        <span>{selectedProvider.first_name} {selectedProvider.last_name} ({selectedProvider.distance_formatted || `${selectedProvider.distance?.toFixed(1)} km`})</span>
                       </div>
                     )}
 
@@ -906,11 +941,13 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                 size="large"
                 fullWidth
                 loading={submitting}
-                disabled={submitting}
+                disabled={submitting || (!isBiddingMode && !selectedProvider)}
               >
                 {submitting
                   ? (isBiddingMode ? t('bookingPage.creating') : t('bookingPage.booking'))
-                  : (isBiddingMode ? `💰 ${t('bookingPage.createRequest')}` : t('bookingPage.confirmBooking'))}
+                  : !isBiddingMode && !selectedProvider
+                    ? t('bookingPage.selectProviderRequired')
+                    : (isBiddingMode ? `💰 ${t('bookingPage.createRequest')}` : t('bookingPage.confirmBooking'))}
               </Button>
             </form>
           </div>

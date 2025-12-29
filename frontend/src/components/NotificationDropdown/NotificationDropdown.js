@@ -7,7 +7,7 @@ import apiClient from '@/lib/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function NotificationDropdown() {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, toArabicNumerals } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -169,7 +169,7 @@ export default function NotificationDropdown() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+          <span className={styles.badge}>{unreadCount > 99 ? toArabicNumerals('99+') : toArabicNumerals(unreadCount)}</span>
         )}
       </button>
 

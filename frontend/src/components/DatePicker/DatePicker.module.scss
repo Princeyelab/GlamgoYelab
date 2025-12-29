@@ -1,0 +1,196 @@
+@import '@/styles/variables';
+
+// Variables locales pour le thème sombre
+$dp-text-color: #FFFFFF;
+$dp-text-muted: rgba(255, 255, 255, 0.6);
+
+.datePicker {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.focused {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+}
+
+.icon {
+  font-size: 1.1rem;
+}
+
+.value {
+  flex: 1;
+  color: $dp-text-color;
+  font-size: 0.95rem;
+}
+
+.placeholder {
+  flex: 1;
+  color: $dp-text-muted;
+  font-size: 0.95rem;
+}
+
+.arrow {
+  color: $dp-text-muted;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.calendar {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: $radius-sm;
+  color: $dp-text-color;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: $primary-color;
+  }
+}
+
+.monthYear {
+  font-weight: 600;
+  font-size: 1rem;
+  color: $dp-text-color;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: $spacing-sm;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $dp-text-muted;
+  padding: $spacing-xs 0;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: $dp-text-color;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(.empty):not(.disabled) {
+    background: rgba($primary-color, 0.2);
+  }
+
+  &.empty {
+    cursor: default;
+  }
+
+  &.disabled {
+    color: rgba(255, 255, 255, 0.2);
+    cursor: not-allowed;
+  }
+
+  &.today {
+    border: 1px solid $primary-color;
+    font-weight: 600;
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+    color: white;
+    font-weight: 600;
+
+    &:hover {
+      background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
+    }
+  }
+}
+
+// RTL Support
+.rtl {
+  .input {
+    flex-direction: row-reverse;
+  }
+
+  .calendar {
+    direction: rtl;
+  }
+
+  .header {
+    flex-direction: row-reverse;
+  }
+}

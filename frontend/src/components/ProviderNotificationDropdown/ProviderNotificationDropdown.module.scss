@@ -143,8 +143,9 @@
 .notificationMessage {
   font-size: $font-size-xs;
   color: $gray-600;
-  line-height: 1.4;
+  line-height: 1.5;
   margin-bottom: 4px;
+  white-space: pre-line; // Preserve line breaks from backend
 }
 
 .notificationTime {
@@ -166,5 +167,260 @@
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+// Styles pour les notifications cliquables
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    background-color: $gray-100;
+  }
+}
+
+.detailsArrow {
+  color: $gray-400;
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: auto;
+  padding-left: $spacing-sm;
+}
+
+// Modal d'annulation
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: $spacing-md;
+}
+
+.cancellationModal {
+  background: $white;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg;
+  border-bottom: 1px solid $gray-200;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-radius: $radius-xl $radius-xl 0 0;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    color: #991b1b;
+  }
+}
+
+.closeModal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: $gray-500;
+  padding: 4px;
+  line-height: 1;
+
+  &:hover {
+    color: $gray-700;
+  }
+}
+
+.modalBody {
+  padding: $spacing-lg;
+}
+
+.infoSection {
+  margin-bottom: $spacing-lg;
+
+  h4 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-sm;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $spacing-xs;
+  background: $gray-50;
+  border-radius: $radius-md;
+}
+
+.label {
+  font-size: 11px;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-size: $font-size-sm;
+  color: $gray-800;
+  font-weight: $font-weight-medium;
+}
+
+.reasonBox {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  color: #92400e;
+  font-size: $font-size-sm;
+}
+
+.financialBox {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+}
+
+.financialRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+  font-size: $font-size-sm;
+  color: $gray-700;
+
+  &:not(:last-child) {
+    border-bottom: 1px dashed $gray-200;
+  }
+}
+
+.totalRow {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 2px solid $gray-300 !important;
+  border-bottom: none !important;
+}
+
+.compensationAmount {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: #059669;
+  background: #d1fae5;
+  padding: 4px 12px;
+  border-radius: $radius-full;
+}
+
+.compensationNote {
+  margin-top: $spacing-md;
+  padding: $spacing-sm;
+  background: #eff6ff;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  color: #1e40af;
+  text-align: center;
+}
+
+.noFeeMessage {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $gray-100;
+  border-radius: $radius-md;
+  color: $gray-600;
+  font-size: $font-size-sm;
+}
+
+.noFeeIcon {
+  font-size: 20px;
+}
+
+.statusInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-50;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+}
+
+.statusLabel {
+  color: $gray-600;
+}
+
+.statusBadge {
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.accepted {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.on_way {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+}
+
+.modalFooter {
+  padding: $spacing-md $spacing-lg;
+  border-top: 1px solid $gray-200;
+  display: flex;
+  justify-content: center;
+}
+
+.closeButton {
+  background: $gray-800;
+  color: $white;
+  border: none;
+  padding: $spacing-sm $spacing-xl;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: $gray-700;
   }
 }

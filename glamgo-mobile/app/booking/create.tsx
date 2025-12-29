@@ -1,3 +1,8 @@
+/**
+ * Create Booking Screen - GlamGo Mobile
+ * Ecran de reservation complet avec formules, prix et paiement
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -17,6 +22,14 @@ import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import Loading from '../../src/components/ui/Loading';
 import DateTimePicker from '../../src/components/ui/DateTimePicker';
+import FormulaSelector, { FormulaType, getFormulaById } from '../../src/components/features/FormulaSelector';
+import PaymentMethodSelector, { PaymentMethod } from '../../src/components/features/PaymentMethodSelector';
+import PriceBreakdownCard from '../../src/components/features/PriceBreakdownCard';
+import AddressAutocomplete, { AddressData } from '../../src/components/features/AddressAutocomplete';
+import ProviderSelector, { Provider } from '../../src/components/features/ProviderSelector';
+import NearbyProvidersMap, { NearbyProvider } from '../../src/components/features/NearbyProvidersMap';
+import { usePriceCalculation } from '../../src/lib/hooks/usePriceCalculation';
+import { getNearbyProviders } from '../../src/lib/api/servicesAPI';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { createBooking } from '../../src/lib/store/slices/bookingsSlice';
@@ -27,6 +40,7 @@ import {
 } from '../../src/lib/store/slices/servicesSlice';
 import { selectUser } from '../../src/lib/store/slices/authSlice';
 import { showToast } from '../../src/lib/store/slices/uiSlice';
+import { hapticFeedback } from '../../src/lib/utils/haptics';
 
 export default function CreateBookingScreen() {
   const { service_id } = useLocalSearchParams<{ service_id: string }>();
@@ -38,29 +52,180 @@ export default function CreateBookingScreen() {
   const user = useAppSelector(selectUser);
 
   // Find service from list or use current
-  const service = services.find(s => s.id === Number(service_id)) || currentService;
+  const service = services.find(s => String(s.id) === String(service_id)) || currentService;
 
   // Form state
-  const [selectedDateTime, setSelectedDateTime] = useState<Date>(new Date());
+  const [selectedFormula, setSelectedFormula] = useState<FormulaType>('standard');
+  const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
+    const now = new Date();
+    // Si apres 19h, proposer demain a 10h, sinon aujourd'hui dans 1h (arrondi a 30min)
+    if (now.getHours() >= 19) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      return tomorrow;
+    }
+    // Proposer dans 1h minimum, arrondi a 30min
+    const suggested = new Date();
+    suggested.setHours(suggested.getHours() + 1);
+    suggested.setMinutes(suggested.getMinutes() >= 30 ? 30 : 0, 0, 0);
+    // Minimum 8h
+    if (suggested.getHours() < 8) {
+      suggested.setHours(8, 0, 0, 0);
+    }
+    return suggested;
+  });
   const [address, setAddress] = useState('');
+  const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!service);
+
+  // Providers state
+  const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
 
   // Errors
   const [dateTimeError, setDateTimeError] = useState('');
   const [addressError, setAddressError] = useState('');
 
+  // Use provider's distance for pricing
+  const distanceKm = selectedProvider?.distance || 0;
+
+  // Price calculation
+  const priceBreakdown = usePriceCalculation({
+    basePrice: service?.price || 0,
+    formula: selectedFormula,
+    selectedDateTime: selectedDateTime,
+    distance: distanceKm,
+    includeServiceFee: true,
+  });
+
+  // Handle address selection
+  const handleAddressSelect = (data: AddressData) => {
+    setAddressData(data);
+    setAddressError('');
+    // Reset provider when address changes
+    setSelectedProvider(null);
+  };
+
+  // Fetch nearby providers when address is selected
   useEffect(() => {
-    if (!service && service_id) {
+    if (addressData?.coords && service_id) {
+      fetchNearbyProviders();
+    }
+  }, [addressData, service_id]);
+
+  const fetchNearbyProviders = async () => {
+    if (!addressData?.coords) return;
+
+    setLoadingProviders(true);
+    setAvailableProviders([]);
+
+    try {
+      console.log('[Booking] Searching providers for service:', service_id, 'at:', addressData.coords);
+      const providersResponse = await getNearbyProviders({
+        latitude: addressData.coords.latitude,
+        longitude: addressData.coords.longitude,
+        service_id: Number(service_id),
+        radius: 100, // 100km radius for testing
+      });
+      console.log('[Booking] Providers response:', providersResponse);
+
+      // Ensure providers is an array
+      const providers = Array.isArray(providersResponse) ? providersResponse : [];
+
+      if (providers.length === 0) {
+        console.log('[Booking] No providers found for this service/location');
+        setAvailableProviders([]);
+        return;
+      }
+
+      // Transform API response to Provider type
+      const formattedProviders: Provider[] = providers.map((p: any) => {
+        const name = p.name || p.business_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Prestataire';
+        // Generate initials from name
+        const nameParts = name.split(' ').filter(Boolean);
+        const initials = nameParts.length >= 2
+          ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
+          : name.substring(0, 2).toUpperCase();
+
+        return {
+          id: p.id,
+          name,
+          initials,
+          avatar: p.avatar || p.profile_image,
+          rating: p.rating || p.average_rating || 0,
+          reviewsCount: p.reviews_count || p.total_reviews || 0,
+          distance: p.distance || 0,
+          price: service?.price || 0,
+          specialties: p.specialties || [],
+          isOnline: p.is_online ?? p.is_available ?? true,
+          isVerified: p.is_verified ?? true,
+          completedServices: p.completed_orders || p.completed_services || 0,
+          responseTime: p.response_time,
+          location: (p.latitude && p.longitude) ? {
+            latitude: parseFloat(p.latitude),
+            longitude: parseFloat(p.longitude),
+          } : undefined,
+        };
+      });
+
+      setAvailableProviders(formattedProviders);
+    } catch (error) {
+      console.error('Error fetching nearby providers:', error);
+      // Fallback: show empty state with message
+      setAvailableProviders([]);
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  // Handle provider selection
+  const handleProviderSelect = (provider: Provider) => {
+    setSelectedProvider(provider);
+    hapticFeedback.selection();
+  };
+
+  // Check if night hours
+  const isNightHours = selectedDateTime.getHours() >= 20 || selectedDateTime.getHours() < 8;
+
+  // Auto-select night formula if night hours selected
+  useEffect(() => {
+    if (isNightHours && selectedFormula !== 'night' && selectedFormula !== 'urgent') {
+      Alert.alert(
+        'Horaire de nuit detecte',
+        'Vous avez selectionne un horaire de nuit (20h-8h). Voulez-vous appliquer la formule Nuit (+25%) ?',
+        [
+          { text: 'Non, garder Standard', style: 'cancel' },
+          {
+            text: 'Oui, appliquer Nuit',
+            onPress: () => setSelectedFormula('night'),
+          },
+        ]
+      );
+    }
+  }, [selectedDateTime]);
+
+  useEffect(() => {
+    // Si le service est deja dans le store, pas besoin de charger
+    if (service) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Sinon, essayer de charger depuis l'API
+    if (service_id) {
       loadService();
     }
-  }, [service_id]);
+  }, [service_id, service]);
 
   const loadService = async () => {
     try {
       setIsLoading(true);
-      await dispatch(fetchServiceById(Number(service_id))).unwrap();
+      await dispatch(fetchServiceById(service_id!)).unwrap();
     } catch (error) {
       console.error('Error loading service:', error);
     } finally {
@@ -68,12 +233,11 @@ export default function CreateBookingScreen() {
     }
   };
 
-  // Get minimum date (tomorrow)
+  // Get minimum date (today)
   const getMinDate = (): Date => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(8, 0, 0, 0);
-    return tomorrow;
+    const today = new Date();
+    today.setHours(8, 0, 0, 0);
+    return today;
   };
 
   // Get maximum date (30 days from now)
@@ -86,19 +250,18 @@ export default function CreateBookingScreen() {
   // Validation function for date/time
   const validateDateTime = (date: Date): string => {
     const now = new Date();
-    if (date <= now) return 'La date doit etre dans le futur';
-
-    const hours = date.getHours();
-    if (hours < 8 || hours >= 20) {
-      return 'Horaires: 08:00 - 20:00';
-    }
-
+    // Minimum 30 minutes dans le futur
+    const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+    if (date <= minTime) return 'Reservation minimum 30 min a l\'avance';
+    // Verifier les heures de service (8h-23h30)
+    const hour = date.getHours();
+    if (hour < 8) return 'Horaire disponible a partir de 8h';
     return '';
   };
 
   const validateAddress = (value: string): string => {
     if (!value) return 'Adresse requise';
-    if (value.length < 10) return 'Adresse trop courte';
+    if (value.length < 10) return 'Adresse trop courte (min 10 caracteres)';
     return '';
   };
 
@@ -128,6 +291,8 @@ export default function CreateBookingScreen() {
   };
 
   const handleSubmit = async () => {
+    hapticFeedback.medium();
+
     // Validate all fields
     const dateTimeErr = validateDateTime(selectedDateTime);
     const addressErr = validateAddress(address);
@@ -136,11 +301,21 @@ export default function CreateBookingScreen() {
     setAddressError(addressErr);
 
     if (dateTimeErr || addressErr) {
+      hapticFeedback.warning();
       return;
     }
 
     if (!service) {
       Alert.alert('Erreur', 'Service non trouve');
+      return;
+    }
+
+    if (!selectedProvider) {
+      Alert.alert(
+        'Prestataire requis',
+        'Veuillez selectionner un prestataire pour continuer.'
+      );
+      hapticFeedback.warning();
       return;
     }
 
@@ -153,37 +328,68 @@ export default function CreateBookingScreen() {
       return;
     }
 
-    setIsSubmitting(true);
+    // Confirmation dialog
+    const providerInfo = selectedProvider ? `\nPrestataire: ${selectedProvider.name}` : '';
+    Alert.alert(
+      'Confirmer la reservation',
+      `Service: ${service.title}\nFormule: ${getFormulaById(selectedFormula).name}${providerInfo}\nTotal: ${priceBreakdown.total} DH\n\nConfirmer ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            setIsSubmitting(true);
 
-    // Format date and time for API
-    const formattedDate = selectedDateTime.toISOString().split('T')[0];
-    const formattedTime = `${selectedDateTime.getHours().toString().padStart(2, '0')}:${selectedDateTime.getMinutes().toString().padStart(2, '0')}`;
+            // Format date and time for API
+            const formattedDate = selectedDateTime.toISOString().split('T')[0];
+            const formattedTime = `${selectedDateTime.getHours().toString().padStart(2, '0')}:${selectedDateTime.getMinutes().toString().padStart(2, '0')}`;
 
-    try {
-      await dispatch(createBooking({
-        service_id: Number(service_id),
-        provider_id: Number(service.provider?.id || 1), // Default if no provider
-        date: formattedDate,
-        start_time: formattedTime,
-        address: address,
-        notes: notes || undefined,
-      })).unwrap();
+            try {
+              const result = await dispatch(createBooking({
+                service_id: Number(service_id),
+                provider_id: selectedProvider?.id || Number(service.provider?.id || 1),
+                date: formattedDate,
+                start_time: formattedTime,
+                address: address,
+                latitude: addressData?.coords?.latitude,
+                longitude: addressData?.coords?.longitude,
+                notes: notes || undefined,
+                formula: selectedFormula,
+                payment_method: paymentMethod,
+                total_price: priceBreakdown.total,
+              })).unwrap();
 
-      dispatch(showToast({
-        message: 'Reservation creee avec succes !',
-        type: 'success',
-      }));
+              setIsSubmitting(false);
+              hapticFeedback.success();
 
-      // Navigate to bookings
-      router.replace('/(tabs)/bookings');
-    } catch (error: any) {
-      dispatch(showToast({
-        message: error || 'Erreur lors de la reservation',
-        type: 'error',
-      }));
-    } finally {
-      setIsSubmitting(false);
-    }
+              // Navigate to confirmation screen
+              const bookingId = result?.id || Date.now();
+              router.push({
+                pathname: '/booking/confirmation',
+                params: {
+                  booking_id: String(bookingId),
+                  service_name: service.title,
+                  provider_name: selectedProvider?.name || 'Prestataire',
+                  date: formattedDate,
+                  time: formattedTime,
+                  address: address,
+                  total: String(priceBreakdown.total),
+                  formula: getFormulaById(selectedFormula).name,
+                },
+              });
+            } catch (error: any) {
+              setIsSubmitting(false);
+              hapticFeedback.warning();
+              dispatch(showToast({
+                message: error?.message || error || 'Erreur lors de la reservation',
+                type: 'error',
+              }));
+              console.error('Booking error:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleBack = () => {
@@ -228,123 +434,229 @@ export default function CreateBookingScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Service Summary */}
+        {/* Service Summary - Style Web App */}
         <Card style={styles.serviceCard}>
-          <Text style={styles.sectionTitle}>Service selectionne</Text>
-          <View style={styles.serviceRow}>
-            {service.images?.[0] || service.thumbnail ? (
-              <Image
-                source={{ uri: service.images?.[0] || service.thumbnail }}
-                style={styles.serviceImage}
-              />
-            ) : (
-              <View style={[styles.serviceImage, styles.serviceImagePlaceholder]}>
-                <Text style={styles.serviceImagePlaceholderText}>💇</Text>
+          {/* Image */}
+          {service.images?.[0] || service.thumbnail ? (
+            <Image
+              source={{ uri: service.images?.[0] || service.thumbnail }}
+              style={styles.serviceImageLarge}
+            />
+          ) : (
+            <View style={[styles.serviceImageLarge, styles.serviceImagePlaceholder]}>
+              <Text style={styles.serviceImagePlaceholderText}>💇</Text>
+            </View>
+          )}
+
+          {/* Content */}
+          <View style={styles.serviceContent}>
+            {/* Category Badge */}
+            {service.category && (
+              <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
+                <Text style={styles.categoryBadgeText}>
+                  {(service.category as any).name || 'Service'}
+                </Text>
               </View>
             )}
-            <View style={styles.serviceInfo}>
-              <Text style={styles.serviceName}>{service.title}</Text>
-              <Text style={styles.serviceDetails}>
-                ⏱️ {service.duration_minutes} min
-              </Text>
-              <Text style={styles.servicePrice}>{service.price} DH</Text>
+
+            {/* Title */}
+            <Text style={styles.serviceName}>{service.title || service.name}</Text>
+
+            {/* Rating */}
+            {service.rating > 0 && (
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingStar}>★</Text>
+                <Text style={styles.ratingValue}>{service.rating.toFixed(1)}</Text>
+                <Text style={styles.reviewsCount}>
+                  ({service.reviews_count || service.reviewsCount || 0} avis)
+                </Text>
+              </View>
+            )}
+
+            {/* Price & Duration */}
+            <View style={styles.detailsRow}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Prix de base</Text>
+                <Text style={styles.detailValue}>{service.price} DH</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Duree estimee</Text>
+                <Text style={styles.detailValue}>⏱ {service.duration_minutes} min</Text>
+              </View>
             </View>
           </View>
         </Card>
 
-        {/* Booking Form */}
+        {/* ETAPE 1: Date & Time */}
         <Card style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Details de la reservation</Text>
-
-          {/* Date & Time Picker */}
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepNumber}>1</Text>
+            <Text style={styles.sectionTitle}>Quand ?</Text>
+          </View>
           <DateTimePicker
             mode="datetime"
             value={selectedDateTime}
             onChange={handleDateTimeChange}
             minDate={getMinDate()}
             maxDate={getMaxDate()}
-            label="Date et heure"
             placeholder="Choisir une date et heure"
             error={dateTimeError}
           />
 
-          {/* Address Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Adresse</Text>
-            <Input
-              placeholder="Rue, Quartier, Ville"
-              value={address}
-              onChangeText={(v) => {
-                setAddress(v);
-                if (addressError) setAddressError(validateAddress(v));
-              }}
-              error={!!addressError}
-              errorText={addressError}
-              multiline
-              numberOfLines={3}
-              editable={!isSubmitting}
-            />
-          </View>
-
-          {/* Notes Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Notes (optionnel)</Text>
-            <Input
-              placeholder="Instructions speciales, interphone, etage..."
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-              editable={!isSubmitting}
-            />
-          </View>
-        </Card>
-
-        {/* Summary */}
-        <Card style={styles.summaryCard}>
-          <Text style={styles.sectionTitle}>Recapitulatif</Text>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service</Text>
-            <Text style={styles.summaryValue}>{service.title}</Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Duree estimee</Text>
-            <Text style={styles.summaryValue}>{service.duration_minutes} min</Text>
-          </View>
-
-          {!dateTimeError && (
-            <>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Date</Text>
-                <Text style={styles.summaryValue}>{formatDateForDisplay(selectedDateTime)}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Heure</Text>
-                <Text style={styles.summaryValue}>{formatTimeForDisplay(selectedDateTime)}</Text>
-              </View>
-            </>
+          {/* Night hours warning */}
+          {isNightHours && (
+            <View style={styles.nightWarning}>
+              <Text style={styles.nightWarningIcon}>🌙</Text>
+              <Text style={styles.nightWarningText}>
+                Horaire de nuit (20h-8h) - Majoration +25%
+              </Text>
+            </View>
           )}
-
-          <View style={styles.summaryDivider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabelBold}>Total</Text>
-            <Text style={styles.summaryValueBold}>{service.price} DH</Text>
-          </View>
         </Card>
+
+        {/* ETAPE 2: Address */}
+        <Card style={[styles.formCard, { zIndex: 100, overflow: 'visible' }]}>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepNumber}>2</Text>
+            <Text style={styles.sectionTitle}>Ou ?</Text>
+          </View>
+          <AddressAutocomplete
+            value={address}
+            onChangeText={(v) => {
+              setAddress(v);
+              if (addressError) setAddressError(validateAddress(v));
+            }}
+            onAddressSelect={handleAddressSelect}
+            placeholder="Numero, Rue, Quartier, Ville"
+            error={addressError}
+            disabled={isSubmitting}
+          />
+        </Card>
+
+        {/* ETAPE 3: Provider Selection - Shown only after address is selected */}
+        {addressData?.coords ? (
+          <>
+            {/* Carte des prestataires */}
+            <NearbyProvidersMap
+              clientLocation={addressData.coords}
+              providers={availableProviders.map(p => ({
+                id: p.id,
+                name: p.name || 'Prestataire',
+                initials: p.initials || 'PR',
+                rating: Number(p.rating) || 0,
+                reviewsCount: Number(p.reviewsCount) || 0,
+                distance: Number(p.distance) || 0,
+                eta: Math.round((Number(p.distance) || 0) * 5), // ~5 min/km
+                specialties: p.specialties || [],
+                isOnline: p.isOnline ?? true,
+                location: p.location || { latitude: 0, longitude: 0 },
+              }))}
+              selectedProviderId={selectedProvider?.id}
+              onProviderSelect={(mapProvider) => {
+                const provider = availableProviders.find(p => p.id === mapProvider.id);
+                if (provider) handleProviderSelect(provider);
+              }}
+              loading={loadingProviders}
+              radius={15}
+              compact={false}
+            />
+
+            {/* Liste des prestataires */}
+            <Card style={styles.formCard}>
+              <View style={styles.stepHeader}>
+                <Text style={styles.stepNumber}>3</Text>
+                <Text style={styles.sectionTitle}>Choisir un prestataire</Text>
+              </View>
+              {loadingProviders ? (
+                <View style={styles.providersLoading}>
+                  <Text style={styles.providersLoadingText}>
+                    Recherche des prestataires disponibles...
+                  </Text>
+                </View>
+              ) : availableProviders.length > 0 ? (
+                <ProviderSelector
+                  providers={availableProviders}
+                  selectedProviderId={selectedProvider?.id}
+                  onSelect={handleProviderSelect}
+                  showDistance={true}
+                />
+              ) : (
+                <View style={styles.noProvidersContainer}>
+                  <Text style={styles.noProvidersIcon}>😕</Text>
+                  <Text style={styles.noProvidersText}>
+                    Aucun prestataire disponible dans cette zone.
+                  </Text>
+                  <Text style={styles.noProvidersHint}>
+                    Essayez une autre adresse ou date.
+                  </Text>
+                </View>
+              )}
+            </Card>
+          </>
+        ) : (
+          <Card style={[styles.formCard, styles.formCardDisabled]}>
+            <View style={styles.stepHeader}>
+              <Text style={[styles.stepNumber, styles.stepNumberDisabled]}>3</Text>
+              <Text style={[styles.sectionTitle, styles.sectionTitleDisabled]}>Avec qui ?</Text>
+            </View>
+            <Text style={styles.stepHint}>
+              Renseignez d'abord l'adresse pour voir les prestataires disponibles
+            </Text>
+          </Card>
+        )}
+
+        {/* ETAPE 4: Formula Selection */}
+        <View style={styles.formulaSection}>
+          <View style={styles.stepHeaderInline}>
+            <Text style={styles.stepNumber}>4</Text>
+          </View>
+          <FormulaSelector
+            selectedFormula={selectedFormula}
+            onSelect={setSelectedFormula}
+            basePrice={service.price}
+            disabled={isSubmitting}
+          />
+        </View>
+
+        {/* Notes */}
+        <Card style={styles.formCard}>
+          <Text style={styles.sectionTitle}>Notes (optionnel)</Text>
+          <Input
+            placeholder="Instructions speciales, code interphone, etage..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={3}
+            editable={!isSubmitting}
+          />
+        </Card>
+
+        {/* Payment Method */}
+        <PaymentMethodSelector
+          selectedMethod={paymentMethod}
+          onSelect={setPaymentMethod}
+          disabled={isSubmitting}
+        />
+
+        {/* Price Breakdown */}
+        <PriceBreakdownCard
+          breakdown={priceBreakdown}
+          showDetails={true}
+        />
 
         {/* Submit Button */}
         <Button
           variant="primary"
           onPress={handleSubmit}
           loading={isSubmitting}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !selectedProvider}
           fullWidth
           style={styles.submitButton}
         >
-          Confirmer la reservation
+          {selectedProvider
+            ? `Reserver avec ${selectedProvider.name} - ${priceBreakdown.total} DH`
+            : 'Selectionnez un prestataire'
+          }
         </Button>
 
         {/* Cancel Link */}
@@ -355,6 +667,9 @@ export default function CreateBookingScreen() {
         >
           <Text style={styles.cancelLinkText}>Annuler</Text>
         </TouchableOpacity>
+
+        {/* Spacer */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -392,7 +707,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '600',
     color: colors.gray[900],
   },
   headerSpacer: {
@@ -402,29 +717,25 @@ const styles = StyleSheet.create({
   // Scroll Content
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing['2xl'],
   },
 
   // Section Title
   sectionTitle: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '600',
     color: colors.gray[900],
     marginBottom: spacing.md,
   },
 
-  // Service Card
+  // Service Card - Web App Style
   serviceCard: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    padding: 0,
+    overflow: 'hidden',
   },
-  serviceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  serviceImage: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.md,
+  serviceImageLarge: {
+    width: '100%',
+    height: 200,
     backgroundColor: colors.gray[200],
   },
   serviceImagePlaceholder: {
@@ -433,89 +744,183 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[100],
   },
   serviceImagePlaceholderText: {
-    fontSize: 32,
+    fontSize: 48,
   },
-  serviceInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
+  serviceContent: {
+    padding: spacing.lg,
+  },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm,
+  },
+  categoryBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    color: colors.white,
+    textTransform: 'uppercase',
   },
   serviceName: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
     color: colors.gray[900],
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
-  serviceDetails: {
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  ratingStar: {
+    fontSize: typography.fontSize.base,
+    color: '#FBBF24',
+    marginRight: 4,
+  },
+  ratingValue: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginRight: 4,
+  },
+  reviewsCount: {
     fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+  },
+  serviceDescription: {
+    fontSize: typography.fontSize.base,
     color: colors.gray[600],
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
+    paddingTop: spacing.md,
+  },
+  detailItem: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
     marginBottom: 4,
   },
-  servicePrice: {
+  detailValue: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
+    fontWeight: '600',
+    color: colors.gray[900],
   },
 
   // Form Card
   formCard: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    overflow: 'visible',
+    zIndex: 1,
   },
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  inputLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.gray[700],
-    marginBottom: spacing.xs,
-  },
-  inputHelper: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginTop: spacing.xs,
+  formCardDisabled: {
+    opacity: 0.6,
   },
 
-  // Summary Card
-  summaryCard: {
-    marginBottom: spacing.lg,
-  },
-  summaryRow: {
+  // Step Header
+  stepHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
+    marginBottom: spacing.md,
   },
-  summaryLabel: {
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    color: colors.white,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginRight: spacing.sm,
+    overflow: 'hidden',
+  },
+  stepNumberDisabled: {
+    backgroundColor: colors.gray[300],
+  },
+  sectionTitleDisabled: {
+    color: colors.gray[400],
+  },
+  stepHint: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[400],
+    fontStyle: 'italic',
+  },
+
+  // Providers Loading
+  providersLoading: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  providersLoadingText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+  },
+
+  // No Providers
+  noProvidersContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  noProvidersIcon: {
+    fontSize: 40,
+    marginBottom: spacing.md,
+  },
+  noProvidersText: {
     fontSize: typography.fontSize.base,
     color: colors.gray[600],
+    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
-  summaryValue: {
-    fontSize: typography.fontSize.base,
-    color: colors.gray[900],
-    textAlign: 'right',
+  noProvidersHint: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[400],
+    textAlign: 'center',
+  },
+
+  // Formula Section
+  formulaSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  stepHeaderInline: {
+    marginRight: spacing.sm,
+    marginTop: spacing.md,
+  },
+
+  // Night Warning
+  nightWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
+  },
+  nightWarningIcon: {
+    fontSize: 16,
+    marginRight: spacing.sm,
+  },
+  nightWarningText: {
     flex: 1,
-    marginLeft: spacing.md,
-  },
-  summaryLabelBold: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gray[900],
-  },
-  summaryValueBold: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: colors.gray[300],
-    marginVertical: spacing.sm,
+    fontSize: typography.fontSize.sm,
+    color: colors.warning,
+    fontWeight: '500',
   },
 
   // Submit Button
   submitButton: {
+    marginTop: spacing.md,
     marginBottom: spacing.md,
   },
 

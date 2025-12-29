@@ -1,9 +1,11 @@
 /**
  * Bookings Screen - GlamGo Mobile
  * Liste des reservations avec tabs (A venir / Historique)
+ * Polling pour synchronisation temps reel avec le provider
+ * Note: Le modal de satisfaction est maintenant global dans _layout.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,11 +14,14 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import BookingCard from '../../src/components/features/BookingCard';
 import SkeletonBookingCard from '../../src/components/features/SkeletonBookingCard';
 import Badge from '../../src/components/ui/Badge';
+import { SatisfactionModal } from '../../src/components/features/SatisfactionModal';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import {
@@ -27,9 +32,12 @@ import {
   selectBookingsLoading,
   selectBookingsError,
 } from '../../src/lib/store/slices/bookingsSlice';
-import { Booking } from '../../src/lib/api/bookingsAPI';
+import { Booking, submitSatisfaction, SatisfactionData } from '../../src/lib/api/bookingsAPI';
 
 type TabType = 'upcoming' | 'past';
+
+// Intervalle de polling en ms (10 secondes)
+const POLLING_INTERVAL = 10000;
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -44,13 +52,79 @@ export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [initialLoad, setInitialLoad] = useState(true);
 
-  useEffect(() => {
-    loadBookings();
+  // State pour le modal de satisfaction (avis)
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // Refs pour le polling
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const appState = useRef(AppState.currentState);
+
+  // Demarrer le polling
+  const startPolling = useCallback(() => {
+    if (pollingInterval.current) return;
+    pollingInterval.current = setInterval(() => {
+      dispatch(fetchBookings());
+    }, POLLING_INTERVAL);
+  }, [dispatch]);
+
+  // Arreter le polling
+  const stopPolling = useCallback(() => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
   }, []);
+
+  // Gerer le changement d'etat de l'app (background/foreground)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App revient en foreground - recharger et redemarrer le polling
+        dispatch(fetchBookings());
+        startPolling();
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App passe en background - arreter le polling
+        stopPolling();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [dispatch, startPolling, stopPolling]);
+
+  // Charger au montage et quand l'ecran devient actif
+  useFocusEffect(
+    useCallback(() => {
+      loadBookings();
+      startPolling();
+
+      return () => {
+        stopPolling();
+      };
+    }, [startPolling, stopPolling])
+  );
+
+  // Note: Le modal de satisfaction auto-ouvre depuis _layout.tsx (global)
 
   const loadBookings = async () => {
     try {
-      await dispatch(fetchBookings()).unwrap();
+      const result = await dispatch(fetchBookings()).unwrap();
+      console.log('[Bookings] Loaded:', result.length, 'bookings');
+      console.log('[Bookings] Upcoming:', result.filter((b: any) =>
+        ['pending', 'confirmed', 'accepted', 'on_way', 'in_progress'].includes(b.status)
+      ).length);
+      console.log('[Bookings] Past:', result.filter((b: any) =>
+        ['completed', 'cancelled', 'rejected', 'no_show'].includes(b.status)
+      ).length);
+      // Debug: afficher les statuts
+      const statusCounts: Record<string, number> = {};
+      result.forEach((b: any) => {
+        statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
+      });
+      console.log('[Bookings] By status:', statusCounts);
     } catch (err: any) {
       console.error('Error loading bookings:', err);
     } finally {
@@ -86,17 +160,48 @@ export default function BookingsScreen() {
     );
   };
 
-  const handleContactProvider = (providerId: number) => {
-    console.log('Contact provider:', providerId);
-    // TODO: Navigation vers chat
+  const handleContactProvider = (bookingId: number) => {
+    // Naviguer vers le chat avec le prestataire
+    router.push(`/chat/${bookingId}` as any);
   };
 
   const handleTrackProvider = (bookingId: number) => {
     router.push(`/booking/track/${bookingId}` as any);
   };
 
+  const handleReview = (bookingId: number) => {
+    // Trouver la reservation et ouvrir le modal de satisfaction directement
+    const allBookings = [...upcomingBookings, ...pastBookings];
+    const booking = allBookings.find(b => b.id === bookingId);
+    if (booking) {
+      setSelectedBookingForReview(booking);
+      setShowReviewModal(true);
+    }
+  };
+
+  const handleSubmitReview = async (data: SatisfactionData) => {
+    if (!selectedBookingForReview) return;
+
+    try {
+      await submitSatisfaction(selectedBookingForReview.id, data);
+      Alert.alert('Merci !', 'Votre avis a ete enregistre.');
+      setShowReviewModal(false);
+      setSelectedBookingForReview(null);
+      // Recharger les reservations pour mettre a jour le statut
+      dispatch(fetchBookings());
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
+  const handleCloseReviewModal = () => {
+    setShowReviewModal(false);
+    setSelectedBookingForReview(null);
+  };
+
   const handleBookingPress = (booking: Booking) => {
-    router.push(`/bookings/${booking.id}` as any);
+    // Naviguer vers le suivi - le modal s'ouvrira automatiquement depuis _layout.tsx si besoin
+    router.push(`/booking/track/${booking.id}` as any);
   };
 
   const bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
@@ -162,9 +267,10 @@ export default function BookingsScreen() {
       address={item.address}
       variant={activeTab}
       onCancel={() => handleCancelBooking(item.id)}
-      onContact={() => handleContactProvider(item.provider_id)}
+      onContact={() => handleContactProvider(item.id)}
       onViewDetails={() => handleBookingPress(item)}
       onTrackProvider={() => handleTrackProvider(item.id)}
+      onReview={() => handleReview(item.id)}
     />
   );
 
@@ -184,7 +290,7 @@ export default function BookingsScreen() {
       {activeTab === 'upcoming' && (
         <TouchableOpacity
           style={styles.browseButton}
-          onPress={() => router.push('/(tabs)/services')}
+          onPress={() => router.push('/(client)/services')}
         >
           <Text style={styles.browseButtonText}>Parcourir les services</Text>
         </TouchableOpacity>
@@ -227,6 +333,22 @@ export default function BookingsScreen() {
         }
         showsVerticalScrollIndicator={false}
       />
+      {/* Modal de satisfaction pour le bouton "Laisser un avis" */}
+      {selectedBookingForReview && (
+        <SatisfactionModal
+          visible={showReviewModal}
+          order={{
+            id: selectedBookingForReview.id,
+            service_name: selectedBookingForReview.service?.title,
+            provider_name: selectedBookingForReview.provider?.name,
+            price: selectedBookingForReview.price,
+            total: selectedBookingForReview.total,
+            payment_method: 'cash', // Par defaut cash pour les avis depuis l'historique
+          }}
+          onClose={handleCloseReviewModal}
+          onSubmit={handleSubmitReview}
+        />
+      )}
     </View>
   );
 }

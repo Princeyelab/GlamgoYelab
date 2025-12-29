@@ -9,15 +9,17 @@ import { ENDPOINTS } from './endpoints';
 // === TYPES ===
 
 export type BookingStatus =
-  | 'pending'        // En attente de confirmation
-  | 'accepted'       // Acceptee par le prestataire
-  | 'confirmed'      // Confirmee (alias de accepted)
-  | 'on_way'         // Prestataire en route
-  | 'in_progress'    // En cours
-  | 'completed'      // Terminee
-  | 'cancelled'      // Annulee
-  | 'rejected'       // Refusee par le prestataire
-  | 'no_show';       // Client absent
+  | 'pending'                   // En attente de confirmation
+  | 'accepted'                  // Acceptee par le prestataire
+  | 'confirmed'                 // Confirmee (alias de accepted)
+  | 'on_way'                    // Prestataire en route
+  | 'arrived'                   // Prestataire arrive, en attente de confirmation client
+  | 'in_progress'               // En cours
+  | 'completed_pending_review'  // Terminee, en attente d'avis client
+  | 'completed'                 // Terminee avec avis
+  | 'cancelled'                 // Annulee
+  | 'rejected'                  // Refusee par le prestataire
+  | 'no_show';                  // Client absent
 
 export interface Booking {
   id: number;
@@ -130,6 +132,12 @@ function mapOrderToBooking(order: BackendOrder): Booking {
     [order.provider_first_name, order.provider_last_name].filter(Boolean).join(' ') ||
     'Prestataire';
 
+  // Convertir les prix en nombres (API retourne des strings)
+  const priceNum = typeof order.price === 'string' ? parseFloat(order.price) : (order.price || 0);
+  const totalNum = typeof order.total === 'string' ? parseFloat(order.total) : (order.total || 0);
+  // Utiliser price en priorite (total peut etre incorrect en base)
+  const finalPrice = priceNum > 0 ? priceNum : totalNum;
+
   return {
     id: order.id,
     user_id: order.user_id,
@@ -139,8 +147,8 @@ function mapOrderToBooking(order: BackendOrder): Booking {
     date,
     start_time: startTime,
     duration_minutes: 60, // Default, a ajuster si disponible
-    price: order.price,
-    total: order.total || order.price,
+    price: finalPrice,
+    total: finalPrice,
     currency: 'MAD',
     address,
     latitude: order.latitude,
@@ -182,7 +190,10 @@ export interface CreateBookingData {
   latitude?: number;
   longitude?: number;
   notes?: string;
+  formula?: 'standard' | 'premium' | 'urgent' | 'recurring' | 'night';
+  payment_method?: 'cash' | 'card' | 'bank_transfer';
   payment_method_id?: number;
+  total_price?: number;
   promo_code?: string;
 }
 
@@ -237,6 +248,18 @@ export const getBookings = async (params?: BookingListParams): Promise<Paginated
     { params }
   );
 
+  // Debug: voir les donnees brutes
+  if (response.data.data.length > 0) {
+    const raw = response.data.data[0];
+    console.log('[BookingsAPI] Raw order from backend:', {
+      id: raw.id,
+      price: raw.price,
+      total: raw.total,
+      address_line: raw.address_line,
+      city: raw.city
+    });
+  }
+
   // Mapper les orders en bookings
   const bookings = response.data.data.map(mapOrderToBooking);
 
@@ -275,7 +298,7 @@ export const getUpcomingBookings = async (): Promise<Booking[]> => {
   const bookings = response.data.data.map(mapOrderToBooking);
 
   // Filtrer pour garder seulement les reservations actives
-  const upcomingStatuses = ['pending', 'accepted', 'confirmed', 'on_way', 'in_progress'];
+  const upcomingStatuses = ['pending', 'accepted', 'confirmed', 'on_way', 'arrived', 'in_progress'];
   return bookings.filter(b => upcomingStatuses.includes(b.status));
 };
 
@@ -353,6 +376,63 @@ export const completeBooking = async (id: number | string): Promise<Booking> => 
     return mapOrderToBooking(response.data.data);
   }
   return getBookingById(id);
+};
+
+/**
+ * Confirmer l'arrivee du prestataire (cote client)
+ * Appele quand le prestataire signale qu'il est arrive et que le client confirme
+ */
+export const confirmProviderArrival = async (id: number | string): Promise<Booking> => {
+  const response = await apiClient.patch<{ success: boolean; data?: BackendOrder }>(
+    ENDPOINTS.BOOKINGS.CONFIRM_ARRIVAL(id)
+  );
+
+  if (response.data.data) {
+    return mapOrderToBooking(response.data.data);
+  }
+  return getBookingById(id);
+};
+
+// === SATISFACTION ===
+
+export interface SatisfactionData {
+  quality_rating: number;                  // 1-5 (obligatoire)
+  punctuality: boolean | null;             // Prestataire ponctuel?
+  price_respected: boolean | null;         // Prix respecte?
+  professionalism_rating?: number | null;  // 1-5 ou null (optionnel)
+  comment?: string | null;                 // Commentaire libre
+  tip?: number | null;                     // Pourboire en DH
+}
+
+export interface SatisfactionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    order_id: number;
+    status: string;
+    review_id?: number;
+    tip_amount?: number;
+    payment_triggered?: boolean;
+  };
+}
+
+/**
+ * Soumettre le questionnaire de satisfaction
+ * Declenche la finalisation de la commande et le paiement
+ */
+export const submitSatisfaction = async (
+  orderId: number | string,
+  data: SatisfactionData
+): Promise<SatisfactionResponse> => {
+  console.log('[API] submitSatisfaction - orderId:', orderId, 'data:', data);
+
+  const response = await apiClient.post<SatisfactionResponse>(
+    ENDPOINTS.BOOKINGS.SATISFACTION(orderId),
+    data
+  );
+
+  console.log('[API] submitSatisfaction - response:', response.data);
+  return response.data;
 };
 
 // === AVIS ===
@@ -465,7 +545,9 @@ export const formatBookingStatus = (status: BookingStatus): string => {
     accepted: 'Acceptee',
     confirmed: 'Confirmee',
     on_way: 'En route',
+    arrived: 'Arrive',
     in_progress: 'En cours',
+    completed_pending_review: 'Avis en attente',
     completed: 'Terminee',
     cancelled: 'Annulee',
     rejected: 'Refusee',
@@ -479,15 +561,17 @@ export const formatBookingStatus = (status: BookingStatus): string => {
  */
 export const getBookingStatusColor = (status: BookingStatus): string => {
   const statusColors: Record<BookingStatus, string> = {
-    pending: '#F59E0B',      // Orange
-    accepted: '#3B82F6',     // Bleu
-    confirmed: '#3B82F6',    // Bleu
-    on_way: '#8B5CF6',       // Violet
-    in_progress: '#8B5CF6',  // Violet
-    completed: '#10B981',    // Vert
-    cancelled: '#EF4444',    // Rouge
-    rejected: '#EF4444',     // Rouge
-    no_show: '#6B7280',      // Gris
+    pending: '#F59E0B',                // Orange
+    accepted: '#3B82F6',               // Bleu
+    confirmed: '#3B82F6',              // Bleu
+    on_way: '#8B5CF6',                 // Violet
+    arrived: '#10B981',                // Vert - prestataire arrive
+    in_progress: '#8B5CF6',            // Violet
+    completed_pending_review: '#F59E0B', // Orange - action requise
+    completed: '#10B981',              // Vert
+    cancelled: '#EF4444',              // Rouge
+    rejected: '#EF4444',               // Rouge
+    no_show: '#6B7280',                // Gris
   };
   return statusColors[status] || '#6B7280';
 };
@@ -518,6 +602,8 @@ export default {
   cancelBooking,
   confirmBooking,
   completeBooking,
+  confirmProviderArrival,
+  submitSatisfaction,
   // Reviews
   createReview,
   getMyReviews,

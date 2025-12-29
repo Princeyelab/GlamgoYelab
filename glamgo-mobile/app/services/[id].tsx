@@ -11,8 +11,6 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
-import Badge from '../../src/components/ui/Badge';
-import Card from '../../src/components/ui/Card';
 import Loading from '../../src/components/ui/Loading';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
@@ -22,6 +20,7 @@ import {
   selectIsFavorite,
   selectCurrentService,
   selectServicesLoading,
+  selectServices,
   addToRecentlyViewed,
 } from '../../src/lib/store/slices/servicesSlice';
 import { Service } from '../../src/types/service';
@@ -36,21 +35,29 @@ export default function ServiceDetailScreen() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const service = useAppSelector(selectCurrentService);
+  const currentService = useAppSelector(selectCurrentService);
+  const services = useAppSelector(selectServices);
   const isLoading = useAppSelector(selectServicesLoading);
   const isFavorite = useAppSelector(selectIsFavorite(Number(id)));
 
+  // Trouver le service dans le store d'abord
+  const serviceFromStore = services.find(s => String(s.id) === String(id));
+  const service = serviceFromStore || currentService;
+
   useEffect(() => {
     if (id) {
-      loadService();
       dispatch(addToRecentlyViewed(Number(id)));
+      // Ne charger depuis l'API que si pas deja dans le store
+      if (!serviceFromStore) {
+        loadService();
+      }
     }
-  }, [id]);
+  }, [id, serviceFromStore]);
 
   const loadService = async () => {
     try {
       setError(null);
-      await dispatch(fetchServiceById(Number(id))).unwrap();
+      await dispatch(fetchServiceById(id!)).unwrap();
     } catch (err: any) {
       console.error('Error loading service:', err);
       setError(err?.message || 'Erreur lors du chargement');
@@ -164,147 +171,60 @@ export default function ServiceDetailScreen() {
           )}
         </View>
 
-        {/* Content */}
+        {/* Content - Style Web App */}
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>{service.title}</Text>
-              <View style={styles.meta}>
-                {service.category && (
-                  <Badge color="accent" size="sm">
-                    {service.category.name}
-                  </Badge>
-                )}
-                {service.is_featured && (
-                  <Badge color="warning" size="sm" style={styles.metaBadge}>
-                    Populaire
-                  </Badge>
-                )}
-                {service.isNew && (
-                  <Badge color="success" size="sm" style={styles.metaBadge}>
-                    Nouveau
-                  </Badge>
-                )}
-              </View>
-            </View>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>A partir de</Text>
-              <Text style={styles.price}>{service.price} DH</Text>
-            </View>
-          </View>
-
-          {/* Info Cards */}
-          <View style={styles.infoCards}>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoIcon}>⏱️</Text>
-              <Text style={styles.infoLabel}>Duree</Text>
-              <Text style={styles.infoValue}>
-                {formatDuration(service.duration_minutes || 60)}
+          {/* Category Badge */}
+          {service.category && (
+            <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
+              <Text style={styles.categoryBadgeText}>
+                {(service.category as any).name || 'Service'}
               </Text>
             </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoIcon}>⭐</Text>
-              <Text style={styles.infoLabel}>Note</Text>
-              <Text style={styles.infoValue}>
-                {(service.rating || 0).toFixed(1)}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.infoCard}
-              onPress={() => router.push(`/reviews/${service.id}` as any)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.infoIcon}>💬</Text>
-              <Text style={styles.infoLabel}>Avis</Text>
-              <Text style={styles.infoValue}>
-                {service.reviews_count || 0}
-              </Text>
-              <Text style={styles.infoLink}>Voir →</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Description */}
-          <Card style={styles.descriptionCard}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>
-              {service.description || 'Aucune description disponible.'}
-            </Text>
-          </Card>
-
-          {/* Provider Preview (if available) */}
-          {service.provider && (
-            <Card style={styles.providerCard}>
-              <Text style={styles.sectionTitle}>Prestataire</Text>
-              <View style={styles.providerRow}>
-                {service.provider.avatar ? (
-                  <Image
-                    source={{ uri: service.provider.avatar }}
-                    style={styles.providerAvatar}
-                  />
-                ) : (
-                  <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
-                    <Text style={styles.providerAvatarText}>
-                      {(service.provider.name || 'P').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.providerInfo}>
-                  <Text style={styles.providerName}>{service.provider.name}</Text>
-                  <Text style={styles.providerRating}>
-                    ⭐ {((service.provider as any).rating || 4.5).toFixed(1)}
-                  </Text>
-                </View>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onPress={() => router.push(`/providers/${service.provider?.id || service.provider_id}` as any)}
-                >
-                  Voir profil
-                </Button>
-              </View>
-            </Card>
           )}
 
-          {/* What's Included */}
-          <Card style={styles.includedCard}>
-            <Text style={styles.sectionTitle}>Ce qui est inclus</Text>
-            <View style={styles.includedList}>
-              <View style={styles.includedItem}>
-                <Text style={styles.includedIcon}>✓</Text>
-                <Text style={styles.includedText}>Service a domicile</Text>
-              </View>
-              <View style={styles.includedItem}>
-                <Text style={styles.includedIcon}>✓</Text>
-                <Text style={styles.includedText}>Materiel professionnel</Text>
-              </View>
-              <View style={styles.includedItem}>
-                <Text style={styles.includedIcon}>✓</Text>
-                <Text style={styles.includedText}>Produits de qualite</Text>
-              </View>
-              <View style={styles.includedItem}>
-                <Text style={styles.includedIcon}>✓</Text>
-                <Text style={styles.includedText}>Prestataire verifie</Text>
-              </View>
+          {/* Title */}
+          <Text style={styles.title}>{service.title || service.name}</Text>
+
+          {/* Rating */}
+          {(service.rating || 0) > 0 && (
+            <View style={styles.ratingRow}>
+              <Text style={styles.ratingStar}>★</Text>
+              <Text style={styles.ratingValue}>{(service.rating || 0).toFixed(1)}</Text>
+              <Text style={styles.reviewsCount}>
+                ({service.reviews_count || service.reviewsCount || 0} avis)
+              </Text>
             </View>
-          </Card>
+          )}
+
+          {/* Description */}
+          <Text style={styles.description}>
+            {service.description || 'Aucune description disponible pour ce service.'}
+          </Text>
+
+          {/* Details Box - Prix & Durée */}
+          <View style={styles.detailsBox}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Prix de base</Text>
+              <Text style={styles.detailValue}>{service.price} DH</Text>
+            </View>
+            <View style={styles.detailDivider} />
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Duree estimee</Text>
+              <Text style={styles.detailValue}>⏱ {formatDuration(service.duration_minutes || 60)}</Text>
+            </View>
+          </View>
+
+          {/* Book Button */}
+          <Button
+            variant="primary"
+            onPress={handleBookNow}
+            fullWidth
+            style={styles.bookButtonInline}
+          >
+            Reserver maintenant
+          </Button>
         </View>
       </ScrollView>
-
-      {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
-        <View style={styles.bottomBarLeft}>
-          <Text style={styles.bottomBarLabel}>Prix total</Text>
-          <Text style={styles.bottomBarPrice}>{service.price} DH</Text>
-        </View>
-        <Button
-          variant="primary"
-          onPress={handleBookNow}
-          style={styles.bookButton}
-        >
-          Reserver maintenant
-        </Button>
-      </View>
     </View>
   );
 }
@@ -315,7 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: spacing.xl,
   },
 
   // Gallery
@@ -399,187 +319,82 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
-  // Content
+  // Content - Web App Style
   content: {
     padding: spacing.lg,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.md,
   },
-  headerLeft: {
-    flex: 1,
-    marginRight: spacing.md,
+  categoryBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    color: colors.white,
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: '700',
     color: colors.gray[900],
     marginBottom: spacing.sm,
   },
-  meta: {
+  ratingRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-  },
-  metaBadge: {
-    marginLeft: spacing.xs,
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  priceLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginBottom: 2,
-  },
-  price: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-  },
-
-  // Info Cards
-  infoCards: {
-    flexDirection: 'row',
-    gap: spacing.md,
     marginBottom: spacing.lg,
   },
-  infoCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.gray[50],
-    borderRadius: borderRadius.lg,
-  },
-  infoIcon: {
-    fontSize: 24,
-    marginBottom: spacing.xs,
-  },
-  infoLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gray[900],
-  },
-  infoLink: {
-    fontSize: typography.fontSize.xs,
-    color: colors.primary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-
-  // Description
-  descriptionCard: {
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
+  ratingStar: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
+    color: '#FBBF24',
+    marginRight: 4,
+  },
+  ratingValue: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
     color: colors.gray[900],
-    marginBottom: spacing.md,
+    marginRight: 4,
+  },
+  reviewsCount: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
   },
   description: {
     fontSize: typography.fontSize.base,
-    color: colors.gray[700],
-    lineHeight: 24,
-  },
-
-  // Provider
-  providerCard: {
-    marginBottom: spacing.md,
-  },
-  providerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  providerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginRight: spacing.md,
-  },
-  providerAvatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  providerAvatarText: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.white,
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerName: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gray[900],
-    marginBottom: 4,
-  },
-  providerRating: {
-    fontSize: typography.fontSize.sm,
     color: colors.gray[600],
+    lineHeight: 24,
+    marginBottom: spacing.xl,
   },
-
-  // Included
-  includedCard: {
-    marginBottom: spacing.md,
-  },
-  includedList: {
-    gap: spacing.sm,
-  },
-  includedItem: {
+  detailsBox: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  includedIcon: {
-    fontSize: typography.fontSize.base,
-    color: colors.success,
-    marginRight: spacing.sm,
-    fontWeight: typography.fontWeight.bold,
-  },
-  includedText: {
-    fontSize: typography.fontSize.base,
-    color: colors.gray[700],
-  },
-
-  // Bottom Bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    paddingBottom: spacing.xl,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[200],
-    ...shadows.lg,
+    marginBottom: spacing.xl,
   },
-  bottomBarLeft: {},
-  bottomBarLabel: {
-    fontSize: typography.fontSize.xs,
+  detailItem: {
+    flex: 1,
+  },
+  detailDivider: {
+    width: 1,
+    backgroundColor: colors.gray[200],
+    marginHorizontal: spacing.md,
+  },
+  detailLabel: {
+    fontSize: typography.fontSize.sm,
     color: colors.gray[500],
-    marginBottom: 2,
+    marginBottom: spacing.xs,
   },
-  bottomBarPrice: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
+  detailValue: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600',
     color: colors.gray[900],
   },
-  bookButton: {
-    flex: 1,
-    marginLeft: spacing.lg,
+  bookButtonInline: {
+    marginBottom: spacing.lg,
   },
 
   // Error

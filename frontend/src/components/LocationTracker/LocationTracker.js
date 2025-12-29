@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './LocationTracker.module.scss';
 import apiClient from '@/lib/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LocationTracker({ orderId, clientAddress = null }) {
   const [providerLocation, setProviderLocation] = useState(null);
@@ -12,6 +13,7 @@ export default function LocationTracker({ orderId, clientAddress = null }) {
   const mapRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const scrollPosRef = useRef(0);
+  const { toArabicNumerals } = useLanguage();
 
   useEffect(() => {
     fetchLocation();
@@ -88,8 +90,8 @@ export default function LocationTracker({ orderId, clientAddress = null }) {
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffSecs < 60) return `Il y a ${diffSecs} secondes`;
-    if (diffMins < 60) return `Il y a ${diffMins} minutes`;
+    if (diffSecs < 60) return `Il y a ${toArabicNumerals(diffSecs)} secondes`;
+    if (diffMins < 60) return `Il y a ${toArabicNumerals(diffMins)} minutes`;
     return lastUpdate.toLocaleTimeString('fr-FR');
   };
 
@@ -173,13 +175,13 @@ export default function LocationTracker({ orderId, clientAddress = null }) {
           <div className={styles.coordinate}>
             <span className={styles.label}>Latitude</span>
             <span className={styles.value}>
-              {providerLocation?.lat.toFixed(6) || 'N/A'}
+              {providerLocation?.lat ? toArabicNumerals(providerLocation.lat.toFixed(6)) : 'N/A'}
             </span>
           </div>
           <div className={styles.coordinate}>
             <span className={styles.label}>Longitude</span>
             <span className={styles.value}>
-              {providerLocation?.lng.toFixed(6) || 'N/A'}
+              {providerLocation?.lng ? toArabicNumerals(providerLocation.lng.toFixed(6)) : 'N/A'}
             </span>
           </div>
         </div>

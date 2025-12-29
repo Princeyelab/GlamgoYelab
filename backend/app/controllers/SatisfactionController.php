@@ -434,18 +434,83 @@ class SatisfactionController extends Controller
     private function updateProviderStats(int $providerId, int $newRating): void
     {
         try {
-            // Recalculer le rating moyen
+            // Recalculer le rating moyen depuis satisfaction_surveys
             $stats = $this->surveyModel->getProviderStats($providerId);
 
-            if ($stats['avg_quality_rating']) {
-                $this->providerModel->update($providerId, [
-                    'rating' => $stats['avg_quality_rating']
-                ]);
+            error_log("[SATISFACTION] Stats for provider #{$providerId}: " . json_encode($stats));
 
-                error_log("[SATISFACTION] Provider #{$providerId} rating updated to {$stats['avg_quality_rating']}");
+            if ($stats['avg_quality_rating'] !== null) {
+                $rating = round((float)$stats['avg_quality_rating'], 2);
+                $totalReviews = (int)$stats['total_reviews'];
+
+                // Utiliser une requête SQL directe pour s'assurer que ça fonctionne
+                $db = \App\Core\Database::getInstance();
+                $stmt = $db->prepare("UPDATE providers SET rating = ?, total_reviews = ?, updated_at = NOW() WHERE id = ?");
+                $updated = $stmt->execute([$rating, $totalReviews, $providerId]);
+
+                if ($updated) {
+                    error_log("[SATISFACTION] Provider #{$providerId} rating updated to {$rating} ({$totalReviews} reviews)");
+                } else {
+                    error_log("[SATISFACTION] FAILED to update provider #{$providerId} rating - SQL error");
+                }
+            } else {
+                error_log("[SATISFACTION] No avg_quality_rating found for provider #{$providerId}");
             }
         } catch (\Exception $e) {
             error_log("[SATISFACTION] Error updating provider stats: " . $e->getMessage());
+            error_log("[SATISFACTION] Stack trace: " . $e->getTraceAsString());
+        }
+    }
+
+    /**
+     * POST /api/admin/recalculate-ratings
+     * Recalcule les ratings de tous les prestataires
+     */
+    public function recalculateAllRatings(): void
+    {
+        try {
+            $db = \App\Core\Database::getInstance();
+
+            // Récupérer tous les providers avec des surveys
+            $selectStmt = $db->query("
+                SELECT DISTINCT provider_id
+                FROM satisfaction_surveys
+            ");
+            $providerIds = $selectStmt->fetchAll(\PDO::FETCH_COLUMN);
+
+            $updated = 0;
+            $details = [];
+
+            foreach ($providerIds as $providerId) {
+                $stats = $this->surveyModel->getProviderStats((int)$providerId);
+
+                if ($stats['avg_quality_rating'] !== null) {
+                    $rating = round((float)$stats['avg_quality_rating'], 2);
+                    $totalReviews = (int)$stats['total_reviews'];
+
+                    $updateStmt = $db->prepare("UPDATE providers SET rating = ?, total_reviews = ?, updated_at = NOW() WHERE id = ?");
+                    $updateStmt->execute([$rating, $totalReviews, $providerId]);
+                    $updated++;
+
+                    $details[] = [
+                        'provider_id' => (int)$providerId,
+                        'rating' => $rating,
+                        'total_reviews' => $totalReviews
+                    ];
+
+                    error_log("[SATISFACTION] Recalculated provider #{$providerId}: rating={$rating}, reviews={$totalReviews}");
+                }
+            }
+
+            $this->success([
+                'message' => "Ratings recalculés pour {$updated} prestataires",
+                'providers_updated' => $updated,
+                'details' => $details
+            ]);
+        } catch (\Exception $e) {
+            error_log("[SATISFACTION] Error recalculating ratings: " . $e->getMessage());
+            error_log("[SATISFACTION] Stack: " . $e->getTraceAsString());
+            $this->error('Erreur lors du recalcul des ratings: ' . $e->getMessage(), 500);
         }
     }
 }

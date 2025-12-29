@@ -229,11 +229,11 @@ class PaymentLogger
             SELECT *
             FROM payment_logs
             WHERE error_message IS NOT NULL
-            AND created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+            AND created_at >= NOW() - INTERVAL '{$hours} hours'
             ORDER BY created_at DESC
-            LIMIT ?
+            LIMIT {$limit}
         ");
-        $stmt->execute([$hours, $limit]);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -243,10 +243,10 @@ class PaymentLogger
     public function getStats($period = 'today')
     {
         $where_clause = match ($period) {
-            'today' => "DATE(created_at) = CURDATE()",
-            'yesterday' => "DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
-            'week' => "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
-            'month' => "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+            'today' => "DATE(created_at) = CURRENT_DATE",
+            'yesterday' => "DATE(created_at) = CURRENT_DATE - INTERVAL '1 day'",
+            'week' => "created_at >= NOW() - INTERVAL '7 days'",
+            'month' => "created_at >= NOW() - INTERVAL '30 days'",
             default => "1=1"
         };
 
@@ -271,9 +271,9 @@ class PaymentLogger
         // Nettoyer DB
         $stmt = $this->db->prepare("
             DELETE FROM payment_logs
-            WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE created_at < NOW() - INTERVAL '{$days} days'
         ");
-        $deleted = $stmt->execute([$days]);
+        $deleted = $stmt->execute();
 
         // Nettoyer fichiers
         $files = glob($this->log_dir . '/payments_*.log');

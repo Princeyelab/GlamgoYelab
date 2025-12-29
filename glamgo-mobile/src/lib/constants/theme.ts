@@ -19,6 +19,7 @@ export const colors = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
+  info: '#3B82F6',
 };
 
 export const spacing = {
@@ -42,6 +43,12 @@ export const borderRadius = {
 };
 
 export const typography = {
+  fontFamily: {
+    light: 'Roboto_300Light',
+    regular: 'Roboto_400Regular',
+    medium: 'Roboto_500Medium',
+    bold: 'Roboto_700Bold',
+  },
   fontSize: {
     xs: 12,
     sm: 14,

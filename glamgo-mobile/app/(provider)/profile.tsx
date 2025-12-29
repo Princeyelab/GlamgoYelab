@@ -1,9 +1,10 @@
 /**
  * Provider Profile - GlamGo Mobile
  * Profil complet du prestataire avec stats, services et switch mode
+ * Connecte aux vraies APIs
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,39 +13,113 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
-import { selectUser, logoutUser, switchRole } from '../../src/lib/store/slices/authSlice';
+import { selectUser, logoutUser, switchRole, resetAuth } from '../../src/lib/store/slices/authSlice';
+import { persistor } from '../../src/lib/store';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import {
+  getProviderProfile,
+  getProviderServices,
+  getProviderEarnings,
+} from '../../src/lib/api/providerAPI';
 
-const MOCK_PROVIDER_STATS = {
-  rating: 4.8,
-  reviews_count: 156,
-  services_count: 8,
-  completed_bookings: 523,
-  earnings_total: 142500,
-  completion_rate: 96,
-  response_time: '< 5 min',
-  is_verified: true,
-  joined_date: '2023-06-15',
+// Stats initiales pour nouveau prestataire
+const INITIAL_STATS = {
+  rating: 0,
+  reviews_count: 0,
+  services_count: 0,
+  completed_bookings: 0,
+  earnings_total: 0,
+  completion_rate: 0,
+  response_time: '-',
+  is_verified: false,
+  joined_date: new Date().toISOString(),
 };
 
-const MOCK_SERVICES = [
-  { id: 1, title: 'Coupe Femme', price: 150, bookings: 245, active: true },
-  { id: 2, title: 'Coupe Homme', price: 80, bookings: 156, active: true },
-  { id: 3, title: 'Brushing', price: 100, bookings: 89, active: true },
-  { id: 4, title: 'Coloration', price: 250, bookings: 33, active: false },
-];
+interface ProviderService {
+  id: number;
+  title: string;
+  price: number;
+  bookings: number;
+  active: boolean;
+}
 
 export default function ProviderProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [stats, setStats] = useState(INITIAL_STATS);
+  const [services, setServices] = useState<ProviderService[]>([]);
+
+  // Charger les donnees depuis l'API
+  const loadProfileData = useCallback(async (showLoader = true) => {
+    if (showLoader) setIsLoading(true);
+    try {
+      const [profileData, servicesData, earningsData] = await Promise.all([
+        getProviderProfile().catch(() => null),
+        getProviderServices().catch(() => []),
+        getProviderEarnings().catch(() => ({ total: 0, net: 0, bookings: 0 })),
+      ]);
+
+      // Mettre a jour les stats depuis le profil
+      if (profileData) {
+        setStats({
+          rating: profileData.average_rating || 0,
+          reviews_count: profileData.total_reviews || 0,
+          services_count: servicesData?.length || 0,
+          completed_bookings: earningsData.bookings || 0,
+          earnings_total: earningsData.net || 0,
+          completion_rate: 0,
+          response_time: '-',
+          is_verified: profileData.is_verified || false,
+          joined_date: profileData.created_at || new Date().toISOString(),
+        });
+      }
+
+      // Convertir les services
+      if (servicesData && servicesData.length > 0) {
+        const formattedServices: ProviderService[] = servicesData.map((s: any) => ({
+          id: s.id,
+          title: s.service?.title || s.title || 'Service',
+          price: s.custom_price || s.service?.base_price || 0,
+          bookings: 0,
+          active: s.is_active !== false,
+        }));
+        setServices(formattedServices);
+      } else {
+        setServices([]);
+      }
+    } catch (error) {
+      console.error('Erreur chargement profil:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  // Charger au montage et quand l'ecran devient actif
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+    }, [loadProfileData])
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    hapticFeedback.light();
+    await loadProfileData(false);
+  };
 
   const handleSwitchToClient = () => {
     hapticFeedback.medium();
@@ -75,8 +150,15 @@ export default function ProviderProfileScreen() {
           text: 'Déconnexion',
           style: 'destructive',
           onPress: async () => {
-            await dispatch(logoutUser());
-            router.replace('/welcome');
+            // Vider l'etat auth immediatement
+            dispatch(resetAuth());
+            // Purger et flush le stockage persistant
+            await persistor.flush();
+            await persistor.purge();
+            // Appeler l'API logout en arriere-plan
+            dispatch(logoutUser());
+            // Naviguer vers login (route qui existe)
+            router.replace('/auth/login');
           },
         },
       ]
@@ -93,8 +175,29 @@ export default function ProviderProfileScreen() {
     Alert.alert('Info', 'Modification du profil - à venir');
   };
 
+  // Affichage pendant le chargement initial
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Chargement du profil...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+    >
       {/* Header with Avatar */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
@@ -107,7 +210,7 @@ export default function ProviderProfileScreen() {
               </Text>
             </View>
           )}
-          {MOCK_PROVIDER_STATS.is_verified && (
+          {stats.is_verified && (
             <View style={styles.verifiedBadge}>
               <Text style={styles.verifiedIcon}>✓</Text>
             </View>
@@ -124,12 +227,12 @@ export default function ProviderProfileScreen() {
         {/* Header Stats */}
         <View style={styles.headerStats}>
           <View style={styles.headerStat}>
-            <Text style={styles.headerStatValue}>⭐ {MOCK_PROVIDER_STATS.rating}</Text>
-            <Text style={styles.headerStatLabel}>{MOCK_PROVIDER_STATS.reviews_count} avis</Text>
+            <Text style={styles.headerStatValue}>⭐ {stats.rating.toFixed(1)}</Text>
+            <Text style={styles.headerStatLabel}>{stats.reviews_count} avis</Text>
           </View>
           <View style={styles.headerStatDivider} />
           <View style={styles.headerStat}>
-            <Text style={styles.headerStatValue}>{MOCK_PROVIDER_STATS.completed_bookings}</Text>
+            <Text style={styles.headerStatValue}>{stats.completed_bookings}</Text>
             <Text style={styles.headerStatLabel}>Services complétés</Text>
           </View>
         </View>
@@ -142,12 +245,12 @@ export default function ProviderProfileScreen() {
         <View style={styles.performanceRow}>
           <Text style={styles.performanceLabel}>Taux de complétion</Text>
           <View style={styles.performanceValueContainer}>
-            <Text style={styles.performanceValue}>{MOCK_PROVIDER_STATS.completion_rate}%</Text>
+            <Text style={styles.performanceValue}>{stats.completion_rate}%</Text>
             <View style={styles.progressBar}>
               <View
                 style={[
                   styles.progressFill,
-                  { width: `${MOCK_PROVIDER_STATS.completion_rate}%` },
+                  { width: `${stats.completion_rate}%` },
                 ]}
               />
             </View>
@@ -156,20 +259,20 @@ export default function ProviderProfileScreen() {
 
         <View style={styles.performanceRow}>
           <Text style={styles.performanceLabel}>Temps de réponse</Text>
-          <Text style={styles.performanceValue}>{MOCK_PROVIDER_STATS.response_time}</Text>
+          <Text style={styles.performanceValue}>{stats.response_time}</Text>
         </View>
 
         <View style={styles.performanceRow}>
           <Text style={styles.performanceLabel}>Services actifs</Text>
           <Text style={styles.performanceValue}>
-            {MOCK_SERVICES.filter(s => s.active).length}/{MOCK_SERVICES.length}
+            {services.filter(s => s.active).length}/{services.length}
           </Text>
         </View>
 
         <View style={[styles.performanceRow, { borderBottomWidth: 0 }]}>
           <Text style={styles.performanceLabel}>Membre depuis</Text>
           <Text style={styles.performanceValue}>
-            {new Date(MOCK_PROVIDER_STATS.joined_date).toLocaleDateString('fr-FR', {
+            {new Date(stats.joined_date).toLocaleDateString('fr-FR', {
               year: 'numeric',
               month: 'long',
             })}
@@ -186,31 +289,49 @@ export default function ProviderProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {MOCK_SERVICES.map((service, index) => (
-          <View
-            key={service.id}
-            style={[
-              styles.serviceRow,
-              index === MOCK_SERVICES.length - 1 && { borderBottomWidth: 0 },
-            ]}
-          >
-            <View style={styles.serviceInfo}>
-              <Text style={styles.serviceName}>{service.title}</Text>
-              <Text style={styles.serviceBookings}>{service.bookings} réservations</Text>
-            </View>
-            <Text style={styles.servicePrice}>{service.price} DH</Text>
-            <Badge variant={service.active ? 'success' : 'default'} size="sm">
-              {service.active ? 'Actif' : 'Inactif'}
-            </Badge>
+        {services.length === 0 ? (
+          <View style={styles.emptyServicesContainer}>
+            <Text style={styles.emptyServicesIcon}>💼</Text>
+            <Text style={styles.emptyServicesText}>Aucun service configuré</Text>
+            <Text style={styles.emptyServicesSubtext}>
+              Ajoutez vos services pour recevoir des réservations
+            </Text>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={handleManageServices}
+              style={styles.addServiceButton}
+            >
+              Ajouter des services
+            </Button>
           </View>
-        ))}
+        ) : (
+          services.map((service, index) => (
+            <View
+              key={service.id}
+              style={[
+                styles.serviceRow,
+                index === services.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceName}>{service.title}</Text>
+                <Text style={styles.serviceBookings}>{service.bookings} réservations</Text>
+              </View>
+              <Text style={styles.servicePrice}>{service.price} DH</Text>
+              <Badge variant={service.active ? 'success' : 'default'} size="sm">
+                {service.active ? 'Actif' : 'Inactif'}
+              </Badge>
+            </View>
+          ))
+        )}
       </Card>
 
       {/* Earnings Summary */}
       <Card style={styles.earningsCard}>
         <Text style={styles.earningsLabel}>Revenus totaux</Text>
         <Text style={styles.earningsTotal}>
-          {MOCK_PROVIDER_STATS.earnings_total.toLocaleString()} DH
+          {stats.earnings_total.toLocaleString()} DH
         </Text>
         <Text style={styles.earningsSubtext}>Depuis le début de votre activité</Text>
         <TouchableOpacity
@@ -292,6 +413,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing['3xl'],
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.gray[500],
   },
 
   // Header
@@ -438,6 +568,30 @@ const styles = StyleSheet.create({
   },
 
   // Services
+  emptyServicesContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  emptyServicesIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  emptyServicesText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: spacing.xs,
+  },
+  emptyServicesSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  addServiceButton: {
+    marginTop: spacing.sm,
+  },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',

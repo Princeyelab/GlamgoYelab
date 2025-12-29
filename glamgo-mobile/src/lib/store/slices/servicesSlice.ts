@@ -4,6 +4,7 @@
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Service, Category } from '../../../types/service';
 import {
   getServices,
@@ -14,9 +15,7 @@ import {
 } from '../../api/servicesAPI';
 import { handleAPIError, logError } from '../../utils/errorHandler';
 
-// Donnees locales fallback
-import { SERVICES as LOCAL_SERVICES } from '../../constants/services';
-import { CATEGORIES as LOCAL_CATEGORIES } from '../../constants/categories';
+const FAVORITES_STORAGE_KEY = '@glamgo_favorites';
 
 // === TYPES ===
 
@@ -57,43 +56,34 @@ export const fetchServices = createAsyncThunk(
   'services/fetchAll',
   async (params: ServicesListParams | undefined, { rejectWithValue }) => {
     try {
+      console.log('[fetchServices] Fetching from API...');
       const response = await getServices(params);
+      console.log('[fetchServices] Got', response.data.length, 'services from API');
       return {
         services: response.data,
         useLocalData: false,
       };
     } catch (error: any) {
       logError('fetchServices', error);
-      // Fallback sur donnees locales
-      console.log('📦 Utilisation donnees locales (fallback)');
-      return {
-        services: LOCAL_SERVICES,
-        useLocalData: true,
-      };
+      console.error('[fetchServices] API Error:', error.message);
+      // Retourner erreur au lieu de fallback (IDs locaux incorrects)
+      return rejectWithValue('Erreur de chargement des services');
     }
   }
 );
 
 /**
  * Charger un service par ID
- * Utilise l'API si disponible, sinon fallback sur donnees locales
+ * Utilise uniquement l'API (les IDs locaux ne correspondent pas)
  */
 export const fetchServiceById = createAsyncThunk(
   'services/fetchById',
   async (id: number | string, { rejectWithValue }) => {
-    // D'abord essayer les donnees locales (plus rapide)
-    const localService = LOCAL_SERVICES.find(s => s.id === Number(id));
-
     try {
+      console.log('[fetchServiceById] Loading service', id, 'from API...');
       const service = await getServiceById(id);
       return service;
     } catch (error: any) {
-      // Fallback sur donnees locales si API echoue
-      if (localService) {
-        console.log(`📦 Service ${id} charge depuis donnees locales (API indisponible)`);
-        return localService;
-      }
-      // Seulement logger erreur si pas de fallback
       logError('fetchServiceById', error);
       return rejectWithValue(handleAPIError(error));
     }
@@ -102,40 +92,71 @@ export const fetchServiceById = createAsyncThunk(
 
 /**
  * Rechercher des services
+ * Utilise uniquement l'API (les IDs locaux ne correspondent pas)
  */
 export const searchServicesAsync = createAsyncThunk(
   'services/search',
   async (query: string, { rejectWithValue, getState }) => {
     try {
+      console.log('[searchServices] Searching for:', query);
       const response = await apiSearchServices(query);
       return response.data;
     } catch (error: any) {
       logError('searchServices', error);
-      // Fallback sur recherche locale
-      const q = query.toLowerCase();
-      const localResults = LOCAL_SERVICES.filter(
-        s =>
-          s.title?.toLowerCase().includes(q) ||
-          s.description?.toLowerCase().includes(q)
-      );
-      return localResults;
+      return rejectWithValue('Erreur lors de la recherche');
     }
   }
 );
 
 /**
  * Charger les categories
+ * Utilise uniquement l'API
  */
 export const fetchCategories = createAsyncThunk(
   'services/fetchCategories',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('[fetchCategories] Loading from API...');
       const categories = await getCategories();
       return categories;
     } catch (error: any) {
       logError('fetchCategories', error);
-      // Fallback sur donnees locales
-      return LOCAL_CATEGORIES;
+      return rejectWithValue('Erreur de chargement des categories');
+    }
+  }
+);
+
+/**
+ * Charger les favoris depuis AsyncStorage
+ */
+export const loadFavorites = createAsyncThunk(
+  'services/loadFavorites',
+  async () => {
+    try {
+      const stored = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored) as number[];
+      }
+      return [];
+    } catch (error) {
+      console.error('[loadFavorites] Error:', error);
+      return [];
+    }
+  }
+);
+
+/**
+ * Sauvegarder les favoris dans AsyncStorage
+ */
+export const saveFavorites = createAsyncThunk(
+  'services/saveFavorites',
+  async (favorites: number[]) => {
+    try {
+      await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+      return favorites;
+    } catch (error) {
+      console.error('[saveFavorites] Error:', error);
+      throw error;
     }
   }
 );
@@ -188,11 +209,6 @@ const servicesSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    useLocalFallback: (state) => {
-      state.items = LOCAL_SERVICES;
-      state.categories = LOCAL_CATEGORIES;
-      state.useLocalData = true;
-    },
   },
   extraReducers: (builder) => {
     // === FETCH ALL SERVICES ===
@@ -210,11 +226,7 @@ const servicesSlice = createSlice({
       .addCase(fetchServices.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        // Utiliser donnees locales en cas d'erreur
-        if (state.items.length === 0) {
-          state.items = LOCAL_SERVICES;
-          state.useLocalData = true;
-        }
+        // NE PAS utiliser donnees locales (IDs differents de la DB)
       });
 
     // === FETCH SERVICE BY ID ===
@@ -266,10 +278,12 @@ const servicesSlice = createSlice({
       .addCase(fetchCategories.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        // Utiliser categories locales en cas d'erreur
-        if (state.categories.length === 0) {
-          state.categories = LOCAL_CATEGORIES;
-        }
+      });
+
+    // === LOAD FAVORITES ===
+    builder
+      .addCase(loadFavorites.fulfilled, (state, action) => {
+        state.favorites = action.payload;
       });
   },
 });
@@ -287,7 +301,6 @@ export const {
   clearFavorites,
   clearRecentlyViewed,
   clearError,
-  useLocalFallback,
 } = servicesSlice.actions;
 
 // Selectors

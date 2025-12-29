@@ -1,0 +1,242 @@
+/**
+ * WelcomePopupProvider Component - GlamGo Mobile
+ * Popup de bienvenue apres inscription prestataire reussie
+ */
+
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+
+interface WelcomePopupProviderProps {
+  visible: boolean;
+  onClose: () => void;
+  userName?: string;
+  onGoToDashboard?: () => void;
+  onGoToOnboarding?: () => void;
+}
+
+const { width } = Dimensions.get('window');
+
+export default function WelcomePopupProvider({
+  visible,
+  onClose,
+  userName,
+  onGoToDashboard,
+  onGoToOnboarding,
+}: WelcomePopupProviderProps) {
+
+  const handleSelectServices = () => {
+    if (onGoToOnboarding) {
+      onGoToOnboarding();
+    } else {
+      onClose();
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    if (onGoToDashboard) {
+      onGoToDashboard();
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.popup}>
+          {/* Close Button */}
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <Text style={styles.closeBtnText}>×</Text>
+          </TouchableOpacity>
+
+          {/* Content */}
+          <View style={styles.content}>
+            <Text style={styles.emoji}>🎉</Text>
+
+            <Text style={styles.title}>
+              Bienvenue{userName ? `, ${userName}` : ''} !
+            </Text>
+
+            <Text style={styles.message}>
+              Votre compte prestataire est pret !{'\n\n'}
+              Selectionnez vos services pour commencer a recevoir des demandes de clients.
+            </Text>
+
+            {/* Info Box */}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoIcon}>💡</Text>
+              <Text style={styles.infoText}>
+                Vous pourrez activer/desactiver votre disponibilite depuis votre tableau de bord, comme un chauffeur Uber.
+              </Text>
+            </View>
+
+            {/* Highlight Box */}
+            <View style={styles.highlightBox}>
+              <Text style={styles.highlightIcon}>💎</Text>
+              <Text style={styles.highlightText}>
+                Vous gardez 80% de chaque prestation !
+              </Text>
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttons}>
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={handleSelectServices}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.primaryBtnText}>Selectionner mes services</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={handleGoToDashboard}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>Plus tard</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  popup: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    width: width - spacing.lg * 2,
+    maxWidth: 400,
+    padding: spacing.xl,
+    position: 'relative',
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  closeBtnText: {
+    fontSize: 24,
+    color: colors.gray[500],
+    lineHeight: 26,
+  },
+  content: {
+    alignItems: 'center',
+  },
+  emoji: {
+    fontSize: 64,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
+    color: colors.gray[900],
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  message: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.gray[50],
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  },
+  infoIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    lineHeight: 18,
+  },
+  highlightBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  highlightIcon: {
+    fontSize: 20,
+    marginRight: spacing.sm,
+  },
+  highlightText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  buttons: {
+    width: '100%',
+    gap: spacing.sm,
+  },
+  primaryBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+  },
+  secondaryBtn: {
+    backgroundColor: colors.gray[100],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    color: colors.gray[700],
+    fontSize: typography.fontSize.base,
+    fontWeight: '500',
+  },
+});
