@@ -336,18 +336,36 @@ export const cancelBooking = async (
   id: number | string,
   data?: CancelBookingData
 ): Promise<Booking> => {
-  const response = await apiClient.patch<{ success: boolean; data?: BackendOrder; message?: string }>(
+  const response = await apiClient.patch<{ success: boolean; data?: any; message?: string }>(
     ENDPOINTS.BOOKINGS.CANCEL(id),
     data
   );
 
-  // Le backend peut retourner juste un message de succes
-  if (response.data.data) {
-    return mapOrderToBooking(response.data.data);
+  // Le backend retourne un message de succes, pas les donnees de la commande
+  // Verifier si c'est un objet order (a un id) ou juste un message
+  if (response.data.data && response.data.data.id) {
+    return mapOrderToBooking(response.data.data as BackendOrder);
   }
 
-  // Recharger la reservation pour avoir les donnees a jour
-  return getBookingById(id);
+  // Si l'annulation a reussi, retourner une reservation avec status cancelled
+  // sans refaire d'appel API (evite l'erreur "Date value out of bounds")
+  if (response.data.success) {
+    return {
+      id: typeof id === 'string' ? parseInt(id, 10) : id,
+      status: 'cancelled',
+      serviceName: '',
+      serviceImage: undefined,
+      providerName: '',
+      providerAvatar: undefined,
+      date: new Date().toISOString(),
+      time: '',
+      address: '',
+      price: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  throw new Error(response.data.message || 'Erreur lors de l\'annulation');
 };
 
 /**

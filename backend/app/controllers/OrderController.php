@@ -370,16 +370,21 @@ class OrderController extends Controller
         // NOTE: On n'inclut que les champs de base qui existent certainement
         // Les colonnes cancelled_at, cancellation_fee, etc. peuvent ne pas exister
 
+        error_log("[CANCEL] Attempting to update order #{$id} with: " . json_encode($updateData));
+
         try {
             $this->orderModel->updateStatus((int)$id, 'cancelled', $updateData);
+            error_log("[CANCEL] ✅ Order #{$id} status updated to cancelled");
         } catch (\Exception $e) {
-            error_log("[CANCEL] Error updating order status: " . $e->getMessage());
-            // Réessayer avec seulement le status si erreur de colonnes manquantes
-            if (strpos($e->getMessage(), 'column') !== false || strpos($e->getMessage(), 'Date') !== false) {
+            error_log("[CANCEL] ❌ Error updating order status: " . $e->getMessage());
+            error_log("[CANCEL] Error trace: " . $e->getTraceAsString());
+            // Réessayer avec seulement le status
+            try {
                 error_log("[CANCEL] Retrying with minimal update (status only)");
                 $this->orderModel->update((int)$id, ['status' => 'cancelled']);
-            } else {
-                throw $e;
+                error_log("[CANCEL] ✅ Minimal update succeeded");
+            } catch (\Exception $e2) {
+                error_log("[CANCEL] ❌ Minimal update also failed: " . $e2->getMessage());
             }
         }
 
