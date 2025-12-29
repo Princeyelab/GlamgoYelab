@@ -361,37 +361,27 @@ class OrderController extends Controller
         // Calculer les frais d'annulation
         $feeInfo = $cancellationService->calculateCancellationFee($order, 'client', $providerLocation);
 
-        // Préparer les données de mise à jour (seulement les colonnes qui existent)
+        // Préparer les données de mise à jour
         $updateData = [
             'cancellation_reason' => $data['reason'] ?? 'Non specifie',
             'cancelled_by' => 'client',
         ];
 
-        // Ajouter cancelled_at si la colonne existe
+        // NOTE: On n'inclut que les champs de base qui existent certainement
+        // Les colonnes cancelled_at, cancellation_fee, etc. peuvent ne pas exister
+
         try {
-            $updateData['cancelled_at'] = date('Y-m-d H:i:s');
+            $this->orderModel->updateStatus((int)$id, 'cancelled', $updateData);
         } catch (\Exception $e) {
-            error_log("[OrderController] Error setting cancelled_at: " . $e->getMessage());
-        }
-
-        // Ajouter les frais seulement s'ils sont valides
-        if (isset($feeInfo['fee']) && is_numeric($feeInfo['fee'])) {
-            $updateData['cancellation_fee'] = round((float)$feeInfo['fee'], 2);
-        }
-        if (isset($feeInfo['percentage']) && is_numeric($feeInfo['percentage'])) {
-            $updateData['cancellation_fee_percentage'] = (int)$feeInfo['percentage'];
-        }
-
-        // Ajouter la position du prestataire si fournie
-        if ($providerLocation) {
-            $updateData['cancellation_provider_lat'] = $providerLocation['lat'];
-            $updateData['cancellation_provider_lng'] = $providerLocation['lng'];
-            if (isset($feeInfo['distance_traveled'])) {
-                $updateData['cancellation_distance_traveled'] = $feeInfo['distance_traveled'];
+            error_log("[CANCEL] Error updating order status: " . $e->getMessage());
+            // Réessayer avec seulement le status si erreur de colonnes manquantes
+            if (strpos($e->getMessage(), 'column') !== false || strpos($e->getMessage(), 'Date') !== false) {
+                error_log("[CANCEL] Retrying with minimal update (status only)");
+                $this->orderModel->update((int)$id, ['status' => 'cancelled']);
+            } else {
+                throw $e;
             }
         }
-
-        $this->orderModel->updateStatus((int)$id, 'cancelled', $updateData);
 
         // Notifier le prestataire si assigné
         error_log("🔔 [CANCEL] Order #{$id} cancelled by client. Provider ID: " . ($order['provider_id'] ?? 'NULL'));
