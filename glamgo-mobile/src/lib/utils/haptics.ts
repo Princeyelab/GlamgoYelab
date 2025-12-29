@@ -24,8 +24,12 @@ export const hapticFeedback = {
    * Use for: toggles, checkboxes, small buttons
    */
   light: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -33,8 +37,12 @@ export const hapticFeedback = {
    * Use for: primary buttons, card presses
    */
   medium: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -42,8 +50,12 @@ export const hapticFeedback = {
    * Use for: important actions, confirmations
    */
   heavy: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -51,8 +63,12 @@ export const hapticFeedback = {
    * Use for: booking confirmed, payment success
    */
   success: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -60,8 +76,12 @@ export const hapticFeedback = {
    * Use for: low battery, network issues
    */
   warning: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -69,8 +89,12 @@ export const hapticFeedback = {
    * Use for: form validation errors, failed actions
    */
   error: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 
   /**
@@ -78,8 +102,12 @@ export const hapticFeedback = {
    * Use for: picker changes, tab switches, list selections
    */
   selection: () => {
-    if (!hapticsEnabled || Platform.OS === 'web') return;
-    Haptics.selectionAsync();
+    try {
+      if (!hapticsEnabled || Platform.OS === 'web') return;
+      Haptics.selectionAsync();
+    } catch (e) {
+      // Silently ignore haptics errors
+    }
   },
 };
 

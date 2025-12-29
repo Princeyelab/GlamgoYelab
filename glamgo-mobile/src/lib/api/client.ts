@@ -98,10 +98,10 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Debug: Log detaille pour erreurs 401
-    if (__DEV__ && error.response?.status === 401) {
-      console.error(`[API] 401 ERROR on ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`);
-      console.error('[API] 401 Response:', JSON.stringify(error.response?.data));
+    // Debug: Log detaille pour erreurs 401 et 403
+    if (__DEV__ && (error.response?.status === 401 || error.response?.status === 403)) {
+      console.error(`[API] ${error.response?.status} ERROR on ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`);
+      console.error(`[API] ${error.response?.status} Response:`, JSON.stringify(error.response?.data));
       const currentToken = await AsyncStorage.getItem(TOKEN_KEY);
       console.error('[API] Current token exists?', !!currentToken);
       if (currentToken) {

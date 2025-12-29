@@ -25,6 +25,12 @@ class ProviderOrderController extends Controller
      */
     public function index(): void
     {
+        // Verifier que l'utilisateur est un prestataire
+        $userType = $_SERVER['USER_TYPE'] ?? 'user';
+        if ($userType !== 'provider') {
+            $this->error('Acces reserve aux prestataires', 403);
+        }
+
         $providerId = $_SERVER['USER_ID'];
         $queryParams = $this->getQueryParams();
 
@@ -39,6 +45,12 @@ class ProviderOrderController extends Controller
      */
     public function show(string $orderId): void
     {
+        // Verifier que l'utilisateur est un prestataire
+        $userType = $_SERVER['USER_TYPE'] ?? 'user';
+        if ($userType !== 'provider') {
+            $this->error('Acces reserve aux prestataires. Veuillez vous connecter en tant que prestataire.', 403);
+        }
+
         $providerId = $_SERVER['USER_ID'];
         $order = $this->orderModel->getDetailedOrder((int)$orderId);
 

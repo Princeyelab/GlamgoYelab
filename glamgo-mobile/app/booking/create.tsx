@@ -291,6 +291,12 @@ export default function CreateBookingScreen() {
   };
 
   const handleSubmit = async () => {
+    console.log('[Booking] handleSubmit called');
+    console.log('[Booking] selectedProvider:', selectedProvider);
+    console.log('[Booking] service:', service);
+    console.log('[Booking] address:', address);
+    console.log('[Booking] addressData:', addressData);
+
     hapticFeedback.medium();
 
     // Validate all fields
@@ -311,6 +317,7 @@ export default function CreateBookingScreen() {
     }
 
     if (!selectedProvider) {
+      console.log('[Booking] No provider selected, showing alert');
       Alert.alert(
         'Prestataire requis',
         'Veuillez selectionner un prestataire pour continuer.'
@@ -320,6 +327,7 @@ export default function CreateBookingScreen() {
     }
 
     if (!user) {
+      console.log('[Booking] No user, redirecting to login');
       dispatch(showToast({
         message: 'Veuillez vous connecter pour reserver',
         type: 'error',
@@ -328,6 +336,7 @@ export default function CreateBookingScreen() {
       return;
     }
 
+    console.log('[Booking] Showing confirmation dialog');
     // Confirmation dialog
     const providerInfo = selectedProvider ? `\nPrestataire: ${selectedProvider.name}` : '';
     Alert.alert(
