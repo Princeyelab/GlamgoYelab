@@ -175,9 +175,9 @@ class MigrationController extends Controller
             $db = Database::getInstance();
             $results = [];
 
-            // Colonnes à ajouter à la table orders
+            // Colonnes à ajouter à la table orders (syntaxe PostgreSQL compatible)
             $columns = [
-                'cancelled_at' => 'DATETIME NULL',
+                'cancelled_at' => 'TIMESTAMP NULL',
                 'cancelled_by' => "VARCHAR(20) NULL",
                 'cancellation_reason' => 'TEXT NULL',
                 'cancellation_fee' => 'DECIMAL(10, 2) DEFAULT 0.00',
@@ -188,10 +188,11 @@ class MigrationController extends Controller
             ];
 
             foreach ($columns as $columnName => $columnDef) {
-                // Vérifier si la colonne existe
-                $stmt = $db->query("SHOW COLUMNS FROM orders LIKE '{$columnName}'");
+                // Vérifier si la colonne existe (syntaxe PostgreSQL)
+                $stmt = $db->prepare("SELECT column_name FROM information_schema.columns WHERE table_name = 'orders' AND column_name = ?");
+                $stmt->execute([$columnName]);
 
-                if ($stmt->rowCount() > 0) {
+                if ($stmt->fetch()) {
                     $results[] = "✓ Colonne '{$columnName}' existe deja";
                 } else {
                     try {
@@ -203,11 +204,11 @@ class MigrationController extends Controller
                 }
             }
 
-            // Créer la table cancellation_rules
+            // Créer la table cancellation_rules (syntaxe PostgreSQL)
             try {
                 $db->exec("
                     CREATE TABLE IF NOT EXISTS cancellation_rules (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         status VARCHAR(20) NOT NULL,
                         cancelled_by VARCHAR(20) NOT NULL,
                         hours_before_appointment INT NULL,
