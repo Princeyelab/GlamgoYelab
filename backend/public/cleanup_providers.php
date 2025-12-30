@@ -6,7 +6,22 @@
  * ou: /cleanup_providers.php?keep_id=1,2,3
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Autoloader
+spl_autoload_register(function ($class) {
+    $prefix = 'App\\';
+    $baseDir = __DIR__ . '/../app/';
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) return;
+    $relativeClass = substr($class, $len);
+    $parts = explode('\\', $relativeClass);
+    $className = array_pop($parts);
+    $path = '';
+    foreach ($parts as $part) {
+        $path .= strtolower($part) . '/';
+    }
+    $file = $baseDir . $path . $className . '.php';
+    if (file_exists($file)) require $file;
+});
 
 use App\Core\Database;
 
