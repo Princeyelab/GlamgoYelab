@@ -128,7 +128,7 @@ class SubscriptionController extends Controller
                     sp.commission_rate,
                     sp.max_services,
                     sp.badge_type,
-                    DATEDIFF(ps.expires_at, NOW()) as days_remaining
+                    EXTRACT(DAY FROM (ps.expires_at - NOW()))::int as days_remaining
                 FROM provider_subscriptions ps
                 JOIN subscription_plans sp ON ps.plan_id = sp.id
                 WHERE ps.provider_id = ?
@@ -521,7 +521,7 @@ class SubscriptionController extends Controller
                     sp.badge_type,
                     sp.features,
                     ps.expires_at,
-                    DATEDIFF(ps.expires_at, NOW()) as days_remaining
+                    EXTRACT(DAY FROM (ps.expires_at - NOW()))::int as days_remaining
                 FROM provider_subscriptions ps
                 JOIN subscription_plans sp ON ps.plan_id = sp.id
                 WHERE ps.provider_id = ? AND ps.status = 'active'
