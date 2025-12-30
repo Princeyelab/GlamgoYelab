@@ -16,6 +16,7 @@ $router->get('/api/health', 'HealthController', 'check');
 // Migration (à supprimer après utilisation)
 $router->get('/api/migrate', 'MigrationController', 'run');
 $router->get('/api/migrate-cancellation', 'MigrationController', 'migrateCancellation');
+$router->get('/api/migrate-subscriptions', 'MigrationController', 'migrateSubscriptions');
 $router->get('/api/debug', 'MigrationController', 'debug');
 $router->get('/api/activate-providers', 'MigrationController', 'activateProviders');
 
@@ -441,5 +442,31 @@ $router->post('/api/admin/providers/{id}/warning', 'ProviderPriorityController',
 
 // Routes Systeme - Prestataires par priorite pour une commande
 $router->get('/api/orders/{id}/providers-by-priority', 'ProviderPriorityController', 'getProvidersByPriorityForOrder')
+    ->middleware([AuthMiddleware::class]);
+
+// =====================================================
+// ROUTES SYSTÈME D'ABONNEMENTS PRESTATAIRES
+// =====================================================
+// Ajoute le 2025-12-30 - Formules Premium & Packagings
+// Plans: Decouverte (gratuit), Essentiel, Premium, VIP
+// Commission reduite selon le plan, visibilite accrue
+
+// Plans disponibles (route publique pour affichage a l'inscription)
+$router->get('/api/subscription-plans', 'SubscriptionController', 'getPlans');
+
+// Routes Prestataire - Abonnement
+$router->get('/api/provider/subscription', 'SubscriptionController', 'getCurrentSubscription')
+    ->middleware([AuthMiddleware::class]);
+
+$router->post('/api/provider/subscription', 'SubscriptionController', 'subscribe')
+    ->middleware([AuthMiddleware::class]);
+
+$router->post('/api/provider/subscription/confirm-payment', 'SubscriptionController', 'confirmPayment')
+    ->middleware([AuthMiddleware::class]);
+
+$router->put('/api/provider/subscription/cancel', 'SubscriptionController', 'cancel')
+    ->middleware([AuthMiddleware::class]);
+
+$router->get('/api/provider/subscription/benefits', 'SubscriptionController', 'getBenefits')
     ->middleware([AuthMiddleware::class]);
 

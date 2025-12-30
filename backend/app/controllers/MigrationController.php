@@ -267,4 +267,177 @@ class MigrationController extends Controller
             $this->error('Erreur migration: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Migration pour le système d'abonnements prestataires
+     * Ajoute les tables subscription_plans et provider_subscriptions
+     */
+    public function migrateSubscriptions(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Créer la table subscription_plans (syntaxe PostgreSQL)
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS subscription_plans (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        slug VARCHAR(50) NOT NULL UNIQUE,
+                        description TEXT,
+                        price DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        duration_days INT NOT NULL DEFAULT 30,
+                        features JSONB,
+                        visibility_boost INT DEFAULT 0,
+                        priority_level INT DEFAULT 0,
+                        commission_rate DECIMAL(5,2) DEFAULT 20.00,
+                        max_services INT DEFAULT NULL,
+                        max_photos INT DEFAULT 5,
+                        can_access_stats BOOLEAN DEFAULT FALSE,
+                        can_access_chat BOOLEAN DEFAULT TRUE,
+                        can_urgent_bookings BOOLEAN DEFAULT FALSE,
+                        badge_type VARCHAR(50) DEFAULT NULL,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        is_recommended BOOLEAN DEFAULT FALSE,
+                        sort_order INT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
+                $results[] = "✅ Table 'subscription_plans' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'subscription_plans' existe deja";
+                } else {
+                    $results[] = "❌ Erreur subscription_plans: " . $e->getMessage();
+                }
+            }
+
+            // Créer la table provider_subscriptions (syntaxe PostgreSQL)
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS provider_subscriptions (
+                        id SERIAL PRIMARY KEY,
+                        provider_id INT NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+                        plan_id INT NOT NULL REFERENCES subscription_plans(id) ON DELETE RESTRICT,
+                        status VARCHAR(20) DEFAULT 'pending_payment',
+                        started_at TIMESTAMP NULL,
+                        expires_at TIMESTAMP NULL,
+                        cancelled_at TIMESTAMP NULL,
+                        payment_method VARCHAR(20) DEFAULT 'card',
+                        payment_status VARCHAR(20) DEFAULT 'pending',
+                        payment_amount DECIMAL(10,2) DEFAULT 0,
+                        transaction_id VARCHAR(100) DEFAULT NULL,
+                        auto_renew BOOLEAN DEFAULT FALSE,
+                        renewal_reminder_sent BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
+                $results[] = "✅ Table 'provider_subscriptions' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'provider_subscriptions' existe deja";
+                } else {
+                    $results[] = "❌ Erreur provider_subscriptions: " . $e->getMessage();
+                }
+            }
+
+            // Ajouter colonnes à providers (syntaxe PostgreSQL)
+            $providerColumns = [
+                'subscription_plan_id' => 'INT DEFAULT NULL',
+                'subscription_status' => "VARCHAR(20) DEFAULT 'none'",
+                'subscription_expires_at' => 'TIMESTAMP NULL',
+                'badge_type' => 'VARCHAR(50) DEFAULT NULL'
+            ];
+
+            foreach ($providerColumns as $columnName => $columnDef) {
+                $stmt = $db->prepare("SELECT column_name FROM information_schema.columns WHERE table_name = 'providers' AND column_name = ?");
+                $stmt->execute([$columnName]);
+
+                if ($stmt->fetch()) {
+                    $results[] = "✓ Colonne 'providers.{$columnName}' existe deja";
+                } else {
+                    try {
+                        $db->exec("ALTER TABLE providers ADD COLUMN {$columnName} {$columnDef}");
+                        $results[] = "✅ Colonne 'providers.{$columnName}' ajoutee";
+                    } catch (\PDOException $e) {
+                        $results[] = "❌ Erreur providers.{$columnName}: " . $e->getMessage();
+                    }
+                }
+            }
+
+            // Insérer les plans par défaut
+            $stmt = $db->query("SELECT COUNT(*) as cnt FROM subscription_plans");
+            $count = $stmt->fetch()['cnt'];
+
+            if ($count == 0) {
+                // Plan Découverte (gratuit)
+                $db->exec("
+                    INSERT INTO subscription_plans (name, slug, description, price, duration_days, features, visibility_boost, priority_level, commission_rate, max_services, max_photos, can_access_stats, can_urgent_bookings, badge_type, is_active, sort_order)
+                    VALUES (
+                        'Decouverte', 'free', 'Plan gratuit pour debuter sur GlamGo', 0, 365,
+                        '[\"Profil basique\", \"3 services maximum\", \"Commission standard 20%\", \"Visibilite normale\"]'::jsonb,
+                        0, 0, 20.00, 3, 3, FALSE, FALSE, NULL, TRUE, 1
+                    )
+                ");
+
+                // Plan Essentiel
+                $db->exec("
+                    INSERT INTO subscription_plans (name, slug, description, price, duration_days, features, visibility_boost, priority_level, commission_rate, max_services, max_photos, can_access_stats, can_urgent_bookings, badge_type, is_active, is_recommended, sort_order)
+                    VALUES (
+                        'Essentiel', 'essential', 'L''essentiel pour developper votre activite', 99, 30,
+                        '[\"Profil complet\", \"10 services maximum\", \"Commission reduite 18%\", \"+20% de visibilite\", \"Statistiques basiques\", \"Badge Verifie\"]'::jsonb,
+                        20, 3, 18.00, 10, 5, TRUE, FALSE, 'verified', TRUE, TRUE, 2
+                    )
+                ");
+
+                // Plan Premium
+                $db->exec("
+                    INSERT INTO subscription_plans (name, slug, description, price, duration_days, features, visibility_boost, priority_level, commission_rate, max_services, max_photos, can_access_stats, can_urgent_bookings, badge_type, is_active, sort_order)
+                    VALUES (
+                        'Premium', 'premium', 'Maximisez votre visibilite et vos revenus', 199, 30,
+                        '[\"Profil premium complet\", \"Services illimites\", \"Commission reduite 15%\", \"+50% de visibilite\", \"Priorite dans les recherches\", \"Statistiques avancees\", \"Reservations urgentes\", \"Badge Gold\", \"10 photos profil\"]'::jsonb,
+                        50, 7, 15.00, NULL, 10, TRUE, TRUE, 'gold', TRUE, 3
+                    )
+                ");
+
+                // Plan VIP
+                $db->exec("
+                    INSERT INTO subscription_plans (name, slug, description, price, duration_days, features, visibility_boost, priority_level, commission_rate, max_services, max_photos, can_access_stats, can_urgent_bookings, badge_type, is_active, sort_order)
+                    VALUES (
+                        'VIP', 'vip', 'L''excellence pour les professionnels etablis', 399, 30,
+                        '[\"Tous les avantages Premium\", \"Commission minimale 12%\", \"+100% de visibilite\", \"Priorite maximale\", \"Support prioritaire 24/7\", \"Badge VIP exclusif\", \"Photos illimitees\", \"Mise en avant sur la page d''accueil\"]'::jsonb,
+                        100, 10, 12.00, NULL, 50, TRUE, TRUE, 'vip', TRUE, 4
+                    )
+                ");
+
+                $results[] = "✅ 4 plans d'abonnement inseres";
+            } else {
+                $results[] = "✓ Plans existent deja ({$count} plans)";
+            }
+
+            // Créer les index
+            try {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_provider ON provider_subscriptions(provider_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON provider_subscriptions(status)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_expires ON provider_subscriptions(expires_at)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_plans_active ON subscription_plans(is_active)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_providers_subscription ON providers(subscription_plan_id, subscription_status)");
+                $results[] = "✅ Index crees";
+            } catch (\PDOException $e) {
+                $results[] = "✓ Index deja existants ou erreur: " . $e->getMessage();
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration abonnements terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
 }
