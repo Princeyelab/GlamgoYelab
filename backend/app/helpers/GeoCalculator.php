@@ -106,11 +106,8 @@ class GeoCalculator
                   AND COALESCE(p.current_latitude, p.latitude) BETWEEN :min_lat AND :max_lat
                   AND COALESCE(p.current_longitude, p.longitude) BETWEEN :min_lng AND :max_lng";
 
-        // En mode test, ne pas filtrer par is_verified
-        if (!$testMode) {
-            $sql .= " AND p.is_verified = TRUE";
-        }
-
+        // Note: Filtrage assoupli pour le developpement
+        // Les prestataires doivent avoir is_available = TRUE pour apparaitre
         if ($onlyAvailable) {
             $sql .= " AND p.is_available = TRUE";
         }
