@@ -1,12 +1,24 @@
 <?php
 /**
  * Fix Provider Status - Activer un prestataire pour qu'il apparaisse dans les recherches
- *
- * Usage: /fix_provider_status.php?email=xxx@xxx.com
- * ou: /fix_provider_status.php?name=bamba
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Autoloader
+spl_autoload_register(function ($class) {
+    $prefix = 'App\\';
+    $baseDir = __DIR__ . '/../app/';
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) return;
+    $relativeClass = substr($class, $len);
+    $parts = explode('\\', $relativeClass);
+    $className = array_pop($parts);
+    $path = '';
+    foreach ($parts as $part) {
+        $path .= strtolower($part) . '/';
+    }
+    $file = $baseDir . $path . $className . '.php';
+    if (file_exists($file)) require $file;
+});
 
 use App\Core\Database;
 
@@ -23,7 +35,7 @@ try {
         echo json_encode([
             'success' => false,
             'error' => 'Parametres requis: email ou name',
-            'usage' => '/fix_provider_status.php?email=xxx@xxx.com ou /fix_provider_status.php?name=bamba'
+            'usage' => '/fix_provider_status.php?name=bamba'
         ]);
         exit;
     }
@@ -45,10 +57,7 @@ try {
     $provider = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$provider) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Prestataire non trouve'
-        ]);
+        echo json_encode(['success' => false, 'error' => 'Prestataire non trouve']);
         exit;
     }
 
@@ -57,7 +66,8 @@ try {
         'account_status' => $provider['account_status'],
         'is_available' => (bool) $provider['is_available'],
         'is_verified' => (bool) $provider['is_verified'],
-        'has_coordinates' => !empty($provider['latitude']) || !empty($provider['current_latitude']),
+        'has_lat' => !empty($provider['latitude']) || !empty($provider['current_latitude']),
+        'has_lng' => !empty($provider['longitude']) || !empty($provider['current_longitude']),
     ];
 
     // Fix provider status
@@ -72,41 +82,33 @@ try {
     $updateStmt->execute(['id' => $provider['id']]);
 
     // Check services
-    $stmtServices = $db->prepare("
-        SELECT COUNT(*) as count FROM provider_services WHERE provider_id = :provider_id
-    ");
+    $stmtServices = $db->prepare("SELECT COUNT(*) as count FROM provider_services WHERE provider_id = :provider_id");
     $stmtServices->execute(['provider_id' => $provider['id']]);
     $servicesCount = $stmtServices->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // If no services, add all services
+    // If no services, add all active services
     $servicesAdded = [];
     if ($servicesCount == 0) {
-        $stmtAllServices = $db->query("SELECT id, name FROM services WHERE status = 'active' LIMIT 10");
+        $stmtAllServices = $db->query("SELECT id, name FROM services WHERE is_active = true LIMIT 10");
         $allServices = $stmtAllServices->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($allServices as $service) {
-            $insertStmt = $db->prepare("
-                INSERT IGNORE INTO provider_services (provider_id, service_id, created_at)
-                VALUES (:provider_id, :service_id, NOW())
-            ");
-            $insertStmt->execute([
-                'provider_id' => $provider['id'],
-                'service_id' => $service['id']
-            ]);
-            $servicesAdded[] = $service['name'];
+            try {
+                $insertStmt = $db->prepare("
+                    INSERT INTO provider_services (provider_id, service_id, created_at)
+                    VALUES (:provider_id, :service_id, NOW())
+                    ON CONFLICT DO NOTHING
+                ");
+                $insertStmt->execute([
+                    'provider_id' => $provider['id'],
+                    'service_id' => $service['id']
+                ]);
+                $servicesAdded[] = $service['name'];
+            } catch (Exception $e) {
+                // Ignore duplicate errors
+            }
         }
     }
-
-    // Get updated status
-    $stmtUpdated = $db->prepare("SELECT * FROM providers WHERE id = :id");
-    $stmtUpdated->execute(['id' => $provider['id']]);
-    $updatedProvider = $stmtUpdated->fetch(PDO::FETCH_ASSOC);
-
-    $afterStatus = [
-        'account_status' => $updatedProvider['account_status'],
-        'is_available' => (bool) $updatedProvider['is_available'],
-        'is_verified' => (bool) $updatedProvider['is_verified'],
-    ];
 
     echo json_encode([
         'success' => true,
@@ -117,14 +119,10 @@ try {
             'email' => $provider['email'],
         ],
         'before' => $beforeStatus,
-        'after' => $afterStatus,
+        'services_count_before' => $servicesCount,
         'services_added' => $servicesAdded,
-        'note' => empty($servicesAdded) ? 'Services deja associes' : count($servicesAdded) . ' services ajoutes'
     ], JSON_PRETTY_PRINT);
 
 } catch (Exception $e) {
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
