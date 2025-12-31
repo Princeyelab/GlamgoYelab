@@ -18,7 +18,7 @@ class Order extends Model
             return $this->query(
                 "SELECT o.*,
                         COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
-                        COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
+                        COALESCE(s.image, pcs.images->0->>'url', pcs.images->>0) as service_image,
                         p.first_name as provider_first_name, p.last_name as provider_last_name,
                         p.phone as provider_phone, p.avatar as provider_avatar,
                         a.address_line, a.city,
@@ -37,7 +37,7 @@ class Order extends Model
         return $this->query(
             "SELECT o.*,
                     COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
-                    COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
+                    COALESCE(s.image, pcs.images->0->>'url', pcs.images->>0) as service_image,
                     COALESCE(s.id, o.custom_service_id) as service_id,
                     p.first_name as provider_first_name, p.last_name as provider_last_name,
                     p.avatar as provider_avatar, p.phone as provider_phone,
@@ -145,7 +145,7 @@ class Order extends Model
             "SELECT o.*,
                     COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
                     COALESCE(s.description, pcs.description) as service_description,
-                    COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
+                    COALESCE(s.image, pcs.images->0->>'url', pcs.images->>0) as service_image,
                     COALESCE(s.duration_minutes, pcs.duration_minutes) as duration_minutes,
                     s.slug as service_slug,
                     COALESCE(c.name, pcs_c.name) as category_name,
