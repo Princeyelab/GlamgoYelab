@@ -10,19 +10,24 @@ class Order extends Model
 
     /**
      * Récupère les commandes d'un utilisateur
+     * Supporte les services standards ET personnalisés
      */
     public function getUserOrders(int $userId, ?string $status = null): array
     {
         if ($status) {
             return $this->query(
-                "SELECT o.*, s.name as service_name, s.image as service_image,
+                "SELECT o.*,
+                        COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
+                        COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
                         p.first_name as provider_first_name, p.last_name as provider_last_name,
                         p.phone as provider_phone, p.avatar as provider_avatar,
-                        a.address_line, a.city
+                        a.address_line, a.city,
+                        CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
                  FROM orders o
-                 INNER JOIN services s ON o.service_id = s.id
+                 LEFT JOIN services s ON o.service_id = s.id
+                 LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
                  LEFT JOIN providers p ON o.provider_id = p.id
-                 INNER JOIN user_addresses a ON o.address_id = a.id
+                 LEFT JOIN user_addresses a ON o.address_id = a.id
                  WHERE o.user_id = ? AND o.status = ?
                  ORDER BY o.created_at DESC",
                 [$userId, $status]
@@ -30,12 +35,18 @@ class Order extends Model
         }
 
         return $this->query(
-            "SELECT o.*, s.name as service_name, s.image as service_image,
+            "SELECT o.*,
+                    COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
+                    COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
+                    COALESCE(s.id, o.custom_service_id) as service_id,
                     p.first_name as provider_first_name, p.last_name as provider_last_name,
                     p.avatar as provider_avatar, p.phone as provider_phone,
-                    a.address_line, a.city, a.latitude, a.longitude
+                    a.address_line, a.city, a.latitude, a.longitude,
+                    o.cancelled_by, o.cancellation_reason, o.cancelled_at,
+                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
              FROM orders o
-             INNER JOIN services s ON o.service_id = s.id
+             LEFT JOIN services s ON o.service_id = s.id
+             LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              LEFT JOIN providers p ON o.provider_id = p.id
              LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE o.user_id = ?
@@ -46,19 +57,23 @@ class Order extends Model
 
     /**
      * Récupère les commandes d'un prestataire (incluant les commandes disponibles)
+     * Supporte les services standards ET personnalisés
      */
     public function getProviderOrders(int $providerId, ?string $status = null): array
     {
         if ($status) {
             return $this->query(
-                "SELECT o.*, s.name as service_name,
+                "SELECT o.*,
+                        COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
                         u.first_name as user_first_name, u.last_name as user_last_name,
                         u.phone as user_phone, u.avatar as user_avatar,
                         COALESCE(a.address_line, 'Adresse non disponible') as address_line,
                         a.city, a.latitude, a.longitude,
-                        CONCAT(u.first_name, ' ', u.last_name) as user_name
+                        CONCAT(u.first_name, ' ', u.last_name) as user_name,
+                        CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
                  FROM orders o
-                 INNER JOIN services s ON o.service_id = s.id
+                 LEFT JOIN services s ON o.service_id = s.id
+                 LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
                  INNER JOIN users u ON o.user_id = u.id
                  LEFT JOIN user_addresses a ON o.address_id = a.id
                  WHERE (o.provider_id = ? OR (o.provider_id IS NULL AND o.status = 'pending'))
@@ -73,13 +88,16 @@ class Order extends Model
         //         + commandes pending sans prestataire (disponibles pour tous)
         //         + commandes pending assignées à ce prestataire (en attente d'acceptation)
         return $this->query(
-            "SELECT o.*, s.name as service_name,
+            "SELECT o.*,
+                    COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
                     u.first_name as user_first_name, u.last_name as user_last_name,
                     COALESCE(a.address_line, 'Adresse non disponible') as address_line,
                     a.city, a.latitude, a.longitude,
-                    CONCAT(u.first_name, ' ', u.last_name) as user_name
+                    CONCAT(u.first_name, ' ', u.last_name) as user_name,
+                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
              FROM orders o
-             INNER JOIN services s ON o.service_id = s.id
+             LEFT JOIN services s ON o.service_id = s.id
+             LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              INNER JOIN users u ON o.user_id = u.id
              LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE o.provider_id = ?
@@ -97,17 +115,20 @@ class Order extends Model
 
     /**
      * Récupère les commandes en attente pour un service
+     * Supporte les services standards ET personnalisés
      */
     public function getPendingOrdersForService(int $serviceId): array
     {
         return $this->query(
-            "SELECT o.*, s.name as service_name,
+            "SELECT o.*,
+                    COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
                     u.first_name as user_first_name, u.last_name as user_last_name,
                     a.address_line, a.city, a.latitude, a.longitude
              FROM orders o
-             INNER JOIN services s ON o.service_id = s.id
+             LEFT JOIN services s ON o.service_id = s.id
+             LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              INNER JOIN users u ON o.user_id = u.id
-             INNER JOIN user_addresses a ON o.address_id = a.id
+             LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE o.service_id = ? AND o.status = 'pending'
              ORDER BY o.created_at ASC",
             [$serviceId]
@@ -116,27 +137,34 @@ class Order extends Model
 
     /**
      * Récupère une commande détaillée
+     * Supporte les services standards ET personnalisés
      */
     public function getDetailedOrder(int $orderId): ?array
     {
         $result = $this->query(
             "SELECT o.*,
-                    s.name as service_name, s.description as service_description,
-                    s.image as service_image, s.duration_minutes, s.slug as service_slug,
-                    c.name as category_name,
+                    COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
+                    COALESCE(s.description, pcs.description) as service_description,
+                    COALESCE(s.image, (SELECT image FROM provider_custom_service_images WHERE custom_service_id = pcs.id LIMIT 1)) as service_image,
+                    COALESCE(s.duration_minutes, pcs.duration_minutes) as duration_minutes,
+                    s.slug as service_slug,
+                    COALESCE(c.name, pcs_c.name) as category_name,
                     u.first_name as user_first_name, u.last_name as user_last_name,
                     u.phone as user_phone, u.email as user_email, u.avatar as user_avatar,
                     p.first_name as provider_first_name, p.last_name as provider_last_name,
                     p.phone as provider_phone, p.avatar as provider_avatar, p.rating as provider_rating,
                     a.label as address_label, a.address_line, a.city, a.postal_code,
                     a.latitude, a.longitude,
-                    CONCAT(p.first_name, ' ', p.last_name) as provider_name
+                    CONCAT(p.first_name, ' ', p.last_name) as provider_name,
+                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
              FROM orders o
-             INNER JOIN services s ON o.service_id = s.id
+             LEFT JOIN services s ON o.service_id = s.id
+             LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              LEFT JOIN categories c ON s.category_id = c.id
+             LEFT JOIN categories pcs_c ON pcs.category_id = pcs_c.id
              INNER JOIN users u ON o.user_id = u.id
              LEFT JOIN providers p ON o.provider_id = p.id
-             INNER JOIN user_addresses a ON o.address_id = a.id
+             LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE o.id = ?",
             [$orderId]
         );
@@ -190,13 +218,16 @@ class Order extends Model
     /**
      * Vérifie si le prestataire a une commande active (en cours)
      * Statuts actifs: accepted, on_way, arrived, in_progress
+     * Supporte les services standards ET personnalisés
      */
     public function hasActiveOrder(int $providerId): ?array
     {
         $result = $this->query(
-            "SELECT o.id, o.status, o.service_id, s.name as service_name
+            "SELECT o.id, o.status, o.service_id, o.custom_service_id,
+                    COALESCE(s.name, pcs.name, o.custom_service_name) as service_name
              FROM orders o
-             INNER JOIN services s ON o.service_id = s.id
+             LEFT JOIN services s ON o.service_id = s.id
+             LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              WHERE o.provider_id = ?
                AND o.status IN ('accepted', 'on_way', 'arrived', 'in_progress')
              ORDER BY o.created_at DESC

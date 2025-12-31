@@ -118,24 +118,83 @@ class MigrationController extends Controller
             $providerCount = $stmt->fetch()['count'];
 
             // Compter les prestataires vérifiés et disponibles
-            $stmt = $db->query("SELECT COUNT(*) as count FROM providers WHERE is_verified = 1 AND is_available = 1");
+            $stmt = $db->query("SELECT COUNT(*) as count FROM providers WHERE is_verified = TRUE AND is_available = TRUE");
             $availableProviders = $stmt->fetch()['count'];
 
+            // Liste des prestataires avec leur statut
+            $stmt = $db->query("SELECT id, first_name, last_name, email, is_available, is_verified, last_seen_at, updated_at FROM providers ORDER BY id");
+            $providersList = $stmt->fetchAll();
+
             // Dernières notifications
-            $stmt = $db->query("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 10");
+            $stmt = $db->query("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 5");
             $lastNotifs = $stmt->fetchAll();
 
             // Dernières commandes
             $stmt = $db->query("SELECT id, status, service_id, created_at FROM orders ORDER BY created_at DESC LIMIT 5");
             $lastOrders = $stmt->fetchAll();
 
+            // Services par prestataire (pour debug spécialités)
+            $stmt = $db->query("
+                SELECT
+                    p.id as provider_id,
+                    p.first_name,
+                    p.latitude,
+                    p.longitude,
+                    COUNT(ps.service_id) as services_count,
+                    STRING_AGG(s.name, ', ') as services_list
+                FROM providers p
+                LEFT JOIN provider_services ps ON p.id = ps.provider_id
+                LEFT JOIN services s ON ps.service_id = s.id
+                WHERE p.is_available = TRUE
+                GROUP BY p.id, p.first_name, p.latitude, p.longitude
+                ORDER BY p.id DESC
+                LIMIT 10
+            ");
+            $providerServices = $stmt->fetchAll();
+
             $this->success([
                 'notifications_count' => $notifCount,
                 'providers_count' => $providerCount,
                 'available_providers' => $availableProviders,
+                'providers_status' => $providersList,
+                'provider_services' => $providerServices,
                 'last_notifications' => $lastNotifs,
                 'last_orders' => $lastOrders
             ]);
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Forcer un prestataire hors ligne (pour test)
+     * Usage: /api/force-offline?provider_id=58
+     */
+    public function forceOffline(): void
+    {
+        $providerId = $_GET['provider_id'] ?? null;
+
+        if (!$providerId) {
+            $this->error('provider_id requis', 400);
+        }
+
+        try {
+            $db = Database::getInstance();
+
+            // Mettre le prestataire hors ligne
+            $stmt = $db->prepare("UPDATE providers SET is_available = FALSE, updated_at = NOW() WHERE id = ?");
+            $result = $stmt->execute([$providerId]);
+
+            // Vérifier le résultat
+            $stmt = $db->prepare("SELECT id, first_name, last_name, is_available FROM providers WHERE id = ?");
+            $stmt->execute([$providerId]);
+            $provider = $stmt->fetch();
+
+            $this->success([
+                'updated' => $result,
+                'provider' => $provider
+            ], "Prestataire {$providerId} mis hors ligne");
 
         } catch (\Exception $e) {
             $this->error('Erreur: ' . $e->getMessage(), 500);
@@ -435,6 +494,348 @@ class MigrationController extends Controller
             $this->success([
                 'results' => $results
             ], 'Migration abonnements terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Migration pour le système de formules prestataires
+     * Ajoute les tables formulas et provider_formulas
+     */
+    public function migrateFormulas(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Créer la table formulas (syntaxe PostgreSQL)
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS formulas (
+                        id SERIAL PRIMARY KEY,
+                        slug VARCHAR(50) NOT NULL UNIQUE,
+                        name VARCHAR(100) NOT NULL,
+                        description TEXT,
+                        icon VARCHAR(10) DEFAULT '📅',
+                        price_modifier DECIMAL(3,2) NOT NULL DEFAULT 1.00,
+                        badge_text VARCHAR(20) DEFAULT NULL,
+                        badge_color VARCHAR(20) DEFAULT NULL,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        sort_order INT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
+                $results[] = "✅ Table 'formulas' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'formulas' existe deja";
+                } else {
+                    $results[] = "❌ Erreur formulas: " . $e->getMessage();
+                }
+            }
+
+            // Créer la table provider_formulas (syntaxe PostgreSQL)
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS provider_formulas (
+                        id SERIAL PRIMARY KEY,
+                        provider_id INT NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+                        formula_id INT NOT NULL REFERENCES formulas(id) ON DELETE CASCADE,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(provider_id, formula_id)
+                    )
+                ");
+                $results[] = "✅ Table 'provider_formulas' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'provider_formulas' existe deja";
+                } else {
+                    $results[] = "❌ Erreur provider_formulas: " . $e->getMessage();
+                }
+            }
+
+            // Insérer les formules par défaut
+            $stmt = $db->query("SELECT COUNT(*) as cnt FROM formulas");
+            $count = $stmt->fetch()['cnt'];
+
+            if ($count == 0) {
+                $formulas = [
+                    ['standard', 'Standard', 'Reservation classique avec prestataire disponible', '📅', 1.00, NULL, NULL, 1],
+                    ['premium', 'Premium', 'Prestataire experimente, produits haut de gamme', '⭐', 1.30, '+30%', '#F59E0B', 2],
+                    ['urgent', 'Urgent', 'Intervention dans les 2 heures', '⚡', 1.50, '+50%', '#EF4444', 3],
+                    ['recurring', 'Recurrent', 'Reservation hebdomadaire ou mensuelle', '🔄', 0.90, '-10%', '#10B981', 4],
+                    ['night', 'Nuit', 'Service entre 20h et 8h', '🌙', 1.25, '+25%', '#14B8A6', 5],
+                ];
+
+                $insertStmt = $db->prepare("
+                    INSERT INTO formulas (slug, name, description, icon, price_modifier, badge_text, badge_color, sort_order)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (slug) DO NOTHING
+                ");
+
+                foreach ($formulas as $formula) {
+                    try {
+                        $insertStmt->execute($formula);
+                    } catch (\PDOException $e) {
+                        // Ignorer doublons
+                    }
+                }
+                $results[] = "✅ 5 formules inserees";
+            } else {
+                $results[] = "✓ Formules existent deja ({$count} formules)";
+            }
+
+            // Créer les index
+            try {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_provider_formulas_provider ON provider_formulas(provider_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_provider_formulas_formula ON provider_formulas(formula_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_provider_formulas_active ON provider_formulas(is_active)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_formulas_active ON formulas(is_active)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_formulas_slug ON formulas(slug)");
+                $results[] = "✅ Index crees";
+            } catch (\PDOException $e) {
+                $results[] = "✓ Index deja existants ou erreur: " . $e->getMessage();
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration formules terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Migration pour ajouter la colonne diploma_certificate_path
+     */
+    public function migrateDiploma(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Vérifier si la colonne existe déjà
+            $stmt = $db->prepare("SELECT column_name FROM information_schema.columns WHERE table_name = 'providers' AND column_name = 'diploma_certificate_path'");
+            $stmt->execute();
+
+            if ($stmt->fetch()) {
+                $results[] = "✓ Colonne 'diploma_certificate_path' existe deja";
+            } else {
+                $db->exec("ALTER TABLE providers ADD COLUMN diploma_certificate_path VARCHAR(255) DEFAULT NULL");
+                $results[] = "✅ Colonne 'diploma_certificate_path' ajoutee";
+            }
+
+            // Créer la table provider_diplomas pour les diplômes par catégorie
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS provider_diplomas (
+                        id SERIAL PRIMARY KEY,
+                        provider_id INT NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+                        category_slug VARCHAR(50) NOT NULL,
+                        file_path VARCHAR(255) NOT NULL,
+                        file_name VARCHAR(255),
+                        is_verified BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(provider_id, category_slug)
+                    )
+                ");
+                $results[] = "✅ Table 'provider_diplomas' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'provider_diplomas' existe deja";
+                } else {
+                    $results[] = "❌ Erreur provider_diplomas: " . $e->getMessage();
+                }
+            }
+
+            // Créer les index
+            try {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_provider_diplomas_provider ON provider_diplomas(provider_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_provider_diplomas_category ON provider_diplomas(category_slug)");
+                $results[] = "✅ Index crees";
+            } catch (\PDOException $e) {
+                $results[] = "✓ Index deja existants";
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration diplome terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Migration pour les services personnalisés des prestataires
+     * Permet aux prestataires de créer leurs propres services
+     */
+    public function migrateCustomServices(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Créer la table provider_custom_services (syntaxe PostgreSQL)
+            try {
+                $db->exec("
+                    CREATE TABLE IF NOT EXISTS provider_custom_services (
+                        id SERIAL PRIMARY KEY,
+                        provider_id INT NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+                        category_id INT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+                        name VARCHAR(100) NOT NULL,
+                        description TEXT,
+                        price DECIMAL(10,2) NOT NULL,
+                        duration_minutes INT NOT NULL DEFAULT 60,
+                        images JSONB DEFAULT '[]'::jsonb,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
+                $results[] = "✅ Table 'provider_custom_services' creee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Table 'provider_custom_services' existe deja";
+                } else {
+                    $results[] = "❌ Erreur provider_custom_services: " . $e->getMessage();
+                }
+            }
+
+            // Créer les index
+            try {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_custom_services_provider ON provider_custom_services(provider_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_custom_services_category ON provider_custom_services(category_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_custom_services_active ON provider_custom_services(is_active)");
+                $results[] = "✅ Index crees";
+            } catch (\PDOException $e) {
+                $results[] = "✓ Index deja existants";
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration services personnalises terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Migration pour permettre la réservation de services personnalisés
+     * Ajoute la colonne custom_service_id à la table orders
+     */
+    public function migrateCustomServiceOrders(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Ajouter la colonne custom_service_id à orders
+            try {
+                $db->exec("
+                    ALTER TABLE orders
+                    ADD COLUMN IF NOT EXISTS custom_service_id INT NULL
+                    REFERENCES provider_custom_services(id) ON DELETE SET NULL
+                ");
+                $results[] = "✅ Colonne 'custom_service_id' ajoutee a orders";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false ||
+                    strpos($e->getMessage(), 'duplicate column') !== false) {
+                    $results[] = "✓ Colonne 'custom_service_id' existe deja";
+                } else {
+                    $results[] = "❌ Erreur custom_service_id: " . $e->getMessage();
+                }
+            }
+
+            // Ajouter la colonne custom_service_name pour stocker le nom (utile pour l'historique)
+            try {
+                $db->exec("
+                    ALTER TABLE orders
+                    ADD COLUMN IF NOT EXISTS custom_service_name VARCHAR(100) NULL
+                ");
+                $results[] = "✅ Colonne 'custom_service_name' ajoutee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Colonne 'custom_service_name' existe deja";
+                } else {
+                    $results[] = "❌ Erreur custom_service_name: " . $e->getMessage();
+                }
+            }
+
+            // Créer l'index
+            try {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_orders_custom_service ON orders(custom_service_id)");
+                $results[] = "✅ Index cree";
+            } catch (\PDOException $e) {
+                $results[] = "✓ Index deja existant";
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration reservation services personnalises terminee');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur migration: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Migration pour permettre service_id NULL dans orders
+     * Nécessaire pour les services personnalisés qui n'ont pas de service_id standard
+     */
+    public function migrateOrdersNullableServiceId(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $results = [];
+
+            // Modifier la colonne service_id pour permettre NULL
+            try {
+                $db->exec("ALTER TABLE orders ALTER COLUMN service_id DROP NOT NULL");
+                $results[] = "✅ Colonne 'service_id' maintenant nullable";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already') !== false ||
+                    strpos($e->getMessage(), 'does not exist') !== false) {
+                    $results[] = "✓ Colonne 'service_id' deja nullable ou contrainte inexistante";
+                } else {
+                    $results[] = "❌ Erreur: " . $e->getMessage();
+                }
+            }
+
+            // Ajouter une contrainte CHECK pour s'assurer qu'au moins un des deux est renseigné
+            try {
+                $db->exec("
+                    ALTER TABLE orders
+                    ADD CONSTRAINT chk_service_or_custom_service
+                    CHECK (service_id IS NOT NULL OR custom_service_id IS NOT NULL)
+                ");
+                $results[] = "✅ Contrainte CHECK ajoutee (service_id OU custom_service_id requis)";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false) {
+                    $results[] = "✓ Contrainte CHECK existe deja";
+                } else {
+                    $results[] = "⚠️ Contrainte CHECK non ajoutee: " . $e->getMessage();
+                }
+            }
+
+            $this->success([
+                'results' => $results
+            ], 'Migration service_id nullable terminee');
 
         } catch (\Exception $e) {
             $this->error('Erreur migration: ' . $e->getMessage(), 500);

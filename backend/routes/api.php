@@ -17,7 +17,13 @@ $router->get('/api/health', 'HealthController', 'check');
 $router->get('/api/migrate', 'MigrationController', 'run');
 $router->get('/api/migrate-cancellation', 'MigrationController', 'migrateCancellation');
 $router->get('/api/migrate-subscriptions', 'MigrationController', 'migrateSubscriptions');
+$router->get('/api/migrate-formulas', 'MigrationController', 'migrateFormulas');
+$router->get('/api/migrate-diploma', 'MigrationController', 'migrateDiploma');
+$router->get('/api/migrate-custom-services', 'MigrationController', 'migrateCustomServices');
+$router->get('/api/migrate-custom-service-orders', 'MigrationController', 'migrateCustomServiceOrders');
+$router->get('/api/migrate-nullable-service-id', 'MigrationController', 'migrateOrdersNullableServiceId');
 $router->get('/api/debug', 'MigrationController', 'debug');
+$router->get('/api/force-offline', 'MigrationController', 'forceOffline');
 $router->get('/api/activate-providers', 'MigrationController', 'activateProviders');
 
 // Authentification
@@ -165,11 +171,17 @@ $router->get('/api/notifications/unread-count', 'NotificationController', 'unrea
 // Profil prestataire
 $router->post('/api/provider/register', 'ProviderController', 'register');
 $router->post('/api/provider/login', 'ProviderController', 'login');
+$router->post('/api/provider/logout', 'ProviderController', 'logout')
+    ->middleware([AuthMiddleware::class]);
 $router->get('/api/provider/profile', 'ProviderController', 'profile')
     ->middleware([AuthMiddleware::class]);
 $router->put('/api/provider/profile', 'ProviderController', 'updateProfile')
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/provider/profile/image', 'ProviderController', 'uploadProfileImage')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/provider/diploma', 'ProviderController', 'uploadDiploma')
+    ->middleware([AuthMiddleware::class]);
+$router->get('/api/provider/diplomas', 'ProviderController', 'getDiplomas')
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/provider/documents', 'ProviderController', 'uploadDocuments')
     ->middleware([AuthMiddleware::class]);
@@ -469,4 +481,62 @@ $router->put('/api/provider/subscription/cancel', 'SubscriptionController', 'can
 
 $router->get('/api/provider/subscription/benefits', 'SubscriptionController', 'getBenefits')
     ->middleware([AuthMiddleware::class]);
+
+// =====================================================
+// ROUTES SYSTÈME DE FORMULES PRESTATAIRES
+// =====================================================
+// Ajoute le 2025-12-30 - Formules de reservation
+// Le prestataire choisit ses formules (Standard, Premium, Urgent, etc.)
+// Les clients filtrent les prestataires par formule choisie
+
+// Formules disponibles (route publique)
+$router->get('/api/booking-formulas', 'ProviderFormulaController', 'getAllFormulas');
+
+// Prestataires par formule (route publique pour recherche)
+$router->get('/api/providers/by-formula/{slug}', 'ProviderFormulaController', 'getProvidersByFormula');
+
+// Routes Prestataire - Gestion de ses formules
+$router->get('/api/provider/formulas', 'ProviderFormulaController', 'getProviderFormulas')
+    ->middleware([AuthMiddleware::class]);
+
+$router->post('/api/provider/formulas', 'ProviderFormulaController', 'addFormulas')
+    ->middleware([AuthMiddleware::class]);
+
+$router->put('/api/provider/formulas', 'ProviderFormulaController', 'updateFormulas')
+    ->middleware([AuthMiddleware::class]);
+
+$router->delete('/api/provider/formulas/{id}', 'ProviderFormulaController', 'removeFormula')
+    ->middleware([AuthMiddleware::class]);
+
+// =====================================================
+// ROUTES SERVICES PERSONNALISÉS PRESTATAIRES
+// =====================================================
+// Ajoute le 2025-12-31 - Services personnalises
+// Les prestataires peuvent creer leurs propres services
+// Limite: 10 services max par prestataire
+
+// Routes Prestataire - CRUD services personnalisés
+$router->get('/api/provider/custom-services', 'ProviderCustomServiceController', 'index')
+    ->middleware([AuthMiddleware::class]);
+
+$router->post('/api/provider/custom-services', 'ProviderCustomServiceController', 'create')
+    ->middleware([AuthMiddleware::class]);
+
+$router->get('/api/provider/custom-services/{id}', 'ProviderCustomServiceController', 'show')
+    ->middleware([AuthMiddleware::class]);
+
+$router->put('/api/provider/custom-services/{id}', 'ProviderCustomServiceController', 'update')
+    ->middleware([AuthMiddleware::class]);
+
+$router->delete('/api/provider/custom-services/{id}', 'ProviderCustomServiceController', 'delete')
+    ->middleware([AuthMiddleware::class]);
+
+$router->post('/api/provider/custom-services/{id}/images', 'ProviderCustomServiceController', 'uploadImages')
+    ->middleware([AuthMiddleware::class]);
+
+$router->delete('/api/provider/custom-services/{id}/images/{index}', 'ProviderCustomServiceController', 'deleteImage')
+    ->middleware([AuthMiddleware::class]);
+
+// Route publique - Services personnalisés d'un prestataire (pour clients)
+$router->get('/api/providers/{id}/custom-services', 'ProviderCustomServiceController', 'getProviderCustomServices');
 
