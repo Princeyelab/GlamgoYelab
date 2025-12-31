@@ -49,6 +49,9 @@ class GeoCalculator
         return self::EARTH_RADIUS_KM * $c;
     }
 
+    // Nombre de jours pour considérer un prestataire comme "récemment connecté"
+    const RECENTLY_CONNECTED_DAYS = 7;
+
     /**
      * Trouve les prestataires dans un rayon donné offrant un service spécifique
      */
@@ -67,6 +70,9 @@ class GeoCalculator
         $limit = $options['limit'] ?? 20;
         // Mode test: ignorer la vérification pour afficher tous les prestataires
         $testMode = $options['test_mode'] ?? false;
+        // Filtrer par connexion récente (par défaut: true)
+        $recentlyConnected = $options['recently_connected'] ?? true;
+        $recentDays = $options['recent_days'] ?? self::RECENTLY_CONNECTED_DAYS;
 
         $latDelta = $radiusKm / 111;
         $lngDelta = $radiusKm / (111 * cos(deg2rad($lat)));
@@ -90,12 +96,31 @@ class GeoCalculator
                     p.account_status as status,
                     p.is_available,
                     p.is_verified,
+                    p.last_seen_at,
                     COALESCE(p.intervention_radius_km, :default_radius) as intervention_radius_km,
                     COALESCE(p.price_per_extra_km, :default_price_km) as price_per_extra_km,
                     s.price as service_base_price,
                     s.name as service_name,
                     s.duration_minutes,
-                    c.name as category_name
+                    c.name as category_name,
+                    -- Nombre de commandes terminées
+                    COALESCE((
+                        SELECT COUNT(*) FROM orders o
+                        WHERE o.provider_id = p.id
+                        AND o.status IN ('completed', 'delivered')
+                    ), 0) as completed_orders,
+                    -- Spécialités: autres services du prestataire
+                    COALESCE((
+                        SELECT STRING_AGG(DISTINCT srv.name, ', ')
+                        FROM provider_services psrv
+                        JOIN services srv ON psrv.service_id = srv.id
+                        WHERE psrv.provider_id = p.id
+                    ), '') as specialties,
+                    -- Nombre de services personnalisés actifs
+                    COALESCE((
+                        SELECT COUNT(*) FROM provider_custom_services pcs
+                        WHERE pcs.provider_id = p.id AND pcs.is_active = TRUE
+                    ), 0) as custom_services_count
                 FROM providers p
                 INNER JOIN provider_services ps ON p.id = ps.provider_id
                 INNER JOIN services s ON ps.service_id = s.id
@@ -112,7 +137,14 @@ class GeoCalculator
             $sql .= " AND p.is_available = TRUE";
         }
 
-        $sql .= " ORDER BY p.rating DESC, p.total_reviews DESC LIMIT :limit";
+        // Filtrer par connexion récente: seulement les prestataires vus dans les X derniers jours
+        // Désactivé pour les grandes distances (tests internationaux)
+        if ($recentlyConnected && $radiusKm < 200) {
+            // Syntaxe PostgreSQL: NOW() - INTERVAL 'X days'
+            $sql .= " AND p.last_seen_at IS NOT NULL AND p.last_seen_at >= NOW() - INTERVAL '{$recentDays} days'";
+        }
+
+        $sql .= " ORDER BY p.last_seen_at DESC NULLS LAST, p.rating DESC, p.total_reviews DESC LIMIT :limit";
 
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':service_id', $serviceId, PDO::PARAM_INT);
