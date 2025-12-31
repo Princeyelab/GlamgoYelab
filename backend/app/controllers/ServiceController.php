@@ -110,8 +110,8 @@ class ServiceController extends Controller
         // Mode test: ignorer la vérification des prestataires
         $testMode = isset($queryParams['test_mode']) && $queryParams['test_mode'] === 'true';
 
-        // Limiter le rayon maximum (500km en mode test pour couvrir tout le Maroc, sinon 50km)
-        $maxRadius = $testMode ? 500 : 50;
+        // Limiter le rayon maximum (5000km pour tests internationaux France-Maroc)
+        $maxRadius = 5000;
         $radius = min($radius, $maxRadius);
 
         try {
