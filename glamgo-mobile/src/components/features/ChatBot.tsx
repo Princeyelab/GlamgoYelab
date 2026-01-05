@@ -37,81 +37,101 @@ const QUICK_QUESTIONS: QuickQuestion[] = [
   {
     id: '1',
     text: 'Comment reserver ?',
-    answer: 'Pour reserver, choisissez un service, selectionnez une date et une adresse, puis choisissez un prestataire disponible. Confirmez votre reservation et payez en ligne ou en especes.',
+    answer: 'C\'est tres simple ! Choisissez le service qui vous fait envie, indiquez votre adresse et la date souhaitee, puis selectionnez le prestataire qui vous convient. En quelques clics, c\'est reserve ! Je reste la si vous avez besoin d\'aide 😊',
   },
   {
     id: '2',
     text: 'Modes de paiement ?',
-    answer: 'Nous acceptons les paiements par carte bancaire et en especes. Le paiement par carte est securise et vous pouvez payer directement dans l\'application.',
+    answer: 'Vous avez le choix ! Payez par carte bancaire directement dans l\'app (c\'est 100% securise), ou en especes au prestataire si vous preferez. Comme vous voulez, on s\'adapte a vous !',
   },
   {
     id: '3',
     text: 'Annuler une reservation ?',
-    answer: 'Vous pouvez annuler votre reservation depuis l\'onglet "Mes reservations". L\'annulation est gratuite si elle est faite au moins 2 heures avant le rendez-vous.',
+    answer: 'Pas de souci, ca arrive ! Allez dans "Mes reservations" et cliquez sur "Annuler". Si c\'est au moins 2h avant le rendez-vous, c\'est gratuit. On espere vous revoir bientot !',
   },
   {
     id: '4',
     text: 'Contacter le prestataire ?',
-    answer: 'Une fois votre reservation confirmee, vous pouvez contacter le prestataire via le chat integre dans les details de votre reservation.',
+    answer: 'Bien sur ! Des que votre reservation est confirmee, vous pouvez discuter avec votre prestataire via le chat. C\'est pratique pour les petits details de derniere minute.',
   },
   {
     id: '5',
     text: 'Probleme avec ma commande ?',
-    answer: 'En cas de probleme, vous pouvez signaler un incident depuis les details de votre commande ou nous contacter a support@glamgo.ma',
+    answer: 'Oh non, je suis desolee ! Dites-moi ce qui s\'est passe. Vous pouvez signaler le souci depuis votre commande, ou m\'ecrire a support@glamgo.ma. Je fais tout pour vous aider rapidement !',
   },
 ];
 
 const BOT_RESPONSES: { keywords: string[]; response: string }[] = [
   {
-    keywords: ['bonjour', 'salut', 'hello', 'hi', 'salam'],
-    response: 'Bonjour ! Je suis l\'assistant GlamGo. Comment puis-je vous aider aujourd\'hui ?',
+    keywords: ['bonjour', 'salut', 'hello', 'hi', 'salam', 'coucou'],
+    response: 'Bonjour ! Je suis Yamina, votre assistante GlamGo. Comment puis-je vous aider ?',
   },
   {
-    keywords: ['prix', 'tarif', 'cout', 'combien'],
-    response: 'Les prix varient selon le service et le prestataire. Vous pouvez voir le prix exact lors de la reservation. Les frais de deplacement sont calcules automatiquement selon la distance.',
+    keywords: ['yamina', 'qui es tu', 'tu es qui', 'c\'est qui'],
+    response: 'Je suis Yamina, votre assistante personnelle GlamGo ! Je suis la pour repondre a toutes vos questions et vous faciliter la vie. N\'hesitez pas, je suis disponible 24h/24 !',
+  },
+  {
+    keywords: ['glamgo', 'c\'est quoi', 'qu\'est-ce que', 'application', 'appli', 'comment ca marche', 'fonctionnement'],
+    response: 'GlamGo, c\'est votre application de services a domicile ! Beaute, bien-etre, menage, bricolage... Des professionnels verifies viennent directement chez vous. Vous choisissez le service, la date, le prestataire, et on s\'occupe du reste. Simple, pratique et sans vous deplacer !',
+  },
+  {
+    keywords: ['prix', 'tarif', 'cout', 'combien', 'cher'],
+    response: 'Les prix dependent du service et du prestataire que vous choisissez. Vous verrez le prix exact avant de confirmer, sans surprise ! Les frais de deplacement sont calcules selon la distance, tout est transparent 😊',
   },
   {
     keywords: ['reservation', 'reserver', 'rdv', 'rendez-vous'],
-    response: 'Pour reserver : 1) Choisissez un service 2) Selectionnez date et adresse 3) Choisissez un prestataire 4) Confirmez et payez. C\'est simple !',
+    response: 'Reserver, c\'est tres facile ! Choisissez votre service prefere, indiquez ou et quand, puis selectionnez votre prestataire. En 2 minutes c\'est fait ! Besoin que je vous guide ?',
   },
   {
     keywords: ['annuler', 'annulation', 'rembours'],
-    response: 'Vous pouvez annuler gratuitement jusqu\'a 2h avant le RDV. Allez dans "Mes reservations" et cliquez sur "Annuler". Le remboursement est automatique pour les paiements par carte.',
+    response: 'Pas de probleme ! Vous pouvez annuler gratuitement jusqu\'a 2h avant le RDV depuis "Mes reservations". Si vous avez paye par carte, le remboursement est automatique. Ca arrive a tout le monde !',
   },
   {
     keywords: ['paiement', 'payer', 'carte', 'espece', 'cash'],
-    response: 'Nous acceptons : carte bancaire (paiement securise) et especes (a remettre au prestataire). Vous choisissez lors de la reservation.',
+    response: 'Vous etes libre de choisir ! Carte bancaire (100% securise dans l\'app) ou especes au prestataire. Ce qui vous arrange le mieux !',
   },
   {
-    keywords: ['prestataire', 'coiffeur', 'coiffeuse', 'estheticienne'],
-    response: 'Tous nos prestataires sont verifies et professionnels. Vous pouvez consulter leurs avis et notes avant de reserver.',
+    keywords: ['prestataire', 'coiffeur', 'coiffeuse', 'estheticienne', 'pro'],
+    response: 'Nos prestataires sont tous verifies et professionnels. Regardez leurs avis et leurs notes pour choisir celui qui vous correspond. Vous etes entre de bonnes mains !',
   },
   {
-    keywords: ['horaire', 'heure', 'disponible', 'quand'],
-    response: 'Les prestataires definissent leurs propres horaires. Lors de la reservation, vous verrez les creneaux disponibles en temps reel.',
+    keywords: ['horaire', 'heure', 'disponible', 'quand', 'creneau'],
+    response: 'Chaque prestataire a ses propres disponibilites. Quand vous reservez, vous voyez en direct les creneaux libres. Pratique, non ?',
   },
   {
-    keywords: ['adresse', 'domicile', 'deplacement', 'venir'],
-    response: 'Nos prestataires se deplacent chez vous ! Indiquez votre adresse lors de la reservation et le prestataire viendra a domicile.',
+    keywords: ['adresse', 'domicile', 'deplacement', 'venir', 'maison'],
+    response: 'Le top, c\'est que le prestataire vient directement chez vous ! Indiquez votre adresse et installez-vous confortablement. Le luxe a domicile 💅',
   },
   {
-    keywords: ['contact', 'telephone', 'email', 'support'],
-    response: 'Pour nous contacter : support@glamgo.ma ou via le formulaire de contact dans l\'application. Nous repondons sous 24h.',
+    keywords: ['contact', 'telephone', 'email', 'support', 'aide', 'probleme'],
+    response: 'Je suis la pour vous ! Si j\'arrive pas a vous aider, ecrivez a support@glamgo.ma et l\'equipe vous repondra dans les 24h. On ne vous laisse jamais tomber !',
   },
   {
-    keywords: ['merci', 'thanks', 'super', 'parfait', 'genial'],
-    response: 'Avec plaisir ! N\'hesitez pas si vous avez d\'autres questions. Bonne journee !',
+    keywords: ['merci', 'thanks', 'super', 'parfait', 'genial', 'top', 'cool'],
+    response: 'Avec grand plaisir ! Ca me fait plaisir de vous aider. Passez une excellente journee et prenez soin de vous ! 💕',
+  },
+  {
+    keywords: ['au revoir', 'bye', 'a bientot', 'ciao', 'tchao'],
+    response: 'A tres bientot ! N\'hesitez pas a revenir me voir si vous avez des questions. Prenez soin de vous ! 👋💕',
+  },
+  {
+    keywords: ['retard', 'attend', 'arrive pas', 'ou est'],
+    response: 'Je comprends votre inquietude. Vous pouvez suivre le trajet de votre prestataire en temps reel depuis la reservation. Si le retard est important, contactez-le via le chat ou appelez-le. Je suis la si ca ne s\'arrange pas !',
+  },
+  {
+    keywords: ['avis', 'note', 'evaluation', 'etoile'],
+    response: 'Apres chaque prestation, vous pouvez noter et laisser un commentaire. C\'est super important pour les autres clientes et pour les prestataires ! Votre avis compte vraiment 🌟',
   },
 ];
 
-const DEFAULT_RESPONSE = 'Je ne suis pas sur de comprendre votre question. Pouvez-vous reformuler ou choisir une question rapide ci-dessous ?';
+const DEFAULT_RESPONSE = 'Hmm, je n\'ai pas bien compris votre question. Pouvez-vous reformuler ou choisir une des questions ci-dessous ? Je veux vraiment vous aider ! 😊';
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
-      text: 'Bonjour ! Je suis l\'assistant GlamGo. Comment puis-je vous aider ?',
+      text: 'Bonjour, moi c\'est Yamina, votre assistante GlamGo. Comment puis-je vous aider aujourd\'hui ?',
       isBot: true,
       timestamp: new Date(),
     },
@@ -234,7 +254,7 @@ export default function ChatBot() {
             onPress={openChat}
             activeOpacity={0.8}
           >
-            <Text style={styles.floatingButtonIcon}>💬</Text>
+            <Text style={styles.floatingButtonIcon}>👩🏽</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -255,11 +275,11 @@ export default function ChatBot() {
             <View style={styles.header}>
               <View style={styles.headerInfo}>
                 <View style={styles.botAvatar}>
-                  <Text style={styles.botAvatarText}>🤖</Text>
+                  <Text style={styles.botAvatarText}>👩🏽</Text>
                 </View>
                 <View>
-                  <Text style={styles.headerTitle}>Assistant GlamGo</Text>
-                  <Text style={styles.headerSubtitle}>En ligne</Text>
+                  <Text style={styles.headerTitle}>Yamina</Text>
+                  <Text style={styles.headerSubtitle}>Votre assistante • En ligne</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.closeButton} onPress={closeChat}>
@@ -302,7 +322,7 @@ export default function ChatBot() {
               {/* Quick Questions */}
               {messages.length <= 2 && (
                 <View style={styles.quickQuestions}>
-                  <Text style={styles.quickQuestionsTitle}>Questions frequentes :</Text>
+                  <Text style={styles.quickQuestionsTitle}>💡 Je peux vous aider avec :</Text>
                   {QUICK_QUESTIONS.map((q) => (
                     <TouchableOpacity
                       key={q.id}
@@ -320,7 +340,7 @@ export default function ChatBot() {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Posez votre question..."
+                placeholder="Ecrivez a Yamina..."
                 placeholderTextColor={colors.gray[400]}
                 value={inputText}
                 onChangeText={setInputText}

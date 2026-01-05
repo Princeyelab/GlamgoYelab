@@ -220,17 +220,31 @@ class SubscriptionController extends Controller
                 return;
             }
 
-            // Verifier s'il y a deja un abonnement actif
+            // Verifier s'il y a deja un abonnement actif et l'annuler automatiquement
             $stmt = $this->db->prepare("
-                SELECT id FROM provider_subscriptions
-                WHERE provider_id = ? AND status = 'active'
+                SELECT id, plan_id FROM provider_subscriptions
+                WHERE provider_id = ? AND status IN ('active', 'pending_payment')
             ");
             $stmt->execute([$providerId]);
-            $existingActive = $stmt->fetch(PDO::FETCH_ASSOC);
+            $existingSubscription = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($existingActive) {
-                $this->error('Vous avez deja un abonnement actif. Annulez-le d\'abord pour changer de plan.', 400);
-                return;
+            if ($existingSubscription) {
+                // Annuler l'ancien abonnement pour permettre le changement de plan
+                $stmt = $this->db->prepare("
+                    UPDATE provider_subscriptions
+                    SET status = 'cancelled',
+                        cancelled_at = NOW(),
+                        auto_renew = FALSE
+                    WHERE id = ?
+                ");
+                $stmt->execute([$existingSubscription['id']]);
+
+                $this->logger->log('subscription_auto_cancelled_for_upgrade', [
+                    'provider_id' => $providerId,
+                    'old_subscription_id' => $existingSubscription['id'],
+                    'old_plan_id' => $existingSubscription['plan_id'],
+                    'new_plan_id' => $data['plan_id']
+                ]);
             }
 
             // Determiner le mode de paiement

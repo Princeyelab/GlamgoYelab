@@ -222,6 +222,7 @@ export const uploadAvatar = async (imageUri: string): Promise<{ avatar_url: stri
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 120000, // 2 minutes pour upload de fichiers
     }
   );
 

@@ -2,18 +2,26 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, ActivityIndicator, Vibration, Alert } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../../src/components/navigation/CustomTabBar';
 import ChatBot from '../../src/components/features/ChatBot';
 import GlobalEmergencyButton from '../../src/components/features/GlobalEmergencyButton';
+import PendingOrdersBanner from '../../src/components/features/PendingOrdersBanner';
 import { useAppSelector } from '../../src/lib/store/hooks';
 import { getProviderOrders, acceptOrder, getProviderProfile, getProviderNotifications, markNotificationAsRead } from '../../src/lib/api/providerAPI';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { isOrderInRange } from '../../src/lib/utils/geoUtils';
+import { appEvents, EVENTS } from '../../src/lib/utils/eventEmitter';
 
 // Intervalle de polling pour vérifier les nouvelles commandes (10 secondes)
 const ORDER_CHECK_INTERVAL = 10000;
 // Rayon par défaut si non défini (50 km)
 const DEFAULT_RADIUS_KM = 50;
+
+// Clés AsyncStorage pour persister les IDs déjà montrés
+const STORAGE_KEY_SHOWN_ORDERS = '@glamgo_provider_shown_order_ids';
+const STORAGE_KEY_SHOWN_SATISFACTION = '@glamgo_provider_shown_satisfaction_ids';
+const STORAGE_KEY_SHOWN_CANCELLATIONS = '@glamgo_provider_shown_cancellation_ids';
 
 interface NewOrder {
   id: number;
@@ -39,6 +47,16 @@ interface SatisfactionNotification {
   clientName?: string;
 }
 
+interface CancellationNotification {
+  id: number;
+  orderId: number;
+  serviceName?: string;
+  clientName?: string;
+  reason?: string;
+  fee?: number;
+  compensation?: number;
+}
+
 export default function ProviderLayout() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
@@ -54,8 +72,60 @@ export default function ProviderLayout() {
   const [showSatisfactionModal, setShowSatisfactionModal] = useState(false);
   const shownSatisfactionIds = useRef<Set<number>>(new Set());
 
+  // State pour le modal d'annulation client
+  const [cancellationNotif, setCancellationNotif] = useState<CancellationNotification | null>(null);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const shownCancellationIds = useRef<Set<number>>(new Set());
+
+  // Flag pour savoir si les IDs persistés ont été chargés
+  const [idsLoaded, setIdsLoaded] = useState(false);
+
   // Position du prestataire
   const [providerLocation, setProviderLocation] = useState<ProviderLocation | null>(null);
+
+  // Charger les IDs persistés au démarrage
+  useEffect(() => {
+    const loadPersistedIds = async () => {
+      try {
+        const [orderIds, satisfactionIds, cancellationIds] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY_SHOWN_ORDERS),
+          AsyncStorage.getItem(STORAGE_KEY_SHOWN_SATISFACTION),
+          AsyncStorage.getItem(STORAGE_KEY_SHOWN_CANCELLATIONS),
+        ]);
+
+        if (orderIds) {
+          const ids = JSON.parse(orderIds) as number[];
+          shownOrderIds.current = new Set(ids);
+        }
+        if (satisfactionIds) {
+          const ids = JSON.parse(satisfactionIds) as number[];
+          shownSatisfactionIds.current = new Set(ids);
+        }
+        if (cancellationIds) {
+          const ids = JSON.parse(cancellationIds) as number[];
+          shownCancellationIds.current = new Set(ids);
+        }
+      } catch (error) {
+        // Ignorer les erreurs de chargement
+      } finally {
+        setIdsLoaded(true);
+      }
+    };
+
+    loadPersistedIds();
+  }, []);
+
+  // Sauvegarder un ID dans AsyncStorage
+  const persistId = useCallback(async (storageKey: string, id: number, currentSet: Set<number>) => {
+    try {
+      currentSet.add(id);
+      // Garder seulement les 50 derniers IDs pour éviter une croissance infinie
+      const idsArray = Array.from(currentSet).slice(-50);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(idsArray));
+    } catch (error) {
+      // Ignorer les erreurs de sauvegarde
+    }
+  }, []);
 
   // Charger la position du prestataire au démarrage
   useEffect(() => {
@@ -96,15 +166,30 @@ export default function ProviderLayout() {
 
   // Vérifier les nouvelles commandes
   const checkNewOrders = useCallback(async () => {
-    if (!user) return;
+    // Ne pas vérifier tant que les IDs persistés n'ont pas été chargés
+    if (!user || !idsLoaded) return;
 
     try {
       const orders = await getProviderOrders();
 
-      // Filtrer les commandes pending dans le rayon d'intervention
+      // Filtrer les commandes pending dans le rayon d'intervention (avec déduplication et expiration)
+      const seenIds = new Set<number>();
+      const now = Date.now();
       const pendingOrders = (orders || []).filter((o: any) => {
         if (o.status !== 'pending') return false;
+        if (seenIds.has(o.id)) return false; // Éviter doublons API
+        seenIds.add(o.id);
         if (shownOrderIds.current.has(o.id)) return false;
+
+        // Filtrer les commandes expirées (> 4 minutes)
+        if (o.created_at) {
+          let createdAtStr = o.created_at;
+          if (!createdAtStr.endsWith('Z') && !createdAtStr.includes('+')) {
+            createdAtStr = createdAtStr.replace(' ', 'T') + 'Z';
+          }
+          const elapsed = Math.floor((now - new Date(createdAtStr).getTime()) / 1000);
+          if (elapsed >= 240) return false; // Expirée
+        }
 
         // Si on a la position du prestataire, filtrer par distance
         if (providerLocation) {
@@ -145,27 +230,28 @@ export default function ProviderLayout() {
           price: orderAny.price || pendingOrder.total_amount || 0,
           scheduled_time: pendingOrder.scheduled_at || '',
         });
-        shownOrderIds.current.add(pendingOrder.id);
+        persistId(STORAGE_KEY_SHOWN_ORDERS, pendingOrder.id, shownOrderIds.current);
         setShowNewOrderModal(true);
       }
     } catch (error) {
       // Silently ignore errors
     }
-  }, [user, showNewOrderModal, providerLocation]);
+  }, [user, showNewOrderModal, providerLocation, idsLoaded, persistId]);
 
   // Vérifier les notifications de satisfaction
   const checkSatisfactionNotifications = useCallback(async () => {
-    if (!user) return;
+    // Ne pas vérifier tant que les IDs persistés n'ont pas été chargés
+    if (!user || !idsLoaded) return;
 
     try {
       const notifications = await getProviderNotifications();
 
       // Filtrer les notifications de satisfaction non vues
       const satisfactionNotifs = (notifications || []).filter((n: any) => {
-        if (n.notification_type !== 'satisfaction_received') return false;
-        if (shownSatisfactionIds.current.has(n.id)) return false;
-        if (n.is_read) return false;
-        return true;
+        const isCorrectType = n.notification_type === 'satisfaction_received';
+        const notShown = !shownSatisfactionIds.current.has(n.id);
+        const notRead = !n.is_read;
+        return isCorrectType && notShown && notRead;
       });
 
       const newNotif = satisfactionNotifs[0];
@@ -174,7 +260,16 @@ export default function ProviderLayout() {
         // Vibrer fortement pour alerter
         Vibration.vibrate([0, 300, 100, 300, 100, 300]);
 
-        const data = newNotif.data || {};
+        // Parser data si c'est une string JSON
+        let data = newNotif.data || {};
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            // Ignorer
+          }
+        }
+
         setSatisfactionNotif({
           id: newNotif.id,
           rating: data.rating || 5,
@@ -182,7 +277,7 @@ export default function ProviderLayout() {
           serviceName: data.service_name,
           clientName: data.client_name,
         });
-        shownSatisfactionIds.current.add(newNotif.id);
+        persistId(STORAGE_KEY_SHOWN_SATISFACTION, newNotif.id, shownSatisfactionIds.current);
         setShowSatisfactionModal(true);
 
         // Marquer comme lu
@@ -195,24 +290,82 @@ export default function ProviderLayout() {
     } catch (error) {
       // Silently ignore errors
     }
-  }, [user, showSatisfactionModal]);
+  }, [user, showSatisfactionModal, idsLoaded, persistId]);
+
+  // Vérifier les notifications d'annulation client
+  const checkCancellationNotifications = useCallback(async () => {
+    if (!user || !idsLoaded) return;
+
+    try {
+      const notifications = await getProviderNotifications();
+
+      // Filtrer les notifications d'annulation client non vues
+      const cancellationNotifs = (notifications || []).filter((n: any) => {
+        const isCorrectType = n.notification_type === 'order_cancelled';
+        const notShown = !shownCancellationIds.current.has(n.id);
+        const notRead = !n.is_read;
+        return isCorrectType && notShown && notRead;
+      });
+
+      const newNotif = cancellationNotifs[0];
+
+      if (newNotif && !showCancellationModal && !showNewOrderModal && !showSatisfactionModal) {
+        // Vibrer pour alerter
+        Vibration.vibrate([0, 400, 150, 400]);
+
+        // Parser data si c'est une string JSON
+        let data = newNotif.data || {};
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            // Ignorer
+          }
+        }
+
+        setCancellationNotif({
+          id: newNotif.id,
+          orderId: data.order_id,
+          serviceName: data.service_name,
+          clientName: data.client_name,
+          reason: data.reason || data.cancellation_reason,
+          fee: data.cancellation_fee,
+          compensation: data.total_provider_compensation || data.provider_compensation,
+        });
+        persistId(STORAGE_KEY_SHOWN_CANCELLATIONS, newNotif.id, shownCancellationIds.current);
+        setShowCancellationModal(true);
+
+        // Marquer comme lu
+        try {
+          await markNotificationAsRead(newNotif.id);
+        } catch (e) {
+          // Ignorer
+        }
+      }
+    } catch (error) {
+      // Silently ignore errors
+    }
+  }, [user, showCancellationModal, showNewOrderModal, showSatisfactionModal, idsLoaded, persistId]);
 
   // Polling pour détecter les nouvelles commandes et notifications
   useEffect(() => {
-    if (!user) return;
+    // Ne démarrer le polling qu'une fois les IDs chargés
+    if (!user || !idsLoaded) return;
 
     // Vérifier immédiatement
     checkNewOrders();
     checkSatisfactionNotifications();
+    checkCancellationNotifications();
 
     // Puis toutes les 10 secondes
     const interval = setInterval(() => {
       checkNewOrders();
       checkSatisfactionNotifications();
+      checkCancellationNotifications();
     }, ORDER_CHECK_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [user, checkNewOrders, checkSatisfactionNotifications]);
+  }, [user, idsLoaded, checkNewOrders, checkSatisfactionNotifications, checkCancellationNotifications]);
 
   // Accepter la commande
   const handleAcceptOrder = async () => {
@@ -257,6 +410,14 @@ export default function ProviderLayout() {
   const handleDismissSatisfactionModal = () => {
     setShowSatisfactionModal(false);
     setSatisfactionNotif(null);
+  };
+
+  // Fermer le modal d'annulation
+  const handleDismissCancellationModal = () => {
+    setShowCancellationModal(false);
+    setCancellationNotif(null);
+    // Déclencher un rafraîchissement des bookings
+    appEvents.emit(EVENTS.REFRESH_PROVIDER_BOOKINGS);
   };
 
   // Générer les étoiles pour la note
@@ -370,9 +531,9 @@ export default function ProviderLayout() {
             <View style={styles.satisfactionHeader}>
               <Text style={styles.satisfactionIcon}>🎉</Text>
               <Text style={styles.satisfactionTitle}>Evaluation recue !</Text>
-              {satisfactionNotif?.tip && satisfactionNotif.tip > 0 && (
+              {satisfactionNotif && satisfactionNotif.tip && satisfactionNotif.tip > 0 ? (
                 <Text style={styles.satisfactionTipBadge}>+ Pourboire</Text>
-              )}
+              ) : null}
             </View>
 
             <View style={styles.satisfactionBody}>
@@ -383,7 +544,7 @@ export default function ProviderLayout() {
                 {satisfactionNotif?.rating}/5
               </Text>
 
-              {satisfactionNotif?.tip && satisfactionNotif.tip > 0 && (
+              {satisfactionNotif && satisfactionNotif.tip && satisfactionNotif.tip > 0 ? (
                 <View style={styles.tipBox}>
                   <Text style={styles.tipIcon}>💝</Text>
                   <Text style={styles.tipText}>
@@ -391,7 +552,7 @@ export default function ProviderLayout() {
                     <Text style={styles.tipAmount}>{satisfactionNotif.tip} DH</Text>
                   </Text>
                 </View>
-              )}
+              ) : null}
 
               <Text style={styles.satisfactionMessage}>
                 Merci pour votre excellent travail !
@@ -407,6 +568,68 @@ export default function ProviderLayout() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de notification d'annulation client */}
+      <Modal
+        visible={showCancellationModal && cancellationNotif !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={handleDismissCancellationModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.cancellationModalContent}>
+            <View style={styles.cancellationHeader}>
+              <Text style={styles.cancellationIcon}>❌</Text>
+              <Text style={styles.cancellationTitle}>Commande annulee</Text>
+            </View>
+
+            <View style={styles.cancellationBody}>
+              {cancellationNotif?.serviceName && (
+                <Text style={styles.cancellationService}>
+                  {cancellationNotif.serviceName}
+                </Text>
+              )}
+
+              {cancellationNotif?.clientName && (
+                <Text style={styles.cancellationClient}>
+                  Par: {cancellationNotif.clientName}
+                </Text>
+              )}
+
+              {cancellationNotif?.reason && (
+                <View style={styles.reasonBox}>
+                  <Text style={styles.reasonLabel}>Motif:</Text>
+                  <Text style={styles.reasonText}>{cancellationNotif.reason}</Text>
+                </View>
+              )}
+
+              {cancellationNotif?.compensation && cancellationNotif.compensation > 0 ? (
+                <View style={styles.compensationBox}>
+                  <Text style={styles.compensationIcon}>💰</Text>
+                  <Text style={styles.compensationText}>
+                    Vous recevrez une compensation de{' '}
+                    <Text style={styles.compensationAmount}>{cancellationNotif.compensation} DH</Text>
+                  </Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.cancellationMessage}>
+                Le client a annule cette reservation.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.cancellationCloseButton}
+              onPress={handleDismissCancellationModal}
+            >
+              <Text style={styles.cancellationCloseButtonText}>Compris</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Banniere timer pour commandes en attente de reponse */}
+      <PendingOrdersBanner />
 
       {/* ChatBot flottant */}
       <ChatBot />
@@ -608,6 +831,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   satisfactionCloseButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600' as const,
+  },
+
+  // Cancellation Modal Styles
+  cancellationModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.xl,
+    paddingBottom: spacing['2xl'],
+    alignItems: 'center',
+    ...shadows.lg,
+  },
+  cancellationHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  cancellationIcon: {
+    fontSize: 64,
+    marginBottom: spacing.sm,
+  },
+  cancellationTitle: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: 'bold' as const,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  cancellationBody: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: spacing.xl,
+  },
+  cancellationService: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600' as const,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  cancellationClient: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  reasonBox: {
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+    width: '100%',
+  },
+  reasonLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    marginBottom: spacing.xs,
+  },
+  reasonText: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[700],
+  },
+  compensationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success + '15',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+    width: '100%',
+  },
+  compensationIcon: {
+    fontSize: 24,
+  },
+  compensationText: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[700],
+    flex: 1,
+  },
+  compensationAmount: {
+    fontWeight: 'bold' as const,
+    color: colors.success,
+  },
+  cancellationMessage: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+    textAlign: 'center',
+  },
+  cancellationCloseButton: {
+    backgroundColor: colors.gray[700],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing['3xl'],
+    borderRadius: borderRadius.lg,
+    width: '100%',
+    alignItems: 'center',
+  },
+  cancellationCloseButtonText: {
     color: colors.white,
     fontSize: typography.fontSize.lg,
     fontWeight: '600' as const,

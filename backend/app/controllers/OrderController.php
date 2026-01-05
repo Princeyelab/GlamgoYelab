@@ -32,21 +32,63 @@ class OrderController extends Controller
      *
      * Calcule automatiquement les frais de déplacement si un prestataire est sélectionné
      * et que les coordonnées GPS du client sont fournies.
+     *
+     * Supporte les services standards (service_id) et personnalisés (custom_service_id)
      */
     public function create(): void
     {
         $userId = $_SERVER['USER_ID'];
         $data = $this->getJsonInput();
 
-        // Valider les données
-        if (empty($data['service_id'])) {
-            $this->error('Le service est requis', 422);
+        // Valider les données - soit service_id soit custom_service_id requis
+        if (empty($data['service_id']) && empty($data['custom_service_id'])) {
+            $this->error('Un service est requis (service_id ou custom_service_id)', 422);
         }
 
-        // Vérifier que le service existe
-        $service = $this->serviceModel->find($data['service_id']);
-        if (!$service) {
-            $this->error('Service non trouvé', 404);
+        $customService = null;
+        $service = null;
+
+        // Cas 1: Service personnalisé
+        if (!empty($data['custom_service_id'])) {
+            $db = \App\Core\Database::getInstance();
+            $stmt = $db->prepare("
+                SELECT pcs.*, c.name as category_name
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.id = ? AND pcs.is_active = TRUE
+            ");
+            $stmt->execute([$data['custom_service_id']]);
+            $customService = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$customService) {
+                $this->error('Service personnalisé non trouvé ou inactif', 404);
+            }
+
+            // Le provider_id est obligatoire pour un service personnalisé
+            if (empty($data['provider_id'])) {
+                $data['provider_id'] = $customService['provider_id'];
+            } elseif ($data['provider_id'] != $customService['provider_id']) {
+                $this->error('Ce service appartient à un autre prestataire', 400);
+            }
+
+            // Créer un "service virtuel" pour la compatibilité
+            $service = [
+                'id' => null, // Pas de service_id standard
+                'name' => $customService['name'],
+                'price' => $customService['price'],
+                'duration_minutes' => $customService['duration_minutes'],
+                'description' => $customService['description'],
+                'category_name' => $customService['category_name'],
+            ];
+
+            error_log("🎨 [ORDER] Custom service #{$data['custom_service_id']}: {$customService['name']} - {$customService['price']} MAD");
+        }
+        // Cas 2: Service standard
+        else {
+            $service = $this->serviceModel->find($data['service_id']);
+            if (!$service) {
+                $this->error('Service non trouvé', 404);
+            }
         }
 
         // Gérer l'adresse
@@ -83,7 +125,41 @@ class OrderController extends Controller
         }
 
         // Initialiser les valeurs de prix
-        $basePrice = floatval($service['price']);
+        // Pour service type "chef": prix = nombre_de_personnes × prix_par_personne
+        $numberOfGuests = isset($data['number_of_guests']) ? intval($data['number_of_guests']) : null;
+
+        // Récupérer les infos du service pour le calcul chef
+        $serviceType = null;
+        $pricePerPerson = null;
+        if (!empty($data['service_id'])) {
+            $db = \App\Core\Database::getInstance();
+            $stmt = $db->prepare("SELECT service_type, price_per_person FROM services WHERE id = ?");
+            $stmt->execute([$data['service_id']]);
+            $serviceInfo = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($serviceInfo) {
+                $serviceType = $serviceInfo['service_type'];
+                $pricePerPerson = $serviceInfo['price_per_person'] ? floatval($serviceInfo['price_per_person']) : null;
+            }
+        }
+
+        // Calculer le prix de base
+        if ($serviceType === 'chef' && $pricePerPerson && $numberOfGuests) {
+            $basePrice = $numberOfGuests * $pricePerPerson;
+            error_log("👨‍🍳 [ORDER] Chef service: {$numberOfGuests} guests × {$pricePerPerson} MAD = {$basePrice} MAD");
+        } elseif ($serviceType === 'coach' && !empty($data['pack_id'])) {
+            // Pour coach: utiliser le prix du pack selectionne
+            $packPrices = [
+                'decouverte' => 700,
+                'classique' => 1200,
+                'intensif' => 1500,
+            ];
+            $packId = $data['pack_id'];
+            $basePrice = $packPrices[$packId] ?? floatval($service['price']);
+            error_log("🏋️ [ORDER] Coach service: Pack {$packId} = {$basePrice} MAD");
+        } else {
+            $basePrice = floatval($service['price']);
+        }
+
         $formulaType = $data['formula'] ?? 'standard';
         $distanceKm = 0;
         $distanceFee = 0;
@@ -139,7 +215,9 @@ class OrderController extends Controller
         // pour que le prestataire accepte manuellement la commande
         $orderData = [
             'user_id' => $userId,
-            'service_id' => $data['service_id'],
+            'service_id' => $data['service_id'] ?? null,
+            'custom_service_id' => $data['custom_service_id'] ?? null,
+            'custom_service_name' => $customService ? $customService['name'] : null,
             'provider_id' => $providerId,
             'address_id' => $addressId,
             'status' => 'pending', // Toujours pending, le prestataire doit accepter
@@ -163,7 +241,13 @@ class OrderController extends Controller
             // Autres infos
             'notes' => $data['notes'] ?? null,
             'payment_method' => $data['payment_method'] ?? 'cash',
-            'payment_status' => 'pending'
+            'payment_status' => 'pending',
+            // Pour service chef: nombre de personnes
+            'number_of_guests' => $data['number_of_guests'] ?? null,
+            // Pour service coach: pack selectionne
+            'pack_id' => $data['pack_id'] ?? null,
+            'pack_name' => $data['pack_name'] ?? null,
+            'pack_sessions' => $data['pack_sessions'] ?? null,
         ];
 
         $orderId = $this->orderModel->create($orderData);
@@ -189,18 +273,23 @@ class OrderController extends Controller
             'currency' => 'MAD'
         ];
 
+        // Nom du service pour la notification
+        $serviceName = $customService ? $customService['name'] : $service['name'];
+        $isCustom = !empty($customService);
+
         // Notifier les prestataires disponibles (si pas de prestataire sélectionné)
         if (!$providerId) {
             $this->notificationModel->notifyProvidersForNewOrder($order);
         } else {
             // Notifier le prestataire sélectionné
+            $title = $isCustom ? 'Nouvelle réservation (Service exclusif)' : 'Nouvelle réservation';
             $this->notificationModel->createNotification([
                 'recipient_type' => 'provider',
                 'recipient_id' => $providerId,
                 'order_id' => $orderId,
                 'notification_type' => 'new_order',
-                'title' => 'Nouvelle réservation',
-                'message' => "Vous avez une nouvelle réservation pour {$service['name']}"
+                'title' => $title,
+                'message' => "Vous avez une nouvelle réservation pour {$serviceName}"
             ]);
         }
 

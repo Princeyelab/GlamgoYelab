@@ -3,7 +3,7 @@
  * Ecran de confirmation apres creation de reservation
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,9 +22,15 @@ import Card from '../../src/components/ui/Card';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 
+// Delai avant redirection automatique (en secondes)
+const AUTO_REDIRECT_DELAY = 5;
+
 export default function BookingConfirmationScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+
+  // Countdown pour redirection automatique
+  const [countdown, setCountdown] = useState(AUTO_REDIRECT_DELAY);
 
   // Extract params with defaults
   const bookingId = params.booking_id as string || '12345';
@@ -68,7 +74,27 @@ export default function BookingConfirmationScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Countdown automatique
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
   }, []);
+
+  // Redirection quand countdown atteint 0
+  useEffect(() => {
+    if (countdown === 0) {
+      router.replace('/(client)/bookings');
+    }
+  }, [countdown]);
 
   const handleViewBookings = () => {
     hapticFeedback.light();
@@ -233,11 +259,19 @@ export default function BookingConfirmationScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Timer Info - Redirection automatique */}
+        <View style={styles.timerMessage}>
+          <Text style={styles.timerIcon}>⏱️</Text>
+          <Text style={styles.timerText}>
+            Redirection vers vos reservations dans <Text style={styles.timerCountdown}>{countdown}s</Text>
+          </Text>
+        </View>
+
         {/* Info Message */}
         <View style={styles.infoMessage}>
           <Text style={styles.infoIcon}>ℹ️</Text>
           <Text style={styles.infoText}>
-            Le prestataire vous contactera pour confirmer les details de la reservation. Vous recevrez une notification avant le rendez-vous.
+            Le prestataire a 4 minutes pour repondre. Vous pouvez suivre le statut dans vos reservations.
           </Text>
         </View>
 
@@ -412,6 +446,29 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontSize: typography.fontSize.xs,
     color: colors.gray[600],
+  },
+
+  // Timer Message
+  timerMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+  },
+  timerIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  timerText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.warning,
+  },
+  timerCountdown: {
+    fontWeight: 'bold',
+    fontSize: typography.fontSize.base,
   },
 
   // Info Message

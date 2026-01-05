@@ -19,6 +19,7 @@ import {
   Image,
   Modal,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,6 +28,16 @@ import { useAppSelector } from '../../src/lib/store/hooks';
 import { selectUserRole } from '../../src/lib/store/slices/authSlice';
 import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import {
+  moderateMessage,
+  moderateImageFilename,
+  isAllowedImageExtension,
+  isAllowedFileSize,
+  MODERATION_WARNINGS,
+} from '../../src/lib/utils/contentModeration';
+
+// Numero du support
+const SUPPORT_PHONE = '+212600000000'; // A remplacer par le vrai numero
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,12 +83,54 @@ export default function ChatScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<number, 'loading' | 'loaded' | 'error'>>({});
+  const [orderStatus, setOrderStatus] = useState<string>('');
+  const [isChatBlocked, setIsChatBlocked] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageCountRef = useRef<number>(0);
   const isFirstLoadRef = useRef<boolean>(true);
+  const [hasShownRulesAlert, setHasShownRulesAlert] = useState(false);
+
+  // Statuts qui bloquent le chat
+  const BLOCKED_STATUSES = ['completed', 'completed_pending_review', 'cancelled', 'rejected'];
 
   const quickMessages = isProvider ? QUICK_MESSAGES_PROVIDER : QUICK_MESSAGES_CLIENT;
+
+  // Verifier le statut de la commande
+  const checkOrderStatus = useCallback(async () => {
+    try {
+      const endpoint = isProvider
+        ? `/api/provider/orders/${orderId}`
+        : `/api/orders/${orderId}`;
+      const response = await apiClient.get(endpoint);
+      const order = response.data?.data || response.data;
+      const status = order?.status || '';
+      setOrderStatus(status);
+      setIsChatBlocked(BLOCKED_STATUSES.includes(status));
+    } catch (error) {
+      console.log('[Chat] Error checking order status:', error);
+    }
+  }, [orderId, isProvider]);
+
+  // Contacter le support
+  const handleContactSupport = () => {
+    hapticFeedback.light();
+    Alert.alert(
+      '📞 Contacter le support',
+      'Choisissez un moyen de contact',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: '📧 Email',
+          onPress: () => Linking.openURL('mailto:support@glamgo.ma?subject=Aide commande #' + orderId),
+        },
+        {
+          text: '📱 Appeler',
+          onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE}`),
+        },
+      ]
+    );
+  };
 
   // Choisir une image depuis la galerie
   const pickImage = async () => {
@@ -96,7 +149,8 @@ export default function ChatScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        uploadImage(result.assets[0].uri);
+        const asset = result.assets[0];
+        uploadImage(asset.uri, asset.fileSize);
       }
     } catch (error) {
       console.log('[Chat] Error picking image:', error);
@@ -120,7 +174,8 @@ export default function ChatScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        uploadImage(result.assets[0].uri);
+        const asset = result.assets[0];
+        uploadImage(asset.uri, asset.fileSize);
       }
     } catch (error) {
       console.log('[Chat] Error taking photo:', error);
@@ -129,13 +184,45 @@ export default function ChatScreen() {
   };
 
   // Upload image to server
-  const uploadImage = async (uri: string) => {
+  const uploadImage = async (uri: string, fileSize?: number) => {
+    const filename = uri.split('/').pop() || 'photo.jpg';
+
+    // Verifier l'extension
+    if (!isAllowedImageExtension(filename)) {
+      hapticFeedback.error();
+      Alert.alert(
+        'Format non autorise',
+        'Seuls les formats JPG, PNG, WEBP et GIF sont autorises.'
+      );
+      return;
+    }
+
+    // Verifier la taille si disponible
+    if (fileSize && !isAllowedFileSize(fileSize)) {
+      hapticFeedback.error();
+      Alert.alert(
+        'Fichier trop volumineux',
+        'La taille maximale autorisee est de 5 Mo.'
+      );
+      return;
+    }
+
+    // Verifier le nom de fichier suspect
+    const filenameCheck = moderateImageFilename(filename);
+    if (!filenameCheck.isAllowed) {
+      hapticFeedback.error();
+      Alert.alert(
+        'Image non autorisee',
+        'Cette image semble contenir du contenu inapproprie et ne peut pas etre envoyee.'
+      );
+      return;
+    }
+
     setIsUploading(true);
     hapticFeedback.light();
 
     try {
       const formData = new FormData();
-      const filename = uri.split('/').pop() || 'photo.jpg';
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
 
@@ -264,23 +351,57 @@ export default function ChatScreen() {
     }
   }, [orderId, isProvider]);
 
-  // Polling pour les nouveaux messages
+  // Afficher les regles du chat au demarrage
   useEffect(() => {
+    if (!hasShownRulesAlert && !isLoading) {
+      setHasShownRulesAlert(true);
+      Alert.alert(
+        'Regles du Chat',
+        'Pour votre securite et celle de tous les utilisateurs :\n\n' +
+        '- Le partage de numeros de telephone est interdit\n' +
+        '- Le partage de reseaux sociaux (WhatsApp, Instagram, Snapchat...) est interdit\n' +
+        '- Les insultes et propos inappropries sont bloques\n' +
+        '- Les photos inappropriees sont detectees et bloquees\n\n' +
+        'Toute violation peut entrainer la suspension de votre compte.',
+        [{ text: 'J\'ai compris', style: 'default' }]
+      );
+    }
+  }, [hasShownRulesAlert, isLoading]);
+
+  // Polling pour les nouveaux messages et verification du statut
+  useEffect(() => {
+    checkOrderStatus();
     loadMessages();
-    pollIntervalRef.current = setInterval(loadMessages, 3000);
+    pollIntervalRef.current = setInterval(() => {
+      loadMessages();
+      checkOrderStatus();
+    }, 3000);
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [loadMessages]);
+  }, [loadMessages, checkOrderStatus]);
 
   // Envoyer un message
   const handleSend = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if (!newMessage.trim() || isSending || isChatBlocked) return;
 
     const messageToSend = newMessage.trim();
+
+    // Moderation du message
+    const moderationResult = moderateMessage(messageToSend);
+    if (!moderationResult.isAllowed) {
+      hapticFeedback.error();
+      Alert.alert(
+        'Message non autorise',
+        moderationResult.reason || MODERATION_WARNINGS[moderationResult.category || 'inappropriate'],
+        [{ text: 'Compris', style: 'default' }]
+      );
+      return;
+    }
+
     setNewMessage('');
     setIsSending(true);
 
@@ -446,7 +567,7 @@ export default function ChatScreen() {
           ListHeaderComponent={
             <View style={styles.securityWarning}>
               <Text style={styles.securityText}>
-                🔒 Ne partagez jamais vos coordonnees personnelles
+                🔒 Numeros, reseaux sociaux, insultes et photos inappropriees sont bloques
               </Text>
             </View>
           }
@@ -454,61 +575,86 @@ export default function ChatScreen() {
 
         {/* Bottom Input Area */}
         <View style={styles.bottomArea}>
-          {/* Quick Messages */}
-          <View style={styles.quickMessages}>
-            <FlatList
-              horizontal
-              data={quickMessages}
-              renderItem={({ item }) => (
+          {isChatBlocked ? (
+            /* Chat bloque apres finalisation */
+            <View style={styles.blockedContainer}>
+              <View style={styles.blockedMessage}>
+                <Text style={styles.blockedIcon}>{'🔒'}</Text>
+                <View style={styles.blockedTextContainer}>
+                  <Text style={styles.blockedTitle}>{'Conversation terminée'}</Text>
+                  <Text style={styles.blockedSubtitle}>
+                    {'Cette commande est finalisée. Le chat n\'est plus disponible.'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.supportButton}
+                onPress={handleContactSupport}
+              >
+                <Text style={styles.supportButtonIcon}>{'📞'}</Text>
+                <Text style={styles.supportButtonText}>{'Contacter le support'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* Chat actif */
+            <>
+              {/* Quick Messages */}
+              <View style={styles.quickMessages}>
+                <FlatList
+                  horizontal
+                  data={quickMessages}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.quickMessageBtn}
+                      onPress={() => handleQuickMessage(item)}
+                    >
+                      <Text style={styles.quickMessageText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item, index) => index.toString()}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.quickMessagesList}
+                />
+              </View>
+
+              {/* Input */}
+              <View style={styles.inputContainer}>
+                {/* Photo Button */}
                 <TouchableOpacity
-                  style={styles.quickMessageBtn}
-                  onPress={() => handleQuickMessage(item)}
+                  style={styles.photoButton}
+                  onPress={showImageOptions}
+                  disabled={isUploading}
                 >
-                  <Text style={styles.quickMessageText}>{item}</Text>
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Text style={styles.photoButtonIcon}>{'📷'}</Text>
+                  )}
                 </TouchableOpacity>
-              )}
-              keyExtractor={(item, index) => index.toString()}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.quickMessagesList}
-            />
-          </View>
 
-          {/* Input */}
-          <View style={styles.inputContainer}>
-            {/* Photo Button */}
-            <TouchableOpacity
-              style={styles.photoButton}
-              onPress={showImageOptions}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Text style={styles.photoButtonIcon}>📷</Text>
-              )}
-            </TouchableOpacity>
-
-            <TextInput
-              style={styles.input}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="Ecrivez votre message..."
-              placeholderTextColor={colors.gray[400]}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              style={[styles.sendButton, (!newMessage.trim() || isSending) && styles.sendButtonDisabled]}
-              onPress={handleSend}
-              disabled={!newMessage.trim() || isSending}
-            >
-              {isSending ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.sendButtonText}>➤</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+                <TextInput
+                  style={styles.input}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  placeholder="Ecrivez votre message..."
+                  placeholderTextColor={colors.gray[400]}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[styles.sendButton, (!newMessage.trim() || isSending) && styles.sendButtonDisabled]}
+                  onPress={handleSend}
+                  disabled={!newMessage.trim() || isSending}
+                >
+                  {isSending ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Text style={styles.sendButtonText}>{'➤'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Image Viewer Modal */}
@@ -841,5 +987,54 @@ const styles = StyleSheet.create({
   imageViewerImage: {
     width: SCREEN_WIDTH - 40,
     height: SCREEN_WIDTH - 40,
+  },
+
+  // Blocked Chat State
+  blockedContainer: {
+    padding: spacing.md,
+  },
+  blockedMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[100],
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
+  },
+  blockedIcon: {
+    fontSize: 24,
+    marginRight: spacing.md,
+  },
+  blockedTextContainer: {
+    flex: 1,
+  },
+  blockedTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: 2,
+  },
+  blockedSubtitle: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+    lineHeight: 16,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
+  },
+  supportButtonIcon: {
+    fontSize: 18,
+  },
+  supportButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.white,
   },
 });

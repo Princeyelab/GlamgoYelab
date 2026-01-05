@@ -58,6 +58,7 @@ export const ENDPOINTS = {
   PROVIDER: {
     REGISTER: '/api/provider/register',
     LOGIN: '/api/provider/login',
+    LOGOUT: '/api/provider/logout',
     PROFILE: '/api/provider/profile',
     UPDATE_PROFILE: '/api/provider/profile',
     UPLOAD_IMAGE: '/api/provider/profile/image',

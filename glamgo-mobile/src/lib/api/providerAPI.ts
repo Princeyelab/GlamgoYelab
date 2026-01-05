@@ -28,6 +28,7 @@ export interface ProviderRegisterData {
   terms_accepted_at?: string | null;
   experience?: string;
   date_of_birth?: string;
+  profile_photo?: string; // URI de la photo de profil
 }
 
 export interface Provider {
@@ -121,10 +122,68 @@ export interface DocumentUpload {
 
 /**
  * Inscription prestataire
+ * Supporte l'upload de photo de profil via FormData
  */
 export const registerProvider = async (data: ProviderRegisterData): Promise<ProviderAuthResponse> => {
+  const { profile_photo, ...restData } = data;
+
+  // Si une photo est fournie, utiliser FormData
+  if (profile_photo) {
+    const formData = new FormData();
+
+    // Ajouter tous les champs texte
+    Object.entries(restData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach((item, index) => {
+            formData.append(`${key}[${index}]`, String(item));
+          });
+        } else {
+          formData.append(key, String(value));
+        }
+      }
+    });
+
+    // Ajouter password_confirmation
+    formData.append('password_confirmation', data.password_confirmation || data.password);
+
+    // Ajouter la photo de profil
+    const filename = profile_photo.split('/').pop() || 'profile.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+    formData.append('profile_photo', {
+      uri: profile_photo,
+      name: filename,
+      type,
+    } as any);
+
+    console.log('[ProviderAPI] Registering with profile photo:', filename);
+
+    const response = await apiClient.post<ProviderAuthResponse>(
+      ENDPOINTS.PROVIDER.REGISTER,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes pour upload de fichiers
+      }
+    );
+
+    if (response.data.success && response.data.data.token) {
+      await setTokens(
+        response.data.data.token,
+        response.data.data.refresh_token
+      );
+    }
+
+    return response.data;
+  }
+
+  // Sans photo, utiliser JSON standard
   const payload = {
-    ...data,
+    ...restData,
     password_confirmation: data.password_confirmation || data.password,
   };
 
@@ -164,6 +223,24 @@ export const loginProvider = async (credentials: { email: string; password: stri
 };
 
 /**
+ * Déconnexion prestataire
+ * Met le prestataire hors ligne (is_available = false)
+ */
+export const logoutProvider = async (): Promise<void> => {
+  console.log('[ProviderAPI] logoutProvider called - will call', ENDPOINTS.PROVIDER.LOGOUT);
+  try {
+    const response = await apiClient.post(ENDPOINTS.PROVIDER.LOGOUT);
+    console.log('[ProviderAPI] Logout API success:', response.status, response.data);
+  } catch (error: any) {
+    console.error('[ProviderAPI] Logout API call failed:', error?.response?.status, error?.response?.data || error?.message);
+  } finally {
+    console.log('[ProviderAPI] Clearing tokens...');
+    await clearTokens();
+    console.log('[ProviderAPI] Tokens cleared');
+  }
+};
+
+/**
  * Recuperer le profil prestataire
  */
 export const getProviderProfile = async (): Promise<Provider> => {
@@ -194,23 +271,26 @@ export const uploadProviderImage = async (imageUri: string): Promise<{ image_url
   const match = /\.(\w+)$/.exec(filename);
   const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-  formData.append('image', {
+  // Le backend attend 'profile_image' comme nom de champ
+  formData.append('profile_image', {
     uri: imageUri,
     name: filename,
     type,
   } as any);
 
-  const response = await apiClient.post<{ success: boolean; data: { image_url: string } }>(
+  const response = await apiClient.post<{ success: boolean; data: { avatar: string } }>(
     ENDPOINTS.PROVIDER.UPLOAD_IMAGE,
     formData,
     {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 120000, // 2 minutes pour upload de fichiers
     }
   );
 
-  return response.data.data;
+  // Le backend retourne 'avatar', on le convertit en 'image_url' pour compatibilité
+  return { image_url: response.data.data.avatar };
 };
 
 /**
@@ -239,10 +319,62 @@ export const uploadProviderDocuments = async (documents: DocumentUpload[]): Prom
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 120000, // 2 minutes pour upload de fichiers
     }
   );
 
   return response.data.data;
+};
+
+/**
+ * Upload du diplôme/certificat par catégorie
+ */
+export const uploadProviderDiploma = async (fileUri: string, category: string = 'general'): Promise<{ diploma_path: string; category: string }> => {
+  const formData = new FormData();
+
+  // S'assurer que l'URI commence par file://
+  const normalizedUri = fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`;
+
+  const filename = fileUri.split('/').pop() || 'diploma.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  console.log('[ProviderAPI] Diploma upload - category:', category, 'URI:', normalizedUri);
+
+  formData.append('diploma', {
+    uri: normalizedUri,
+    name: filename,
+    type,
+  } as any);
+
+  formData.append('category', category);
+
+  const response = await apiClient.post<{ success: boolean; data: { diploma_path: string; category: string }; message: string }>(
+    '/api/provider/diploma',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000, // 2 minutes pour upload de fichiers volumineux
+    }
+  );
+
+  console.log('[ProviderAPI] Diploma upload response:', JSON.stringify(response.data));
+
+  const diplomaPath = response.data?.data?.diploma_path || response.data?.diploma_path || '';
+  const responseCategory = response.data?.data?.category || category;
+  return { diploma_path: diplomaPath, category: responseCategory };
+};
+
+/**
+ * Récupérer les diplômes du prestataire par catégorie
+ */
+export const getProviderDiplomas = async (): Promise<Record<string, { file_path: string; file_name: string; is_verified: boolean }>> => {
+  const response = await apiClient.get<{ success: boolean; data: Record<string, any> }>(
+    '/api/provider/diplomas'
+  );
+  return response.data.data || {};
 };
 
 // === SERVICES ===
@@ -252,7 +384,8 @@ export const uploadProviderDocuments = async (documents: DocumentUpload[]): Prom
  */
 export const getProviderServices = async (): Promise<ProviderService[]> => {
   const response = await apiClient.get<{ success: boolean; data: ProviderService[] }>(
-    ENDPOINTS.PROVIDER.SERVICES
+    ENDPOINTS.PROVIDER.SERVICES,
+    { params: { _t: Date.now() } }  // Prevent caching
   );
   return response.data.data;
 };
@@ -303,9 +436,20 @@ export const addProviderServices = async (serviceIds: number[]): Promise<Provide
 
 /**
  * Supprimer un service
+ * Note: Le backend attend le service_id (pas provider_service_id)
  */
-export const removeProviderService = async (providerServiceId: number): Promise<void> => {
-  await apiClient.delete(ENDPOINTS.PROVIDER.REMOVE_SERVICE(providerServiceId));
+export const removeProviderService = async (serviceId: number): Promise<void> => {
+  const endpoint = ENDPOINTS.PROVIDER.REMOVE_SERVICE(serviceId);
+  console.log('[ProviderAPI] removeProviderService - serviceId:', serviceId, 'endpoint:', endpoint);
+  try {
+    await apiClient.delete(endpoint);
+    console.log('[ProviderAPI] removeProviderService - success for serviceId:', serviceId);
+  } catch (error: any) {
+    console.error('[ProviderAPI] removeProviderService - FAILED for serviceId:', serviceId);
+    console.error('[ProviderAPI] Error status:', error?.response?.status);
+    console.error('[ProviderAPI] Error data:', JSON.stringify(error?.response?.data));
+    throw error;
+  }
 };
 
 // === COMMANDES ===
@@ -388,14 +532,21 @@ export const completeOrder = async (orderId: number): Promise<ProviderOrder> => 
 };
 
 /**
- * Annuler une commande
+ * Annuler une commande (prestataire)
+ * Note: Utilise POST car le backend attend POST pour les annulations prestataire
+ * (contrairement au client qui utilise PATCH sur /api/orders/:id/cancel)
  */
 export const cancelOrder = async (orderId: number, reason?: string): Promise<ProviderOrder> => {
-  const response = await apiClient.post<{ success: boolean; data: ProviderOrder }>(
-    ENDPOINTS.PROVIDER.CANCEL_ORDER(orderId),
-    { reason }
-  );
-  return response.data.data;
+  const endpoint = `/api/provider/orders/${orderId}/cancel`;
+  try {
+    const response = await apiClient.post<{ success: boolean; data: ProviderOrder }>(
+      endpoint,
+      { reason }
+    );
+    return response.data.data;
+  } catch (error: any) {
+    throw error;
+  }
 };
 
 // === LOCALISATION ===
@@ -426,10 +577,24 @@ export const getClientLocation = async (orderId: number): Promise<{ latitude: nu
  * Recuperer les notifications du prestataire
  */
 export const getProviderNotifications = async (): Promise<any[]> => {
-  const response = await apiClient.get<{ success: boolean; data: any[] }>(
-    ENDPOINTS.PROVIDER.NOTIFICATIONS
-  );
-  return response.data.data;
+  try {
+    const response = await apiClient.get<{ success: boolean; data: { notifications: any[]; unread_count: number } }>(
+      ENDPOINTS.PROVIDER.NOTIFICATIONS
+    );
+    // L'API retourne { data: { notifications: [...], unread_count: N } }
+    const notifications = response.data?.data?.notifications;
+    if (Array.isArray(notifications)) {
+      return notifications;
+    }
+    // Fallback: peut-être que data est directement le tableau
+    if (Array.isArray(response.data?.data)) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    // Silently ignore errors
+    return [];
+  }
 };
 
 /**
@@ -502,6 +667,7 @@ export interface Transaction {
   total_amount?: number;
   commission: number;
   net_amount: number;
+  tip_amount?: number;
   status: 'completed' | 'pending_payout' | 'paid';
 }
 
@@ -615,11 +781,395 @@ export const requestWithdrawal = async (amount: number): Promise<{ success: bool
   };
 };
 
+// === ABONNEMENTS / FORMULES ===
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  duration_days: number;
+  features: string[];
+  visibility_boost: number;
+  priority_level: number;
+  commission_rate: number;
+  max_services: number | null;
+  max_photos: number;
+  can_access_stats: boolean;
+  can_access_chat: boolean;
+  can_urgent_bookings: boolean;
+  badge_type: string | null;
+  is_recommended: boolean;
+}
+
+export interface ProviderSubscription {
+  id: number;
+  provider_id: number;
+  plan_id: number;
+  status: 'pending_payment' | 'active' | 'expired' | 'cancelled' | 'suspended';
+  started_at: string | null;
+  expires_at: string | null;
+  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_method: 'card' | 'cash' | 'transfer' | 'free';
+  auto_renew: boolean;
+  plan_name: string;
+  plan_slug: string;
+  plan_description?: string;
+  plan_price: number;
+  features: string[];
+  visibility_boost: number;
+  priority_level: number;
+  commission_rate: number;
+  max_services: number | null;
+  badge_type: string | null;
+  days_remaining: number;
+}
+
+export interface SubscriptionBenefits {
+  plan_name: string;
+  visibility_boost: number;
+  priority_level: number;
+  commission_rate: number;
+  max_services: number | null;
+  max_photos: number;
+  can_access_stats: boolean;
+  can_urgent_bookings: boolean;
+  badge_type: string | null;
+  features: string[];
+  expires_at?: string;
+  days_remaining?: number;
+  is_free_plan: boolean;
+}
+
+/**
+ * Recuperer les plans d'abonnement disponibles
+ */
+export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: { plans: SubscriptionPlan[]; currency: string };
+  }>('/api/subscription-plans');
+  return response.data.data.plans;
+};
+
+/**
+ * Recuperer l'abonnement actuel du prestataire
+ */
+export const getCurrentSubscription = async (): Promise<{
+  current: ProviderSubscription | null;
+  history: any[];
+  has_active_subscription: boolean;
+}> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: {
+      current: ProviderSubscription | null;
+      history: any[];
+      has_active_subscription: boolean;
+    };
+  }>('/api/provider/subscription');
+  return response.data.data;
+};
+
+/**
+ * Souscrire a un plan
+ */
+export const subscribeToplan = async (
+  planId: number,
+  paymentMethod: 'card' | 'cash' | 'transfer' | 'free' = 'card'
+): Promise<{
+  subscription_id: number;
+  plan: { id: number; name: string; price: number };
+  status: string;
+  payment_status: string;
+  started_at: string;
+  expires_at: string;
+  requires_payment: boolean;
+}> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: any;
+    message: string;
+  }>('/api/provider/subscription', {
+    plan_id: planId,
+    payment_method: paymentMethod,
+  });
+  return response.data.data;
+};
+
+/**
+ * Confirmer le paiement d'un abonnement
+ */
+export const confirmSubscriptionPayment = async (
+  subscriptionId: number,
+  cardToken?: string
+): Promise<{
+  subscription_id: number;
+  status: string;
+  payment_status: string;
+  expires_at: string;
+}> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: any;
+    message: string;
+  }>('/api/provider/subscription/confirm-payment', {
+    subscription_id: subscriptionId,
+    card_token: cardToken,
+  });
+  return response.data.data;
+};
+
+/**
+ * Annuler l'abonnement actuel
+ */
+export const cancelSubscription = async (): Promise<void> => {
+  await apiClient.put('/api/provider/subscription/cancel');
+};
+
+/**
+ * Recuperer les avantages de l'abonnement actuel
+ */
+export const getSubscriptionBenefits = async (): Promise<SubscriptionBenefits> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: SubscriptionBenefits;
+  }>('/api/provider/subscription/benefits');
+  return response.data.data;
+};
+
+// === FORMULES DE RESERVATION ===
+
+export interface BookingFormula {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  price_modifier: number;
+  badge_text: string | null;
+  badge_color: string | null;
+  provider_active?: boolean;
+  added_at?: string;
+}
+
+/**
+ * Recuperer toutes les formules disponibles
+ */
+export const getAllBookingFormulas = async (): Promise<BookingFormula[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: BookingFormula[];
+  }>('/api/booking-formulas');
+  return response.data.data;
+};
+
+/**
+ * Recuperer les formules du prestataire connecte
+ */
+export const getProviderFormulas = async (): Promise<BookingFormula[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: BookingFormula[];
+  }>('/api/provider/formulas');
+  return response.data.data;
+};
+
+/**
+ * Ajouter une ou plusieurs formules au prestataire
+ */
+export const addProviderFormulas = async (formulaIds: number[]): Promise<{
+  message: string;
+  added: number;
+  errors: string[];
+}> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: { message: string; added: number; errors: string[] };
+  }>('/api/provider/formulas', { formula_ids: formulaIds });
+  return response.data.data;
+};
+
+/**
+ * Mettre a jour toutes les formules du prestataire (remplace toutes)
+ */
+export const updateProviderFormulas = async (formulaIds: number[]): Promise<{
+  message: string;
+  count: number;
+}> => {
+  const response = await apiClient.put<{
+    success: boolean;
+    data: { message: string; count: number };
+  }>('/api/provider/formulas', { formula_ids: formulaIds });
+  return response.data.data;
+};
+
+/**
+ * Retirer une formule du prestataire
+ */
+export const removeProviderFormula = async (formulaId: number): Promise<void> => {
+  await apiClient.delete(`/api/provider/formulas/${formulaId}`);
+};
+
+/**
+ * Rechercher les prestataires par formule
+ */
+export const getProvidersByFormula = async (formulaSlug: string): Promise<any[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: any[];
+  }>(`/api/providers/by-formula/${formulaSlug}`);
+  return response.data.data;
+};
+
+// === SERVICES PERSONNALISES ===
+
+export interface CustomService {
+  id: number;
+  provider_id: number;
+  category_id: number;
+  name: string;
+  description: string;
+  price: number;
+  duration_minutes: number;
+  images: string[];
+  is_active: boolean;
+  category_name?: string;
+  category_slug?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomServiceInput {
+  name: string;
+  description?: string;
+  category_id: number;
+  price: number;
+  duration_minutes: number;
+}
+
+/**
+ * Récupérer les services personnalisés du prestataire
+ */
+export const getCustomServices = async (): Promise<{
+  services: CustomService[];
+  count: number;
+  max_allowed: number;
+}> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: { services: CustomService[]; count: number; max_allowed: number };
+  }>('/api/provider/custom-services');
+  return response.data.data;
+};
+
+/**
+ * Créer un nouveau service personnalisé
+ */
+export const createCustomService = async (data: CustomServiceInput): Promise<CustomService> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: { service: CustomService };
+  }>('/api/provider/custom-services', data);
+  return response.data.data.service;
+};
+
+/**
+ * Récupérer un service personnalisé
+ */
+export const getCustomService = async (id: number): Promise<CustomService> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: { service: CustomService };
+  }>(`/api/provider/custom-services/${id}`);
+  return response.data.data.service;
+};
+
+/**
+ * Mettre à jour un service personnalisé
+ */
+export const updateCustomService = async (id: number, data: Partial<CustomServiceInput & { is_active: boolean }>): Promise<CustomService> => {
+  const response = await apiClient.put<{
+    success: boolean;
+    data: { service: CustomService };
+  }>(`/api/provider/custom-services/${id}`, data);
+  return response.data.data.service;
+};
+
+/**
+ * Supprimer un service personnalisé
+ */
+export const deleteCustomService = async (id: number): Promise<void> => {
+  await apiClient.delete(`/api/provider/custom-services/${id}`);
+};
+
+/**
+ * Upload des images pour un service personnalisé
+ */
+export const uploadCustomServiceImages = async (serviceId: number, imageUris: string[]): Promise<{
+  images: string[];
+  uploaded_count: number;
+}> => {
+  const formData = new FormData();
+
+  for (let i = 0; i < imageUris.length; i++) {
+    const uri = imageUris[i];
+    const normalizedUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+    const filename = uri.split('/').pop() || `image_${i}.jpg`;
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+    // PHP attend images[] pour fichiers multiples
+    formData.append('images[]', {
+      uri: normalizedUri,
+      name: filename,
+      type,
+    } as any);
+  }
+
+  console.log('[ProviderAPI] Uploading', imageUris.length, 'images for service', serviceId);
+
+  const response = await apiClient.post<{
+    success: boolean;
+    data: { images: string[]; uploaded_count: number };
+  }>(`/api/provider/custom-services/${serviceId}/images`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000, // 2 minutes pour upload de fichiers
+  });
+
+  console.log('[ProviderAPI] Upload response:', response.data);
+  return response.data.data;
+};
+
+/**
+ * Supprimer une image d'un service personnalisé
+ */
+export const deleteCustomServiceImage = async (serviceId: number, imageIndex: number): Promise<{ images: string[] }> => {
+  const response = await apiClient.delete<{
+    success: boolean;
+    data: { images: string[] };
+  }>(`/api/provider/custom-services/${serviceId}/images/${imageIndex}`);
+  return response.data.data;
+};
+
+/**
+ * Récupérer les services personnalisés d'un prestataire (route publique)
+ */
+export const getProviderCustomServices = async (providerId: number): Promise<CustomService[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: { services: CustomService[]; count: number };
+  }>(`/api/providers/${providerId}/custom-services`);
+  return response.data.data.services;
+};
+
 // Export par defaut
 export default {
   // Auth
   registerProvider,
   loginProvider,
+  logoutProvider,
   // Profil
   getProviderProfile,
   updateProviderProfile,
@@ -653,4 +1203,27 @@ export default {
   getProviderEarnings,
   getProviderTransactions,
   requestWithdrawal,
+  // Abonnements
+  getSubscriptionPlans,
+  getCurrentSubscription,
+  subscribeToplan,
+  confirmSubscriptionPayment,
+  cancelSubscription,
+  getSubscriptionBenefits,
+  // Formules de reservation
+  getAllBookingFormulas,
+  getProviderFormulas,
+  addProviderFormulas,
+  updateProviderFormulas,
+  removeProviderFormula,
+  getProvidersByFormula,
+  // Services personnalisés
+  getCustomServices,
+  createCustomService,
+  getCustomService,
+  updateCustomService,
+  deleteCustomService,
+  uploadCustomServiceImages,
+  deleteCustomServiceImage,
+  getProviderCustomServices,
 };

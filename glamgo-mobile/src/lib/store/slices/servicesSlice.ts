@@ -58,9 +58,18 @@ export const fetchServices = createAsyncThunk(
     try {
       console.log('[fetchServices] Fetching from API...');
       const response = await getServices(params);
-      console.log('[fetchServices] Got', response.data.length, 'services from API');
+      const services = response.data;
+      console.log('[fetchServices] Got', services.length, 'services from API');
+      // Debug: afficher les titres des premiers services
+      if (services.length > 0) {
+        console.log('[fetchServices] First service:', {
+          id: services[0].id,
+          title: services[0].title,
+          name: (services[0] as any).name,
+        });
+      }
       return {
-        services: response.data,
+        services,
         useLocalData: false,
       };
     } catch (error: any) {

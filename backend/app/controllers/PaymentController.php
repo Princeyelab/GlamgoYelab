@@ -236,10 +236,13 @@ class PaymentController extends Controller
                 return $this->error('Cette commande est déjà payée', 400);
             }
 
-            // Calculer commission GlamGo (20%)
+            // Calculer commission GlamGo (20%) - sans le pourboire
             $total_amount = floatval($order['total_price']);
-            $commission_glamgo = round($total_amount * 0.20, 2);
-            $provider_amount = $total_amount - $commission_glamgo;
+            $tip_amount = floatval($order['tip'] ?? 0);
+            $base_amount = $total_amount - $tip_amount;
+            $commission_glamgo = round($base_amount * 0.20, 2);
+            // Prestataire recoit: base - commission + 100% pourboire
+            $provider_amount = ($base_amount - $commission_glamgo) + $tip_amount;
 
             // Créer transaction
             $stmt = $this->db->prepare("
@@ -290,6 +293,8 @@ class PaymentController extends Controller
                 'status' => 'pending',
                 'breakdown' => [
                     'total' => $total_amount,
+                    'base_amount' => $base_amount,
+                    'tip_amount' => $tip_amount,
                     'commission_glamgo' => $commission_glamgo,
                     'montant_prestataire' => $provider_amount
                 ]
@@ -557,16 +562,18 @@ class PaymentController extends Controller
             $stmt->execute([$provider_id]);
             $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Dernières transactions
+            // Dernières transactions avec pourboires
             $stmt = $this->db->prepare("
                 SELECT
                     t.*,
                     o.service_id,
+                    o.tip as tip_amount,
                     s.name as service_name,
-                    u.name as client_name
+                    u.first_name as client_first_name,
+                    u.last_name as client_last_name
                 FROM transactions t
                 JOIN orders o ON t.order_id = o.id
-                JOIN services s ON o.service_id = s.id
+                LEFT JOIN services s ON o.service_id = s.id
                 JOIN users u ON t.user_id = u.id
                 WHERE t.provider_id = ?
                 ORDER BY t.created_at DESC
@@ -575,8 +582,19 @@ class PaymentController extends Controller
             $stmt->execute([$provider_id]);
             $recent_transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Calculer le total des pourboires
+            $stmt = $this->db->prepare("
+                SELECT COALESCE(SUM(o.tip), 0) as total_tips
+                FROM transactions t
+                JOIN orders o ON t.order_id = o.id
+                WHERE t.provider_id = ? AND t.status = 'completed'
+            ");
+            $stmt->execute([$provider_id]);
+            $tips_result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $total_tips = floatval($tips_result['total_tips'] ?? 0);
+
             return $this->success([
-                'stats' => $stats,
+                'stats' => array_merge($stats, ['total_tips' => $total_tips]),
                 'recent_transactions' => $recent_transactions
             ]);
 

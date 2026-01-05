@@ -271,6 +271,28 @@ class ProviderOrderController extends Controller
             ]);
 
             $updatedOrder = $this->orderModel->getDetailedOrder((int)$orderId);
+
+            // Notifier le client du refus
+            $this->notificationModel->createNotification([
+                'recipient_type' => 'user',
+                'recipient_id' => $order['user_id'],
+                'order_id' => (int)$orderId,
+                'notification_type' => 'order_rejected',
+                'title' => 'Commande refusée',
+                'message' => "Votre commande #{$orderId} a été refusée. Raison: {$reason}",
+                'data' => [
+                    'order_id' => (int)$orderId,
+                    'service_id' => $order['service_id'] ?? null,
+                    'reason' => $reason,
+                    'service_name' => $order['service_name'] ?? 'Service',
+                    'action' => 'navigate_booking',
+                    'vibrate' => true,
+                    'priority' => 'high'
+                ]
+            ]);
+
+            error_log("[ProviderOrderController] Order #{$orderId} rejected, client notified");
+
             $this->success(['order' => $updatedOrder], 'Commande refusée');
             return;
         }

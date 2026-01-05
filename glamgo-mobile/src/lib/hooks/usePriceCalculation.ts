@@ -23,6 +23,7 @@ export interface PriceCalculationParams {
   selectedDateTime?: Date;
   distance?: number; // in km
   includeServiceFee?: boolean;
+  distanceFee?: number; // Override: frais CGU calcules externalement
 }
 
 // Night hours: 20h - 8h
@@ -57,6 +58,7 @@ export const usePriceCalculation = ({
   selectedDateTime,
   distance,
   includeServiceFee = true,
+  distanceFee: externalDistanceFee,
 }: PriceCalculationParams): PriceBreakdown => {
   return useMemo(() => {
     // Get formula data
@@ -69,8 +71,10 @@ export const usePriceCalculation = ({
     // Calculate night surcharge (on formula price)
     const nightSurcharge = calculateNightSurcharge(formulaPrice, selectedDateTime);
 
-    // Calculate distance fee
-    const distanceFee = calculateDistanceFee(distance);
+    // Calculate distance fee (utiliser le frais CGU externe si fourni, sinon calcul interne)
+    const distanceFee = externalDistanceFee !== undefined
+      ? externalDistanceFee
+      : calculateDistanceFee(distance);
 
     // Calculate total (avant commission)
     const total = formulaPrice + nightSurcharge + distanceFee;
@@ -91,7 +95,7 @@ export const usePriceCalculation = ({
       total,
       savings,
     };
-  }, [basePrice, formula, selectedDateTime, distance, includeServiceFee]);
+  }, [basePrice, formula, selectedDateTime, distance, includeServiceFee, externalDistanceFee]);
 };
 
 // Helper to format price breakdown for display
@@ -124,7 +128,7 @@ export const formatPriceBreakdown = (breakdown: PriceBreakdown): { label: string
 
   if (breakdown.distanceFee > 0) {
     items.push({
-      label: 'Frais de deplacement',
+      label: 'Frais de deplacement (CGU)',
       value: `+${breakdown.distanceFee} DH`,
       type: 'surcharge',
     });

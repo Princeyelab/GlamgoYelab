@@ -18,6 +18,7 @@ import Card from '../ui/Card';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
 import apiClient from '../../lib/api/client';
+import ProviderProfileModal from './ProviderProfileModal';
 
 export interface Provider {
   id: number;
@@ -135,6 +136,10 @@ export default function ProviderSelector({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
+  // Profile modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileProvider, setProfileProvider] = useState<any>(null);
+
   const handleSelect = (provider: Provider) => {
     hapticFeedback.selection();
     onSelect(provider);
@@ -179,6 +184,24 @@ export default function ProviderSelector({
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  // Afficher le profil d'un prestataire
+  const handleShowProfile = (provider: Provider) => {
+    hapticFeedback.light();
+    // Convertir vers le format attendu par ProviderProfileModal
+    setProfileProvider({
+      id: provider.id,
+      first_name: provider.name.split(' ')[0],
+      last_name: provider.name.split(' ').slice(1).join(' '),
+      name: provider.name,
+      avatar: provider.avatar,
+      rating: provider.rating,
+      total_reviews: provider.reviewsCount,
+      is_verified: provider.isVerified,
+      specialties: provider.specialties?.join(', '),
+    });
+    setShowProfileModal(true);
+  };
+
   const onlineProviders = providers.filter(p => p.isOnline);
   const offlineProviders = providers.filter(p => !p.isOnline);
 
@@ -186,6 +209,11 @@ export default function ProviderSelector({
     const isSelected = selectedProviderId === provider.id;
     const isExpanded = expandedId === provider.id;
     const isNearest = nearestProvider?.id === provider.id;
+
+    // Construire l'URL de l'avatar
+    const avatarUrl = provider.avatar
+      ? (provider.avatar.startsWith('http') ? provider.avatar : `https://glamgo-api.fly.dev${provider.avatar}`)
+      : null;
 
     return (
       <TouchableOpacity
@@ -201,39 +229,56 @@ export default function ProviderSelector({
         activeOpacity={0.7}
         disabled={!provider.isOnline}
       >
-        {/* Badge Plus Proche */}
-        {isNearest && provider.isOnline && (
-          <View style={styles.nearestBadge}>
-            <Text style={styles.nearestBadgeText}>Plus proche</Text>
-          </View>
-        )}
+        {/* Badge Disponibilité - Toujours visible */}
+        <View style={[
+          styles.availabilityBadge,
+          provider.isOnline ? styles.availableBadge : styles.unavailableBadge
+        ]}>
+          <View style={[
+            styles.availabilityDot,
+            { backgroundColor: provider.isOnline ? '#22C55E' : '#EF4444' }
+          ]} />
+          <Text style={[
+            styles.availabilityBadgeText,
+            provider.isOnline ? styles.availableText : styles.unavailableText
+          ]}>
+            {provider.isOnline ? 'Disponible' : 'Indisponible'}
+          </Text>
+        </View>
 
-        {/* Header Row */}
+        {/* Badge Plus Proche */}
+        {isNearest && provider.isOnline ? (
+          <View style={styles.nearestBadge}>
+            <Text style={styles.nearestBadgeText}>{'Plus proche'}</Text>
+          </View>
+        ) : null}
+
+        {/* Header Row avec photo plus grande */}
         <View style={styles.providerHeader}>
-          {/* Avatar */}
+          {/* Avatar - Plus grand */}
           <View style={styles.avatarContainer}>
-            {provider.avatar ? (
-              <Image source={{ uri: provider.avatar }} style={styles.avatar} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarLarge} />
             ) : (
               <View style={[
-                styles.avatarPlaceholder,
+                styles.avatarPlaceholderLarge,
                 isSelected && styles.avatarPlaceholderSelected,
                 isNearest && !isSelected && styles.avatarPlaceholderNearest,
               ]}>
                 <Text style={[
-                  styles.avatarInitials,
+                  styles.avatarInitialsLarge,
                   (isSelected || isNearest) && styles.avatarInitialsLight,
                 ]}>{provider.initials}</Text>
               </View>
             )}
-            {provider.isOnline && (
-              <View style={styles.onlineIndicator} />
-            )}
-            {provider.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedIcon}>✓</Text>
+            {provider.isOnline ? (
+              <View style={styles.onlineIndicatorLarge} />
+            ) : null}
+            {provider.isVerified ? (
+              <View style={styles.verifiedBadgeLarge}>
+                <Text style={styles.verifiedIconLarge}>{'✓'}</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Info */}
@@ -242,11 +287,11 @@ export default function ProviderSelector({
               <Text style={[styles.providerName, !provider.isOnline && styles.textOffline]}>
                 {provider.name}
               </Text>
-              {isSelected && (
+              {isSelected ? (
                 <View style={styles.selectedBadge}>
-                  <Text style={styles.selectedBadgeText}>Selectionne</Text>
+                  <Text style={styles.selectedBadgeText}>{'Selectionne'}</Text>
                 </View>
-              )}
+              ) : null}
             </View>
 
             {/* Rating - Cliquable pour voir les avis */}
@@ -259,70 +304,62 @@ export default function ProviderSelector({
               >
                 <Text style={styles.reviewsCountLink}>({provider.reviewsCount} avis)</Text>
               </TouchableOpacity>
-              {provider.completedServices > 100 && (
-                <View style={styles.experienceBadge}>
-                  <Text style={styles.experienceText}>{provider.completedServices}+ services</Text>
-                </View>
-              )}
             </View>
 
-            {/* Specialties */}
-            <View style={styles.specialtiesRow}>
-              {provider.specialties.slice(0, 3).map((specialty, index) => (
-                <View key={index} style={styles.specialtyTag}>
-                  <Text style={styles.specialtyText}>{specialty}</Text>
+            {/* Stats Row - Temps de réponse & Services réalisés */}
+            <View style={styles.statsRow}>
+              {provider.responseTime ? (
+                <View style={styles.statBadge}>
+                  <Text style={styles.statIcon}>⚡</Text>
+                  <Text style={styles.statText}>{provider.responseTime}</Text>
                 </View>
-              ))}
+              ) : null}
+              <View style={styles.statBadge}>
+                <Text style={styles.statIcon}>✅</Text>
+                <Text style={styles.statText}>{provider.completedServices} services</Text>
+              </View>
+              {/* Bouton Voir profil */}
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => handleShowProfile(provider)}
+                hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+              >
+                <Text style={styles.profileButtonText}>Voir profil</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* ETA / Distance */}
-          {showDistance && provider.isOnline && (
-            <View style={styles.etaContainer}>
-              {provider.eta && (
-                <>
-                  <Text style={styles.etaValue}>{provider.eta}</Text>
-                  <Text style={styles.etaLabel}>min</Text>
-                </>
-              )}
-              {provider.distance && (
-                <Text style={styles.distanceText}>{provider.distance} km</Text>
-              )}
-            </View>
-          )}
-
-          {/* Offline Badge */}
-          {!provider.isOnline && (
-            <View style={styles.offlineBadge}>
-              <Text style={styles.offlineBadgeText}>Hors ligne</Text>
-            </View>
-          )}
         </View>
 
-        {/* Expanded Details */}
-        {isExpanded && (
-          <View style={styles.expandedDetails}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>⏱️</Text>
-              <Text style={styles.detailLabel}>Temps de reponse:</Text>
-              <Text style={styles.detailValue}>{provider.responseTime || 'N/A'}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>✅</Text>
-              <Text style={styles.detailLabel}>Services realises:</Text>
-              <Text style={styles.detailValue}>{provider.completedServices}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>🏆</Text>
-              <Text style={styles.detailLabel}>Specialites:</Text>
-              <Text style={styles.detailValue}>{provider.specialties.join(', ')}</Text>
+        {/* Distance/ETA Row - Séparé */}
+        {showDistance && provider.isOnline && (provider.distance || provider.eta) ? (
+          <View style={styles.distanceRow}>
+            {provider.distance != null && provider.distance > 0 ? (
+              <View style={styles.distanceBadge}>
+                <Text style={styles.distanceIcon}>📍</Text>
+                <Text style={styles.distanceValue}>{provider.distance} km</Text>
+              </View>
+            ) : null}
+            {provider.eta != null && provider.eta > 0 ? (
+              <View style={styles.etaBadge}>
+                <Text style={styles.etaIcon}>🕐</Text>
+                <Text style={styles.etaValueSmall}>{provider.eta} min</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Offline Badge */}
+        {!provider.isOnline ? (
+          <View style={styles.offlineRow}>
+            <View style={styles.offlineBadge}>
+              <Text style={styles.offlineBadgeText}>{'Hors ligne'}</Text>
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* Selection Indicator */}
         <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
-          {isSelected && <View style={styles.radioButtonInner} />}
+          {isSelected ? <View style={styles.radioButtonInner} /> : null}
         </View>
       </TouchableOpacity>
     );
@@ -332,9 +369,11 @@ export default function ProviderSelector({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>
-          {onlineProviders.length} disponible{onlineProviders.length > 1 ? 's' : ''} maintenant
-        </Text>
+        {onlineProviders.length > 0 ? (
+          <Text style={styles.subtitle}>
+            {onlineProviders.length} dispo.
+          </Text>
+        ) : null}
       </View>
 
       {/* Online Providers */}
@@ -346,12 +385,12 @@ export default function ProviderSelector({
         {onlineProviders.map(renderProvider)}
 
         {/* Offline Section */}
-        {offlineProviders.length > 0 && (
+        {offlineProviders.length > 0 ? (
           <>
-            <Text style={styles.sectionLabel}>Actuellement indisponibles</Text>
+            <Text style={styles.sectionLabel}>{'Actuellement indisponibles'}</Text>
             {offlineProviders.map(renderProvider)}
           </>
-        )}
+        ) : null}
       </ScrollView>
 
       {/* Helper Text */}
@@ -372,17 +411,17 @@ export default function ProviderSelector({
             <View style={styles.reviewsModalHeader}>
               <View style={styles.reviewsModalTitleRow}>
                 <Text style={styles.reviewsModalTitle}>Avis clients</Text>
-                {reviewsProvider && (
+                {reviewsProvider ? (
                   <View style={styles.reviewsModalRating}>
                     <Text style={styles.reviewsModalRatingText}>
-                      ⭐ {reviewsProvider.rating} ({reviewsProvider.reviewsCount})
+                      {`⭐ ${reviewsProvider.rating} (${reviewsProvider.reviewsCount})`}
                     </Text>
                   </View>
-                )}
+                ) : null}
               </View>
-              {reviewsProvider && (
+              {reviewsProvider ? (
                 <Text style={styles.reviewsModalSubtitle}>{reviewsProvider.name}</Text>
-              )}
+              ) : null}
               <TouchableOpacity
                 style={styles.reviewsModalClose}
                 onPress={() => setShowReviewsModal(false)}
@@ -427,12 +466,12 @@ export default function ProviderSelector({
                         ))}
                       </View>
                     </View>
-                    {review.service_name && (
+                    {review.service_name ? (
                       <Text style={styles.reviewService}>{review.service_name}</Text>
-                    )}
-                    {review.comment && (
+                    ) : null}
+                    {review.comment ? (
                       <Text style={styles.reviewComment}>{review.comment}</Text>
-                    )}
+                    ) : null}
                   </View>
                 ))
               ) : (
@@ -460,6 +499,23 @@ export default function ProviderSelector({
           </View>
         </View>
       </Modal>
+
+      {/* Modal Profil Prestataire */}
+      <ProviderProfileModal
+        visible={showProfileModal}
+        provider={profileProvider}
+        onClose={() => setShowProfileModal(false)}
+        onSelectService={(service) => {
+          // Fermer le modal et sélectionner le prestataire
+          setShowProfileModal(false);
+          if (profileProvider) {
+            const providerData = providers.find(p => p.id === profileProvider.id);
+            if (providerData) {
+              handleSelect(providerData);
+            }
+          }
+        }}
+      />
     </View>
   );
 }
@@ -467,24 +523,33 @@ export default function ProviderSelector({
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.lg,
+    overflow: 'visible',
   },
   header: {
     marginBottom: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: typography.fontSize.lg,
     fontWeight: '600',
     color: colors.gray[900],
-    marginBottom: 4,
   },
   subtitle: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[500],
+    fontSize: typography.fontSize.xs,
+    color: colors.success,
+    fontWeight: '600',
+    backgroundColor: colors.success + '15',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
   },
 
   // Providers List
   providersList: {
     maxHeight: 400,
+    overflow: 'visible',
   },
   sectionLabel: {
     fontSize: typography.fontSize.sm,
@@ -501,8 +566,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.gray[200],
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
     position: 'relative',
+    overflow: 'visible',
     ...shadows.sm,
   },
   providerCardSelected: {
@@ -518,21 +586,68 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warning + '08',
   },
 
+  // Badge Disponibilité
+  availabilityBadge: {
+    position: 'absolute',
+    top: -10,
+    right: spacing.md + 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  availableBadge: {
+    backgroundColor: '#DCFCE7',
+  },
+  unavailableBadge: {
+    backgroundColor: '#FEE2E2',
+  },
+  availabilityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  availabilityBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  availableText: {
+    color: '#166534',
+  },
+  unavailableText: {
+    color: '#DC2626',
+  },
+
   // Badge Plus Proche
   nearestBadge: {
     position: 'absolute',
     top: -10,
     left: spacing.md,
     backgroundColor: colors.warning,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
     borderRadius: borderRadius.full,
-    zIndex: 1,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: colors.warning,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   nearestBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     color: colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // Header Row
@@ -541,7 +656,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
 
-  // Avatar
+  // Avatar - Plus grand
   avatarContainer: {
     position: 'relative',
     marginRight: spacing.md,
@@ -552,6 +667,14 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: colors.gray[200],
   },
+  avatarLarge: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: colors.gray[200],
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
   avatarPlaceholder: {
     width: 56,
     height: 56,
@@ -559,6 +682,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[200],
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarPlaceholderLarge: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: colors.gray[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.white,
   },
   avatarPlaceholderSelected: {
     backgroundColor: colors.primary,
@@ -568,6 +701,11 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.gray[600],
+  },
+  avatarInitialsLarge: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.gray[600],
   },
@@ -585,6 +723,17 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.white,
   },
+  onlineIndicatorLarge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.success,
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
   verifiedBadge: {
     position: 'absolute',
     top: -2,
@@ -596,8 +745,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  verifiedBadgeLarge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.info,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
   verifiedIcon: {
     fontSize: 10,
+    color: colors.white,
+    fontWeight: 'bold',
+  },
+  verifiedIconLarge: {
+    fontSize: 12,
     color: colors.white,
     fontWeight: 'bold',
   },
@@ -672,11 +839,54 @@ const styles = StyleSheet.create({
     color: colors.success,
   },
 
+  // Stats Row - Temps de réponse & Services réalisés
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
+  },
+  statIcon: {
+    fontSize: 10,
+    marginRight: 4,
+  },
+  statText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.gray[700],
+  },
+  profileButton: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+    marginLeft: 'auto',
+  },
+  profileButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+
   // Specialties
   specialtiesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 4,
+  },
+  specialtiesLabel: {
+    fontSize: 11,
+    color: colors.gray[500],
+    marginRight: 4,
   },
   specialtyTag: {
     backgroundColor: colors.gray[100],
@@ -684,12 +894,79 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
+  specialtyTagHighlight: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
+  },
   specialtyText: {
     fontSize: 11,
     color: colors.gray[600],
   },
+  specialtyTextHighlight: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  moreSpecialties: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  noSpecialties: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: colors.gray[400],
+  },
 
-  // ETA Container
+  // Distance/ETA Row
+  distanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
+    gap: spacing.md,
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.info + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: borderRadius.full,
+  },
+  distanceIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  distanceValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.info,
+  },
+  etaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: borderRadius.full,
+  },
+  etaIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  etaValueSmall: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+
+  // ETA Container (legacy)
   etaContainer: {
     alignItems: 'center',
     backgroundColor: colors.primary + '10',
@@ -714,6 +991,10 @@ const styles = StyleSheet.create({
   },
 
   // Offline Badge
+  offlineRow: {
+    marginTop: spacing.sm,
+    alignItems: 'flex-start',
+  },
   offlineBadge: {
     backgroundColor: colors.gray[300],
     paddingHorizontal: spacing.sm,
@@ -732,6 +1013,17 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.gray[100],
+  },
+  expandedTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: spacing.sm,
+  },
+  allSpecialtiesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   detailRow: {
     flexDirection: 'row',

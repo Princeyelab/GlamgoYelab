@@ -190,6 +190,21 @@ class ChatController extends Controller
             $this->error('Erreur lors de l\'upload', 500);
         }
 
+        // Vérifier le nom de fichier suspect
+        $filenameCheck = MessageFilter::checkFilename($file['name']);
+        if (!$filenameCheck['is_safe']) {
+            @unlink($destination);
+            $this->error($filenameCheck['reason'], 400);
+        }
+
+        // Analyser le contenu de l'image pour détecter du contenu inapproprié
+        $imageAnalysis = MessageFilter::analyzeImage($destination);
+        if (!$imageAnalysis['is_safe']) {
+            @unlink($destination);
+            error_log("[Chat] Image bloquée - Skin: {$imageAnalysis['skin_percentage']}% - Order: {$orderId}");
+            $this->error($imageAnalysis['reason'], 400);
+        }
+
         $imageUrl = '/uploads/chat/' . $filename;
 
         $messageId = $this->messageModel->createMessage(

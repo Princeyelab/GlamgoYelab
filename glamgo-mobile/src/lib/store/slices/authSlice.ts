@@ -13,7 +13,7 @@ import {
   updateProfile,
   User as APIUser,
 } from '../../api/authAPI';
-import { loginProvider } from '../../api/providerAPI';
+import { loginProvider, logoutProvider } from '../../api/providerAPI';
 import { handleAPIError, logError } from '../../utils/errorHandler';
 import { DEMO_MODE, DEMO_USER, DEMO_CREDENTIALS } from '../../config/appConfig';
 
@@ -219,15 +219,35 @@ export const registerUser = createAsyncThunk(
 
 /**
  * Deconnexion utilisateur
+ * Appelle l'API appropriée selon le type d'utilisateur (client ou provider)
+ * Pour les providers, cela les met automatiquement hors ligne
  */
 export const logoutUser = createAsyncThunk(
   'auth/logout',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
-      await logout();
+      const state = getState() as { auth: AuthState };
+      const user = state.auth.user;
+      // Vérifier si c'est un provider de plusieurs façons
+      const isProvider = user?.role === 'provider' || user?.is_provider === true;
+
+      console.log('[logoutUser] User:', user?.email, 'Role:', user?.role, 'is_provider:', user?.is_provider);
+      console.log('[logoutUser] isProvider check result:', isProvider);
+
+      if (isProvider) {
+        // Déconnexion prestataire - le met hors ligne automatiquement
+        console.log('[logoutUser] Calling logoutProvider() to set offline');
+        await logoutProvider();
+        console.log('[logoutUser] logoutProvider() completed');
+      } else {
+        // Déconnexion client
+        console.log('[logoutUser] Calling client logout()');
+        await logout();
+      }
       return true;
     } catch (error: any) {
       // Logout quand meme cote client
+      console.error('[logoutUser] Error during logout:', error);
       logError('logoutUser', error);
       return true;
     }

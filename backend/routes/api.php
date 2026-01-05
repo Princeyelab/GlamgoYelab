@@ -540,3 +540,17 @@ $router->delete('/api/provider/custom-services/{id}/images/{index}', 'ProviderCu
 // Route publique - Services personnalisés d'un prestataire (pour clients)
 $router->get('/api/providers/{id}/custom-services', 'ProviderCustomServiceController', 'getProviderCustomServices');
 
+// =====================================================
+// ROUTES SYSTÈME DE TIMEOUT COMMANDES
+// =====================================================
+// Ajoute le 2026-01-02 - Expiration automatique
+// Les commandes pending sans reponse expirent apres 4 minutes
+// Le client est notifie et peut reessayer avec un autre prestataire
+
+// Cron endpoint - Expirer les commandes (appele toutes les minutes)
+$router->get('/api/cron/expire-orders', 'OrderTimeoutController', 'expireOrders');
+
+// Statut timeout d'une commande (temps restant)
+$router->get('/api/orders/{id}/timeout-status', 'OrderTimeoutController', 'getTimeoutStatus')
+    ->middleware([AuthMiddleware::class]);
+

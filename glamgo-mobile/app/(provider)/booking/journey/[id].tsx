@@ -1,7 +1,7 @@
 /**
  * Provider Journey Mode - GlamGo Mobile
- * Écran de suivi en temps réel pendant le trajet vers le client
- * Connecte aux vraies donnees de reservation via API
+ * Ecran de suivi en temps reel pendant le trajet vers le client
+ * Design moderne avec gradients et cartes elegantes
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -18,10 +18,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import Card from '../../../../src/components/ui/Card';
-import Button from '../../../../src/components/ui/Button';
 import EmergencyButton from '../../../../src/components/features/EmergencyButton';
 import CancellationModal from '../../../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../../src/lib/constants/theme';
@@ -33,6 +33,7 @@ import {
   updateProviderLocation,
   ProviderOrder,
 } from '../../../../src/lib/api/providerAPI';
+import { appEvents, EVENTS } from '../../../../src/lib/utils/eventEmitter';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -54,7 +55,6 @@ interface BookingDetails {
   };
 }
 
-// Donnees initiales vides pour la reservation
 const INITIAL_BOOKING: BookingDetails = {
   id: 0,
   clientName: '',
@@ -66,8 +66,36 @@ const INITIAL_BOOKING: BookingDetails = {
   price: 0,
   notes: '',
   clientLocation: {
-    latitude: 33.5731, // Default Casablanca
+    latitude: 33.5731,
     longitude: -7.5898,
+  },
+};
+
+// Status configuration with gradients
+const STATUS_CONFIG: Record<JourneyStatus, {
+  title: string;
+  icon: string;
+  gradient: [string, string];
+}> = {
+  on_way: {
+    title: 'En route',
+    icon: '🚗',
+    gradient: ['#3B82F6', '#1D4ED8'],
+  },
+  arrived: {
+    title: 'Arrivé',
+    icon: '📍',
+    gradient: ['#8B5CF6', '#6D28D9'],
+  },
+  in_progress: {
+    title: 'En cours',
+    icon: '✂️',
+    gradient: [colors.primary, '#BE185D'],
+  },
+  completed: {
+    title: 'Terminé',
+    icon: '✅',
+    gradient: ['#10B981', '#059669'],
   },
 };
 
@@ -81,6 +109,7 @@ export default function JourneyScreen() {
   const [booking, setBooking] = useState<BookingDetails>(INITIAL_BOOKING);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
   const [providerLocation, setProviderLocation] = useState({
     latitude: 33.5631,
     longitude: -7.5998,
@@ -108,11 +137,9 @@ export default function JourneyScreen() {
           return;
         }
 
-        // Convertir les donnees API vers le format BookingDetails
         const clientLat = orderData.client_latitude || orderData.latitude || 33.5731;
         const clientLng = orderData.client_longitude || orderData.longitude || -7.5898;
 
-        // Extraire le nom du client (API retourne user_name, user_first_name, user_last_name)
         const clientName = orderData.user_name
           || (orderData.user_first_name && orderData.user_last_name
               ? `${orderData.user_first_name} ${orderData.user_last_name}`
@@ -121,7 +148,6 @@ export default function JourneyScreen() {
           || orderData.client_name
           || 'Client';
 
-        // Extraire le prix (API retourne price, pas total)
         const price = orderData.price || orderData.total || orderData.amount || orderData.service?.price || 0;
 
         const bookingData: BookingDetails = {
@@ -142,16 +168,28 @@ export default function JourneyScreen() {
 
         setBooking(bookingData);
 
-        // Mettre a jour le statut selon l'etat de la commande
-        if (orderData.status === 'in_progress' || orderData.status === 'started') {
+        if (orderData.status === 'cancelled') {
+          setIsCancelled(true);
+        } else if (orderData.status === 'in_progress' || orderData.status === 'started') {
           setStatus('in_progress');
-        } else if (orderData.status === 'completed') {
+        } else if (orderData.status === 'completed' || orderData.status === 'completed_pending_review') {
           setStatus('completed');
         } else if (orderData.status === 'arrived') {
           setStatus('arrived');
+        } else if (orderData.status === 'on_way') {
+          setStatus('on_way');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erreur chargement reservation:', error);
+
+        if (error?.response?.status === 403) {
+          Alert.alert(
+            'Commande non disponible',
+            'Cette commande n\'est plus accessible.',
+            [{ text: 'Retour', onPress: () => router.back() }]
+          );
+        }
+
         setHasError(true);
       } finally {
         setIsLoading(false);
@@ -159,9 +197,9 @@ export default function JourneyScreen() {
     };
 
     loadBookingData();
-  }, [id]);
+  }, [id, router]);
 
-  // Pulse animation for current location marker
+  // Pulse animation
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -181,57 +219,81 @@ export default function JourneyScreen() {
     return () => pulse.stop();
   }, []);
 
-
-  // Elapsed time counter for in_progress
+  // Elapsed time counter
   useEffect(() => {
     if (status !== 'in_progress') return;
 
     const interval = setInterval(() => {
       setElapsedTime(prev => prev + 1);
-    }, 60000); // Every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [status]);
 
-  // Polling pour detecter quand le client confirme l'arrivee
+  // Event listener
   useEffect(() => {
-    if (status !== 'arrived' || !id) return;
-
-    const checkClientConfirmation = async () => {
+    const unsubscribe = appEvents.on(EVENTS.REFRESH_PROVIDER_BOOKINGS, async () => {
+      if (!id) return;
       try {
         const orderData = await getProviderOrderDetail(parseInt(id, 10));
-        if (orderData?.status === 'in_progress') {
+        if (orderData?.status === 'cancelled') {
+          setIsCancelled(true);
+        }
+      } catch (error) {}
+    });
+    return unsubscribe;
+  }, [id]);
+
+  // Status polling
+  useEffect(() => {
+    if (!id || status === 'completed' || isCancelled) return;
+
+    const checkOrderStatus = async () => {
+      try {
+        const orderData = await getProviderOrderDetail(parseInt(id, 10));
+
+        if (orderData?.status === 'cancelled') {
+          setIsCancelled(true);
+          return;
+        }
+
+        if (status === 'arrived' && orderData?.status === 'in_progress') {
           setStatus('in_progress');
           setElapsedTime(0);
           hapticFeedback.success();
           Alert.alert(
-            '✅ Client a confirmé',
+            'Client a confirmé',
             'Le client a confirmé votre arrivée. La prestation peut commencer !',
             [{ text: 'OK' }]
           );
         }
-      } catch (error) {
-        console.log('Error checking confirmation:', error);
+      } catch (error: any) {
+        if (error?.response?.status === 403) {
+          setIsCancelled(true);
+          Alert.alert(
+            'Commande non disponible',
+            'Cette commande n\'est plus accessible.',
+            [{ text: 'Retour', onPress: () => router.back() }]
+          );
+        }
       }
     };
 
-    // Verifier toutes les 5 secondes
-    const interval = setInterval(checkClientConfirmation, 5000);
+    const interval = setInterval(checkOrderStatus, 5000);
     return () => clearInterval(interval);
-  }, [status, id]);
+  }, [status, id, isCancelled]);
 
-  // Get real GPS location
+  // Location tracking
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
 
     const startLocationTracking = async () => {
       const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
       if (permStatus !== 'granted') {
-        Alert.alert('Permission requise', 'L\'accès à la localisation est nécessaire pour le suivi.');
+        Alert.alert('Permission requise', 'L\'accès à la localisation est nécessaire.');
         return;
       }
 
-      // Get initial position
       try {
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
@@ -240,11 +302,8 @@ export default function JourneyScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-      } catch (error) {
-        console.log('Error getting initial location:', error);
-      }
+      } catch (error) {}
 
-      // Watch position updates
       locationSubscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -269,21 +328,20 @@ export default function JourneyScreen() {
     };
   }, []);
 
-  // Recalculer distance et ETA en temps reel
+  // Distance and ETA calculation
   useEffect(() => {
     if (!booking.clientLocation || !providerLocation) return;
 
     const clientLat = booking.clientLocation.latitude;
     const clientLng = booking.clientLocation.longitude;
 
-    // Calculer la distance en km (formule Haversine simplifiee)
     const distKm = Math.sqrt(
       Math.pow((clientLat - providerLocation.latitude) * 111, 2) +
       Math.pow((clientLng - providerLocation.longitude) * 111 * Math.cos(clientLat * Math.PI / 180), 2)
     );
 
     setDistance(Math.round(distKm * 10) / 10);
-    setEta(Math.max(1, Math.round(distKm * 2))); // ~2 min par km en ville, minimum 1 min
+    setEta(Math.max(1, Math.round(distKm * 2)));
   }, [providerLocation, booking.clientLocation]);
 
   const handleOpenMaps = () => {
@@ -306,28 +364,22 @@ export default function JourneyScreen() {
         {
           text: 'Confirmer',
           onPress: async () => {
-            console.log('[JOURNEY] handleArrivedAtClient - Starting API call for order:', id);
             try {
               if (id) {
-                console.log('[JOURNEY] Calling arriveAtClient with id:', parseInt(id, 10));
-                const result = await arriveAtClient(parseInt(id, 10));
-                console.log('[JOURNEY] arriveAtClient success:', result);
+                await arriveAtClient(parseInt(id, 10));
               }
               setStatus('arrived');
               hapticFeedback.success();
-              Alert.alert('✅ Arrivée confirmée', 'En attente de la confirmation du client.');
+              Alert.alert('Arrivée confirmée', 'En attente de la confirmation du client.');
             } catch (error: any) {
-              console.error('[JOURNEY] arriveAtClient error:', error);
-              console.error('[JOURNEY] Error details:', error?.response?.data || error?.message);
               hapticFeedback.error();
-              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée. Réessayez.');
+              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée.');
             }
           },
         },
       ]
     );
   };
-
 
   const handleCompleteService = () => {
     hapticFeedback.medium();
@@ -340,19 +392,15 @@ export default function JourneyScreen() {
           text: 'Terminer',
           onPress: async () => {
             try {
-              // Appeler l'API pour terminer la commande
               if (id) {
                 await completeOrder(parseInt(id, 10));
               }
               setStatus('completed');
               hapticFeedback.success();
-              // Navigate back after short delay
               setTimeout(() => {
                 router.back();
               }, 2000);
             } catch (error) {
-              console.error('Erreur completion:', error);
-              // Mettre a jour l'etat local meme si l'API echoue
               setStatus('completed');
               hapticFeedback.success();
               setTimeout(() => {
@@ -370,123 +418,116 @@ export default function JourneyScreen() {
     mapRef.current?.fitToCoordinates(
       [providerLocation, booking.clientLocation],
       {
-        edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
+        edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
         animated: true,
       }
     );
   };
 
-  const getStatusInfo = () => {
-    switch (status) {
-      case 'on_way':
-        return {
-          title: 'En route',
-          subtitle: `Arrivée estimée dans ${Math.ceil(eta)} min`,
-          color: colors.info,
-          icon: '🚗',
-        };
-      case 'arrived':
-        return {
-          title: 'Arrivé',
-          subtitle: 'Vous êtes arrivé chez le client',
-          color: colors.warning,
-          icon: '📍',
-        };
-      case 'in_progress':
-        return {
-          title: 'En cours',
-          subtitle: `Temps écoulé: ${elapsedTime} min`,
-          color: colors.primary,
-          icon: '✂️',
-        };
-      case 'completed':
-        return {
-          title: 'Terminé',
-          subtitle: 'Prestation terminée avec succès !',
-          color: colors.success,
-          icon: '✅',
-        };
-    }
-  };
+  const statusConfig = STATUS_CONFIG[status];
 
-  const statusInfo = getStatusInfo();
-
-  // Afficher un loader pendant le chargement
+  // Loading state
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>
-          Chargement de la reservation...
-        </Text>
+        <LinearGradient
+          colors={[colors.primary, '#8B5CF6']}
+          style={styles.loadingGradient}
+        >
+          <ActivityIndicator size="large" color={colors.white} />
+        </LinearGradient>
+        <Text style={styles.loadingText}>Chargement du trajet...</Text>
       </View>
     );
   }
 
-  // Afficher une erreur si la reservation n'est pas trouvee
+  // Error state
   if (hasError || !booking.id) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorIcon}>❌</Text>
-        <Text style={styles.errorTitle}>Reservation introuvable</Text>
-        <Text style={styles.errorText}>
-          Cette reservation n'existe pas ou a ete annulee.
-        </Text>
-        <TouchableOpacity
-          style={styles.errorButton}
-          onPress={() => router.back()}
+        <LinearGradient
+          colors={['#EF4444', '#DC2626']}
+          style={styles.stateIconGradient}
         >
-          <Text style={styles.errorButtonText}>Retour</Text>
+          <Text style={styles.stateIcon}>❌</Text>
+        </LinearGradient>
+        <Text style={styles.stateTitle}>Réservation introuvable</Text>
+        <Text style={styles.stateText}>
+          Cette réservation n'existe pas ou a été annulée.
+        </Text>
+        <TouchableOpacity style={styles.stateButton} onPress={() => router.back()}>
+          <LinearGradient
+            colors={[colors.gray[600], colors.gray[700]]}
+            style={styles.stateButtonGradient}
+          >
+            <Text style={styles.stateButtonText}>Retour</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const renderActionButton = () => {
-    switch (status) {
-      case 'on_way':
-        return (
-          <Button
-            variant="primary"
-            size="lg"
-            onPress={handleArrivedAtClient}
-            style={styles.actionButton}
+  // Cancelled state
+  if (isCancelled) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <LinearGradient
+          colors={['#EF4444', '#DC2626']}
+          style={styles.stateIconGradient}
+        >
+          <Text style={styles.stateIcon}>❌</Text>
+        </LinearGradient>
+        <Text style={styles.stateTitle}>Commande annulée</Text>
+        <Text style={styles.stateText}>
+          Cette commande a été annulée par le client.
+        </Text>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={() => router.replace('/(provider)/bookings')}
+        >
+          <LinearGradient
+            colors={[colors.gray[600], colors.gray[700]]}
+            style={styles.stateButtonGradient}
           >
-            Je suis arrivé
-          </Button>
-        );
-      case 'arrived':
-        return (
-          <View style={styles.waitingConfirmation}>
-            <Text style={styles.waitingIcon}>⏳</Text>
-            <Text style={styles.waitingText}>
-              En attente de confirmation du client
-            </Text>
-            <Text style={styles.waitingSubtext}>
-              Le client doit confirmer votre arrivée pour démarrer la prestation
-            </Text>
-          </View>
-        );
-      case 'in_progress':
-        return (
-          <Button
-            variant="primary"
-            size="lg"
-            onPress={handleCompleteService}
-            style={[styles.actionButton, { backgroundColor: colors.success }]}
+            <Text style={styles.stateButtonText}>Retour aux commandes</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Completed state
+  if (status === 'completed') {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <LinearGradient
+          colors={['#10B981', '#059669']}
+          style={styles.stateIconGradient}
+        >
+          <Text style={styles.stateIcon}>✅</Text>
+        </LinearGradient>
+        <Text style={styles.stateTitle}>Prestation terminée</Text>
+        <Text style={styles.stateText}>
+          Votre prestation a été terminée avec succès.
+        </Text>
+        <View style={styles.completedEarnings}>
+          <Text style={styles.completedEarningsLabel}>Gains</Text>
+          <Text style={styles.completedEarningsValue}>+{booking.price} DH</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={() => router.replace('/(provider)')}
+        >
+          <LinearGradient
+            colors={[colors.primary, '#8B5CF6']}
+            style={styles.stateButtonGradient}
           >
-            Terminer la prestation
-          </Button>
-        );
-      case 'completed':
-        return (
-          <View style={styles.completedContainer}>
-            <Text style={styles.completedText}>Prestation terminée</Text>
-            <Text style={styles.completedAmount}>+{booking.price} DH</Text>
-          </View>
-        );
-    }
-  };
+            <Text style={styles.stateButtonText}>Retour au tableau de bord</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -504,25 +545,22 @@ export default function JourneyScreen() {
         showsCompass={false}
       >
         {/* Provider Marker */}
-        <Marker
-          coordinate={providerLocation}
-          anchor={{ x: 0.5, y: 0.5 }}
-        >
+        <Marker coordinate={providerLocation} anchor={{ x: 0.5, y: 0.5 }}>
           <Animated.View style={[styles.providerMarker, { transform: [{ scale: pulseAnim }] }]}>
-            <View style={styles.providerMarkerInner}>
+            <LinearGradient
+              colors={statusConfig.gradient}
+              style={styles.providerMarkerInner}
+            >
               <Text style={styles.providerMarkerIcon}>🚗</Text>
-            </View>
+            </LinearGradient>
           </Animated.View>
         </Marker>
 
         {/* Client Marker */}
-        <Marker
-          coordinate={booking.clientLocation}
-          anchor={{ x: 0.5, y: 1 }}
-        >
+        <Marker coordinate={booking.clientLocation} anchor={{ x: 0.5, y: 1 }}>
           <View style={styles.clientMarker}>
             <View style={styles.clientMarkerInner}>
-              <Text style={styles.clientAvatar}>{booking.clientAvatar}</Text>
+              <Text style={styles.clientAvatarMarker}>{booking.clientAvatar}</Text>
             </View>
             <View style={styles.clientMarkerTail} />
           </View>
@@ -539,102 +577,179 @@ export default function JourneyScreen() {
         )}
       </MapView>
 
-      {/* Center Map Button */}
-      <TouchableOpacity style={styles.centerButton} onPress={handleCenterMap}>
-        <Text style={styles.centerButtonIcon}>🎯</Text>
-      </TouchableOpacity>
-
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonIcon}>←</Text>
-      </TouchableOpacity>
+      {/* Map Controls */}
+      <View style={styles.mapControls}>
+        <TouchableOpacity style={styles.mapControlBtn} onPress={() => router.back()}>
+          <Text style={styles.mapControlIcon}>←</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.mapControlBtn} onPress={handleCenterMap}>
+          <Text style={styles.mapControlIcon}>🎯</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Status Banner */}
-      <View style={[styles.statusBanner, { backgroundColor: statusInfo.color }]}>
-        <Text style={styles.statusIcon}>{statusInfo.icon}</Text>
-        <View>
-          <Text style={styles.statusTitle}>{statusInfo.title}</Text>
-          <Text style={styles.statusSubtitle}>{statusInfo.subtitle}</Text>
+      <LinearGradient
+        colors={statusConfig.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.statusBanner}
+      >
+        <View style={styles.statusBannerLeft}>
+          <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
+          <View>
+            <Text style={styles.statusTitle}>{statusConfig.title}</Text>
+            <Text style={styles.statusSubtitle}>
+              {status === 'on_way' && `Arrivée dans ${Math.ceil(eta)} min`}
+              {status === 'arrived' && 'En attente du client'}
+              {status === 'in_progress' && `Temps écoulé: ${elapsedTime} min`}
+            </Text>
+          </View>
         </View>
         {status === 'on_way' && (
-          <View style={styles.etaContainer}>
-            <Text style={styles.etaValue}>{distance.toFixed(1)}</Text>
-            <Text style={styles.etaUnit}>km</Text>
+          <View style={styles.distanceContainer}>
+            <Text style={styles.distanceValue}>{distance.toFixed(1)}</Text>
+            <Text style={styles.distanceUnit}>km</Text>
           </View>
         )}
-      </View>
+      </LinearGradient>
 
       {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
-        {/* Client Info Card */}
-        <Card style={styles.clientCard}>
-          <View style={styles.clientInfo}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatar}>{booking.clientAvatar}</Text>
-            </View>
-            <View style={styles.clientDetails}>
+        {/* Handle */}
+        <View style={styles.sheetHandle} />
+
+        {/* Client Card */}
+        <View style={styles.clientCard}>
+          <View style={styles.clientCardHeader}>
+            <LinearGradient
+              colors={[colors.primary, '#8B5CF6']}
+              style={styles.clientAvatar}
+            >
+              <Text style={styles.clientAvatarText}>{booking.clientAvatar}</Text>
+            </LinearGradient>
+            <View style={styles.clientInfo}>
               <Text style={styles.clientName}>{booking.clientName}</Text>
               <Text style={styles.serviceName}>{booking.service}</Text>
-              <Text style={styles.address} numberOfLines={1}>
-                📍 {booking.address}
-              </Text>
             </View>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Total</Text>
-              <Text style={styles.priceValue}>{booking.price} DH</Text>
+            <View style={styles.priceTag}>
+              <Text style={styles.priceTagValue}>{booking.price}</Text>
+              <Text style={styles.priceTagUnit}>DH</Text>
             </View>
+          </View>
+
+          <View style={styles.addressRow}>
+            <Text style={styles.addressIcon}>📍</Text>
+            <Text style={styles.addressText} numberOfLines={1}>{booking.address}</Text>
           </View>
 
           {/* Notes */}
           {booking.notes && (
             <View style={styles.notesContainer}>
-              <Text style={styles.notesLabel}>📝 Notes:</Text>
+              <Text style={styles.notesLabel}>📝 Notes</Text>
               <Text style={styles.notesText}>{booking.notes}</Text>
             </View>
           )}
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickAction} onPress={handleOpenMaps}>
-              <Text style={styles.quickActionIcon}>🗺️</Text>
-              <Text style={styles.quickActionText}>Navigation</Text>
+            <TouchableOpacity style={styles.quickActionBtn} onPress={handleOpenMaps}>
+              <LinearGradient
+                colors={['#3B82F6', '#1D4ED8']}
+                style={styles.quickActionGradient}
+              >
+                <Text style={styles.quickActionIcon}>🗺️</Text>
+              </LinearGradient>
+              <Text style={styles.quickActionLabel}>GPS</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              style={styles.quickAction}
+              style={styles.quickActionBtn}
               onPress={() => {
                 hapticFeedback.light();
                 router.push(`/chat/${booking.id}` as any);
               }}
             >
-              <Text style={styles.quickActionIcon}>💬</Text>
-              <Text style={styles.quickActionText}>Message</Text>
+              <LinearGradient
+                colors={['#8B5CF6', '#6D28D9']}
+                style={styles.quickActionGradient}
+              >
+                <Text style={styles.quickActionIcon}>💬</Text>
+              </LinearGradient>
+              <Text style={styles.quickActionLabel}>Chat</Text>
             </TouchableOpacity>
+
             {status === 'on_way' && (
               <TouchableOpacity
-                style={styles.quickAction}
+                style={styles.quickActionBtn}
                 onPress={() => {
                   hapticFeedback.light();
                   setShowCancellationModal(true);
                 }}
               >
-                <Text style={styles.quickActionIcon}>❌</Text>
-                <Text style={[styles.quickActionText, { color: colors.error }]}>Annuler</Text>
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  style={styles.quickActionGradient}
+                >
+                  <Text style={styles.quickActionIcon}>❌</Text>
+                </LinearGradient>
+                <Text style={[styles.quickActionLabel, { color: colors.error }]}>Annuler</Text>
               </TouchableOpacity>
             )}
           </View>
-        </Card>
+        </View>
 
         {/* Action Button */}
-        {renderActionButton()}
+        {status === 'on_way' && (
+          <TouchableOpacity style={styles.mainActionBtn} onPress={handleArrivedAtClient}>
+            <LinearGradient
+              colors={['#8B5CF6', '#6D28D9']}
+              style={styles.mainActionGradient}
+            >
+              <Text style={styles.mainActionIcon}>📍</Text>
+              <Text style={styles.mainActionText}>Je suis arrivé</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {status === 'arrived' && (
+          <View style={styles.waitingCard}>
+            <LinearGradient
+              colors={['#EDE9FE', '#DDD6FE']}
+              style={styles.waitingCardGradient}
+            >
+              <Text style={styles.waitingIcon}>⏳</Text>
+              <View style={styles.waitingTextContainer}>
+                <Text style={styles.waitingTitle}>En attente de confirmation</Text>
+                <Text style={styles.waitingSubtext}>
+                  Le client doit confirmer votre arrivée
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {status === 'in_progress' && (
+          <TouchableOpacity style={styles.mainActionBtn} onPress={handleCompleteService}>
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              style={styles.mainActionGradient}
+            >
+              <Text style={styles.mainActionIcon}>✅</Text>
+              <Text style={styles.mainActionText}>Terminer la prestation</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Emergency Button - visible during active service */}
+      {/* Emergency Button - Position fixe en haut à droite */}
       {['on_way', 'arrived', 'in_progress'].includes(status) && (
-        <EmergencyButton
-          orderId={booking.id}
-          clientName={booking.clientName}
-          isProvider={true}
-        />
+        <View style={styles.emergencyContainer}>
+          <EmergencyButton
+            orderId={booking.id}
+            clientName={booking.clientName}
+            isProvider={true}
+          />
+        </View>
       )}
 
       {/* Cancellation Modal */}
@@ -663,106 +778,142 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.xl,
   },
+
+  // Loading State
+  loadingGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
   loadingText: {
-    marginTop: spacing.md,
     fontSize: typography.fontSize.base,
     color: colors.gray[600],
   },
-  errorIcon: {
-    fontSize: 64,
+
+  // State Screens
+  stateIconGradient: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.lg,
   },
-  errorTitle: {
-    fontSize: typography.fontSize.xl,
+  stateIcon: {
+    fontSize: 48,
+  },
+  stateTitle: {
+    fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.gray[900],
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
-  errorText: {
+  stateText: {
     fontSize: typography.fontSize.base,
     color: colors.gray[600],
     textAlign: 'center',
     marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
-  errorButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
+  stateButton: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  stateButtonGradient: {
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.xl,
   },
-  errorButtonText: {
+  stateButtonText: {
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.white,
+  },
+  completedEarnings: {
+    backgroundColor: colors.success + '15',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.xl,
+    alignItems: 'center',
+  },
+  completedEarningsLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.success,
+    marginBottom: spacing.xs,
+  },
+  completedEarningsValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.success,
   },
 
   // Map
   map: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.55,
+    height: SCREEN_HEIGHT * 0.5,
   },
 
-  // Buttons
-  backButton: {
+  // Map Controls
+  mapControls: {
     position: 'absolute',
     top: 60,
     left: spacing.lg,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.md,
-  },
-  backButtonIcon: {
-    fontSize: 24,
-    color: colors.gray[700],
-  },
-  centerButton: {
-    position: 'absolute',
-    top: 60,
     right: spacing.lg,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  // Emergency Button Container
+  emergencyContainer: {
+    position: 'absolute',
+    top: 220,
+    right: spacing.lg,
+    zIndex: 100,
+  },
+  mapControlBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.md,
   },
-  centerButtonIcon: {
-    fontSize: 20,
+  mapControlIcon: {
+    fontSize: 22,
+    color: colors.gray[700],
   },
 
   // Markers
   providerMarker: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary + '30',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   providerMarkerInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.md,
   },
   providerMarkerIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   clientMarker: {
     alignItems: 'center',
   },
   clientMarkerInner: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
@@ -770,7 +921,7 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     ...shadows.md,
   },
-  clientAvatar: {
+  clientAvatarMarker: {
     fontSize: 14,
     fontWeight: 'bold',
     color: colors.gray[700],
@@ -795,9 +946,15 @@ const styles = StyleSheet.create({
     right: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     ...shadows.lg,
+  },
+  statusBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   statusIcon: {
     fontSize: 28,
@@ -810,26 +967,23 @@ const styles = StyleSheet.create({
   },
   statusSubtitle: {
     fontSize: typography.fontSize.sm,
-    color: colors.white,
-    opacity: 0.9,
+    color: 'rgba(255,255,255,0.9)',
   },
-  etaContainer: {
-    marginLeft: 'auto',
-    alignItems: 'center',
+  distanceContainer: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
   },
-  etaValue: {
+  distanceValue: {
     fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
     color: colors.white,
   },
-  etaUnit: {
+  distanceUnit: {
     fontSize: typography.fontSize.xs,
-    color: colors.white,
-    opacity: 0.9,
+    color: 'rgba(255,255,255,0.9)',
   },
 
   // Bottom Sheet
@@ -839,43 +993,53 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: colors.white,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    paddingTop: spacing.lg,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? 40 : spacing.lg,
     ...shadows.lg,
   },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.gray[300],
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
 
   // Client Card
   clientCard: {
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  clientInfo: {
+  clientCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing.md,
   },
-  avatarContainer: {
+  clientAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
   },
-  avatar: {
+  clientAvatarText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.white,
   },
-  clientDetails: {
+  clientInfo: {
     flex: 1,
+    marginLeft: spacing.md,
   },
   clientName: {
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
     color: colors.gray[900],
   },
   serviceName: {
@@ -883,38 +1047,54 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     marginTop: 2,
   },
-  address: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-    marginTop: 4,
+  priceTag: {
+    backgroundColor: colors.success + '15',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  priceLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[500],
-  },
-  priceValue: {
-    fontSize: typography.fontSize.lg,
+  priceTagValue: {
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
     color: colors.success,
   },
-
-  // Notes
-  notesContainer: {
-    marginTop: spacing.md,
+  priceTagUnit: {
+    fontSize: typography.fontSize.sm,
+    color: colors.success,
+    marginLeft: 2,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
     padding: spacing.sm,
-    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+  },
+  addressIcon: {
+    fontSize: 16,
+    marginRight: spacing.sm,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+  },
+  notesContainer: {
+    backgroundColor: colors.warning + '10',
+    padding: spacing.md,
     borderRadius: borderRadius.md,
     borderLeftWidth: 3,
     borderLeftColor: colors.warning,
+    marginBottom: spacing.md,
   },
   notesLabel: {
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
     color: colors.warning,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   notesText: {
     fontSize: typography.fontSize.sm,
@@ -925,70 +1105,75 @@ const styles = StyleSheet.create({
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[100],
   },
-  quickAction: {
+  quickActionBtn: {
     alignItems: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
   },
-  quickActionIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  quickActionText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[600],
-  },
-
-  // Action Button
-  actionButton: {
-    marginBottom: spacing.sm,
-  },
-
-  // Completed State
-  completedContainer: {
+  quickActionGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  completedText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.success,
+    justifyContent: 'center',
     marginBottom: spacing.xs,
   },
-  completedAmount: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: 'bold',
-    color: colors.success,
+  quickActionIcon: {
+    fontSize: 22,
+  },
+  quickActionLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    fontWeight: '500',
   },
 
-  // Waiting Confirmation
-  waitingConfirmation: {
-    alignItems: 'center',
-    backgroundColor: '#EDE9FE',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
+  // Main Action Button
+  mainActionBtn: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
     marginBottom: spacing.sm,
+  },
+  mainActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  mainActionIcon: {
+    fontSize: 24,
+  },
+  mainActionText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
+    color: colors.white,
+  },
+
+  // Waiting Card
+  waitingCard: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  waitingCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
   },
   waitingIcon: {
     fontSize: 32,
-    marginBottom: spacing.sm,
+    marginRight: spacing.md,
   },
-  waitingText: {
+  waitingTextContainer: {
+    flex: 1,
+  },
+  waitingTitle: {
     fontSize: typography.fontSize.base,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#6B21A8',
-    textAlign: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   waitingSubtext: {
     fontSize: typography.fontSize.sm,
     color: '#7C3AED',
-    textAlign: 'center',
   },
 });

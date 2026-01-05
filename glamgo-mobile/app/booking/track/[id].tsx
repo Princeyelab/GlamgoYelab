@@ -63,6 +63,7 @@ interface BookingData {
     address: string;
   };
   scheduled_at: string;
+  created_at: string;
   status: 'pending' | 'accepted' | 'on_way' | 'arrived' | 'in_progress' | 'completed' | 'cancelled';
 }
 
@@ -84,6 +85,8 @@ export default function TrackingScreen() {
   const [distance, setDistance] = useState<number>(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [timeoutRemaining, setTimeoutRemaining] = useState<number | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   // Animation for provider marker
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -102,7 +105,8 @@ export default function TrackingScreen() {
     if (!booking) return;
 
     // Rafraichir toutes les 10 secondes pour les statuts actifs
-    if (['pending', 'accepted', 'on_way', 'in_progress'].includes(booking.status)) {
+    // Inclut 'arrived' pour voir la transition vers 'in_progress'
+    if (['pending', 'accepted', 'on_way', 'arrived', 'in_progress'].includes(booking.status)) {
       const interval = setInterval(() => {
         loadBooking();
       }, 10000);
@@ -157,6 +161,14 @@ export default function TrackingScreen() {
           [order.provider_first_name, order.provider_last_name].filter(Boolean).join(' ') ||
           'Prestataire';
 
+        // Construire l'URL de l'avatar du prestataire
+        let providerAvatar = order.provider_avatar || order.avatar;
+        console.log('[Track] Provider avatar raw:', order.provider_avatar);
+        if (providerAvatar && !providerAvatar.startsWith('http')) {
+          providerAvatar = `https://glamgo-api.fly.dev${providerAvatar}`;
+        }
+        console.log('[Track] Provider avatar final:', providerAvatar);
+
         // Construire l'adresse
         const address = [order.address_line, order.city].filter(Boolean).join(', ') ||
           order.address || 'Adresse non disponible';
@@ -171,7 +183,7 @@ export default function TrackingScreen() {
           provider: {
             id: order.provider_id || 0,
             name: providerName,
-            avatar: order.provider_avatar,
+            avatar: providerAvatar,
             phone: order.provider_phone || '',
             latitude: order.provider_latitude || order.latitude || CASABLANCA_CENTER.latitude,
             longitude: order.provider_longitude || order.longitude || CASABLANCA_CENTER.longitude,
@@ -183,6 +195,7 @@ export default function TrackingScreen() {
             address: address,
           },
           scheduled_at: order.scheduled_at || order.created_at,
+          created_at: order.created_at,
           status: order.status as BookingData['status'],
         };
 
@@ -214,6 +227,67 @@ export default function TrackingScreen() {
     return () => clearInterval(interval);
   }, [id]);
 
+  // Timer countdown pour commandes pending (4 minutes max)
+  useEffect(() => {
+    if (booking?.status !== 'pending') {
+      setTimeoutRemaining(null);
+      setIsExpired(false);
+      return;
+    }
+
+    // Calculer le temps restant depuis la creation
+    const calculateRemaining = () => {
+      if (!booking?.created_at) return 240; // 4 minutes par defaut
+
+      // Le serveur renvoie un timestamp UTC sans 'Z', on l'ajoute pour forcer UTC
+      let createdAtStr = booking.created_at;
+      if (!createdAtStr.endsWith('Z') && !createdAtStr.includes('+')) {
+        createdAtStr = createdAtStr.replace(' ', 'T') + 'Z';
+      }
+
+      const createdAt = new Date(createdAtStr).getTime();
+      const now = Date.now();
+      const elapsed = Math.floor((now - createdAt) / 1000);
+
+      console.log('[Timer] created_at:', booking.created_at, '-> parsed:', createdAtStr, '-> elapsed:', elapsed);
+
+      return Math.max(0, 240 - elapsed); // 240 secondes = 4 minutes
+    };
+
+    const initialRemaining = calculateRemaining();
+    setTimeoutRemaining(initialRemaining);
+
+    // Si deja expire, marquer comme tel
+    if (initialRemaining <= 0) {
+      setIsExpired(true);
+      loadBooking();
+      return;
+    }
+
+    // Decompte chaque seconde
+    const interval = setInterval(() => {
+      setTimeoutRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          setIsExpired(true);
+          // Recharger les donnees pour voir le statut cancelled
+          setTimeout(() => loadBooking(), 2000);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [booking?.status, booking?.created_at]);
+
+  // Formater le temps restant en MM:SS
+  const formatTimeRemaining = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleMessage = () => {
     // Reinitialiser le badge et naviguer vers le chat
     setUnreadMessages(0);
@@ -240,9 +314,12 @@ export default function TrackingScreen() {
       case 'pending':
         return {
           label: 'En attente',
-          color: colors.warning,
+          color: timeoutRemaining !== null && timeoutRemaining < 60 ? colors.error : colors.warning,
           icon: '⏳',
-          message: 'En attente de confirmation du prestataire',
+          message: timeoutRemaining !== null
+            ? `Le prestataire a ${formatTimeRemaining(timeoutRemaining)} pour repondre`
+            : 'En attente de confirmation du prestataire',
+          showTimer: true,
         };
       case 'accepted':
         return {
@@ -413,6 +490,29 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
+        {/* Timer Countdown pour commandes pending */}
+        {booking.status === 'pending' && (
+          <View style={[
+            styles.timerContainer,
+            (timeoutRemaining !== null && timeoutRemaining < 60) && styles.timerContainerUrgent
+          ]}>
+            <Text style={styles.timerIcon}>⏱️</Text>
+            <View style={styles.timerContent}>
+              <Text style={[
+                styles.timerValue,
+                (timeoutRemaining !== null && timeoutRemaining < 60) && styles.timerValueUrgent
+              ]}>
+                {timeoutRemaining !== null ? formatTimeRemaining(timeoutRemaining) : '4:00'}
+              </Text>
+              <Text style={styles.timerLabel}>
+                {timeoutRemaining !== null && timeoutRemaining < 60
+                  ? 'Expiration imminente!'
+                  : 'Temps restant pour reponse'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Provider Info */}
         <View style={styles.providerInfo}>
           {providerLocation.avatar ? (
@@ -481,13 +581,15 @@ export default function TrackingScreen() {
         )}
       </View>
 
-      {/* Emergency Button - visible during active service */}
+      {/* Emergency Button - Position fixe visible */}
       {['on_way', 'arrived', 'in_progress'].includes(booking.status) && (
-        <EmergencyButton
-          orderId={booking.id}
-          providerName={providerLocation.name}
-          isProvider={false}
-        />
+        <View style={styles.emergencyContainer}>
+          <EmergencyButton
+            orderId={booking.id}
+            providerName={providerLocation.name}
+            isProvider={false}
+          />
+        </View>
       )}
 
       {/* Cancellation Modal */}
@@ -517,6 +619,14 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+
+  // Emergency Button Container
+  emergencyContainer: {
+    position: 'absolute',
+    top: 180,
+    right: spacing.lg,
+    zIndex: 100,
   },
 
   // Header
@@ -640,6 +750,54 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
+  },
+
+  // Timer Countdown
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  timerContainerUrgent: {
+    backgroundColor: colors.error + '15',
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+  },
+  timerIcon: {
+    fontSize: 28,
+    marginRight: spacing.sm,
+  },
+  timerContent: {
+    flex: 1,
+  },
+  timerValue: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: 'bold',
+    color: colors.warning,
+  },
+  timerValueUrgent: {
+    color: colors.error,
+  },
+  timerLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    marginTop: 2,
+  },
+  timerProgress: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 3,
+    backgroundColor: colors.warning,
+    borderRadius: 2,
+  },
+  timerProgressUrgent: {
+    backgroundColor: colors.error,
   },
 
   // Provider Info

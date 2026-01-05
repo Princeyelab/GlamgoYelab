@@ -1,6 +1,7 @@
 /**
- * Sélection du plan d'abonnement - GlamGo Mobile
- * Étape obligatoire lors de l'inscription prestataire
+ * Sélection des formules de réservation - GlamGo Mobile
+ * Étape après sélection des services lors de l'inscription prestataire
+ * Design moderne avec gradients et cartes attractives
  */
 
 import React, { useState, useEffect } from 'react';
@@ -12,71 +13,108 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
-import Button from '../../src/components/ui/Button';
-import Card from '../../src/components/ui/Card';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 import {
-  getSubscriptionPlans,
-  subscribeToplan,
-  SubscriptionPlan,
+  getAllBookingFormulas,
+  getProviderFormulas,
+  updateProviderFormulas,
+  BookingFormula,
 } from '../../src/lib/api/providerAPI';
 
-// Icônes pour les plans
-const PLAN_ICONS: Record<string, string> = {
-  free: '🌱',
-  essential: '⭐',
-  premium: '💎',
-  vip: '👑',
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Configuration visuelle des formules
+const FORMULA_CONFIG: Record<string, {
+  gradient: [string, string];
+  accentColor: string;
+}> = {
+  standard: {
+    gradient: ['#6B7280', '#9CA3AF'],
+    accentColor: '#6B7280',
+  },
+  premium: {
+    gradient: ['#F59E0B', '#FBBF24'],
+    accentColor: '#F59E0B',
+  },
+  urgent: {
+    gradient: ['#EF4444', '#F87171'],
+    accentColor: '#EF4444',
+  },
+  recurring: {
+    gradient: ['#10B981', '#34D399'],
+    accentColor: '#10B981',
+  },
+  night: {
+    gradient: ['#14B8A6', '#2DD4BF'],
+    accentColor: '#14B8A6',
+  },
 };
 
-// Couleurs des badges
-const BADGE_COLORS: Record<string, string> = {
-  verified: colors.success,
-  gold: '#FFD700',
-  vip: '#9333EA',
-};
-
-export default function SelectPlanScreen() {
+export default function SelectFormulasScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
 
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [formulas, setFormulas] = useState<BookingFormula[]>([]);
+  const [selectedFormulas, setSelectedFormulas] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    loadPlans();
+    loadFormulas();
   }, []);
 
-  const loadPlans = async () => {
+  const loadFormulas = async () => {
     try {
-      const data = await getSubscriptionPlans();
-      setPlans(data);
-      // Présélectionner le plan recommandé
-      const recommended = data.find((p) => p.is_recommended);
-      if (recommended) {
-        setSelectedPlan(recommended);
+      // Charger toutes les formules disponibles et celles du prestataire
+      const [allFormulas, providerFormulas] = await Promise.all([
+        getAllBookingFormulas(),
+        getProviderFormulas().catch(() => []),
+      ]);
+
+      setFormulas(allFormulas);
+
+      // Si le prestataire a déjà des formules, les présélectionner
+      if (providerFormulas && providerFormulas.length > 0) {
+        const existingIds = providerFormulas.map((f: BookingFormula) => f.id);
+        console.log('[SelectPlan] Provider existing formulas:', existingIds);
+        setSelectedFormulas(existingIds);
+      } else {
+        // Sinon, présélectionner "Standard" par défaut pour les nouveaux
+        const standard = allFormulas.find((f) => f.slug === 'standard');
+        if (standard) {
+          setSelectedFormulas([standard.id]);
+        }
       }
     } catch (error) {
-      console.error('Erreur chargement plans:', error);
-      Alert.alert('Erreur', 'Impossible de charger les plans d\'abonnement');
+      console.error('Erreur chargement formules:', error);
+      Alert.alert('Erreur', 'Impossible de charger les formules');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectPlan = (plan: SubscriptionPlan) => {
+  const handleToggleFormula = (formula: BookingFormula) => {
     hapticFeedback.light();
-    setSelectedPlan(plan);
+    setSelectedFormulas(prev => {
+      if (prev.includes(formula.id)) {
+        // Ne pas permettre de tout désélectionner
+        if (prev.length === 1) {
+          Alert.alert('Attention', 'Vous devez sélectionner au moins une formule');
+          return prev;
+        }
+        return prev.filter(id => id !== formula.id);
+      }
+      return [...prev, formula.id];
+    });
   };
 
   const handleContinue = async () => {
-    if (!selectedPlan) {
-      Alert.alert('Attention', 'Veuillez sélectionner un plan');
+    if (selectedFormulas.length === 0) {
+      Alert.alert('Attention', 'Veuillez sélectionner au moins une formule');
       return;
     }
 
@@ -84,71 +122,41 @@ export default function SelectPlanScreen() {
     setIsSubmitting(true);
 
     try {
-      // Souscrire au plan
-      const result = await subscribeToplan(
-        selectedPlan.id,
-        selectedPlan.price === 0 ? 'free' : 'card'
-      );
+      // Utiliser PUT pour remplacer toutes les formules (gère ajout ET suppression)
+      console.log('[SelectPlan] Updating provider formulas:', selectedFormulas);
+      await updateProviderFormulas(selectedFormulas);
 
-      console.log('[SelectPlan] Subscription created:', result);
-
-      if (result.requires_payment && selectedPlan.price > 0) {
-        // Rediriger vers la page de paiement
-        router.push({
-          pathname: '/auth/subscription-payment',
-          params: {
-            subscription_id: result.subscription_id,
-            plan_name: selectedPlan.name,
-            plan_price: selectedPlan.price,
+      hapticFeedback.success();
+      Alert.alert(
+        'Bienvenue !',
+        `${selectedFormulas.length} formule(s) activée(s). Vous pouvez maintenant recevoir des réservations.`,
+        [
+          {
+            text: 'Commencer',
+            onPress: () => router.replace('/(provider)'),
           },
-        });
-      } else {
-        // Plan gratuit ou paiement différé - aller au dashboard
-        hapticFeedback.success();
-        Alert.alert(
-          'Bienvenue !',
-          `Votre abonnement ${selectedPlan.name} est activé. Vous pouvez maintenant recevoir des réservations.`,
-          [
-            {
-              text: 'Commencer',
-              onPress: () => router.replace('/(provider)'),
-            },
-          ]
-        );
-      }
+        ]
+      );
     } catch (error: any) {
-      console.error('Erreur souscription:', error);
+      console.error('Erreur enregistrement formules:', error);
       hapticFeedback.error();
       Alert.alert(
         'Erreur',
-        error?.response?.data?.message || 'Impossible de souscrire au plan'
+        error?.response?.data?.message || 'Impossible d\'enregistrer les formules'
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSkip = () => {
-    // Permettre de passer temporairement (plan gratuit par défaut)
-    Alert.alert(
-      'Plan Découverte',
-      'Vous serez inscrit au plan Découverte gratuit. Vous pourrez changer de plan à tout moment depuis votre profil.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Continuer',
-          onPress: async () => {
-            const freePlan = plans.find((p) => p.slug === 'free');
-            if (freePlan) {
-              setSelectedPlan(freePlan);
-              await handleContinue();
-            } else {
-              router.replace('/(provider)');
-            }
-          },
-        },
-      ]
-    );
+  const getFormulaConfig = (slug: string) => {
+    return FORMULA_CONFIG[slug] || FORMULA_CONFIG.standard;
+  };
+
+  const getPriceModifierText = (modifier: number): string => {
+    if (modifier === 1) return 'Prix standard';
+    if (modifier > 1) return `+${Math.round((modifier - 1) * 100)}% sur le prix`;
+    return `-${Math.round((1 - modifier) * 100)}% sur le prix`;
   };
 
   if (isLoading) {
@@ -162,144 +170,144 @@ export default function SelectPlanScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Choisissez votre formule</Text>
+      {/* Header avec gradient */}
+      <LinearGradient
+        colors={['#7C3AED', '#A855F7', '#C084FC']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <Text style={styles.headerIcon}>📋</Text>
+        <Text style={styles.headerTitle}>Choisissez vos formules</Text>
         <Text style={styles.headerSubtitle}>
-          Sélectionnez le plan qui correspond à vos besoins
+          Selectionnez les formules que vous proposez aux clients
         </Text>
-      </View>
+        <View style={styles.selectedCount}>
+          <Text style={styles.selectedCountText}>
+            {selectedFormulas.length} formule(s) selectionnee(s)
+          </Text>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {plans.map((plan) => (
-          <TouchableOpacity
-            key={plan.id}
-            onPress={() => handleSelectPlan(plan)}
-            activeOpacity={0.8}
-          >
-            <Card
-              style={[
-                styles.planCard,
-                selectedPlan?.id === plan.id && styles.planCardSelected,
-                plan.is_recommended && styles.planCardRecommended,
-              ]}
-            >
-              {/* Badge recommandé */}
-              {plan.is_recommended && (
-                <View style={styles.recommendedBadge}>
-                  <Text style={styles.recommendedText}>Recommandé</Text>
-                </View>
-              )}
+        {formulas.map((formula) => {
+          const config = getFormulaConfig(formula.slug);
+          const isSelected = selectedFormulas.includes(formula.id);
 
-              {/* En-tête du plan */}
-              <View style={styles.planHeader}>
-                <Text style={styles.planIcon}>
-                  {PLAN_ICONS[plan.slug] || '📋'}
-                </Text>
-                <View style={styles.planTitleContainer}>
-                  <Text style={styles.planName}>{plan.name}</Text>
-                  {plan.badge_type && (
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: BADGE_COLORS[plan.badge_type] || colors.gray[400] },
-                      ]}
-                    >
-                      <Text style={styles.badgeText}>
-                        {plan.badge_type === 'verified'
-                          ? 'Vérifié'
-                          : plan.badge_type === 'gold'
-                          ? 'Gold'
-                          : 'VIP'}
+          return (
+            <TouchableOpacity
+              key={formula.id}
+              onPress={() => handleToggleFormula(formula)}
+              activeOpacity={0.9}
+            >
+              <View style={[
+                styles.formulaCard,
+                isSelected && styles.formulaCardSelected,
+              ]}>
+                {/* Badge prix */}
+                {formula.badge_text && (
+                  <View style={[styles.priceBadge, { backgroundColor: formula.badge_color || config.accentColor }]}>
+                    <Text style={styles.priceBadgeText}>{formula.badge_text}</Text>
+                  </View>
+                )}
+
+                {/* Header de la formule avec gradient */}
+                <LinearGradient
+                  colors={config.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.formulaHeader}
+                >
+                  <View style={styles.formulaHeaderContent}>
+                    <Text style={styles.formulaIcon}>{formula.icon}</Text>
+                    <View style={styles.formulaTitleContainer}>
+                      <Text style={styles.formulaName}>{formula.name}</Text>
+                      <Text style={styles.formulaModifier}>
+                        {getPriceModifierText(formula.price_modifier)}
                       </Text>
                     </View>
-                  )}
-                </View>
-                <View style={styles.priceContainer}>
-                  {plan.price === 0 ? (
-                    <Text style={styles.priceFree}>Gratuit</Text>
-                  ) : (
-                    <>
-                      <Text style={styles.price}>{plan.price}</Text>
-                      <Text style={styles.priceCurrency}> DH/mois</Text>
-                    </>
-                  )}
-                </View>
-              </View>
-
-              {/* Description */}
-              <Text style={styles.planDescription}>{plan.description}</Text>
-
-              {/* Avantages */}
-              <View style={styles.featuresContainer}>
-                {plan.features.map((feature, index) => (
-                  <View key={index} style={styles.featureRow}>
-                    <Text style={styles.featureCheck}>✓</Text>
-                    <Text style={styles.featureText}>{feature}</Text>
                   </View>
-                ))}
-              </View>
+                </LinearGradient>
 
-              {/* Indicateurs clés */}
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {plan.commission_rate}%
-                  </Text>
-                  <Text style={styles.statLabel}>Commission</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    +{plan.visibility_boost}%
-                  </Text>
-                  <Text style={styles.statLabel}>Visibilité</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {plan.max_services === null ? '∞' : plan.max_services}
-                  </Text>
-                  <Text style={styles.statLabel}>Services</Text>
-                </View>
-              </View>
+                {/* Corps de la carte */}
+                <View style={styles.formulaBody}>
+                  {/* Description */}
+                  <Text style={styles.formulaDescription}>{formula.description}</Text>
 
-              {/* Indicateur de sélection */}
-              <View
-                style={[
+                  {/* Info modificateur */}
+                  <View style={[styles.modifierCard, { backgroundColor: config.accentColor + '15' }]}>
+                    <Text style={styles.modifierLabel}>Modificateur de prix</Text>
+                    <Text style={[styles.modifierValue, { color: config.accentColor }]}>
+                      x{formula.price_modifier.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  {/* Exemple de calcul */}
+                  <View style={styles.exampleContainer}>
+                    <Text style={styles.exampleLabel}>Exemple:</Text>
+                    <Text style={styles.exampleText}>
+                      Service a 100 DH → <Text style={[styles.examplePrice, { color: config.accentColor }]}>
+                        {Math.round(100 * formula.price_modifier)} DH
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Indicateur de sélection */}
+                <View style={[
                   styles.selectionIndicator,
-                  selectedPlan?.id === plan.id && styles.selectionIndicatorActive,
-                ]}
-              >
-                {selectedPlan?.id === plan.id && (
-                  <Text style={styles.selectionCheck}>✓</Text>
-                )}
+                  isSelected && [styles.selectionIndicatorActive, { backgroundColor: config.accentColor }]
+                ]}>
+                  {isSelected && <Text style={styles.selectionCheck}>✓</Text>}
+                </View>
               </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Note d'information */}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoIcon}>💡</Text>
+          <Text style={styles.infoText}>
+            En activant une formule, vous apparaitrez dans les recherches des clients qui filtrent par cette formule. Plus vous activez de formules, plus vous serez visible !
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Button
-          variant="primary"
-          fullWidth
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            selectedFormulas.length === 0 && styles.continueButtonDisabled
+          ]}
           onPress={handleContinue}
-          loading={isSubmitting}
-          disabled={!selectedPlan || isSubmitting}
+          disabled={selectedFormulas.length === 0 || isSubmitting}
+          activeOpacity={0.9}
         >
-          {selectedPlan?.price === 0
-            ? 'Commencer gratuitement'
-            : `Continuer - ${selectedPlan?.price || 0} DH/mois`}
-        </Button>
-
-        <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <Text style={styles.skipText}>Passer pour l'instant</Text>
+          <LinearGradient
+            colors={selectedFormulas.length > 0 ? ['#7C3AED', '#A855F7'] : ['#D1D5DB', '#E5E7EB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.continueButtonGradient}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={[
+                styles.continueButtonText,
+                selectedFormulas.length === 0 && styles.continueButtonTextDisabled
+              ]}>
+                {selectedFormulas.length > 0
+                  ? `Continuer avec ${selectedFormulas.length} formule(s)`
+                  : 'Selectionnez au moins une formule'}
+              </Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -309,7 +317,7 @@ export default function SelectPlanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.gray[100],
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -325,19 +333,38 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 60,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.primary,
+    paddingBottom: spacing.xl,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerIcon: {
+    fontSize: 40,
+    marginBottom: spacing.sm,
   },
   headerTitle: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.white,
     marginBottom: spacing.xs,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: typography.fontSize.base,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  selectedCount: {
+    marginTop: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  selectedCountText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
     color: colors.white,
-    opacity: 0.9,
   },
 
   // ScrollView
@@ -349,166 +376,157 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['3xl'],
   },
 
-  // Plan Card
-  planCard: {
-    marginBottom: spacing.md,
-    padding: spacing.lg,
+  // Formula Card
+  formulaCard: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
     position: 'relative',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: 'transparent',
+    ...shadows.lg,
   },
-  planCardSelected: {
+  formulaCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '05',
-  },
-  planCardRecommended: {
-    borderColor: colors.success,
   },
 
-  // Badge recommandé
-  recommendedBadge: {
+  // Badge prix
+  priceBadge: {
     position: 'absolute',
-    top: -10,
-    right: spacing.md,
-    backgroundColor: colors.success,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    top: 0,
+    right: 0,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomLeftRadius: 12,
+    zIndex: 10,
   },
-  recommendedText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+  priceBadgeText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '700',
     color: colors.white,
   },
 
-  // Plan Header
-  planHeader: {
+  // Formula Header
+  formulaHeader: {
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  formulaHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
-  planIcon: {
-    fontSize: 32,
+  formulaIcon: {
+    fontSize: 48,
     marginRight: spacing.md,
   },
-  planTitleContainer: {
+  formulaTitleContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
   },
-  planName: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: 'bold',
-    color: colors.gray[900],
-  },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-  },
-  badgeText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  price: {
+  formulaName: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
-    color: colors.primary,
-  },
-  priceCurrency: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[500],
-  },
-  priceFree: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.success,
-  },
-
-  // Description
-  planDescription: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[600],
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-
-  // Features
-  featuresContainer: {
-    marginBottom: spacing.md,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    color: colors.white,
     marginBottom: spacing.xs,
   },
-  featureCheck: {
-    color: colors.success,
-    fontWeight: 'bold',
-    marginRight: spacing.sm,
-    fontSize: typography.fontSize.sm,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
-    lineHeight: 18,
+  formulaModifier: {
+    fontSize: typography.fontSize.base,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
 
-  // Stats
-  statsRow: {
+  // Formula Body
+  formulaBody: {
+    padding: spacing.lg,
+  },
+  formulaDescription: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+    lineHeight: 22,
+    marginBottom: spacing.md,
+  },
+
+  // Modifier card
+  modifierCard: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[100],
-  },
-  statItem: {
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
   },
-  statValue: {
-    fontSize: typography.fontSize.lg,
+  modifierLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+  },
+  modifierValue: {
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
-    color: colors.primary,
   },
-  statLabel: {
-    fontSize: typography.fontSize.xs,
+
+  // Example
+  exampleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  exampleLabel: {
+    fontSize: typography.fontSize.sm,
     color: colors.gray[500],
-    marginTop: 2,
+    marginRight: spacing.sm,
   },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: colors.gray[200],
+  exampleText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[700],
+  },
+  examplePrice: {
+    fontWeight: 'bold',
   },
 
   // Selection indicator
   selectionIndicator: {
     position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.gray[300],
+    top: spacing.lg,
+    left: spacing.lg,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   selectionIndicatorActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderColor: 'transparent',
   },
   selectionCheck: {
     color: colors.white,
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
+  },
+
+  // Info card
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primary + '10',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
+  },
+  infoIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    lineHeight: 18,
   },
 
   // Actions
@@ -519,12 +537,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.gray[100],
   },
-  skipButton: {
-    marginTop: spacing.md,
-    alignItems: 'center',
+  continueButton: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
   },
-  skipText: {
-    fontSize: typography.fontSize.sm,
+  continueButtonDisabled: {
+    opacity: 0.7,
+  },
+  continueButtonGradient: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueButtonText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  continueButtonTextDisabled: {
     color: colors.gray[500],
   },
 });

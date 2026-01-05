@@ -130,10 +130,13 @@ export default function ServicesScreen() {
     }
     const provider = item.provider || { id: 0, name: 'Prestataire' };
 
+    // Utiliser name si title n'existe pas (compatibilite API)
+    const serviceTitle = item.title || (item as any).name || 'Service';
+
     return (
       <ServiceCard
         id={item.id}
-        title={item.title}
+        title={serviceTitle}
         description={item.description}
         category={category}
         provider={provider}

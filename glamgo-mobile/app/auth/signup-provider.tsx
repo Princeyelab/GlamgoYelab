@@ -374,7 +374,7 @@ export default function SignupProviderScreen() {
     setShowWelcomePopup(false);
     setIsSubmitting(true);
 
-    // Destination finale
+    // Destination: onboarding pour selection des services
     const destination = goToDashboard
       ? "/(provider)"
       : "/(provider)/onboarding";
@@ -399,6 +399,7 @@ export default function SignupProviderScreen() {
         latitude: coords.latitude,
         longitude: coords.longitude,
         intervention_radius: interventionRadius,
+        profile_photo: profilePhoto || undefined,
       });
 
       if (response.success) {

@@ -49,14 +49,14 @@ export default function ProfileScreen() {
           text: 'Deconnexion',
           style: 'destructive',
           onPress: async () => {
-            // Vider l'etat auth immediatement
+            // Appeler l'API logout EN PREMIER pour notifier le backend
+            await dispatch(logoutUser()).unwrap();
+            // Ensuite vider l'etat auth
             dispatch(resetAuth());
             // Purger et flush le stockage persistant
             await persistor.flush();
             await persistor.purge();
-            // Appeler l'API logout en arriere-plan
-            dispatch(logoutUser());
-            // Naviguer vers login (route qui existe)
+            // Naviguer vers login
             router.replace('/auth/login');
           },
         },

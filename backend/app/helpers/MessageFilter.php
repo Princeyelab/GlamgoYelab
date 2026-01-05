@@ -433,4 +433,197 @@ class MessageFilter
     {
         return 5 * 1024 * 1024; // 5 MB
     }
+
+    /**
+     * Analyse une image pour détecter du contenu inapproprié (nudité)
+     * Utilise la détection de couleur chair (skin tone detection)
+     *
+     * @param string $imagePath Chemin vers l'image
+     * @return array ['is_safe' => bool, 'reason' => string|null, 'skin_percentage' => float]
+     */
+    public static function analyzeImage(string $imagePath): array
+    {
+        if (!file_exists($imagePath)) {
+            return ['is_safe' => false, 'reason' => 'Fichier introuvable', 'skin_percentage' => 0];
+        }
+
+        // Obtenir les informations de l'image
+        $imageInfo = @getimagesize($imagePath);
+        if (!$imageInfo) {
+            return ['is_safe' => false, 'reason' => 'Format image invalide', 'skin_percentage' => 0];
+        }
+
+        $mimeType = $imageInfo['mime'];
+        $width = $imageInfo[0];
+        $height = $imageInfo[1];
+
+        // Créer une ressource image selon le type
+        $image = null;
+        switch ($mimeType) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                $image = @imagecreatefromjpeg($imagePath);
+                break;
+            case 'image/png':
+                $image = @imagecreatefrompng($imagePath);
+                break;
+            case 'image/webp':
+                $image = @imagecreatefromwebp($imagePath);
+                break;
+            default:
+                return ['is_safe' => true, 'reason' => null, 'skin_percentage' => 0];
+        }
+
+        if (!$image) {
+            return ['is_safe' => false, 'reason' => 'Impossible de lire l\'image', 'skin_percentage' => 0];
+        }
+
+        // Échantillonner l'image (max 100x100 pour performance)
+        $sampleWidth = min($width, 100);
+        $sampleHeight = min($height, 100);
+        $stepX = max(1, (int)($width / $sampleWidth));
+        $stepY = max(1, (int)($height / $sampleHeight));
+
+        $skinPixels = 0;
+        $totalPixels = 0;
+
+        for ($x = 0; $x < $width; $x += $stepX) {
+            for ($y = 0; $y < $height; $y += $stepY) {
+                $rgb = imagecolorat($image, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+
+                if (self::isSkinColor($r, $g, $b)) {
+                    $skinPixels++;
+                }
+                $totalPixels++;
+            }
+        }
+
+        imagedestroy($image);
+
+        $skinPercentage = ($totalPixels > 0) ? ($skinPixels / $totalPixels) * 100 : 0;
+
+        // Seuil: plus de 40% de couleur chair = suspect
+        // Plus de 60% = très suspect (probablement nu)
+        $isSafe = true;
+        $reason = null;
+
+        if ($skinPercentage > 60) {
+            $isSafe = false;
+            $reason = 'Image inappropriée détectée (contenu explicite probable)';
+        } elseif ($skinPercentage > 45) {
+            $isSafe = false;
+            $reason = 'Image suspecte détectée (trop de peau visible)';
+        }
+
+        return [
+            'is_safe' => $isSafe,
+            'reason' => $reason,
+            'skin_percentage' => round($skinPercentage, 2)
+        ];
+    }
+
+    /**
+     * Vérifie si une couleur RGB est une couleur chair
+     * Utilise plusieurs plages pour couvrir différentes teintes de peau
+     *
+     * @param int $r Rouge (0-255)
+     * @param int $g Vert (0-255)
+     * @param int $b Bleu (0-255)
+     * @return bool
+     */
+    private static function isSkinColor(int $r, int $g, int $b): bool
+    {
+        // Méthode 1: Règles RGB simples
+        // La peau a généralement R > G > B et des valeurs dans certaines plages
+        if ($r > 95 && $g > 40 && $b > 20) {
+            $max = max($r, $g, $b);
+            $min = min($r, $g, $b);
+            $diff = $max - $min;
+
+            if ($diff > 15 && $r > $g && $r > $b && abs($r - $g) > 15) {
+                // Peau claire à moyenne
+                if ($r > 150 && $g > 80 && $b > 50) {
+                    return true;
+                }
+                // Peau moyenne à foncée
+                if ($r > 100 && $g > 50 && $b > 30 && $r < 250 && $g < 200) {
+                    return true;
+                }
+            }
+        }
+
+        // Méthode 2: Conversion YCbCr (plus précise pour la détection de peau)
+        $y = 0.299 * $r + 0.587 * $g + 0.114 * $b;
+        $cb = 128 - 0.168736 * $r - 0.331264 * $g + 0.5 * $b;
+        $cr = 128 + 0.5 * $r - 0.418688 * $g - 0.081312 * $b;
+
+        // Plage typique pour la peau humaine en YCbCr
+        if ($y > 80 && $cb > 77 && $cb < 127 && $cr > 133 && $cr < 173) {
+            return true;
+        }
+
+        // Méthode 3: HSV pour les teintes de peau
+        $max = max($r, $g, $b);
+        $min = min($r, $g, $b);
+        $diff = $max - $min;
+
+        if ($diff > 0) {
+            // Calcul de la teinte (Hue)
+            if ($max == $r) {
+                $h = 60 * fmod((($g - $b) / $diff), 6);
+            } elseif ($max == $g) {
+                $h = 60 * ((($b - $r) / $diff) + 2);
+            } else {
+                $h = 60 * ((($r - $g) / $diff) + 4);
+            }
+            if ($h < 0) $h += 360;
+
+            // Saturation
+            $s = ($max > 0) ? ($diff / $max) * 100 : 0;
+
+            // Value
+            $v = ($max / 255) * 100;
+
+            // Teintes de peau: généralement entre 0-50 degrés (rouge-orange-jaune)
+            if ($h >= 0 && $h <= 50 && $s >= 10 && $s <= 70 && $v >= 30) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie le nom de fichier pour détecter du contenu suspect
+     *
+     * @param string $filename Nom du fichier
+     * @return array ['is_safe' => bool, 'reason' => string|null]
+     */
+    public static function checkFilename(string $filename): array
+    {
+        $suspiciousPatterns = [
+            '/nude/i', '/naked/i', '/porn/i', '/xxx/i', '/sex/i',
+            '/nsfw/i', '/adult/i', '/explicit/i', '/onlyfans/i',
+            '/intime/i', '/privé/i', '/prive/i', '/déshabill/i',
+            '/deshabill/i', '/chaud/i', '/hot/i', '/sexy/i',
+            '/bite/i', '/chatte/i', '/nichon/i', '/sein/i',
+            '/leak/i', '/revenge/i', '/chantage/i'
+        ];
+
+        $lowerFilename = strtolower($filename);
+
+        foreach ($suspiciousPatterns as $pattern) {
+            if (preg_match($pattern, $lowerFilename)) {
+                return [
+                    'is_safe' => false,
+                    'reason' => 'Nom de fichier suspect détecté'
+                ];
+            }
+        }
+
+        return ['is_safe' => true, 'reason' => null];
+    }
 }

@@ -262,9 +262,8 @@ export const getNearbyProviders = async (params: NearbyProvidersParams): Promise
         params: {
           lat: params.latitude,
           lng: params.longitude,
-          radius: params.radius || 50,
-          test_mode: 'true', // Pour le developpement - ignorer is_verified
-          // only_available par defaut = true (masque les prestataires hors ligne)
+          radius: params.radius || 100,
+          only_available: 'true', // Filtrer uniquement les prestataires disponibles
         }
       }
     );
@@ -404,6 +403,7 @@ const transformApiProviderToProvider = (apiProvider: any): Provider => {
 /**
  * Transformer les URLs des images d'un service
  * Gere les deux formats: 'image' (API) et 'images' (array)
+ * Aussi: mappe 'name' vers 'title' pour compatibilite
  */
 const transformServiceImages = (service: Service): Service => {
   // L'API retourne 'image' (singulier), le mobile attend 'images' (array)
@@ -425,8 +425,17 @@ const transformServiceImages = (service: Service): Service => {
     ? getImageUrl(service.thumbnail)
     : (images.length > 0 ? images[0] : undefined);
 
+  // L'API retourne 'name', le mobile attend 'title'
+  // Priorite: name (API) > title (existant) > fallback
+  const apiName = (service as any).name;
+  const title = apiName || service.title || 'Service';
+
+  console.log('[transformService]', service.id, '- name:', apiName, '- title result:', title);
+
   return {
     ...service,
+    title,
+    name: apiName, // Garder name aussi pour compatibilite
     thumbnail,
     images,
   };

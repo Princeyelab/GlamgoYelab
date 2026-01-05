@@ -32,6 +32,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../lib/co
 const STORAGE_KEY_REJECTED = '@glamgo_shown_rejected_ids';
 const STORAGE_KEY_ACCEPTED = '@glamgo_shown_accepted_ids';
 const STORAGE_KEY_SATISFACTION = '@glamgo_shown_satisfaction_ids';
+const STORAGE_KEY_EN_ROUTE = '@glamgo_shown_en_route_ids';
 
 // Intervalle de polling (10 secondes)
 const CHECK_INTERVAL = 10000;
@@ -50,6 +51,13 @@ interface AcceptedOrder {
   booking_time: string;
 }
 
+interface EnRouteOrder {
+  id: number;
+  provider_name: string;
+  service_name: string;
+  eta_minutes?: number;
+}
+
 interface SatisfactionOrder {
   id: number;
   service_name?: string;
@@ -64,8 +72,11 @@ interface SatisfactionOrder {
 
 interface RejectedOrder {
   id: number;
+  service_id?: number;
   service_name: string;
   cancellation_reason?: string;
+  provider_name?: string;
+  type?: 'rejected' | 'cancelled'; // rejected = refus avant acceptation, cancelled = annulation après acceptation
 }
 
 export const ClientGlobalModals: React.FC = () => {
@@ -95,6 +106,11 @@ export const ClientGlobalModals: React.FC = () => {
   const [showRejectedModal, setShowRejectedModal] = useState(false);
   const shownRejectedModalIds = useRef<Set<number>>(new Set());
 
+  // State pour le modal "en route"
+  const [enRouteOrder, setEnRouteOrder] = useState<EnRouteOrder | null>(null);
+  const [showEnRouteModal, setShowEnRouteModal] = useState(false);
+  const shownEnRouteModalIds = useRef<Set<number>>(new Set());
+
   // Flag pour savoir si les IDs persistés ont été chargés
   const [idsLoaded, setIdsLoaded] = useState(false);
 
@@ -102,10 +118,11 @@ export const ClientGlobalModals: React.FC = () => {
   useEffect(() => {
     const loadPersistedIds = async () => {
       try {
-        const [rejectedIds, acceptedIds, satisfactionIds] = await Promise.all([
+        const [rejectedIds, acceptedIds, satisfactionIds, enRouteIds] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_REJECTED),
           AsyncStorage.getItem(STORAGE_KEY_ACCEPTED),
           AsyncStorage.getItem(STORAGE_KEY_SATISFACTION),
+          AsyncStorage.getItem(STORAGE_KEY_EN_ROUTE),
         ]);
 
         if (rejectedIds) {
@@ -119,6 +136,10 @@ export const ClientGlobalModals: React.FC = () => {
         if (satisfactionIds) {
           const ids = JSON.parse(satisfactionIds) as number[];
           shownSatisfactionModalIds.current = new Set(ids);
+        }
+        if (enRouteIds) {
+          const ids = JSON.parse(enRouteIds) as number[];
+          shownEnRouteModalIds.current = new Set(ids);
         }
       } catch (error) {
         console.log('[ClientGlobalModals] Error loading persisted IDs:', error);
@@ -156,7 +177,7 @@ export const ClientGlobalModals: React.FC = () => {
         (o: any) => o.status === 'accepted' && !shownAcceptedModalIds.current.has(o.id)
       );
 
-      if (newlyAcceptedOrder && !showAcceptedModal && !showArrivalModal && !showSatisfactionModal) {
+      if (newlyAcceptedOrder && !showAcceptedModal && !showArrivalModal && !showSatisfactionModal && !showEnRouteModal) {
         setAcceptedOrder({
           id: newlyAcceptedOrder.id,
           provider_name: newlyAcceptedOrder.provider_name ||
@@ -171,12 +192,31 @@ export const ClientGlobalModals: React.FC = () => {
         setShowAcceptedModal(true);
       }
 
-      // 2. Prestataire arrivé
+      // 2. Prestataire en route
+      const enRouteOrderData = orders.find(
+        (o: any) => (o.status === 'en_route' || o.status === 'on_way') && !shownEnRouteModalIds.current.has(o.id)
+      );
+
+      if (enRouteOrderData && !showEnRouteModal && !showAcceptedModal && !showArrivalModal && !showSatisfactionModal && !showRejectedModal) {
+        setEnRouteOrder({
+          id: enRouteOrderData.id,
+          provider_name: enRouteOrderData.provider_name ||
+            `${enRouteOrderData.provider_first_name || ''} ${enRouteOrderData.provider_last_name || ''}`.trim() ||
+            'Votre prestataire',
+          service_name: enRouteOrderData.service_name || 'votre prestation',
+          eta_minutes: enRouteOrderData.eta_minutes || enRouteOrderData.estimated_arrival_minutes,
+        });
+        persistId(STORAGE_KEY_EN_ROUTE, enRouteOrderData.id, shownEnRouteModalIds.current);
+        Vibration.vibrate([0, 400, 150, 400, 150, 400]);
+        setShowEnRouteModal(true);
+      }
+
+      // 3. Prestataire arrivé
       const arrivedOrderData = orders.find(
         (o: any) => o.status === 'arrived' && !checkedOrderIds.has(o.id)
       );
 
-      if (arrivedOrderData && !showArrivalModal && !showAcceptedModal && !showSatisfactionModal) {
+      if (arrivedOrderData && !showArrivalModal && !showAcceptedModal && !showSatisfactionModal && !showEnRouteModal) {
         setArrivedOrder({
           id: arrivedOrderData.id,
           provider_name: arrivedOrderData.provider_name ||
@@ -193,7 +233,7 @@ export const ClientGlobalModals: React.FC = () => {
         (o: any) => o.status === 'completed_pending_review' && !shownSatisfactionModalIds.current.has(o.id)
       );
 
-      if (pendingReviewOrder && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal && !showRejectedModal) {
+      if (pendingReviewOrder && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal && !showRejectedModal && !showEnRouteModal) {
         setSatisfactionOrder({
           id: pendingReviewOrder.id,
           service_name: pendingReviewOrder.service_name,
@@ -212,35 +252,122 @@ export const ClientGlobalModals: React.FC = () => {
       }
 
       // 4. Commande refusée par le prestataire
-      // Ne montrer que les commandes annulées récemment (< 2 minutes)
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-      const rejectedOrderData = orders.find((o: any) => {
-        if (o.status !== 'cancelled' || o.cancelled_by !== 'provider') return false;
-        if (shownRejectedModalIds.current.has(o.id)) return false;
+      // PRIORITÉ AUX NOTIFICATIONS (plus fiable que les ordres)
+      // 30 minutes pour les notifications non lues (plus de temps pour réagir)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-        // Vérifier si l'annulation est récente
-        const cancelledAt = o.cancelled_at || o.updated_at;
-        if (cancelledAt) {
-          const cancelDate = new Date(cancelledAt);
-          if (cancelDate < twoMinutesAgo) return false;
+      console.log('[ClientGlobalModals] Checking for rejected orders...');
+      console.log('[ClientGlobalModals] Already shown IDs:', Array.from(shownRejectedModalIds.current));
+
+      let rejectedOrderData: any = null;
+
+      // D'ABORD chercher dans les notifications (source la plus fiable)
+      console.log('[ClientGlobalModals] Checking notifications for order_rejected...');
+      try {
+          const notifResponse = await apiClient.get('/api/notifications');
+          const notifications = notifResponse.data?.data?.notifications || notifResponse.data?.data || [];
+          console.log('[ClientGlobalModals] Found', notifications.length, 'notifications');
+
+          // Chercher les notifications de refus OU d'annulation après acceptation
+          const rejectionNotif = notifications.find((n: any) => {
+            console.log('[ClientGlobalModals] Notif:', n.id, 'type:', n.notification_type, 'read:', n.is_read || n.read_at);
+
+            // Accepter order_rejected ET provider_cancelled
+            if (n.notification_type !== 'order_rejected' && n.notification_type !== 'provider_cancelled') return false;
+            // Si déjà lue, ignorer
+            if (n.is_read === true || n.read_at) return false;
+
+            const notifData = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+            const orderId = notifData?.order_id || n.order_id;
+            if (shownRejectedModalIds.current.has(orderId)) {
+              console.log('[ClientGlobalModals] Notif order', orderId, 'already shown');
+              return false;
+            }
+
+            // PAS de vérification de temps - si non lue et non montrée, on l'affiche
+            console.log('[ClientGlobalModals] ✅ Found', n.notification_type, 'notification for order', orderId);
+            return true;
+          });
+
+          if (rejectionNotif) {
+            console.log('[ClientGlobalModals] Raw notification data:', rejectionNotif.data);
+            const notifData = typeof rejectionNotif.data === 'string'
+              ? JSON.parse(rejectionNotif.data)
+              : rejectionNotif.data;
+            console.log('[ClientGlobalModals] Parsed notifData:', notifData);
+            console.log('[ClientGlobalModals] service_id from notifData:', notifData?.service_id);
+
+            // Déterminer le type: rejected (avant acceptation) ou cancelled (après acceptation)
+            const notifType = rejectionNotif.notification_type === 'provider_cancelled' ? 'cancelled' : 'rejected';
+
+            rejectedOrderData = {
+              id: notifData?.order_id || rejectionNotif.order_id,
+              service_id: notifData?.service_id,
+              service_name: notifData?.service_name || 'votre prestation',
+              cancellation_reason: notifData?.reason,
+              provider_name: notifData?.provider_name,
+              type: notifType,
+              status: 'cancelled',
+              cancelled_by: 'provider',
+            };
+            console.log('[ClientGlobalModals] Built rejectedOrderData:', rejectedOrderData);
+          }
+      } catch (e) {
+        console.log('[ClientGlobalModals] Error fetching notifications:', e);
+      }
+
+      // Fallback: chercher dans les ordres si pas trouvé dans les notifications
+      if (!rejectedOrderData) {
+        console.log('[ClientGlobalModals] Checking orders for cancelled by provider...');
+        const cancelledOrder = orders.find((o: any) => {
+          if (o.status !== 'cancelled') return false;
+          if (shownRejectedModalIds.current.has(o.id)) return false;
+
+          // Vérifier si récent (30 min)
+          const cancelledAt = o.cancelled_at || o.updated_at;
+          if (cancelledAt) {
+            const cancelDate = new Date(cancelledAt);
+            if (cancelDate < thirtyMinutesAgo) return false;
+          }
+
+          // Accepter si cancelled_by === 'provider' OU si pas de cancelled_by (ancien format)
+          return o.cancelled_by === 'provider';
+        });
+
+        if (cancelledOrder) {
+          rejectedOrderData = {
+            id: cancelledOrder.id,
+            service_id: cancelledOrder.service_id,
+            service_name: cancelledOrder.service_name || 'votre prestation',
+            cancellation_reason: cancelledOrder.cancellation_reason,
+          };
+          console.log('[ClientGlobalModals] Found rejected order in orders:', rejectedOrderData);
         }
-        return true;
-      });
+      }
 
-      if (rejectedOrderData && !showRejectedModal && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal) {
+      console.log('[ClientGlobalModals] Final rejectedOrderData:', rejectedOrderData);
+      console.log('[ClientGlobalModals] showRejectedModal:', showRejectedModal, 'showSatisfactionModal:', showSatisfactionModal, 'showArrivalModal:', showArrivalModal, 'showAcceptedModal:', showAcceptedModal);
+
+      if (rejectedOrderData && !showRejectedModal && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal && !showEnRouteModal) {
+        console.log('[ClientGlobalModals] 🚨 SHOWING REJECTED MODAL for order', rejectedOrderData.id, 'type:', rejectedOrderData.type);
         setRejectedOrder({
           id: rejectedOrderData.id,
+          service_id: rejectedOrderData.service_id,
           service_name: rejectedOrderData.service_name || 'votre prestation',
           cancellation_reason: rejectedOrderData.cancellation_reason,
+          provider_name: rejectedOrderData.provider_name,
+          type: rejectedOrderData.type || 'rejected',
         });
         persistId(STORAGE_KEY_REJECTED, rejectedOrderData.id, shownRejectedModalIds.current);
-        Vibration.vibrate([0, 400, 100, 400, 100, 400]);
+        Vibration.vibrate([0, 500, 150, 500, 150, 500]); // Vibration plus forte
         setShowRejectedModal(true);
+      } else if (rejectedOrderData) {
+        console.log('[ClientGlobalModals] Cannot show modal - another modal is open');
       }
     } catch (error) {
       // Silently ignore
     }
-  }, [user, userRole, showArrivalModal, showSatisfactionModal, showAcceptedModal, showRejectedModal, checkedOrderIds, idsLoaded, persistId]);
+  }, [user, userRole, showArrivalModal, showSatisfactionModal, showAcceptedModal, showRejectedModal, showEnRouteModal, checkedOrderIds, idsLoaded, persistId]);
 
   // Polling - ne démarre qu'une fois les IDs chargés
   useEffect(() => {
@@ -294,24 +421,52 @@ export const ClientGlobalModals: React.FC = () => {
     setAcceptedOrder(null);
   };
 
+  // Voir la commande en route
+  const handleViewEnRouteOrder = () => {
+    if (enRouteOrder) {
+      setShowEnRouteModal(false);
+      router.push(`/booking/track/${enRouteOrder.id}` as any);
+    }
+  };
+
+  // Fermer modal en route
+  const handleDismissEnRouteModal = () => {
+    setShowEnRouteModal(false);
+    setEnRouteOrder(null);
+  };
+
   // Soumettre satisfaction
   const handleSubmitSatisfaction = async (data: SatisfactionData) => {
     if (!satisfactionOrder) return;
 
     try {
       await submitSatisfaction(satisfactionOrder.id, data);
-      Alert.alert('Merci !', 'Votre avis a été enregistré.', [{ text: 'OK' }]);
       setShowSatisfactionModal(false);
       setSatisfactionOrder(null);
       dispatch(fetchBookings());
+
+      // Afficher le message et rediriger vers le dashboard
+      Alert.alert(
+        'Merci ! 🎉',
+        'Votre avis a été enregistré avec succès.',
+        [{
+          text: 'Retour à l\'accueil',
+          onPress: () => router.replace('/(client)' as any),
+        }]
+      );
     } catch (err: any) {
       throw err;
     }
   };
 
-  // Fermer satisfaction
+  // Fermer satisfaction - BLOQUÉ car obligatoire
   const handleCloseSatisfactionModal = () => {
-    setShowSatisfactionModal(false);
+    // Ne pas permettre de fermer - l'evaluation est obligatoire
+    Alert.alert(
+      'Évaluation obligatoire',
+      'Vous devez évaluer votre prestation pour que le paiement soit déclenché. Vous ne pourrez pas faire de nouvelle réservation avant d\'avoir évalué.',
+      [{ text: 'Compris', style: 'default' }]
+    );
   };
 
   // Fermer modal de refus et chercher un autre prestataire
@@ -320,11 +475,26 @@ export const ClientGlobalModals: React.FC = () => {
     setRejectedOrder(null);
   };
 
-  // Chercher un autre prestataire après refus
+  // Chercher un autre prestataire après refus - rediriger vers nouvelle réservation
   const handleFindAnotherProvider = () => {
+    const serviceId = rejectedOrder?.service_id;
+    const serviceName = rejectedOrder?.service_name;
+    console.log('[ClientGlobalModals] Redirecting - serviceId:', serviceId, 'serviceName:', serviceName);
+    console.log('[ClientGlobalModals] Full rejectedOrder:', rejectedOrder);
+
     setShowRejectedModal(false);
     setRejectedOrder(null);
-    router.push('/(client)/services' as any);
+
+    // Rediriger vers la page de création de réservation avec le même service
+    // IMPORTANT: Le paramètre doit être 'service_id' (snake_case) pour booking/create.tsx
+    if (serviceId) {
+      console.log('[ClientGlobalModals] Navigating to /booking/create?service_id=' + serviceId);
+      router.push(`/booking/create?service_id=${serviceId}` as any);
+    } else {
+      // Fallback vers les services si pas de service_id
+      console.log('[ClientGlobalModals] No serviceId, navigating to services');
+      router.push('/(client)/services' as any);
+    }
   };
 
   // Ne rien rendre si pas de user ou si c'est un provider
@@ -412,6 +582,50 @@ export const ClientGlobalModals: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Modal Prestataire En Route */}
+      <Modal
+        visible={showEnRouteModal && enRouteOrder !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismissEnRouteModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.enRouteModalContent]}>
+            <View style={styles.enRouteIconContainer}>
+              <Text style={styles.enRouteIcon}>🚗</Text>
+            </View>
+            <Text style={[styles.modalTitle, styles.enRouteTitle]}>En route !</Text>
+            <Text style={styles.modalMessage}>
+              {enRouteOrder?.provider_name} est en chemin pour{'\n'}
+              <Text style={styles.serviceName}>{enRouteOrder?.service_name}</Text>
+            </Text>
+            {enRouteOrder?.eta_minutes ? (
+              <View style={styles.etaContainer}>
+                <Text style={styles.etaLabel}>Arrivée estimée dans</Text>
+                <Text style={styles.etaValue}>{enRouteOrder.eta_minutes} min</Text>
+              </View>
+            ) : null}
+            <Text style={styles.enRouteSubtext}>
+              Préparez-vous, votre prestataire arrive bientôt !
+            </Text>
+
+            <TouchableOpacity
+              style={styles.trackButton}
+              onPress={handleViewEnRouteOrder}
+            >
+              <Text style={styles.trackButtonText}>📍 Suivre en temps réel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.laterButton}
+              onPress={handleDismissEnRouteModal}
+            >
+              <Text style={styles.laterButtonText}>OK, compris</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal Satisfaction */}
       {satisfactionOrder && (
         <SatisfactionModal
@@ -432,7 +646,7 @@ export const ClientGlobalModals: React.FC = () => {
         />
       )}
 
-      {/* Modal Commande Refusée */}
+      {/* Modal Commande Refusée / Annulée */}
       <Modal
         visible={showRejectedModal && rejectedOrder !== null}
         transparent
@@ -440,33 +654,64 @@ export const ClientGlobalModals: React.FC = () => {
         onRequestClose={handleDismissRejectedModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalIcon}>😔</Text>
-            <Text style={styles.modalTitle}>Commande refusée</Text>
+          <View style={[styles.modalContent, styles.rejectedModalContent]}>
+            <View style={styles.rejectedIconContainer}>
+              <Text style={styles.rejectedIcon}>
+                {rejectedOrder?.type === 'cancelled' ? '😔' : '❌'}
+              </Text>
+            </View>
+            <Text style={[styles.modalTitle, styles.rejectedTitle]}>
+              {rejectedOrder?.type === 'cancelled'
+                ? 'Prestataire indisponible'
+                : 'Commande refusée'
+              }
+            </Text>
             <Text style={styles.modalMessage}>
-              Désolé, le prestataire n'est pas disponible pour {rejectedOrder?.service_name}.
+              {rejectedOrder?.type === 'cancelled' ? (
+                <>
+                  {rejectedOrder?.provider_name
+                    ? `${rejectedOrder.provider_name} ne peut plus assurer`
+                    : 'Le prestataire ne peut plus assurer'
+                  }{'\n'}
+                  <Text style={styles.serviceName}>{rejectedOrder?.service_name}</Text>
+                </>
+              ) : (
+                <>
+                  Désolé, le prestataire n'est pas disponible pour{'\n'}
+                  <Text style={styles.serviceName}>{rejectedOrder?.service_name}</Text>
+                </>
+              )}
             </Text>
             {rejectedOrder?.cancellation_reason && (
-              <Text style={styles.modalSubtext}>
-                Raison : {rejectedOrder.cancellation_reason}
-              </Text>
+              <View style={styles.reasonContainer}>
+                <Text style={styles.reasonLabel}>Raison :</Text>
+                <Text style={styles.reasonText}>{rejectedOrder.cancellation_reason}</Text>
+              </View>
             )}
-            <Text style={styles.modalSubtext}>
-              Vous pouvez chercher un autre prestataire disponible.
+            <Text style={styles.encourageText}>
+              {rejectedOrder?.type === 'cancelled'
+                ? '🔍 Nous recherchons un remplaçant pour vous !'
+                : 'Ne vous inquiétez pas ! D\'autres prestataires sont disponibles.'
+              }
             </Text>
 
             <TouchableOpacity
-              style={[styles.confirmButton, { backgroundColor: colors.primary }]}
+              style={styles.newBookingButton}
               onPress={handleFindAnotherProvider}
             >
-              <Text style={styles.confirmButtonText}>🔍 Chercher un autre prestataire</Text>
+              <Text style={styles.newBookingButtonText}>
+                {rejectedOrder?.type === 'cancelled'
+                  ? '🔄 Trouver un autre prestataire'
+                  : '🔄 Nouvelle réservation'
+                }
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.laterButton}
               onPress={handleDismissRejectedModal}
             >
-              <Text style={styles.laterButtonText}>Fermer</Text>
+              <Text style={styles.laterButtonText}>Plus tard</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -539,6 +784,131 @@ const styles = StyleSheet.create({
   laterButtonText: {
     color: colors.gray[500],
     fontSize: typography.fontSize.sm,
+  },
+
+  // Styles spécifiques au modal "en route"
+  enRouteModalContent: {
+    borderTopWidth: 4,
+    borderTopColor: colors.info,
+  },
+  enRouteIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.info + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  enRouteIcon: {
+    fontSize: 40,
+  },
+  enRouteTitle: {
+    color: colors.info,
+  },
+  enRouteSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  etaContainer: {
+    backgroundColor: colors.info + '10',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginVertical: spacing.md,
+    alignItems: 'center',
+  },
+  etaLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+    marginBottom: 4,
+  },
+  etaValue: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: 'bold',
+    color: colors.info,
+  },
+  trackButton: {
+    backgroundColor: colors.info,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    ...shadows.md,
+  },
+  trackButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+  },
+
+  // Styles spécifiques au modal de refus
+  rejectedModalContent: {
+    borderTopWidth: 4,
+    borderTopColor: colors.error,
+  },
+  rejectedIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.error + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  rejectedIcon: {
+    fontSize: 36,
+  },
+  rejectedTitle: {
+    color: colors.error,
+  },
+  serviceName: {
+    fontWeight: typography.fontWeight.bold as any,
+    color: colors.gray[900],
+  },
+  reasonContainer: {
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginVertical: spacing.sm,
+    width: '100%',
+  },
+  reasonLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+    marginBottom: 2,
+  },
+  reasonText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[700],
+    fontStyle: 'italic',
+  },
+  encourageText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.success,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    fontWeight: '500',
+  },
+  newBookingButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    ...shadows.md,
+  },
+  newBookingButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold as any,
   },
 });
 

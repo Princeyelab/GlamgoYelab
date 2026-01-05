@@ -27,7 +27,7 @@ interface RefreshTokenResponse {
 // Creer l'instance Axios
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // 60 secondes (augmenté pour serveur lent)
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -174,9 +174,10 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Log erreur en dev (sauf 409 qui est gere par l'UI)
-    if (__DEV__ && error.response?.status !== 409) {
-      console.error(`[API] Error ${error.response?.status} ${originalRequest?.url}:`, error.message);
+    // Log erreur en dev (sauf codes geres par l'UI: 400, 404, 409)
+    // Utiliser console.log au lieu de console.error pour eviter la boite rouge
+    if (__DEV__ && ![400, 404, 409].includes(error.response?.status || 0)) {
+      console.log(`[API] Error ${error.response?.status} ${originalRequest?.url}:`, error.message);
     }
 
     return Promise.reject(error);

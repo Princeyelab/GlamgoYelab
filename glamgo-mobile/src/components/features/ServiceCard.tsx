@@ -177,7 +177,7 @@ export default function ServiceCard({
       <View style={styles.content}>
         {/* Titre */}
         <Text style={styles.title} numberOfLines={2}>
-          {title}
+          {title || 'Service'}
         </Text>
 
         {/* Description */}

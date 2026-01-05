@@ -83,6 +83,7 @@ class Controller
 
         foreach ($rules as $field => $ruleString) {
             $ruleArray = explode('|', $ruleString);
+            $isNumeric = in_array('numeric', $ruleArray);
 
             foreach ($ruleArray as $rule) {
                 // Règle required
@@ -98,16 +99,32 @@ class Controller
                 // Règle min:n
                 if (str_starts_with($rule, 'min:')) {
                     $min = (int)substr($rule, 4);
-                    if (!empty($data[$field]) && strlen($data[$field]) < $min) {
-                        $errors[$field][] = "Le champ $field doit contenir au moins $min caractères";
+                    if (!empty($data[$field]) || (isset($data[$field]) && $data[$field] === 0)) {
+                        if ($isNumeric && is_numeric($data[$field])) {
+                            // Validation numérique
+                            if (floatval($data[$field]) < $min) {
+                                $errors[$field][] = "Le champ $field doit être au moins $min";
+                            }
+                        } elseif (!$isNumeric && strlen($data[$field]) < $min) {
+                            // Validation longueur de chaîne
+                            $errors[$field][] = "Le champ $field doit contenir au moins $min caractères";
+                        }
                     }
                 }
 
                 // Règle max:n
                 if (str_starts_with($rule, 'max:')) {
                     $max = (int)substr($rule, 4);
-                    if (!empty($data[$field]) && strlen($data[$field]) > $max) {
-                        $errors[$field][] = "Le champ $field ne doit pas dépasser $max caractères";
+                    if (!empty($data[$field]) || (isset($data[$field]) && $data[$field] === 0)) {
+                        if ($isNumeric && is_numeric($data[$field])) {
+                            // Validation numérique
+                            if (floatval($data[$field]) > $max) {
+                                $errors[$field][] = "Le champ $field ne doit pas dépasser $max";
+                            }
+                        } elseif (!$isNumeric && strlen($data[$field]) > $max) {
+                            // Validation longueur de chaîne
+                            $errors[$field][] = "Le champ $field ne doit pas dépasser $max caractères";
+                        }
                     }
                 }
 

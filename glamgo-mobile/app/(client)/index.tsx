@@ -310,11 +310,14 @@ export default function HomeScreen() {
 
         {popularServices.length > 0 ? (
           <View style={styles.servicesList}>
-            {popularServices.map((service) => (
+            {popularServices.map((service) => {
+              // Utiliser name si title n'existe pas (compatibilite API)
+              const serviceTitle = service.title || (service as any).name || 'Service';
+              return (
               <View key={service.id} style={styles.serviceItem}>
                 <ServiceCard
                   id={service.id}
-                  title={service.title}
+                  title={serviceTitle}
                   description={service.description}
                   images={service.images}
                   thumbnail={service.thumbnail}
@@ -331,7 +334,8 @@ export default function HomeScreen() {
                   onFavoritePress={() => handleFavoriteToggle(service.id)}
                 />
               </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyServices}>

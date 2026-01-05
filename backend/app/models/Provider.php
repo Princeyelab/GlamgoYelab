@@ -103,4 +103,48 @@ class Provider extends Model
 
         return $this->execute($sql, [$providerId]);
     }
+
+    /**
+     * Met à jour le timestamp de dernière activité du prestataire
+     */
+    public function updateLastSeen(int $providerId): bool
+    {
+        return $this->execute(
+            "UPDATE providers SET last_seen_at = NOW() WHERE id = ?",
+            [$providerId]
+        );
+    }
+
+    /**
+     * Met à jour le statut de disponibilité du prestataire
+     */
+    public function setAvailability(int $providerId, bool $isAvailable): bool
+    {
+        return $this->execute(
+            "UPDATE providers SET is_available = ?, updated_at = NOW() WHERE id = ?",
+            [$isAvailable, $providerId]
+        );
+    }
+
+    /**
+     * Connexion: met le prestataire en ligne
+     */
+    public function setOnline(int $providerId): bool
+    {
+        return $this->execute(
+            "UPDATE providers SET is_available = TRUE, last_seen_at = NOW(), updated_at = NOW() WHERE id = ?",
+            [$providerId]
+        );
+    }
+
+    /**
+     * Déconnexion: met le prestataire hors ligne
+     */
+    public function setOffline(int $providerId): bool
+    {
+        return $this->execute(
+            "UPDATE providers SET is_available = FALSE, updated_at = NOW() WHERE id = ?",
+            [$providerId]
+        );
+    }
 }

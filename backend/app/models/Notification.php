@@ -198,6 +198,16 @@ class Notification extends Model
             ? " Des frais d'annulation de {$cancellationFee} MAD seront appliqués au prestataire."
             : "";
 
+        $providerName = '';
+        if (!empty($order['provider_first_name'])) {
+            $providerName = $order['provider_first_name'];
+            if (!empty($order['provider_last_name'])) {
+                $providerName .= ' ' . $order['provider_last_name'];
+            }
+        } elseif (!empty($order['provider_name'])) {
+            $providerName = $order['provider_name'];
+        }
+
         $this->createNotification([
             'recipient_type' => 'user',
             'recipient_id' => $order['user_id'],
@@ -207,9 +217,15 @@ class Notification extends Model
             'message' => "Le prestataire ne peut pas assurer votre commande #{$order['id']}. Nous recherchons un remplaçant.{$feeMessage}",
             'data' => [
                 'order_id' => $order['id'],
+                'service_id' => $order['service_id'] ?? null,
+                'service_name' => $order['service_name'] ?? 'Service',
+                'provider_name' => $providerName,
                 'reason' => $reason,
                 'cancellation_fee' => $cancellationFee,
-                'status' => 'pending'
+                'status' => 'pending',
+                'action' => 'show_popup',
+                'vibrate' => true,
+                'priority' => 'high'
             ]
         ]);
 

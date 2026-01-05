@@ -40,6 +40,7 @@ interface Transaction {
   amount: number;
   commission: number;
   netAmount: number;
+  tip: number;
   status: 'completed' | 'pending_payout' | 'paid';
 }
 
@@ -73,6 +74,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
     amount: 350,
     commission: 70,   // 20%
     netAmount: 280,
+    tip: 0,
     status: 'pending_payout',
   },
   {
@@ -83,6 +85,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
     amount: 250,
     commission: 50,   // 20%
     netAmount: 200,
+    tip: 20,
     status: 'pending_payout',
   },
   {
@@ -93,6 +96,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
     amount: 150,
     commission: 30,   // 20%
     netAmount: 120,
+    tip: 0,
     status: 'paid',
   },
   {
@@ -103,6 +107,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
     amount: 300,
     commission: 60,   // 20%
     netAmount: 240,
+    tip: 50,
     status: 'paid',
   },
   {
@@ -113,6 +118,7 @@ const DEMO_TRANSACTIONS: Transaction[] = [
     amount: 200,
     commission: 40,   // 20%
     netAmount: 160,
+    tip: 0,
     status: 'paid',
   },
 ];
@@ -279,14 +285,19 @@ export default function ProviderEarningsScreen() {
       if (transactionsData.length > 0) {
         const formattedTransactions: Transaction[] = transactionsData.map((t: APITransaction) => {
           const amount = t.amount || t.total_amount || 0;
+          const tipAmount = t.tip_amount || 0;
+          const commission = t.commission || Math.round(amount * 0.2); // 20% commission
+          // Net = montant - commission + pourboire (100% du pourboire va au prestataire)
+          const netAmount = t.net_amount || (Math.round(amount * 0.8) + tipAmount);
           return {
             id: t.id,
             clientName: t.client_name || `${t.client_first_name || ''} ${t.client_last_name || ''}`.trim() || 'Client',
             service: t.service_name || t.service_title || 'Service',
             date: t.date || t.created_at || new Date().toISOString(),
             amount: amount,
-            commission: t.commission || Math.round(amount * 0.2), // 20% commission
-            netAmount: t.net_amount || Math.round(amount * 0.8),
+            commission: commission,
+            netAmount: netAmount,
+            tip: tipAmount,
             status: t.status || 'pending_payout',
           };
         });
@@ -548,6 +559,9 @@ export default function ProviderEarningsScreen() {
                   <View style={styles.transactionRight}>
                     <Text style={styles.transactionAmount}>+{transaction.netAmount} DH</Text>
                     <Text style={styles.transactionGross}>{transaction.amount} DH brut</Text>
+                    {transaction.tip > 0 && (
+                      <Text style={styles.transactionTip}>💝 +{transaction.tip} DH pourboire</Text>
+                    )}
                     <View
                       style={[
                         styles.transactionStatus,
@@ -910,6 +924,12 @@ const styles = StyleSheet.create({
   transactionGross: {
     fontSize: typography.fontSize.xs,
     color: colors.gray[400],
+    marginTop: 2,
+  },
+  transactionTip: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary,
+    fontWeight: '600',
     marginTop: 2,
   },
   transactionStatus: {

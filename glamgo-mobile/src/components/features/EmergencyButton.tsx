@@ -426,26 +426,24 @@ export default function EmergencyButton({
 }
 
 const styles = StyleSheet.create({
-  // Bouton flottant - Compact
+  // Bouton flottant - Plus visible
   emergencyButton: {
-    position: 'absolute',
-    bottom: 90,
-    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.error,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: borderRadius.full,
-    gap: 4,
-    ...shadows.md,
-    zIndex: 1000,
+    gap: 6,
+    ...shadows.lg,
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   emergencyIcon: {
-    fontSize: 14,
+    fontSize: 18,
   },
   emergencyText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.white,
   },

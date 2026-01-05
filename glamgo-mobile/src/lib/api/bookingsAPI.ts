@@ -107,20 +107,47 @@ interface BackendOrder {
   completed_at?: string;
 }
 
+// === HELPER: Extraire date et heure en heure locale ===
+// Le backend stocke les dates sans timezone (ex: "2026-01-04 08:00:00")
+// On doit les parser en local sans conversion UTC
+function getLocalDateTime(dateStr: string): { date: string; time: string } {
+  // Normaliser le format: remplacer espace par T pour un parsing cohérent
+  // Ne PAS ajouter de 'Z' car la date est stockée en local, pas UTC
+  const normalized = dateStr.replace(' ', 'T');
+  const d = new Date(normalized);
+
+  // Vérifier que la date est valide
+  if (isNaN(d.getTime())) {
+    console.warn('[getLocalDateTime] Invalid date:', dateStr);
+    const now = new Date();
+    return {
+      date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+      time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    };
+  }
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return { date: `${year}-${month}-${day}`, time: `${hours}:${minutes}` };
+}
+
 // === MAPPER: Backend Order -> Frontend Booking ===
 function mapOrderToBooking(order: BackendOrder): Booking {
   // Parser scheduled_at pour extraire date et heure
   let date = '';
   let startTime = '';
   if (order.scheduled_at) {
-    const scheduled = new Date(order.scheduled_at);
-    date = scheduled.toISOString().split('T')[0]; // YYYY-MM-DD
-    startTime = scheduled.toTimeString().substring(0, 5); // HH:MM
+    const local = getLocalDateTime(order.scheduled_at);
+    date = local.date;
+    startTime = local.time;
   } else {
     // Utiliser created_at comme fallback
-    const created = new Date(order.created_at);
-    date = created.toISOString().split('T')[0];
-    startTime = created.toTimeString().substring(0, 5);
+    const local2 = getLocalDateTime(order.created_at);
+    date = local2.date;
+    startTime = local2.time;
   }
 
   // Construire l'adresse complete
@@ -182,10 +209,12 @@ function mapOrderToBooking(order: BackendOrder): Booking {
 }
 
 export interface CreateBookingData {
-  service_id: number;
+  service_id?: number;
+  custom_service_id?: number;  // Pour les services personnalisés
   provider_id: number;
   date: string;           // Format: YYYY-MM-DD
   start_time: string;     // Format: HH:MM
+  scheduled_at?: string;  // ISO datetime string pour le backend
   address: string;
   latitude?: number;
   longitude?: number;
@@ -232,11 +261,23 @@ export interface BookingResponse {
  * Creer une nouvelle reservation
  */
 export const createBooking = async (data: CreateBookingData): Promise<Booking> => {
-  const response = await apiClient.post<{ success: boolean; data: BackendOrder }>(
-    ENDPOINTS.BOOKINGS.CREATE,
-    data
-  );
-  return mapOrderToBooking(response.data.data);
+  try {
+    console.log('[createBooking] Sending data:', JSON.stringify(data));
+    const response = await apiClient.post<{ success: boolean; data: BackendOrder; message?: string }>(
+      ENDPOINTS.BOOKINGS.CREATE,
+      data
+    );
+    console.log('[createBooking] Response:', JSON.stringify(response.data));
+    if (!response.data.data) {
+      console.error('[createBooking] No data in response:', response.data);
+      throw new Error(response.data.message || 'Erreur lors de la création');
+    }
+    return mapOrderToBooking(response.data.data);
+  } catch (error: any) {
+    console.error('[createBooking] Error:', error.message);
+    console.error('[createBooking] Error response:', error.response?.data);
+    throw error;
+  }
 };
 
 /**
@@ -598,7 +639,9 @@ export const getBookingStatusColor = (status: BookingStatus): string => {
  * Verifier si une reservation peut etre annulee
  */
 export const canCancelBooking = (booking: Booking): boolean => {
-  const cancellableStatuses: BookingStatus[] = ['pending', 'confirmed'];
+  // Statuts annulables: pending, confirmed, accepted, on_way
+  // Bloque pour: arrived, in_progress, completed, cancelled
+  const cancellableStatuses: BookingStatus[] = ['pending', 'confirmed', 'accepted', 'on_way'];
   return cancellableStatuses.includes(booking.status);
 };
 

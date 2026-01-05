@@ -256,6 +256,11 @@ class SatisfactionController extends Controller
                 $notificationMessage .= " Le client vous a laisse un pourboire de {$tipAmount} MAD !";
             }
 
+            // Recuperer les details de la commande pour la notification
+            $orderDetails = $this->orderModel->getDetailedOrder((int)$orderId);
+            $serviceName = $orderDetails['service_name'] ?? 'Service';
+            $clientName = trim(($orderDetails['user_first_name'] ?? '') . ' ' . ($orderDetails['user_last_name'] ?? '')) ?: 'Client';
+
             $this->notificationModel->createNotification([
                 'recipient_type' => 'provider',
                 'recipient_id' => $order['provider_id'],
@@ -268,9 +273,13 @@ class SatisfactionController extends Controller
                     'rating' => $quality_rating,
                     'survey_id' => $surveyId,
                     'tip' => $tipAmount,
-                    'payment_processed' => $paymentResult['success'] ?? false
+                    'payment_processed' => $paymentResult['success'] ?? false,
+                    'service_name' => $serviceName,
+                    'client_name' => $clientName
                 ]
             ]);
+
+            error_log("[SATISFACTION] Notification sent to provider #{$order['provider_id']} - rating: {$quality_rating}, tip: {$tipAmount}");
 
             $this->success([
                 'message' => $tipAmount > 0

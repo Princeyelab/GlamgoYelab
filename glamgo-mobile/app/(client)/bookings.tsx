@@ -266,6 +266,7 @@ export default function BookingsScreen() {
       currency={item.currency}
       address={item.address}
       variant={activeTab}
+      created_at={(item as any).created_at}
       onCancel={() => handleCancelBooking(item.id)}
       onContact={() => handleContactProvider(item.id)}
       onViewDetails={() => handleBookingPress(item)}

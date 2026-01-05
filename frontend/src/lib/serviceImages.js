@@ -44,6 +44,17 @@ export const SERVICE_IMAGES = {
   // Barbe
   'pack-coiffure-barbe': '/images/services/pack-coiffure-barbe.jpg',
   'taille-barbe': '/images/services/taille-barbe.jpg',
+
+  // Epilation Smooth
+  'smooth-femme': '/images/services/smooth-femme.jpg',
+  'smooth-femme-full': '/images/services/smooth-femme-full.jpg',
+  'full-smooth-femme': '/images/services/smooth-femme-full.jpg',
+  'smooth-homme': '/images/services/smooth-homme.jpg',
+  'smooth-homme-full': '/images/services/smooth-homme-full.jpg',
+  'full-smooth-homme': '/images/services/smooth-homme-full.jpg',
+
+  // Hijama
+  'hijama': '/images/services/hijama.jpg',
 };
 
 /**

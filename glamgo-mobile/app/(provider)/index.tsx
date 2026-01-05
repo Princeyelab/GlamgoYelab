@@ -1,7 +1,7 @@
 /**
  * Provider Dashboard - GlamGo Mobile
- * Tableau de bord complet du prestataire
- * Connecte aux vraies donnees API avec fallback aux donnees demo
+ * Tableau de bord moderne du prestataire
+ * Design elegant avec gradients et cartes flottantes
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -15,14 +15,18 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
-  SafeAreaView,
   Platform,
   Linking,
+  Dimensions,
+  Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
+import CancellationModal from '../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser, switchRole } from '../../src/lib/store/slices/authSlice';
@@ -43,13 +47,28 @@ import {
   ProviderOrder,
 } from '../../src/lib/api/providerAPI';
 import * as Location from 'expo-location';
-import apiClient from '../../src/lib/api/client';
+import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { isOrderInRange } from '../../src/lib/utils/geoUtils';
 
-// Rayon par défaut si non défini (50 km)
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DEFAULT_RADIUS_KM = 50;
 
-// Types
+// French day and month names for date formatting
+const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+/**
+ * Format date to French format: "Lun 6 Jan - 14:30"
+ */
+const formatDateTimeFrench = (dateStr: string, timeStr: string): string => {
+  const date = new Date(dateStr);
+  const dayName = dayNames[date.getDay()];
+  const day = date.getDate();
+  const month = monthNames[date.getMonth()];
+  const formattedTime = timeStr.substring(0, 5);
+  return `${dayName} ${day} ${month} - ${formattedTime}`;
+};
+
 type PeriodType = 'today' | 'week' | 'month';
 type BookingStatus = 'pending' | 'accepted' | 'on_way' | 'arrived' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -62,6 +81,7 @@ interface BookingService {
 interface BookingUser {
   name: string;
   id: number;
+  phone?: string;
 }
 
 interface TodayBooking {
@@ -75,29 +95,15 @@ interface TodayBooking {
   address: string;
 }
 
-// Stats initiales pour nouveau prestataire (donnees vides)
 const INITIAL_STATS = {
-  today: {
-    bookings: 0,
-    earnings: 0,
-    completed: 0,
-  },
-  week: {
-    bookings: 0,
-    earnings: 0,
-    completed: 0,
-  },
-  month: {
-    bookings: 0,
-    earnings: 0,
-    completed: 0,
-  },
+  today: { bookings: 0, earnings: 0, completed: 0 },
+  week: { bookings: 0, earnings: 0, completed: 0 },
+  month: { bookings: 0, earnings: 0, completed: 0 },
   rating: 0,
   reviews_count: 0,
   completion_rate: 0,
 };
 
-// Pas de reservations pour un nouveau prestataire
 const INITIAL_BOOKINGS: TodayBooking[] = [];
 
 export default function ProviderDashboard() {
@@ -113,28 +119,27 @@ export default function ProviderDashboard() {
   const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Disponibilite style Uber
   const [isAvailable, setIsAvailable] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('');
 
-  // Messages non lus
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [activeOrderWithMessages, setActiveOrderWithMessages] = useState<number | null>(null);
   const lastClickTimeRef = useRef<number>(0);
 
-  // Position du prestataire pour filtrage des commandes
-  const [providerCoords, setProviderCoords] = useState<{ lat: number; lon: number; radius: number } | null>(null);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [cancellationBooking, setCancellationBooking] = useState<TodayBooking | null>(null);
 
-  // Mettre a jour la position du prestataire
+  const [providerCoords, setProviderCoords] = useState<{ lat: number; lon: number; radius: number } | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
   const handleUpdateLocation = async () => {
     hapticFeedback.medium();
     setIsUpdatingLocation(true);
 
     try {
-      // Demander la permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission refusee', 'Activez la localisation pour mettre a jour votre position');
@@ -142,32 +147,21 @@ export default function ProviderDashboard() {
         return;
       }
 
-      // Obtenir la position actuelle
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
 
       const { latitude, longitude } = location.coords;
-      console.log('[Dashboard] Updating provider location:', latitude, longitude);
-
-      // Mettre a jour via l'API
       await updateProviderLocation(latitude, longitude);
 
-      // Reverse geocoding pour afficher la ville
       const reverseGeo = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (reverseGeo.length > 0) {
         const place = reverseGeo[0];
         const locationName = place.city || place.district || place.region || 'Position mise a jour';
         setCurrentLocation(locationName);
-        Alert.alert('Position mise a jour', `Vous etes maintenant localise a ${locationName}`);
-      } else {
-        setCurrentLocation('Position mise a jour');
-        Alert.alert('Position mise a jour', 'Votre position a ete mise a jour');
       }
-
       hapticFeedback.success();
     } catch (error) {
-      console.error('[Dashboard] Error updating location:', error);
       Alert.alert('Erreur', 'Impossible de mettre a jour la position');
       hapticFeedback.warning();
     } finally {
@@ -175,73 +169,53 @@ export default function ProviderDashboard() {
     }
   };
 
-  // Charger les donnees depuis l'API
   const loadDashboardData = useCallback(async (showLoader = true) => {
     if (showLoader) setIsLoading(true);
     try {
-      // Charger les commandes, stats, profil et notifications en parallele
       const [ordersData, todayEarnings, weekEarnings, monthEarnings, notifCount, providerProfile] = await Promise.all([
         getProviderOrders().catch(() => []),
         getProviderEarnings('week').catch(() => ({ total: 0, bookings: 0, net: 0 })),
         getProviderEarnings('week').catch(() => ({ total: 0, bookings: 0, net: 0 })),
         getProviderEarnings('month').catch(() => ({ total: 0, bookings: 0, net: 0 })),
         getUnreadNotificationsCount().catch(() => 0),
-        getProviderProfile().catch((err) => {
-          console.log('[Dashboard] Erreur profil:', err?.message || err);
-          return null;
-        }),
+        getProviderProfile().catch(() => null),
       ]);
 
-      // Mettre a jour le compteur de notifications
       setUnreadNotifications(notifCount);
 
-      // Debug: afficher les stats du profil
-      console.log('[Dashboard] Provider profile:', {
-        rating: providerProfile?.rating,
-        average_rating: providerProfile?.average_rating,
-        total_reviews: providerProfile?.total_reviews,
-      });
-
-      // Filtrer les commandes valides (avec filtre de distance pour les pending)
       const validOrders = (ordersData || []).filter((order: any) => {
-        // Exclure les commandes annulees
         if (order.cancelled_at || order.status === 'cancelled') return false;
-
-        // Pour les commandes pending, filtrer par distance
         if (order.status === 'pending') {
-          // Si on a la position du prestataire, vérifier la distance
           if (providerCoords) {
             const orderLat = order.client_latitude || order.latitude;
             const orderLon = order.client_longitude || order.longitude;
-
-            // Si la commande a des coordonnées, vérifier la distance
             if (orderLat && orderLon) {
-              return isOrderInRange(
-                providerCoords.lat,
-                providerCoords.lon,
-                orderLat,
-                orderLon,
-                providerCoords.radius
-              );
+              return isOrderInRange(providerCoords.lat, providerCoords.lon, orderLat, orderLon, providerCoords.radius);
             }
           }
-          return true; // Pas de coords = on inclut
+          return true;
         }
-
-        // Pour les autres statuts, n'inclure que si provider_id est defini
-        // (commandes vraiment assignees a ce prestataire)
-        if (!order.provider_id) {
-          return false;
-        }
+        if (!order.provider_id) return false;
         return true;
       });
 
-      // Convertir les commandes API vers le format TodayBooking
       if (validOrders && validOrders.length > 0) {
         const formattedBookings: TodayBooking[] = validOrders.map((order: ProviderOrder) => {
           const orderAny = order as any;
-          // Prix: priorite a 'price' (champ DB), puis total_amount
           const price = orderAny.price || order.total_amount || orderAny.service?.price || 0;
+
+          // Parser scheduled_at correctement (format: "2026-01-04 08:00:00" ou "2026-01-04T08:00:00")
+          let bookingDate = new Date().toISOString().split('T')[0];
+          let bookingTime = '00:00:00';
+          if (order.scheduled_at) {
+            // Normaliser: remplacer espace par T
+            const normalized = order.scheduled_at.replace(' ', 'T');
+            const parts = normalized.split('T');
+            if (parts.length >= 2) {
+              bookingDate = parts[0];
+              bookingTime = parts[1].substring(0, 8);
+            }
+          }
 
           return {
             id: order.id,
@@ -258,35 +232,26 @@ export default function ProviderDashboard() {
                 || (order.client ? `${order.client.first_name || ''} ${order.client.last_name || ''}`.trim() : null)
                 || 'Client',
               id: orderAny.user_id || order.client?.id || 0,
+              phone: orderAny.user_phone || order.client?.phone,
             },
-            booking_date: order.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-            booking_time: order.scheduled_at?.split('T')[1]?.substring(0, 8) || '00:00:00',
+            booking_date: bookingDate,
+            booking_time: bookingTime,
             address: order.address || orderAny.address_line || '',
           };
         });
         setBookings(formattedBookings);
       } else {
-        // Nouveau prestataire - pas de commandes
         setBookings([]);
       }
 
-      // Compter les commandes pending (nouvelles demandes en attente)
-      const pendingOrders = validOrders.filter((o: ProviderOrder) => o.status === 'pending');
-      const completedOrders = validOrders.filter((o: ProviderOrder) => o.status === 'completed');
-
-      // Mettre a jour les stats (utiliser validOrders)
-      // Pour "today": inclure les commandes pending + celles programmees aujourd'hui + completees aujourd'hui
       const today = new Date().toDateString();
       const todayOrders = validOrders.filter((o: ProviderOrder) => {
-        // Toujours inclure les commandes pending (nouvelles demandes)
         if (o.status === 'pending') return true;
-        // Inclure les commandes completees aujourd'hui (par completed_at ou updated_at)
         const orderAny = o as any;
         if (o.status === 'completed') {
           const completedDate = new Date(orderAny.completed_at || orderAny.updated_at || o.scheduled_at).toDateString();
           return completedDate === today;
         }
-        // Sinon filtrer par date de reservation
         const orderDate = new Date(o.scheduled_at).toDateString();
         return orderDate === today;
       });
@@ -294,9 +259,7 @@ export default function ProviderDashboard() {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       const weekOrders = validOrders.filter((o: ProviderOrder) => {
-        // Toujours inclure les commandes pending
         if (o.status === 'pending') return true;
-        // Pour les completees, utiliser completed_at
         const orderAny = o as any;
         if (o.status === 'completed') {
           const completedDate = new Date(orderAny.completed_at || orderAny.updated_at || o.scheduled_at);
@@ -322,11 +285,8 @@ export default function ProviderDashboard() {
           earnings: monthEarnings.net || 0,
           completed: validOrders.filter((o: ProviderOrder) => o.status === 'completed').length,
         },
-        // Le backend retourne 'rating' (pas 'average_rating')
         rating: parseFloat(String(providerProfile?.rating || providerProfile?.average_rating || 0)) || 0,
         reviews_count: parseInt(String(providerProfile?.total_reviews || 0), 10) || 0,
-        // Taux de completion = completed / (commandes acceptees, pas pending)
-        // Exclure pending car ce sont des nouvelles demandes pas encore traitees
         completion_rate: (() => {
           const acceptedOrders = validOrders.filter((o: ProviderOrder) =>
             o.status !== 'pending' && o.status !== 'cancelled'
@@ -339,30 +299,21 @@ export default function ProviderDashboard() {
       });
     } catch (error) {
       console.error('Erreur chargement dashboard:', error);
-      // Garder les donnees demo en cas d'erreur
     } finally {
       setIsLoading(false);
     }
   }, [providerCoords]);
 
-  // Compter les messages non lus des clients
   const fetchUnreadMessages = useCallback(async () => {
-    // Ignorer pendant 10 secondes apres avoir clique sur le bouton
     const timeSinceClick = Date.now() - lastClickTimeRef.current;
-    if (timeSinceClick < 10000) {
-      return;
-    }
+    if (timeSinceClick < 10000) return;
 
     try {
-      // Recuperer TOUTES les commandes (y compris completees pour les messages non lus)
       const ordersData = await getProviderOrders().catch(() => []);
-
-      // Commandes assignees au provider (pas pending car pas encore de provider_id)
       const ordersWithChat = (ordersData || []).filter((o: any) =>
         ['accepted', 'on_way', 'arrived', 'in_progress', 'completed'].includes(o.status)
       );
 
-      // Trouver l'ordre qui a vraiment des messages non lus
       let orderWithUnread: number | null = null;
       for (const order of ordersWithChat) {
         try {
@@ -370,53 +321,35 @@ export default function ProviderDashboard() {
           const unreadCount = chatStatus.data?.data?.unread_count ?? 0;
           if (unreadCount > 0) {
             orderWithUnread = order.id;
-            break; // Prendre le premier ordre avec messages non lus
+            break;
           }
-        } catch (e) {
-          // Ignorer les erreurs pour cet ordre (403, etc.)
-        }
+        } catch (e) {}
       }
 
-      // Fallback: premier ordre assigne (pas pending)
       setActiveOrderWithMessages(orderWithUnread || (ordersWithChat.length > 0 ? ordersWithChat[0].id : null));
 
-      // Utiliser l'endpoint unread-count global
       const response = await apiClient.get('/api/chat/unread-count');
       const count = response.data?.data?.unread_count ?? 0;
       setUnreadMessages(count);
-    } catch (error) {
-      // Silently ignore errors
-    }
+    } catch (error) {}
   }, []);
 
-  // Ouvrir le chat
   const handleMessagesPress = () => {
     if (activeOrderWithMessages) {
-      // Bloquer les fetches pendant 10 secondes pour laisser le temps de marquer comme lu
       lastClickTimeRef.current = Date.now();
-      const orderId = activeOrderWithMessages;
-      router.push(`/chat/${orderId}` as any);
+      router.push(`/chat/${activeOrderWithMessages}` as any);
     } else {
-      // Aller vers les reservations si pas de commande active avec messages
       router.push('/(provider)/bookings');
     }
   };
 
-  // Charger les donnees au montage et quand l'ecran devient actif
   useFocusEffect(
     useCallback(() => {
-      // Reinitialiser le blocage quand on revient sur l'ecran (retour du chat)
       lastClickTimeRef.current = 0;
-
       loadDashboardData();
       fetchUnreadMessages();
 
-      // Polling des commandes toutes les 15 secondes (le layout poll deja toutes les 5s pour le modal)
-      const ordersInterval = setInterval(() => {
-        loadDashboardData(false); // false = pas de loader
-      }, 15000);
-
-      // Polling des messages toutes les 15 secondes
+      const ordersInterval = setInterval(() => loadDashboardData(false), 15000);
       const messagesInterval = setInterval(fetchUnreadMessages, 15000);
 
       return () => {
@@ -428,27 +361,17 @@ export default function ProviderDashboard() {
 
   const currentStats = stats[selectedPeriod];
 
-  // Verifier si le prestataire a deja une commande active
   const activeOrder = bookings.find(b =>
     b.status === 'accepted' || b.status === 'on_way' || b.status === 'arrived' || b.status === 'in_progress'
   );
   const hasActiveOrder = !!activeOrder;
 
-  // Animation du bouton quand disponible
   useEffect(() => {
     if (isAvailable) {
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.02, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -458,14 +381,25 @@ export default function ProviderDashboard() {
     }
   }, [isAvailable]);
 
-  // Charger le statut de disponibilite et la position au demarrage
   useEffect(() => {
     const loadProfileData = async () => {
       try {
         const profile = await getProviderProfile();
         setIsAvailable(profile?.is_available ?? false);
 
-        // Charger la position pour le filtrage des commandes
+        // Charger la photo de profil
+        const photo = profile?.avatar
+          || profile?.profile_image
+          || (profile as any)?.photo
+          || (profile as any)?.profile_photo
+          || (profile as any)?.image_url
+          || null;
+
+        if (photo) {
+          const fullPhotoUrl = photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`;
+          setProfilePhoto(fullPhotoUrl);
+        }
+
         if (profile?.latitude && profile?.longitude) {
           setProviderCoords({
             lat: profile.latitude,
@@ -473,12 +407,9 @@ export default function ProviderDashboard() {
             radius: profile.intervention_radius || DEFAULT_RADIUS_KM,
           });
         } else {
-          // Utiliser la position du device si pas de position dans le profil
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const location = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced,
-            });
+            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             setProviderCoords({
               lat: location.coords.latitude,
               lon: location.coords.longitude,
@@ -486,17 +417,13 @@ export default function ProviderDashboard() {
             });
           }
         }
-      } catch (error) {
-        // Silently ignore - on affichera toutes les commandes
-      }
+      } catch (error) {}
     };
     loadProfileData();
   }, []);
 
-  // Toggle disponibilite
   const handleToggleAvailability = async () => {
     const newStatus = !isAvailable;
-
     hapticFeedback.medium();
     setIsTogglingAvailability(true);
 
@@ -504,43 +431,25 @@ export default function ProviderDashboard() {
       await updateProviderProfile({ is_available: newStatus });
       setIsAvailable(newStatus);
       hapticFeedback.success();
-
-      // Message de confirmation
-      if (newStatus) {
-        Alert.alert(
-          '🟢 Vous etes en ligne !',
-          'Vous recevrez maintenant des demandes de clients.',
-          [{ text: 'OK' }]
-        );
-      }
     } catch (error) {
-      console.error('[ProviderDashboard] Error toggling availability:', error);
       hapticFeedback.error();
-      Alert.alert('Erreur', 'Impossible de modifier votre disponibilite. Reessayez.');
+      Alert.alert('Erreur', 'Impossible de modifier votre disponibilite.');
     } finally {
       setIsTogglingAvailability(false);
     }
   };
 
-  // Verifier si le prestataire a configure ses services (onboarding)
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
-        // Debug: verifier le token d'abord
         const { getToken } = await import('../../src/lib/api/client');
         const token = await getToken();
-        console.log('[ProviderDashboard] checkOnboarding - Token:', token ? token.substring(0, 30) + '...' : 'AUCUN');
 
         if (!token) {
-          console.log('[ProviderDashboard] No token, waiting...');
-          // Attendre un peu et réessayer
           await new Promise(resolve => setTimeout(resolve, 500));
           const retryToken = await getToken();
           if (!retryToken) {
-            console.error('[ProviderDashboard] Still no token after retry');
-            Alert.alert(
-              'Session non valide',
-              'Veuillez vous reconnecter.',
+            Alert.alert('Session non valide', 'Veuillez vous reconnecter.',
               [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
             );
             return;
@@ -548,33 +457,15 @@ export default function ProviderDashboard() {
         }
 
         const services = await getProviderServices();
-        console.log('[ProviderDashboard] Services charges:', services?.length || 0);
-
         if (!services || services.length === 0) {
-          // Pas de services configures - rediriger vers onboarding
-          Alert.alert(
-            'Configuration requise',
+          Alert.alert('Configuration requise',
             'Veuillez configurer vos services pour commencer a recevoir des reservations.',
-            [
-              {
-                text: 'Configurer',
-                onPress: () => router.push('/(provider)/onboarding' as any),
-              },
-            ]
+            [{ text: 'Configurer', onPress: () => router.push('/(provider)/onboarding' as any) }]
           );
         }
       } catch (error: any) {
-        console.error('[ProviderDashboard] checkOnboarding error:', error?.response?.status, error?.message);
-
-        // Si 401, verifier si on a vraiment un token
         if (error?.response?.status === 401) {
-          const { getToken } = await import('../../src/lib/api/client');
-          const token = await getToken();
-          console.error('[ProviderDashboard] 401 error - Token exists?', !!token);
-
-          Alert.alert(
-            'Erreur d\'authentification',
-            'Votre session semble invalide. Essayez de vous reconnecter.',
+          Alert.alert('Erreur d\'authentification', 'Votre session semble invalide.',
             [
               { text: 'Reessayer', onPress: () => setHasCheckedOnboarding(false) },
               { text: 'Reconnecter', onPress: () => router.replace('/auth/login') },
@@ -582,37 +473,22 @@ export default function ProviderDashboard() {
           );
           return;
         }
-        // En cas d'autre erreur, ignorer
       } finally {
         setHasCheckedOnboarding(true);
       }
     };
 
-    if (!hasCheckedOnboarding) {
-      checkOnboarding();
-    }
+    if (!hasCheckedOnboarding) checkOnboarding();
   }, [hasCheckedOnboarding]);
 
-  // Switch to client mode
   const handleSwitchToClient = () => {
     hapticFeedback.medium();
-    Alert.alert(
-      'Mode Client',
-      'Basculer vers l\'espace client ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          onPress: () => {
-            dispatch(switchRole('user'));
-            router.replace('/(client)');
-          },
-        },
-      ]
-    );
+    Alert.alert('Mode Client', 'Basculer vers l\'espace client ?', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Confirmer', onPress: () => { dispatch(switchRole('user')); router.replace('/(client)'); } },
+    ]);
   };
 
-  // Pull to refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     hapticFeedback.light();
@@ -620,7 +496,6 @@ export default function ProviderDashboard() {
     setIsRefreshing(false);
   };
 
-  // Status helpers
   const getStatusColor = (status: BookingStatus): 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'error' => {
     switch (status) {
       case 'pending': return 'warning';
@@ -628,7 +503,6 @@ export default function ProviderDashboard() {
       case 'on_way': return 'accent';
       case 'arrived': return 'primary';
       case 'in_progress': return 'primary';
-      case 'completed_pending_review': return 'warning';
       case 'completed': return 'default';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -637,27 +511,22 @@ export default function ProviderDashboard() {
 
   const getStatusLabel = (status: BookingStatus): string => {
     switch (status) {
-      case 'pending': return '⏳ En attente';
-      case 'accepted': return '✅ Accepté';
-      case 'on_way': return '🚗 En route';
-      case 'arrived': return '📍 Arrivé';
-      case 'in_progress': return '🔨 En cours';
-      case 'completed_pending_review': return '⭐ Avis en attente';
-      case 'completed': return '✓ Terminé';
-      case 'cancelled': return '✕ Annulé';
+      case 'pending': return 'En attente';
+      case 'accepted': return 'Accepte';
+      case 'on_way': return 'En route';
+      case 'arrived': return 'Arrive';
+      case 'in_progress': return 'En cours';
+      case 'completed': return 'Termine';
+      case 'cancelled': return 'Annule';
       default: return status;
     }
   };
 
-  // Booking actions - connectes aux vraies APIs
   const handleAcceptBooking = async (id: number) => {
-    // Bloquer si une commande est deja active
     if (hasActiveOrder && activeOrder) {
       hapticFeedback.warning();
-      Alert.alert(
-        '⚠️ Commande en cours',
-        `Vous avez déjà une commande active (#${activeOrder.order_number} - ${activeOrder.service.title}).\n\nTerminez-la avant d'en accepter une nouvelle.`,
-        [{ text: 'Compris' }]
+      Alert.alert('Commande en cours',
+        `Vous avez deja une commande active (#${activeOrder.order_number}).\nTerminez-la avant d'en accepter une nouvelle.`
       );
       return;
     }
@@ -665,43 +534,50 @@ export default function ProviderDashboard() {
     hapticFeedback.medium();
     try {
       await acceptOrder(id);
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'accepted' as BookingStatus } : b)
-      );
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'accepted' as BookingStatus } : b));
       hapticFeedback.success();
-      Alert.alert('✅ Commande acceptée', 'Vous pouvez maintenant démarrer le trajet.');
+      Alert.alert('Commande acceptee', 'Vous pouvez maintenant demarrer le trajet.');
     } catch (error: any) {
-      console.error('Erreur acceptation:', error);
       hapticFeedback.error();
-
-      // Afficher le message d'erreur du backend
-      const errorMessage = error?.response?.data?.message
-        || error?.response?.data?.error
-        || 'Impossible d\'accepter cette commande. Elle a peut-être déjà été prise.';
-
-      Alert.alert('Erreur', errorMessage);
+      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible d\'accepter cette commande.');
     }
   };
 
   const handleRejectBooking = (id: number) => {
     hapticFeedback.warning();
-    Alert.alert(
-      'Refuser la reservation',
-      'Etes-vous sur de vouloir refuser cette reservation ?',
+    Alert.alert('Refuser la reservation', 'Etes-vous sur de vouloir refuser ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Refuser', style: 'destructive',
+        onPress: async () => {
+          try {
+            await cancelOrder(id, 'Refuse par le prestataire');
+            setBookings(prev => prev.filter(b => b.id !== id));
+            hapticFeedback.success();
+          } catch (error) {
+            Alert.alert('Erreur', 'Impossible de refuser cette commande');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleCancelAccepted = (id: number) => {
+    hapticFeedback.warning();
+    Alert.alert('Annuler la commande',
+      'Etes-vous sur de vouloir annuler cette commande acceptee ?\nLe client sera notifie.',
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: 'Non', style: 'cancel' },
         {
-          text: 'Refuser',
-          style: 'destructive',
+          text: 'Oui, annuler', style: 'destructive',
           onPress: async () => {
             try {
-              await cancelOrder(id, 'Refuse par le prestataire');
-              // Retirer la commande de la liste (refusee)
+              await cancelOrder(id, 'Annulee par le prestataire');
               setBookings(prev => prev.filter(b => b.id !== id));
               hapticFeedback.success();
-            } catch (error) {
-              console.error('Erreur refus:', error);
-              Alert.alert('Erreur', 'Impossible de refuser cette commande');
+            } catch (error: any) {
+              hapticFeedback.error();
+              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible d\'annuler.');
             }
           },
         },
@@ -709,46 +585,41 @@ export default function ProviderDashboard() {
     );
   };
 
+  const handleOpenCancellationModal = (booking: TodayBooking) => {
+    hapticFeedback.warning();
+    setCancellationBooking(booking);
+    setShowCancellationModal(true);
+  };
+
+  const handleCancellationSuccess = () => {
+    if (cancellationBooking) setBookings(prev => prev.filter(b => b.id !== cancellationBooking.id));
+    setShowCancellationModal(false);
+    setCancellationBooking(null);
+    loadDashboardData(false);
+  };
+
   const handleStartRoute = async (id: number) => {
     hapticFeedback.medium();
     try {
       await startOrder(id);
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'on_way' as BookingStatus } : b)
-      );
-      // Navigate to journey mode with booking ID
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'on_way' as BookingStatus } : b));
       router.push(`/(provider)/booking/journey/${id}` as any);
     } catch (error) {
-      console.error('Erreur demarrage:', error);
-      // Fallback: naviguer quand meme
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'on_way' as BookingStatus } : b)
-      );
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'on_way' as BookingStatus } : b));
       router.push(`/(provider)/booking/journey/${id}` as any);
     }
   };
 
   const handleArrived = async (id: number) => {
-    console.log('[DASHBOARD] handleArrived called for booking:', id);
     hapticFeedback.medium();
     try {
-      console.log('[DASHBOARD] Calling arriveAtClient...');
-      const result = await arriveAtClient(id);
-      console.log('[DASHBOARD] arriveAtClient success:', result);
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'arrived' as BookingStatus } : b)
-      );
+      await arriveAtClient(id);
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'arrived' as BookingStatus } : b));
       hapticFeedback.success();
-      Alert.alert(
-        '📍 Arrivée signalée',
-        'Le client a été notifié. Attendez sa confirmation pour démarrer la prestation.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Arrivee signalee', 'Le client a ete notifie.');
     } catch (error: any) {
-      console.error('[DASHBOARD] arriveAtClient error:', error);
-      console.error('[DASHBOARD] Error details:', error?.response?.data || error?.message);
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée');
+      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivee');
     }
   };
 
@@ -756,510 +627,446 @@ export default function ProviderDashboard() {
     hapticFeedback.medium();
     try {
       await completeOrder(id);
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'completed' as BookingStatus } : b)
-      );
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'completed' as BookingStatus } : b));
       hapticFeedback.success();
     } catch (error) {
-      console.error('Erreur completion:', error);
-      // Fallback: mettre a jour localement
-      setBookings(prev =>
-        prev.map(b => b.id === id ? { ...b, status: 'completed' as BookingStatus } : b)
-      );
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'completed' as BookingStatus } : b));
       hapticFeedback.success();
     }
   };
 
-  const getCardStyle = (status: BookingStatus) => {
-    switch (status) {
-      case 'pending':
-        return styles.cardPending;
-      case 'accepted':
-        return styles.cardAccepted;
-      case 'on_way':
-        return styles.cardOnWay;
-      case 'arrived':
-        return styles.cardArrived;
-      case 'in_progress':
-        return styles.cardInProgress;
-      default:
-        return {};
-    }
-  };
+  const activeBookings = bookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled');
+  const pendingCount = bookings.filter(b => b.status === 'pending').length;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      {/* Header Sticky */}
-      <View style={styles.stickyHeader}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.switchModeButton}
-            onPress={handleSwitchToClient}
-          >
-            <Text style={styles.switchModeIcon}>👤</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.primary, '#8B5CF6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => router.push('/(provider)/profile')}>
+            {profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {(user?.first_name || user?.name || 'P').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-          <View>
+          <View style={styles.headerInfo}>
             <Text style={styles.greeting}>Bonjour,</Text>
-            <Text style={styles.name}>{user?.first_name || user?.name || 'Prestataire'} 👋</Text>
+            <Text style={styles.userName}>{user?.first_name || user?.name || 'Prestataire'}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleMessagesPress}>
+              <Text style={styles.headerBtnIcon}>💬</Text>
+              {unreadMessages > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeText}>{unreadMessages}</Text></View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/notifications')}>
+              <Text style={styles.headerBtnIcon}>🔔</Text>
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeText}>{unreadNotifications}</Text></View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.headerRight}>
-          {/* Bouton Messages */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleMessagesPress}
-          >
-            <Text style={styles.headerButtonIcon}>💬</Text>
-            {unreadMessages > 0 && (
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>{unreadMessages}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Bouton Notifications */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Text style={styles.headerButtonIcon}>🔔</Text>
-            {unreadNotifications > 0 && (
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>{unreadNotifications}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
       >
+        {/* Availability Toggle */}
+        <Animated.View style={[styles.availabilityWrapper, { transform: [{ scale: pulseAnim }] }]}>
+          <TouchableOpacity
+            style={[styles.availabilityBtn, isAvailable ? styles.availabilityOnline : styles.availabilityOffline]}
+            onPress={handleToggleAvailability}
+            disabled={isTogglingAvailability}
+            activeOpacity={0.8}
+          >
+            {isTogglingAvailability ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <View style={[styles.statusDot, isAvailable ? styles.dotOnline : styles.dotOffline]} />
+                <View style={styles.availabilityInfo}>
+                  <Text style={styles.availabilityStatus}>{isAvailable ? 'EN LIGNE' : 'HORS LIGNE'}</Text>
+                  <Text style={styles.availabilityHint}>
+                    {isAvailable ? 'Vous recevez des demandes' : 'Appuyez pour passer en ligne'}
+                  </Text>
+                </View>
+                <Text style={styles.availabilityEmoji}>{isAvailable ? '🟢' : '⚫'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
 
-      {/* Availability Toggle - Style Uber */}
-      <Animated.View style={[styles.availabilityContainer, { transform: [{ scale: pulseAnim }] }]}>
+        {/* Floating Stats */}
+        <View style={styles.floatingStats}>
+          <View style={styles.statItem}>
+            <LinearGradient colors={['#3B82F6', '#1D4ED8']} style={styles.statGradient}>
+              <Text style={styles.statEmoji}>📋</Text>
+              <Text style={styles.statValue}>{activeBookings.length}</Text>
+              <Text style={styles.statLabel}>Actives</Text>
+            </LinearGradient>
+          </View>
+          <View style={styles.statItem}>
+            <LinearGradient colors={['#10B981', '#059669']} style={styles.statGradient}>
+              <Text style={styles.statEmoji}>💰</Text>
+              <Text style={styles.statValue}>{currentStats.earnings}</Text>
+              <Text style={styles.statLabel}>DH</Text>
+            </LinearGradient>
+          </View>
+          <View style={styles.statItem}>
+            <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.statGradient}>
+              <Text style={styles.statEmoji}>⭐</Text>
+              <Text style={styles.statValue}>{stats.rating.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>{stats.reviews_count} avis</Text>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Period Selector */}
+        <View style={styles.periodSelector}>
+          {(['today', 'week', 'month'] as PeriodType[]).map((period) => (
+            <TouchableOpacity
+              key={period}
+              style={[styles.periodBtn, selectedPeriod === period && styles.periodBtnActive]}
+              onPress={() => { hapticFeedback.selection(); setSelectedPeriod(period); }}
+            >
+              <Text style={[styles.periodBtnText, selectedPeriod === period && styles.periodBtnTextActive]}>
+                {period === 'today' ? "Aujourd'hui" : period === 'week' ? 'Semaine' : 'Mois'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Location Update */}
         <TouchableOpacity
-          style={[
-            styles.availabilityButton,
-            isAvailable ? styles.availabilityButtonOnline : styles.availabilityButtonOffline,
-          ]}
-          onPress={handleToggleAvailability}
-          disabled={isTogglingAvailability}
-          activeOpacity={0.8}
+          style={styles.locationBtn}
+          onPress={handleUpdateLocation}
+          disabled={isUpdatingLocation}
         >
-          {isTogglingAvailability ? (
-            <ActivityIndicator size="small" color={colors.white} />
+          {isUpdatingLocation ? (
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <>
-              <View style={[
-                styles.availabilityIndicator,
-                isAvailable ? styles.indicatorOnline : styles.indicatorOffline,
-              ]} />
-              <View style={styles.availabilityTextContainer}>
-                <Text style={styles.availabilityStatus}>
-                  {isAvailable ? 'EN LIGNE' : 'HORS LIGNE'}
-                </Text>
-                <Text style={styles.availabilityHint}>
-                  {isAvailable ? 'Vous recevez des demandes' : 'Appuyez pour passer en ligne'}
-                </Text>
+              <View style={styles.locationIconBg}>
+                <Text style={styles.locationIcon}>📍</Text>
               </View>
-              <Text style={styles.availabilityIcon}>
-                {isAvailable ? '🟢' : '🔴'}
-              </Text>
+              <Text style={styles.locationText}>{currentLocation || 'Mettre a jour ma position'}</Text>
+              <Text style={styles.locationArrow}>→</Text>
             </>
           )}
         </TouchableOpacity>
-      </Animated.View>
 
-      {/* Location Update Button */}
-      <TouchableOpacity
-        style={styles.locationUpdateButton}
-        onPress={handleUpdateLocation}
-        disabled={isUpdatingLocation}
-        activeOpacity={0.7}
-      >
-        {isUpdatingLocation ? (
-          <ActivityIndicator size="small" color={colors.primary} />
-        ) : (
-          <>
-            <Text style={styles.locationUpdateIcon}>📍</Text>
-            <Text style={styles.locationUpdateText}>
-              {currentLocation || 'Mettre a jour ma position'}
-            </Text>
-            <Text style={styles.locationUpdateArrow}>→</Text>
-          </>
-        )}
-      </TouchableOpacity>
-
-      {/* Period Selector */}
-      <View style={styles.periodSelector}>
-        {(['today', 'week', 'month'] as PeriodType[]).map((period) => (
-          <TouchableOpacity
-            key={period}
-            style={[
-              styles.periodButton,
-              selectedPeriod === period && styles.periodButtonActive,
-            ]}
-            onPress={() => {
-              hapticFeedback.selection();
-              setSelectedPeriod(period);
-            }}
-          >
-            <Text
-              style={[
-                styles.periodButtonText,
-                selectedPeriod === period && styles.periodButtonTextActive,
-              ]}
-            >
-              {period === 'today' ? "Aujourd'hui" : period === 'week' ? 'Semaine' : 'Mois'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsGrid}>
-        <Card style={[styles.statCard, styles.statCardBlue]}>
-          <Text style={styles.statIcon}>📋</Text>
-          <Text style={styles.statValue}>
-            {bookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled').length}
-          </Text>
-          <Text style={styles.statLabel}>Actives</Text>
-        </Card>
-
-        <Card style={[styles.statCard, styles.statCardGreen]}>
-          <Text style={styles.statIcon}>💰</Text>
-          <Text style={[styles.statValue, styles.statValueGreen]}>{currentStats.earnings} DH</Text>
-          <Text style={styles.statLabel}>Revenus</Text>
-        </Card>
-
-        <Card style={[styles.statCard, styles.statCardPurple]}>
-          <Text style={styles.statIcon}>✅</Text>
-          <Text style={styles.statValue}>{currentStats.completed}</Text>
-          <Text style={styles.statLabel}>Completes</Text>
-        </Card>
-
-        <Card style={[styles.statCard, styles.statCardYellow]}>
-          <Text style={styles.statIcon}>⭐</Text>
-          <Text style={[styles.statValue, styles.statValueYellow]}>
-            {stats.reviews_count > 0 ? Number(stats.rating).toFixed(1) : '0.0'}
-          </Text>
-          <Text style={styles.statLabel}>Note moyenne</Text>
-        </Card>
-      </View>
-
-      {/* Performance */}
-      <Card style={styles.performanceCard}>
-        <Text style={styles.sectionTitle}>Performance</Text>
-        <View style={styles.performanceRow}>
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceLabel}>Taux de completion</Text>
-            <Text style={styles.performanceValue}>{stats.completion_rate}%</Text>
-          </View>
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceLabel}>Total avis</Text>
-            <Text style={styles.performanceValue}>{stats.reviews_count}</Text>
-          </View>
-        </View>
-      </Card>
-
-      {/* Active Bookings */}
-      <View style={styles.todaySection}>
-        <View style={styles.todaySectionHeader}>
-          <Text style={styles.sectionTitle}>Réservations actives</Text>
-          <TouchableOpacity onPress={() => router.push('/(provider)/bookings')}>
-            <Text style={styles.viewAll}>Voir tout →</Text>
-          </TouchableOpacity>
-        </View>
-
-        {bookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled').length === 0 ? (
-          <Card>
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📅</Text>
-              <Text style={styles.emptyText}>Aucune réservation active</Text>
+        {/* Performance Card */}
+        <View style={styles.performanceCard}>
+          <Text style={styles.sectionTitle}>Performance</Text>
+          <View style={styles.performanceGrid}>
+            <View style={styles.performanceItem}>
+              <Text style={styles.performanceValue}>{stats.completion_rate}%</Text>
+              <Text style={styles.performanceLabel}>Completion</Text>
             </View>
-          </Card>
-        ) : (
-          bookings
-            .filter(b => b.status !== 'completed' && b.status !== 'cancelled')
-            .map((booking) => (
-              <Card key={booking.id} style={[styles.bookingCard, getCardStyle(booking.status)]}>
-                {/* Header */}
+            <View style={styles.performanceDivider} />
+            <View style={styles.performanceItem}>
+              <Text style={styles.performanceValue}>{currentStats.completed}</Text>
+              <Text style={styles.performanceLabel}>Terminees</Text>
+            </View>
+            <View style={styles.performanceDivider} />
+            <View style={styles.performanceItem}>
+              <Text style={styles.performanceValue}>{stats.reviews_count}</Text>
+              <Text style={styles.performanceLabel}>Avis</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Active Bookings */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Reservations actives</Text>
+            {pendingCount > 0 && (
+              <View style={styles.pendingBadge}>
+                <Text style={styles.pendingBadgeText}>{pendingCount} nouvelle(s)</Text>
+              </View>
+            )}
+            <TouchableOpacity onPress={() => router.push('/(provider)/bookings')}>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeBookings.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📅</Text>
+              <Text style={styles.emptyTitle}>Aucune reservation active</Text>
+              <Text style={styles.emptySubtext}>Passez en ligne pour recevoir des demandes</Text>
+            </View>
+          ) : (
+            activeBookings.map((booking) => (
+              <View key={booking.id} style={[styles.bookingCard, styles[`card_${booking.status}`] || {}]}>
                 <View style={styles.bookingHeader}>
-                  <View style={styles.bookingHeaderLeft}>
+                  <View style={styles.bookingTitleRow}>
                     <Text style={styles.bookingService}>{booking.service.title}</Text>
-                    <Text style={styles.bookingOrder}>#{booking.order_number}</Text>
+                    <Badge color={getStatusColor(booking.status)} size="sm" variant="soft">
+                      {getStatusLabel(booking.status)}
+                    </Badge>
                   </View>
-                  <Badge color={getStatusColor(booking.status)} size="sm" variant="soft">
-                    {getStatusLabel(booking.status)}
-                  </Badge>
+                  <Text style={styles.bookingOrder}>#{booking.order_number}</Text>
                 </View>
 
-                {/* Client Info */}
+                {/* Date & Time */}
+                <View style={styles.dateTimeRow}>
+                  <Text style={styles.dateTimeIcon}>📅</Text>
+                  <Text style={styles.dateTimeText}>
+                    {formatDateTimeFrench(booking.booking_date, booking.booking_time)}
+                  </Text>
+                </View>
+
                 <View style={styles.bookingClient}>
                   <View style={styles.clientAvatar}>
-                    <Text style={styles.clientAvatarText}>
-                      {booking.user.name.charAt(0).toUpperCase()}
-                    </Text>
+                    <Text style={styles.clientAvatarText}>{booking.user.name.charAt(0).toUpperCase()}</Text>
                   </View>
                   <View style={styles.clientInfo}>
                     <Text style={styles.clientName}>{booking.user.name}</Text>
+                    {booking.user.phone && (
+                      <Text style={styles.clientPhone}>{booking.user.phone}</Text>
+                    )}
                   </View>
                   <TouchableOpacity
-                    style={styles.chatButton}
+                    style={styles.chatBtn}
                     onPress={() => router.push(`/chat/${booking.id}` as any)}
                   >
-                    <Text style={styles.chatButtonText}>💬 Chat</Text>
+                    <Text style={styles.chatBtnText}>💬</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Details */}
                 <View style={styles.bookingDetails}>
-                  <Text style={styles.bookingDetail}>
-                    🕐 {booking.booking_time.substring(0, 5)} • {booking.service.duration_minutes} min
-                  </Text>
-                  <Text style={styles.bookingDetail}>
-                    📍 {booking.address}
-                  </Text>
-                  <Text style={styles.bookingPrice}>
-                    💰 {booking.service.price} DH
-                  </Text>
+                  <Text style={styles.bookingDetail}>📍 {booking.address}</Text>
+                  <Text style={styles.bookingPrice}>💰 {booking.service.price} DH</Text>
                 </View>
 
-                {/* Actions based on status */}
                 <View style={styles.bookingActions}>
                   {booking.status === 'pending' && (
                     <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onPress={() => handleRejectBooking(booking.id)}
-                        style={styles.rejectButton}
-                        textStyle={styles.rejectButtonText}
-                      >
-                        Refuser
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
+                      <TouchableOpacity style={styles.rejectBtn} onPress={() => handleRejectBooking(booking.id)}>
+                        <Text style={styles.rejectBtnText}>Refuser</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.acceptBtn, hasActiveOrder && styles.btnDisabled]}
                         onPress={() => handleAcceptBooking(booking.id)}
-                        style={[styles.acceptButton, hasActiveOrder && styles.buttonDisabled]}
                       >
-                        {hasActiveOrder ? '🔒 Terminez d\'abord' : 'Accepter'}
-                      </Button>
+                        <LinearGradient colors={[colors.success, '#059669']} style={styles.acceptBtnGradient}>
+                          <Text style={styles.acceptBtnText}>{hasActiveOrder ? 'Terminez d\'abord' : 'Accepter'}</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
                     </>
                   )}
 
                   {booking.status === 'accepted' && (
                     <View style={styles.acceptedActions}>
-                      <View style={styles.contactActions}>
-                        <TouchableOpacity
-                          style={styles.contactButton}
-                          onPress={() => router.push(`/chat/${booking.id}` as any)}
-                        >
-                          <Text style={styles.contactButtonText}>💬 Message</Text>
+                      <View style={styles.acceptedBtns}>
+                        <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancelAccepted(booking.id)}>
+                          <Text style={styles.cancelBtnText}>Annuler</Text>
                         </TouchableOpacity>
-                        {booking.user.phone && String(booking.user.phone).length > 0 ? (
+                        {booking.user.phone && (
                           <TouchableOpacity
-                            style={styles.contactButton}
-                            onPress={() => {
-                              hapticFeedback.light();
-                              Linking.openURL(`tel:${String(booking.user.phone).replace(/\s/g, '')}`);
-                            }}
+                            style={styles.callBtn}
+                            onPress={() => Linking.openURL(`tel:${booking.user.phone}`)}
                           >
-                            <Text style={styles.contactButtonText}>📞 Appeler</Text>
+                            <Text style={styles.callBtnText}>📞 Appeler</Text>
                           </TouchableOpacity>
-                        ) : null}
+                        )}
                       </View>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onPress={() => handleStartRoute(booking.id)}
-                        fullWidth
-                        style={{ marginTop: spacing.sm }}
-                      >
-                        🚗 Démarrer (En route)
-                      </Button>
+                      <TouchableOpacity style={styles.startBtn} onPress={() => handleStartRoute(booking.id)}>
+                        <LinearGradient colors={[colors.primary, '#8B5CF6']} style={styles.startBtnGradient}>
+                          <Text style={styles.startBtnText}>🚗 Demarrer (En route)</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
                     </View>
                   )}
 
                   {booking.status === 'on_way' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onPress={() => handleArrived(booking.id)}
-                      fullWidth
-                    >
-                      📍 Je suis arrivé
-                    </Button>
+                    <>
+                      <TouchableOpacity style={styles.cancelOnWayBtn} onPress={() => handleOpenCancellationModal(booking)}>
+                        <Text style={styles.cancelOnWayBtnText}>Annuler</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.arrivedBtn} onPress={() => handleArrived(booking.id)}>
+                        <LinearGradient colors={['#8B5CF6', '#6D28D9']} style={styles.arrivedBtnGradient}>
+                          <Text style={styles.arrivedBtnText}>📍 Je suis arrive</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </>
                   )}
 
                   {booking.status === 'arrived' && (
-                    <View style={styles.waitingConfirmation}>
-                      <Text style={styles.waitingConfirmationIcon}>⏳</Text>
-                      <Text style={styles.waitingConfirmationText}>
-                        En attente de confirmation du client
-                      </Text>
+                    <View style={styles.waitingCard}>
+                      <Text style={styles.waitingIcon}>⏳</Text>
+                      <Text style={styles.waitingText}>En attente de confirmation du client</Text>
                     </View>
                   )}
 
                   {booking.status === 'in_progress' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onPress={() => handleCompleteService(booking.id)}
-                      fullWidth
-                    >
-                      ✅ Terminer le service
-                    </Button>
+                    <TouchableOpacity style={styles.completeBtn} onPress={() => handleCompleteService(booking.id)}>
+                      <LinearGradient colors={[colors.success, '#059669']} style={styles.completeBtnGradient}>
+                        <Text style={styles.completeBtnText}>✅ Terminer le service</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
                   )}
                 </View>
-              </Card>
+              </View>
             ))
-        )}
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Actions rapides</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => {
-              hapticFeedback.light();
-              router.push('/(provider)/bookings');
-            }}
-          >
-            <Text style={styles.quickActionIcon}>📋</Text>
-            <Text style={styles.quickActionLabel}>Commandes</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => {
-              hapticFeedback.light();
-              router.push('/(provider)/earnings');
-            }}
-          >
-            <Text style={styles.quickActionIcon}>💰</Text>
-            <Text style={styles.quickActionLabel}>Revenus</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => {
-              hapticFeedback.light();
-              router.push('/settings');
-            }}
-          >
-            <Text style={styles.quickActionIcon}>⚙️</Text>
-            <Text style={styles.quickActionLabel}>Paramètres</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => {
-              hapticFeedback.light();
-              Alert.alert('Aide', 'Support: support@glamgo.ma');
-            }}
-          >
-            <Text style={styles.quickActionIcon}>❓</Text>
-            <Text style={styles.quickActionLabel}>Aide</Text>
-          </TouchableOpacity>
+          )}
         </View>
-      </View>
 
-      {/* Spacer for tab bar */}
-      <View style={{ height: 100 }} />
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Actions rapides</Text>
+          <View style={styles.quickGrid}>
+            <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/(provider)/bookings')}>
+              <View style={[styles.quickIconBg, { backgroundColor: '#3B82F6' + '20' }]}>
+                <Text style={styles.quickIcon}>📋</Text>
+              </View>
+              <Text style={styles.quickLabel}>Commandes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/(provider)/earnings')}>
+              <View style={[styles.quickIconBg, { backgroundColor: colors.success + '20' }]}>
+                <Text style={styles.quickIcon}>💰</Text>
+              </View>
+              <Text style={styles.quickLabel}>Revenus</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/settings')}>
+              <View style={[styles.quickIconBg, { backgroundColor: '#8B5CF6' + '20' }]}>
+                <Text style={styles.quickIcon}>⚙️</Text>
+              </View>
+              <Text style={styles.quickLabel}>Parametres</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCard} onPress={() => Alert.alert('Aide', 'support@glamgo.ma')}>
+              <View style={[styles.quickIconBg, { backgroundColor: '#F59E0B' + '20' }]}>
+                <Text style={styles.quickIcon}>❓</Text>
+              </View>
+              <Text style={styles.quickLabel}>Aide</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {cancellationBooking && (
+        <CancellationModal
+          visible={showCancellationModal}
+          onClose={() => { setShowCancellationModal(false); setCancellationBooking(null); }}
+          onSuccess={handleCancellationSuccess}
+          orderId={cancellationBooking.id}
+          userType="provider"
+          orderStatus={cancellationBooking.status}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.gray[100],
   },
-  scrollContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    color: colors.gray[500],
   },
 
-  // Header Sticky
-  stickyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    paddingTop: Platform.OS === 'android' ? spacing.md : spacing.sm,
-    paddingBottom: spacing.md,
+  // Header
+  header: {
     paddingHorizontal: spacing.lg,
-    ...shadows.md,
-    zIndex: 100,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerLeft: {
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
   },
-  switchModeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
+  avatarImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  avatarPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.gray[200],
-    ...shadows.sm,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
-  switchModeIcon: {
-    fontSize: 20,
+  avatarText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  headerInfo: {
+    flex: 1,
+    marginLeft: spacing.md,
   },
   greeting: {
     fontSize: typography.fontSize.base,
-    color: colors.gray[600],
+    color: 'rgba(255,255,255,0.8)',
   },
-  name: {
+  userName: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
-    color: colors.gray[900],
+    color: colors.white,
   },
-  headerRight: {
+  headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.sm,
   },
-  headerButton: {
-    position: 'relative',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
+  headerBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm,
   },
-  headerButtonIcon: {
-    fontSize: 20,
+  headerBtnIcon: {
+    fontSize: 22,
   },
-  headerBadge: {
+  badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -4,
+    right: -4,
     backgroundColor: colors.error,
     borderRadius: 10,
     minWidth: 18,
@@ -1267,275 +1074,318 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: colors.gray[50],
   },
-  headerBadgeText: {
+  badgeText: {
     color: colors.white,
     fontSize: 10,
     fontWeight: 'bold',
   },
 
-  // Availability Toggle - Uber Style
-  availabilityContainer: {
+  // Availability
+  availabilityWrapper: {
     marginBottom: spacing.lg,
   },
-  availabilityButton: {
+  availabilityBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.xl,
-    ...shadows.lg,
   },
-  availabilityButtonOnline: {
-    backgroundColor: colors.success,
+  availabilityOnline: {
+    backgroundColor: 'rgba(16,185,129,0.9)',
   },
-  availabilityButtonOffline: {
-    backgroundColor: colors.gray[600],
+  availabilityOffline: {
+    backgroundColor: 'rgba(75,85,99,0.9)',
   },
-  availabilityIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     marginRight: spacing.md,
   },
-  indicatorOnline: {
+  dotOnline: {
     backgroundColor: colors.white,
     shadowColor: colors.white,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 1,
+    shadowRadius: 6,
   },
-  indicatorOffline: {
+  dotOffline: {
     backgroundColor: colors.gray[400],
   },
-  availabilityTextContainer: {
+  availabilityInfo: {
     flex: 1,
   },
   availabilityStatus: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.base,
     fontWeight: 'bold',
     color: colors.white,
     letterSpacing: 1,
   },
   availabilityHint: {
     fontSize: typography.fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.8)',
   },
-  availabilityIcon: {
-    fontSize: 24,
+  availabilityEmoji: {
+    fontSize: 20,
   },
 
-  // Location Update Button
-  locationUpdateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    ...shadows.sm,
-  },
-  locationUpdateIcon: {
-    fontSize: 20,
-    marginRight: spacing.sm,
-  },
-  locationUpdateText: {
+  // Scroll
+  scrollView: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
-    fontWeight: '500',
   },
-  locationUpdateArrow: {
-    fontSize: 16,
-    color: colors.primary,
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+
+  // Floating Stats
+  floatingStats: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  statItem: {
+    flex: 1,
+  },
+  statGradient: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    alignItems: 'center',
+    ...shadows.md,
+  },
+  statEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
+    color: colors.white,
+  },
+  statLabel: {
+    fontSize: typography.fontSize.xs,
+    color: 'rgba(255,255,255,0.9)',
   },
 
   // Period Selector
   periodSelector: {
     flexDirection: 'row',
     backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     padding: 4,
     marginBottom: spacing.lg,
     ...shadows.sm,
   },
-  periodButton: {
+  periodBtn: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
   },
-  periodButtonActive: {
+  periodBtnActive: {
     backgroundColor: colors.primary,
   },
-  periodButtonText: {
+  periodBtnText: {
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.gray[600],
   },
-  periodButtonTextActive: {
+  periodBtnTextActive: {
     color: colors.white,
   },
 
-  // Stats Grid
-  statsGrid: {
+  // Location
+  locationBtn: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    width: '47%',
     alignItems: 'center',
-    padding: spacing.lg,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
   },
-  statCardBlue: {
-    backgroundColor: '#EFF6FF',
-    borderBottomWidth: 3,
-    borderBottomColor: '#3B82F6',
+  locationIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
   },
-  statCardGreen: {
-    backgroundColor: '#F0FDF4',
-    borderBottomWidth: 3,
-    borderBottomColor: colors.success,
+  locationIcon: {
+    fontSize: 18,
   },
-  statCardPurple: {
-    backgroundColor: '#FAF5FF',
-    borderBottomWidth: 3,
-    borderBottomColor: '#A855F7',
+  locationText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[700],
+    fontWeight: '500',
   },
-  statCardYellow: {
-    backgroundColor: '#FFFBEB',
-    borderBottomWidth: 3,
-    borderBottomColor: '#F59E0B',
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
-  },
-  statValue: {
-    fontSize: typography.fontSize.xl,
+  locationArrow: {
+    fontSize: 18,
+    color: colors.primary,
     fontWeight: 'bold',
-    color: colors.gray[900],
-    marginBottom: 4,
-  },
-  statValueGreen: {
-    color: colors.success,
-  },
-  statValueYellow: {
-    color: '#F59E0B',
-  },
-  statLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.gray[600],
-    textAlign: 'center',
   },
 
   // Performance
   performanceCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     marginBottom: spacing.lg,
+    ...shadows.sm,
   },
-  performanceRow: {
+  performanceGrid: {
     flexDirection: 'row',
-    gap: spacing.lg,
     marginTop: spacing.md,
   },
   performanceItem: {
     flex: 1,
+    alignItems: 'center',
   },
-  performanceLabel: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[600],
-    marginBottom: 4,
+  performanceDivider: {
+    width: 1,
+    backgroundColor: colors.gray[200],
   },
   performanceValue: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: 'bold',
     color: colors.primary,
   },
-
-  // Section Title
-  sectionTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.gray[900],
+  performanceLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[500],
+    marginTop: 2,
   },
 
-  // Today Section
-  todaySection: {
+  // Section
+  section: {
     marginBottom: spacing.lg,
   },
-  todaySectionHeader: {
+  sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.sm,
   },
-  viewAll: {
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
+    color: colors.gray[900],
+    flex: 1,
+  },
+  sectionLink: {
     fontSize: typography.fontSize.sm,
     color: colors.primary,
     fontWeight: '600',
   },
+  pendingBadge: {
+    backgroundColor: colors.warning,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+  },
+  pendingBadgeText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.white,
+    fontWeight: '600',
+  },
+
+  // Empty
+  emptyCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600',
+    color: colors.gray[700],
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+  },
 
   // Booking Card
   bookingCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     marginBottom: spacing.md,
-  },
-  cardPending: {
-    backgroundColor: '#FFFBEB',
     borderLeftWidth: 4,
+    ...shadows.sm,
+  },
+  card_pending: {
     borderLeftColor: colors.warning,
+    backgroundColor: '#FFFBEB',
   },
-  cardAccepted: {
-    backgroundColor: '#F0FDF4',
-    borderLeftWidth: 4,
+  card_accepted: {
     borderLeftColor: colors.success,
+    backgroundColor: '#F0FDF4',
   },
-  cardOnWay: {
-    backgroundColor: '#F0FDFA',
-    borderLeftWidth: 4,
+  card_on_way: {
     borderLeftColor: colors.accent,
+    backgroundColor: '#F0FDFA',
   },
-  cardArrived: {
-    backgroundColor: '#EDE9FE',
-    borderLeftWidth: 4,
+  card_arrived: {
     borderLeftColor: '#8B5CF6',
+    backgroundColor: '#EDE9FE',
   },
-  cardInProgress: {
-    backgroundColor: '#FFF1F2',
-    borderLeftWidth: 4,
+  card_in_progress: {
     borderLeftColor: colors.primary,
+    backgroundColor: '#FFF1F2',
   },
   bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: spacing.md,
   },
-  bookingHeaderLeft: {
-    flex: 1,
+  bookingTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   bookingService: {
     fontSize: typography.fontSize.base,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.gray[900],
-    marginBottom: 4,
   },
   bookingOrder: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[500],
   },
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '10',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
+  },
+  dateTimeIcon: {
+    fontSize: 14,
+    marginRight: spacing.sm,
+  },
+  dateTimeText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[800],
+  },
   bookingClient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -1557,142 +1407,220 @@ const styles = StyleSheet.create({
   },
   clientInfo: {
     flex: 1,
+    marginLeft: spacing.md,
   },
   clientName: {
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[900],
   },
-  chatButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  chatButtonText: {
+  clientPhone: {
     fontSize: typography.fontSize.sm,
-    color: colors.white,
-    fontWeight: '600',
+    color: colors.gray[500],
+    marginTop: 2,
+  },
+  bookingTime: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+  },
+  chatBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatBtnText: {
+    fontSize: 18,
   },
   bookingDetails: {
-    gap: 6,
     marginBottom: spacing.md,
   },
   bookingDetail: {
     fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
+    color: colors.gray[600],
+    marginBottom: 4,
   },
   bookingPrice: {
     fontSize: typography.fontSize.lg,
     fontWeight: 'bold',
     color: colors.primary,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   bookingActions: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  rejectButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-  },
-  rejectButtonText: {
-    color: colors.gray[700],
-  },
-  acceptButton: {
-    flex: 1,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    backgroundColor: colors.gray[400],
-  },
 
-  // Accepted order actions
-  acceptedActions: {
-    width: '100%',
-  },
-  contactActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  contactButton: {
+  // Buttons
+  rejectBtn: {
     flex: 1,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.gray[100],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-  },
-  contactButtonText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[700],
-    fontWeight: '500',
-  },
-
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.base,
-    color: colors.gray[600],
-  },
-
-  // Quick Actions
-  quickActions: {
-    marginBottom: spacing.lg,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  quickActionButton: {
-    width: '47%',
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
     alignItems: 'center',
-    ...shadows.sm,
   },
-  quickActionIcon: {
-    fontSize: 32,
+  rejectBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[700],
+  },
+  acceptBtn: {
+    flex: 1,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  acceptBtnGradient: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  acceptBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  acceptedActions: {
+    flex: 1,
+  },
+  acceptedBtns: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  quickActionLabel: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[900],
-    fontWeight: '500',
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.error + '15',
+    borderWidth: 1,
+    borderColor: colors.error,
+    alignItems: 'center',
   },
-
-  // Waiting confirmation
-  waitingConfirmation: {
+  cancelBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.error,
+  },
+  callBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.gray[100],
+    alignItems: 'center',
+  },
+  callBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '500',
+    color: colors.gray[700],
+  },
+  startBtn: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  startBtnGradient: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  startBtnText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  cancelOnWayBtn: {
+    flex: 0.35,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.error + '15',
+    borderWidth: 1,
+    borderColor: colors.error,
+    alignItems: 'center',
+  },
+  cancelOnWayBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.error,
+  },
+  arrivedBtn: {
+    flex: 0.65,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  arrivedBtnGradient: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  arrivedBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  waitingCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EDE9FE',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     gap: spacing.sm,
   },
-  waitingConfirmationIcon: {
+  waitingIcon: {
     fontSize: 20,
   },
-  waitingConfirmationText: {
+  waitingText: {
     fontSize: typography.fontSize.sm,
     color: '#6B21A8',
     fontWeight: '600',
-    textAlign: 'center',
+  },
+  completeBtn: {
+    flex: 1,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  completeBtnGradient: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  completeBtnText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.white,
+  },
+
+  // Quick Actions
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  quickCard: {
+    width: (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  quickIconBg: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickIcon: {
+    fontSize: 24,
+  },
+  quickLabel: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[700],
   },
 });

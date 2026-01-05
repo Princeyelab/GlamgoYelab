@@ -56,7 +56,7 @@ export default function PriceBreakdownCard({
 
     if (breakdown.distanceFee > 0) {
       items.push({
-        label: 'Frais de deplacement',
+        label: 'Frais de deplacement (CGU)',
         value: `+${formatPrice(breakdown.distanceFee)}`,
         type: 'surcharge',
       });
@@ -121,6 +121,16 @@ export default function PriceBreakdownCard({
           <Text style={styles.warningIcon}>🌙</Text>
           <Text style={styles.warningText}>
             Majoration nuit appliquee (20h - 8h)
+          </Text>
+        </View>
+      )}
+
+      {/* Distance fee warning (CGU) */}
+      {breakdown.distanceFee > 0 && (
+        <View style={styles.distanceFeeRow}>
+          <Text style={styles.distanceFeeIcon}>📍</Text>
+          <Text style={styles.distanceFeeText}>
+            Frais de deplacement appliques (au-dela de 15 km - CGU)
           </Text>
         </View>
       )}
@@ -227,6 +237,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.sm,
     color: colors.warning,
+    fontWeight: '500',
+  },
+
+  // Distance Fee (CGU)
+  distanceFeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.error + '10',
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error,
+  },
+  distanceFeeIcon: {
+    fontSize: 16,
+    marginRight: spacing.sm,
+  },
+  distanceFeeText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.error,
     fontWeight: '500',
   },
 });

@@ -1,6 +1,6 @@
 /**
  * Services GlamGo - Synchronise avec la web app
- * 28 services avec images locales
+ * 33 services avec images locales
  * FORMAT CONFORME A ServiceCard.tsx
  */
 
@@ -14,11 +14,11 @@ const IMAGE_BASE_URL = `${BACKEND_URL}/images/services`;
 const CHEF_2P_IMAGE = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=300&fit=crop';
 const CHEF_4P_IMAGE = 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&h=300&fit=crop';
 const CHEF_8P_IMAGE = 'https://images.unsplash.com/photo-1581299894007-aaa50297cf16?w=400&h=300&fit=crop';
-const EPILATION_IMAGE = 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=300&fit=crop';
 
 // Mapping des images par service (identique a web app serviceImages.js)
 export const SERVICE_IMAGES: Record<string, string> = {
-  // Chef a domicile (Unsplash - 3 images differentes)
+  // Chef a domicile
+  'chef-domicile': `${IMAGE_BASE_URL}/chef-domicile.jpg`,
   'chef-domicile-2-personnes': CHEF_2P_IMAGE,
   'chef-domicile-4-personnes': CHEF_4P_IMAGE,
   'chef-domicile-8-personnes': CHEF_8P_IMAGE,
@@ -60,15 +60,26 @@ export const SERVICE_IMAGES: Record<string, string> = {
   'pack-coiffure-barbe': `${IMAGE_BASE_URL}/pack-coiffure-barbe.jpg`,
   'taille-barbe': `${IMAGE_BASE_URL}/taille-barbe.jpg`,
 
-  // Epilation Smooth (placeholder Unsplash)
-  'smooth-femme': EPILATION_IMAGE,
-  'smooth-femme-full': EPILATION_IMAGE,
-  'smooth-homme': EPILATION_IMAGE,
-  'smooth-homme-full': EPILATION_IMAGE,
+  // Epilation Smooth
+  'smooth-femme': `${IMAGE_BASE_URL}/smooth-femme.jpg`,
+  'smooth-femme-full': `${IMAGE_BASE_URL}/smooth-femme-full.jpg`,
+  'smooth-homme': `${IMAGE_BASE_URL}/smooth-homme.jpg`,
+  'smooth-homme-full': `${IMAGE_BASE_URL}/smooth-homme-full.jpg`,
+
+  // Hijama
+  'hijama': `${IMAGE_BASE_URL}/hijama.jpg`,
+
+  // Manucure
+  'manucure-classique': `${IMAGE_BASE_URL}/manucure-classique.jpg`,
+  'manucure-gel': `${IMAGE_BASE_URL}/manucure-gel.jpg`,
+
+  // Maquillage
+  'maquillage-jour': `${IMAGE_BASE_URL}/maquillage-jour.jpg`,
+  'maquillage-mariage': `${IMAGE_BASE_URL}/maquillage-mariage.jpg`,
 };
 
 /**
- * 28 services reels - FORMAT CONFORME A ServiceCard
+ * 33 services reels - FORMAT CONFORME A ServiceCard
  * Utilise: title, images[], reviews_count, duration_minutes
  */
 export const SERVICES: Service[] = [
@@ -123,49 +134,21 @@ export const SERVICES: Service[] = [
   },
   {
     id: 4,
-    title: 'Chef 2 personnes',
-    slug: 'chef-domicile-2-personnes',
-    description: 'Chef professionnel prepare vos repas a domicile pour 2 personnes. Menu personnalise selon vos gouts.',
+    title: 'Chef a domicile',
+    slug: 'chef-domicile',
+    description: 'Chef professionnel prepare vos repas a domicile. Menu personnalise selon vos gouts. A partir de 2 personnes.',
     category_id: 1,
     category: { id: 1, name: 'Maison', color: '#3B82F6' },
-    price: 500,
+    price: 500, // Prix affiche = prix minimum (2 personnes)
+    price_per_person: 250, // Prix par personne
+    min_guests: 2,
+    max_guests: 12,
+    service_type: 'chef',
     currency: 'MAD',
     duration_minutes: 120,
-    images: [SERVICE_IMAGES['chef-domicile-2-personnes']],
+    images: [SERVICE_IMAGES['chef-domicile']],
     rating: 4.9,
-    reviews_count: 67,
-    provider: { id: 4, name: 'Karim L.' },
-    status: 'active',
-  },
-  {
-    id: 5,
-    title: 'Chef 4 personnes',
-    slug: 'chef-domicile-4-personnes',
-    description: 'Service traiteur pour 4 personnes. Ideal pour diners entre amis ou repas de famille.',
-    category_id: 1,
-    category: { id: 1, name: 'Maison', color: '#3B82F6' },
-    price: 900,
-    currency: 'MAD',
-    duration_minutes: 180,
-    images: [SERVICE_IMAGES['chef-domicile-4-personnes']],
-    rating: 4.9,
-    reviews_count: 45,
-    provider: { id: 4, name: 'Karim L.' },
-    status: 'active',
-  },
-  {
-    id: 6,
-    title: 'Chef 8 personnes',
-    slug: 'chef-domicile-8-personnes',
-    description: 'Service traiteur pour evenements jusqu\'a 8 personnes. Parfait pour celebrations et occasions speciales.',
-    category_id: 1,
-    category: { id: 1, name: 'Maison', color: '#3B82F6' },
-    price: 1500,
-    currency: 'MAD',
-    duration_minutes: 240,
-    images: [SERVICE_IMAGES['chef-domicile-8-personnes']],
-    rating: 4.8,
-    reviews_count: 34,
+    reviews_count: 146,
     provider: { id: 4, name: 'Karim L.' },
     status: 'active',
   },
@@ -409,10 +392,16 @@ export const SERVICES: Service[] = [
     id: 21,
     title: 'Coach Sportif',
     slug: 'coach-sportif',
-    description: 'Entrainement personnalise selon vos objectifs : perte de poids, musculation ou remise en forme.',
+    description: 'Entrainement personnalise selon vos objectifs : perte de poids, musculation ou remise en forme. Minimum 4 seances.',
     category_id: 4,
     category: { id: 4, name: 'Bien-etre', color: '#2A9D8F' },
-    price: 400,
+    price: 700, // Prix du pack minimum (Decouverte - 4 seances)
+    service_type: 'coach',
+    packs: [
+      { id: 'decouverte', name: 'Decouverte', sessions: 4, price: 700, pricePerSession: 175 },
+      { id: 'classique', name: 'Classique', sessions: 8, price: 1200, pricePerSession: 150, discount: 17, popular: true },
+      { id: 'intensif', name: 'Intensif', sessions: 12, price: 1500, pricePerSession: 125, discount: 29 },
+    ],
     currency: 'MAD',
     duration_minutes: 60,
     images: [SERVICE_IMAGES['coach-sportif']],
@@ -536,6 +525,95 @@ export const SERVICES: Service[] = [
     rating: 4.8,
     reviews_count: 45,
     provider: { id: 14, name: 'Rachid M.' },
+    isNew: true,
+    status: 'active',
+  },
+
+  // === HIJAMA (category_id: 4 - Bien-etre) ===
+  {
+    id: 29,
+    title: 'Hijama',
+    slug: 'hijama',
+    description: 'Seance de Hijama (cupping therapy) traditionnelle. Technique ancestrale de ventouses pour detoxifier le corps et ameliorer la circulation sanguine.',
+    category_id: 4,
+    category: { id: 4, name: 'Bien-etre', color: '#2A9D8F' },
+    price: 300,
+    currency: 'MAD',
+    duration_minutes: 60,
+    images: [SERVICE_IMAGES['hijama']],
+    rating: 4.9,
+    reviews_count: 78,
+    provider: { id: 15, name: 'Youssef H.' },
+    isNew: true,
+    status: 'active',
+  },
+
+  // === MANUCURE (category_id: 2 - Beaute) ===
+  {
+    id: 30,
+    title: 'Manucure Classique',
+    slug: 'manucure-classique',
+    description: 'Soin complet des ongles : limage, polissage, cuticules et vernis classique. Mains douces et ongles impeccables.',
+    category_id: 2,
+    category: { id: 2, name: 'Beaute', color: '#E63946' },
+    price: 150,
+    currency: 'MAD',
+    duration_minutes: 45,
+    images: [SERVICE_IMAGES['manucure-classique']],
+    rating: 4.7,
+    reviews_count: 124,
+    provider: { id: 16, name: 'Kenza R.' },
+    status: 'active',
+  },
+  {
+    id: 31,
+    title: 'Manucure Gel / Semi-permanent',
+    slug: 'manucure-gel',
+    description: 'Pose de vernis gel ou semi-permanent longue tenue. Brillance et couleur jusqu\'a 3 semaines sans ecaillement.',
+    category_id: 2,
+    category: { id: 2, name: 'Beaute', color: '#E63946' },
+    price: 250,
+    currency: 'MAD',
+    duration_minutes: 60,
+    images: [SERVICE_IMAGES['manucure-gel']],
+    rating: 4.9,
+    reviews_count: 89,
+    provider: { id: 16, name: 'Kenza R.' },
+    is_featured: true,
+    status: 'active',
+  },
+
+  // === MAQUILLAGE (category_id: 2 - Beaute) ===
+  {
+    id: 32,
+    title: 'Maquillage Jour',
+    slug: 'maquillage-jour',
+    description: 'Maquillage naturel et elegant pour le quotidien ou occasion speciale. Teint frais, regard sublime et levres parfaites.',
+    category_id: 2,
+    category: { id: 2, name: 'Beaute', color: '#E63946' },
+    price: 300,
+    currency: 'MAD',
+    duration_minutes: 45,
+    images: [SERVICE_IMAGES['maquillage-jour']],
+    rating: 4.8,
+    reviews_count: 156,
+    provider: { id: 17, name: 'Zineb A.' },
+    status: 'active',
+  },
+  {
+    id: 33,
+    title: 'Maquillage Mariage',
+    slug: 'maquillage-mariage',
+    description: 'Maquillage de mariee professionnel avec essai inclus. Look personnalise pour votre grand jour, tenue longue duree garantie.',
+    category_id: 2,
+    category: { id: 2, name: 'Beaute', color: '#E63946' },
+    price: 800,
+    currency: 'MAD',
+    duration_minutes: 90,
+    images: [SERVICE_IMAGES['maquillage-mariage']],
+    rating: 4.9,
+    reviews_count: 67,
+    provider: { id: 17, name: 'Zineb A.' },
     isNew: true,
     status: 'active',
   },

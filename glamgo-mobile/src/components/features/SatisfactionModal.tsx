@@ -24,6 +24,7 @@ import {
   Platform,
 } from 'react-native';
 import { colors, spacing, typography, shadows, borderRadius } from '../../lib/constants/theme';
+import { moderateMessage } from '../../lib/utils/contentModeration';
 
 interface Order {
   id: number;
@@ -221,10 +222,29 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
     customTip: '',
     showCustomTip: false,
   });
+  const [commentWarning, setCommentWarning] = useState('');
 
   const updateField = <K extends keyof typeof formData>(field: K, value: typeof formData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError('');
+  };
+
+  // Validation du commentaire avec modération
+  const handleCommentChange = (text: string) => {
+    setFormData((prev) => ({ ...prev, comment: text }));
+    setError('');
+
+    // Vérifier le contenu en temps réel
+    if (text.trim().length > 0) {
+      const moderation = moderateMessage(text);
+      if (!moderation.isAllowed) {
+        setCommentWarning(moderation.reason || 'Contenu inapproprié détecté');
+      } else {
+        setCommentWarning('');
+      }
+    } else {
+      setCommentWarning('');
+    }
   };
 
   const validateStep1 = () => {
@@ -261,6 +281,15 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
 
   const handleSubmit = async () => {
     if (!validateStep1() || !validateStep2()) return;
+
+    // Vérifier la modération du commentaire avant soumission
+    if (formData.comment.trim().length > 0) {
+      const moderation = moderateMessage(formData.comment);
+      if (!moderation.isAllowed) {
+        setError(moderation.reason || 'Votre commentaire contient du contenu inapproprié');
+        return;
+      }
+    }
 
     setSubmitting(true);
     setError('');
@@ -322,9 +351,19 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
               <Text style={styles.title}>Évaluez votre prestation</Text>
               <Text style={styles.subtitle}>Votre avis compte !</Text>
             </View>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Text style={styles.closeIcon}>✕</Text>
-            </TouchableOpacity>
+            {/* Pas de bouton fermer - evaluation obligatoire */}
+          </View>
+
+          {/* Bandeau obligatoire */}
+          <View style={styles.mandatoryBanner}>
+            <Text style={styles.mandatoryIcon}>⚠️</Text>
+            <View style={styles.mandatoryTextContainer}>
+              <Text style={styles.mandatoryTitle}>Évaluation obligatoire</Text>
+              <Text style={styles.mandatoryText}>
+                Le paiement au prestataire sera déclenché après votre évaluation.
+                Vous ne pourrez pas faire de nouvelle réservation avant d'avoir évalué.
+              </Text>
+            </View>
           </View>
 
           {/* Stepper */}
@@ -436,39 +475,50 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
             {/* Step 3: Comment & Tip */}
             {step === 3 && (
               <View style={styles.stepContent}>
-                {/* Tip Section - toujours visible */}
-                <TipSelector
-                  value={formData.tip || 0}
-                  customTip={formData.customTip}
-                  showCustom={formData.showCustomTip}
-                  onSelectAmount={(amount) => {
-                    updateField('tip', amount);
-                    updateField('customTip', '');
-                    updateField('showCustomTip', false);
-                  }}
-                  onShowCustom={() => {
-                    updateField('showCustomTip', true);
-                    updateField('tip', 0);
-                  }}
-                  onCustomChange={(val) => updateField('customTip', val)}
-                  paymentMethod={order.payment_method}
-                />
+                {/* Tip Section - uniquement pour paiement par carte */}
+                {order.payment_method === 'card' && (
+                  <TipSelector
+                    value={formData.tip || 0}
+                    customTip={formData.customTip}
+                    showCustom={formData.showCustomTip}
+                    onSelectAmount={(amount) => {
+                      updateField('tip', amount);
+                      updateField('customTip', '');
+                      updateField('showCustomTip', false);
+                    }}
+                    onShowCustom={() => {
+                      updateField('showCustomTip', true);
+                      updateField('tip', 0);
+                    }}
+                    onCustomChange={(val) => updateField('customTip', val)}
+                    paymentMethod={order.payment_method}
+                  />
+                )}
 
                 <View style={styles.question}>
                   <Text style={styles.questionLabel}>
                     Laissez un commentaire (optionnel)
                   </Text>
                   <TextInput
-                    style={styles.commentInput}
+                    style={[
+                      styles.commentInput,
+                      commentWarning ? styles.commentInputError : null
+                    ]}
                     placeholder="Partagez votre expérience..."
                     placeholderTextColor={colors.gray[400]}
                     multiline
                     numberOfLines={4}
                     maxLength={1000}
                     value={formData.comment}
-                    onChangeText={(text) => updateField('comment', text)}
+                    onChangeText={handleCommentChange}
                     textAlignVertical="top"
                   />
+                  {commentWarning ? (
+                    <View style={styles.commentWarning}>
+                      <Text style={styles.commentWarningIcon}>⚠️</Text>
+                      <Text style={styles.commentWarningText}>{commentWarning}</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.charCount}>{formData.comment.length}/1000</Text>
                 </View>
 
@@ -480,9 +530,13 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     <Text style={styles.buttonTextSecondary}>← Retour</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.button, styles.buttonSuccess]}
+                    style={[
+                      styles.button,
+                      styles.buttonSuccess,
+                      (submitting || commentWarning) && styles.buttonDisabled
+                    ]}
                     onPress={handleSubmit}
-                    disabled={submitting}
+                    disabled={submitting || !!commentWarning}
                   >
                     {submitting ? (
                       <ActivityIndicator color={colors.white} size="small" />
@@ -556,13 +610,33 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     marginTop: 4,
   },
-  closeButton: {
-    padding: spacing.xs,
+  mandatoryBanner: {
+    flexDirection: 'row',
+    backgroundColor: colors.warning + '15',
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
-  closeIcon: {
+  mandatoryIcon: {
     fontSize: 24,
-    color: colors.gray[600],
+    marginRight: spacing.sm,
+  },
+  mandatoryTextContainer: {
+    flex: 1,
+  },
+  mandatoryTitle: {
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.bold,
+    color: colors.warning,
+    marginBottom: 2,
+  },
+  mandatoryText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[700],
+    lineHeight: 16,
   },
   stepper: {
     flexDirection: 'row',
@@ -840,6 +914,29 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.gray[800],
     minHeight: 100,
+  },
+  commentInputError: {
+    borderColor: colors.error,
+    borderWidth: 2,
+    backgroundColor: colors.error + '05',
+  },
+  commentWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.error + '15',
+    padding: spacing.sm,
+    borderRadius: 8,
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  commentWarningIcon: {
+    fontSize: 14,
+  },
+  commentWarningText: {
+    flex: 1,
+    fontSize: typography.fontSize.xs,
+    color: colors.error,
+    lineHeight: 16,
   },
   charCount: {
     fontSize: typography.fontSize.xs,

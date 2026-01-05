@@ -43,4 +43,5 @@ export const EVENTS = {
   REFRESH_CLIENT_BOOKINGS: 'refresh_client_bookings',
   ORDER_CANCELLED: 'order_cancelled',
   ORDER_ACCEPTED: 'order_accepted',
+  REFRESH_PROVIDER_SERVICES: 'refresh_provider_services',
 };

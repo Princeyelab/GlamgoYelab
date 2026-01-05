@@ -1,6 +1,6 @@
 /**
  * Edit Profile - GlamGo Mobile
- * Modification du profil utilisateur
+ * Modification du profil utilisateur avec upload photo
  */
 
 import { useState, useEffect } from 'react';
@@ -14,14 +14,18 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import Button from '../src/components/ui/Button';
 import Input from '../src/components/ui/Input';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../src/lib/store/hooks';
-import { selectAuth, updateUserProfile } from '../src/lib/store/slices/authSlice';
+import { selectAuth, updateUserProfile, setUser } from '../src/lib/store/slices/authSlice';
 import { hapticFeedback } from '../src/lib/utils/haptics';
+import { uploadProviderImage, getProviderProfile } from '../src/lib/api/providerAPI';
+import { API_BASE_URL } from '../src/lib/api/client';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -34,14 +38,91 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Photo state
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(user?.avatar || null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Charger la photo actuelle depuis l'API provider
+  useEffect(() => {
+    const loadCurrentPhoto = async () => {
+      if (user?.user_type === 'provider') {
+        try {
+          const profile = await getProviderProfile();
+          if (profile.avatar) {
+            const fullUrl = profile.avatar.startsWith('http')
+              ? profile.avatar
+              : `${API_BASE_URL}${profile.avatar}`;
+            setCurrentAvatar(fullUrl);
+          }
+        } catch (error) {
+          console.log('[EditProfile] Could not load provider photo');
+        }
+      }
+    };
+    loadCurrentPhoto();
+  }, [user]);
+
   // Track changes
   useEffect(() => {
     const changed =
       firstName !== (user?.first_name || '') ||
       lastName !== (user?.last_name || '') ||
-      phone !== (user?.phone || '');
+      phone !== (user?.phone || '') ||
+      profilePhoto !== null;
     setHasChanges(changed);
-  }, [firstName, lastName, phone, user]);
+  }, [firstName, lastName, phone, user, profilePhoto]);
+
+  // Choisir une photo
+  const pickImage = async () => {
+    hapticFeedback.light();
+
+    Alert.alert(
+      'Changer la photo',
+      'Comment souhaitez-vous ajouter la photo ?',
+      [
+        {
+          text: 'Appareil photo',
+          onPress: async () => {
+            const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!cameraPermission.granted) {
+              Alert.alert('Permission requise', 'Autorisez l\'accès à la caméra pour prendre une photo');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+              setProfilePhoto(result.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Galerie',
+          onPress: async () => {
+            const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!galleryPermission.granted) {
+              Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie pour choisir une photo');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+              setProfilePhoto(result.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Annuler', style: 'cancel' },
+      ]
+    );
+  };
 
   const handleSave = async () => {
     if (!hasChanges) {
@@ -51,21 +132,68 @@ export default function EditProfileScreen() {
 
     try {
       hapticFeedback.medium();
+      let photoUpdated = false;
 
-      await dispatch(updateUserProfile({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        // address n'existe pas encore dans la DB
-      })).unwrap();
+      // Upload de la photo si modifiée
+      // Detecter si on est prestataire: user_type === 'provider' OU undefined (contexte provider)
+      const isProvider = user?.user_type === 'provider' || user?.user_type === 'prestataire' || !user?.user_type;
+
+      if (profilePhoto && isProvider) {
+        setIsUploadingPhoto(true);
+        try {
+          console.log('[EditProfile] Uploading photo...');
+          const result = await uploadProviderImage(profilePhoto);
+          console.log('[EditProfile] Photo uploaded:', result.image_url);
+
+          // Mettre à jour l'avatar dans le state local
+          const fullUrl = result.image_url.startsWith('http')
+            ? result.image_url
+            : `${API_BASE_URL}${result.image_url}`;
+          setCurrentAvatar(fullUrl);
+          setProfilePhoto(null);
+          photoUpdated = true;
+
+          // Mettre à jour le user dans Redux avec le nouvel avatar
+          dispatch(setUser({
+            ...user,
+            avatar: fullUrl,
+          }));
+        } catch (uploadError: any) {
+          console.error('[EditProfile] Photo upload error:', uploadError);
+          Alert.alert('Erreur', 'Impossible de mettre à jour la photo');
+          setIsUploadingPhoto(false);
+          return;
+        }
+        setIsUploadingPhoto(false);
+      }
+
+      // Mettre à jour les autres champs du profil
+      const profileChanged =
+        firstName !== (user?.first_name || '') ||
+        lastName !== (user?.last_name || '') ||
+        phone !== (user?.phone || '');
+
+      if (profileChanged) {
+        await dispatch(updateUserProfile({
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+        })).unwrap();
+      }
 
       hapticFeedback.success();
-      Alert.alert('Succes', 'Profil mis a jour', [
+      const message = photoUpdated && profileChanged
+        ? 'Photo et profil mis à jour'
+        : photoUpdated
+        ? 'Photo de profil mise à jour'
+        : 'Profil mis à jour';
+
+      Alert.alert('Succès', message, [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.message || 'Impossible de mettre a jour le profil');
+      Alert.alert('Erreur', error?.message || 'Impossible de mettre à jour le profil');
     }
   };
 
@@ -108,18 +236,34 @@ export default function EditProfileScreen() {
         </View>
 
         <View style={styles.content}>
-          {/* Avatar */}
-          <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          {/* Avatar avec bouton de modification */}
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={pickImage}
+            disabled={isUploadingPhoto}
+          >
+            {isUploadingPhoto ? (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <ActivityIndicator size="large" color={colors.white} />
+              </View>
+            ) : profilePhoto || currentAvatar ? (
+              <Image
+                source={{ uri: profilePhoto || currentAvatar || undefined }}
+                style={styles.avatar}
+              />
             ) : (
-              <View style={styles.avatarPlaceholder}>
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarText}>
                   {(firstName || user?.name || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
-          </View>
+            {/* Badge de modification */}
+            <View style={styles.avatarEditBadge}>
+              <Text style={styles.avatarEditIcon}>{'📷'}</Text>
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.avatarHint}>{'Appuyez pour changer la photo'}</Text>
 
           {/* Form */}
           <View style={styles.form}>
@@ -161,10 +305,10 @@ export default function EditProfileScreen() {
               variant="primary"
               fullWidth
               onPress={handleSave}
-              loading={isLoading}
-              disabled={isLoading || !hasChanges}
+              loading={isLoading || isUploadingPhoto}
+              disabled={isLoading || isUploadingPhoto || !hasChanges}
             >
-              Sauvegarder
+              {isUploadingPhoto ? 'Upload en cours...' : 'Sauvegarder'}
             </Button>
 
             <Button

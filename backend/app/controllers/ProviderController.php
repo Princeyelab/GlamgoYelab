@@ -38,6 +38,9 @@ class ProviderController extends Controller
             $this->error('Email ou mot de passe incorrect', 401);
         }
 
+        // Mettre le prestataire en ligne (is_available = true, last_seen_at = now)
+        $this->providerModel->setOnline($provider['id']);
+
         // Générer le token JWT
         $token = JWT::encode([
             'user_id' => $provider['id'],
@@ -214,6 +217,9 @@ class ProviderController extends Controller
         if (!$provider) {
             $this->error('Prestataire non trouvé', 404);
         }
+
+        // Mettre à jour last_seen_at pour tracker l'activité
+        $this->providerModel->updateLastSeen($providerId);
 
         unset($provider['password']);
 
@@ -432,6 +438,103 @@ class ProviderController extends Controller
         }
 
         return '/uploads/documents/' . $filename;
+    }
+
+    /**
+     * Upload du diplôme/certificat du prestataire (par catégorie)
+     */
+    public function uploadDiploma(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        // Récupérer la catégorie (optionnelle, par défaut 'general')
+        $categorySlug = $_POST['category'] ?? 'general';
+
+        // Vérifier qu'un fichier a été envoyé
+        if (!isset($_FILES['diploma']) || $_FILES['diploma']['error'] !== UPLOAD_ERR_OK) {
+            $this->error('Aucun fichier fourni ou erreur d\'upload', 400);
+        }
+
+        $file = $_FILES['diploma'];
+
+        // Créer le répertoire si nécessaire
+        $uploadDir = __DIR__ . '/../../public/uploads/documents/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Uploader le fichier
+        $diplomaPath = $this->uploadDocumentFile($file, $providerId, 'diploma_' . $categorySlug, $uploadDir);
+
+        if (!$diplomaPath) {
+            $this->error('Erreur lors de l\'upload du diplôme. Format accepté: JPG, PNG, PDF (max 10MB)', 400);
+        }
+
+        // Insérer ou mettre à jour dans provider_diplomas
+        $db = \App\Core\Database::getInstance();
+
+        // Vérifier si un diplôme existe déjà pour cette catégorie
+        $stmt = $db->prepare("SELECT id FROM provider_diplomas WHERE provider_id = ? AND category_slug = ?");
+        $stmt->execute([$providerId, $categorySlug]);
+        $existing = $stmt->fetch();
+
+        if ($existing) {
+            // Mettre à jour
+            $stmt = $db->prepare("UPDATE provider_diplomas SET file_path = ?, file_name = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$diplomaPath, $file['name'], $existing['id']]);
+        } else {
+            // Insérer
+            $stmt = $db->prepare("INSERT INTO provider_diplomas (provider_id, category_slug, file_path, file_name) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$providerId, $categorySlug, $diplomaPath, $file['name']]);
+        }
+
+        // Aussi mettre à jour l'ancien champ pour compatibilité
+        $this->providerModel->update($providerId, [
+            'diploma_certificate_path' => $diplomaPath
+        ]);
+
+        $this->success([
+            'diploma_path' => $diplomaPath,
+            'category' => $categorySlug
+        ], 'Diplôme enregistré avec succès');
+    }
+
+    /**
+     * Récupérer les diplômes du prestataire
+     */
+    public function getDiplomas(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $db = \App\Core\Database::getInstance();
+
+        $stmt = $db->prepare("
+            SELECT category_slug, file_path, file_name, is_verified, created_at
+            FROM provider_diplomas
+            WHERE provider_id = ?
+        ");
+        $stmt->execute([$providerId]);
+        $diplomas = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Convertir en objet indexé par catégorie
+        $diplomasByCategory = [];
+        foreach ($diplomas as $diploma) {
+            $diplomasByCategory[$diploma['category_slug']] = $diploma;
+        }
+
+        $this->success($diplomasByCategory);
+    }
+
+    /**
+     * Déconnexion du prestataire (le met hors ligne)
+     */
+    public function logout(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        // Mettre le prestataire hors ligne
+        $this->providerModel->setOffline($providerId);
+
+        $this->success(null, 'Déconnexion réussie');
     }
 
 }

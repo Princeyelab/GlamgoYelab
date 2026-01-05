@@ -206,9 +206,12 @@ let demoBookingId = 100;
 /**
  * Creer une reservation
  */
-export const createBooking = createAsyncThunk(
+export const createBooking = createAsyncThunk<Booking, CreateBookingData, { rejectValue: string }>(
   'bookings/create',
-  async (data: CreateBookingData, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
+    console.log('[bookingsSlice] createBooking thunk called with:', JSON.stringify(data));
+    console.log('[bookingsSlice] DEMO_MODE:', DEMO_MODE);
+
     // === DEMO MODE ===
     if (DEMO_MODE) {
       console.log('🎭 MODE DEMO: Creation reservation simulee', data);
@@ -246,26 +249,26 @@ export const createBooking = createAsyncThunk(
     }
 
     try {
+      console.log('[bookingsSlice] Calling apiCreateBooking...');
       const booking = await apiCreateBooking(data);
+      console.log('[bookingsSlice] apiCreateBooking returned:', booking?.id);
       return booking;
     } catch (error: any) {
+      console.error('[bookingsSlice] API error:', error.message);
+      console.error('[bookingsSlice] Error details:', JSON.stringify({
+        code: error.code,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      }));
       logError('createBooking', error);
-      // En mode demo fallback, créer quand même
-      const service = SERVICES.find(s => s.id === data.service_id);
-      return {
-        id: demoBookingId++,
-        service_id: data.service_id,
-        provider_id: data.provider_id,
-        client_id: 999,
-        date: data.date,
-        start_time: data.start_time,
-        status: 'accepted' as BookingStatus,
-        total: service?.price || 100,
-        currency: 'MAD',
-        address: data.address,
-        service: service ? { id: service.id, title: service.title } : undefined,
-        provider: { id: data.provider_id, name: 'Prestataire' },
-      } as Booking;
+
+      // NE PAS créer de fallback - propager l'erreur
+      const errorMessage = error.response?.data?.message
+        || error.response?.data?.error
+        || error.message
+        || 'Erreur lors de la création de la réservation';
+      return rejectWithValue(errorMessage);
     }
   }
 );

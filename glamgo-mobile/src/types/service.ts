@@ -4,6 +4,18 @@
 
 import { Provider } from './provider';
 
+// Pack de seances pour services type coach
+export interface ServicePack {
+  id: string;
+  name: string;
+  sessions: number;
+  price: number;
+  pricePerSession: number;
+  discount?: number;
+  popular?: boolean;
+  icon?: string;
+}
+
 export interface Service {
   // IDs - Accept both string and number for flexibility
   id: number | string;
@@ -17,6 +29,11 @@ export interface Service {
   // Pricing
   price: number;
   currency?: string; // default 'MAD'
+  price_per_person?: number; // Pour services type chef
+  min_guests?: number; // Minimum de personnes (ex: 2)
+  max_guests?: number; // Maximum de personnes (ex: 12)
+  service_type?: 'standard' | 'chef' | 'coach'; // Type de service pour logique speciale
+  packs?: ServicePack[]; // Pour services type coach (packs de seances)
 
   // Timing
   duration_minutes?: number;

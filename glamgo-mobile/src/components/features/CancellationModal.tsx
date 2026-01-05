@@ -146,7 +146,10 @@ export default function CancellationModal({
         payload.provider_lng = providerLocation.lng;
       }
 
-      const response = await apiClient.post(endpoint, payload);
+      // Client utilise PATCH, Provider utilise POST
+      const response = userType === 'client'
+        ? await apiClient.patch(endpoint, payload)
+        : await apiClient.post(endpoint, payload);
 
       if (response.data?.success) {
         hapticFeedback.success();

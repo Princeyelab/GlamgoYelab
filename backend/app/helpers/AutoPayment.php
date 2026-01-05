@@ -53,9 +53,15 @@ class AutoPayment
                 return ['success' => false, 'message' => 'Montant invalide', 'data' => null];
             }
 
-            // Calculer commission GlamGo (20%)
-            $commission_glamgo = round($total_amount * 0.20, 2);
-            $provider_amount = $total_amount - $commission_glamgo;
+            // Récupérer le pourboire (100% pour le prestataire)
+            $tip_amount = floatval($order['tip'] ?? 0);
+
+            // Calculer commission GlamGo (20%) sur le montant de BASE uniquement (sans pourboire)
+            $base_amount = $total_amount - $tip_amount;
+            $commission_glamgo = round($base_amount * 0.20, 2);
+
+            // Prestataire recoit: montant base - commission + 100% du pourboire
+            $provider_amount = ($base_amount - $commission_glamgo) + $tip_amount;
 
             // Vérifier si table transactions existe
             try {
@@ -175,6 +181,8 @@ class AutoPayment
                         'data' => [
                             'transaction_id' => $transaction_id,
                             'amount' => $total_amount,
+                            'base_amount' => $base_amount,
+                            'tip_amount' => $tip_amount,
                             'commission_glamgo' => $commission_glamgo,
                             'provider_amount' => $provider_amount,
                             'is_mock' => $paymentResponse['mock'] ?? false
@@ -222,6 +230,8 @@ class AutoPayment
                     'transaction_id' => $transaction_id,
                     'payment_method' => 'cash',
                     'amount' => $total_amount,
+                    'base_amount' => $base_amount,
+                    'tip_amount' => $tip_amount,
                     'commission_glamgo' => $commission_glamgo,
                     'provider_amount' => $provider_amount
                 ]

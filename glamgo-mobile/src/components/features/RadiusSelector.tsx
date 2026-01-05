@@ -29,6 +29,9 @@ const RADIUS_OPTIONS: RadiusOption[] = [
   { value: 30, label: '30 km', isFree: false },
   { value: 50, label: '50 km', isFree: false },
   { value: 100, label: '100 km', isFree: false },
+  { value: 500, label: '500 km', isFree: false },
+  { value: 1000, label: '1000 km', isFree: false },
+  { value: 3000, label: '3000 km', isFree: false },
 ];
 
 // Rayon d'intervention gratuit (selon CGU)

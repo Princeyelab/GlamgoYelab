@@ -77,6 +77,9 @@ export default function ProviderCard({
   const duration = provider.duration_minutes;
   const serviceName = provider.service_name;
 
+  // Custom services
+  const hasCustomServices = provider.has_custom_services || provider.custom_services_count > 0;
+
   // Generate initials from name
   const getInitials = (fullName: string): string => {
     const parts = fullName.trim().split(/\s+/);
@@ -148,14 +151,44 @@ export default function ProviderCard({
       onPress={handleSelect}
       style={selected ? { ...styles.card, ...styles.cardSelected } : styles.card}
     >
-      {/* Nearest badge */}
-      {isNearest && (
-        <View style={styles.nearestBadge}>
-          <Badge color="success" variant="filled" size="sm">
-            Le plus proche
-          </Badge>
+      {/* Availability badge - always visible */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 10,
+          paddingVertical: 6,
+          borderRadius: 20,
+          backgroundColor: isAvailableNow ? '#DCFCE7' : '#FEE2E2',
+        }}>
+          <View style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            marginRight: 6,
+            backgroundColor: isAvailableNow ? '#22C55E' : '#EF4444',
+          }} />
+          <Text style={{
+            fontSize: 13,
+            fontWeight: '600',
+            color: isAvailableNow ? '#166534' : '#DC2626',
+          }}>
+            {isAvailableNow ? 'Disponible' : 'Indisponible'}
+          </Text>
         </View>
-      )}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {hasCustomServices && (
+            <Badge color="warning" variant="filled" size="sm">
+              ✨ Services exclusifs
+            </Badge>
+          )}
+          {isNearest && (
+            <Badge color="success" variant="filled" size="sm">
+              Le plus proche
+            </Badge>
+          )}
+        </View>
+      </View>
 
       {/* Header with avatar and info */}
       <View style={styles.header}>
@@ -341,12 +374,6 @@ const styles = StyleSheet.create({
   cardSelected: {
     borderColor: colors.primary,
     borderWidth: 2,
-  },
-  nearestBadge: {
-    position: 'absolute',
-    top: -spacing.sm,
-    right: spacing.md,
-    zIndex: 10,
   },
   header: {
     flexDirection: 'row',

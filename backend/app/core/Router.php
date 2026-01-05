@@ -98,6 +98,8 @@ class Router
             if ($route['http_method'] === $requestMethod && preg_match($pattern, $requestUri, $matches)) {
                 array_shift($matches); // Enlève le match complet
 
+                error_log("[Router] Matched: {$requestMethod} {$requestUri} -> {$route['controller']}::{$route['method']}");
+
                 // Exécution des middlewares
                 foreach ($route['middlewares'] as $middlewareClass) {
                     $middleware = new $middlewareClass();

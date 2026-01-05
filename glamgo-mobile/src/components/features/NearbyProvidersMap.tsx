@@ -14,6 +14,7 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import MapView, { Marker, Circle, Callout, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import Card from '../ui/Card';
@@ -26,6 +27,7 @@ export interface NearbyProvider {
   id: number;
   name: string;
   initials: string;
+  avatar?: string;
   rating: number;
   reviewsCount: number;
   distance: number;
@@ -172,6 +174,11 @@ export default function NearbyProvidersMap({
     const isSelected = selectedProviderId === provider.id;
     const isNearest = nearestProvider?.id === provider.id;
 
+    // Construire l'URL de l'avatar
+    const avatarUrl = provider.avatar
+      ? (provider.avatar.startsWith('http') ? provider.avatar : `https://glamgo-api.fly.dev${provider.avatar}`)
+      : null;
+
     return (
       <Marker
         key={provider.id}
@@ -190,12 +197,19 @@ export default function NearbyProvidersMap({
               <Text style={styles.nearestBadgeMarkerText}>Plus proche</Text>
             </View>
           )}
-          <Text style={[
-            styles.markerInitials,
-            (isSelected || isNearest) && styles.markerInitialsLight,
-          ]}>
-            {provider.initials}
-          </Text>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.markerAvatar}
+            />
+          ) : (
+            <Text style={[
+              styles.markerInitials,
+              (isSelected || isNearest) && styles.markerInitialsLight,
+            ]}>
+              {provider.initials}
+            </Text>
+          )}
           {provider.isOnline && <View style={styles.onlineDot} />}
         </View>
 
@@ -551,6 +565,11 @@ const styles = StyleSheet.create({
   markerOffline: {
     borderColor: colors.gray[400],
     opacity: 0.7,
+  },
+  markerAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
   markerInitials: {
     fontSize: 14,

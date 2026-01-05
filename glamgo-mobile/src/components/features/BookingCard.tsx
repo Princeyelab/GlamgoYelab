@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -50,6 +50,48 @@ export default function BookingCard(props: BookingCardProps) {
     onTrackProvider,
     onReview,
   } = props;
+
+  // Timer state pour commandes pending
+  const [timeoutRemaining, setTimeoutRemaining] = useState<number | null>(null);
+
+  // Timer countdown pour pending (4 minutes)
+  useEffect(() => {
+    if (status !== 'pending') {
+      setTimeoutRemaining(null);
+      return;
+    }
+
+    const created_at = (props as any).created_at;
+
+    const calculateRemaining = () => {
+      if (!created_at) return 240;
+      let createdAtStr = created_at;
+      if (!createdAtStr.endsWith('Z') && !createdAtStr.includes('+')) {
+        createdAtStr = createdAtStr.replace(' ', 'T') + 'Z';
+      }
+      const createdTime = new Date(createdAtStr).getTime();
+      const elapsed = Math.floor((Date.now() - createdTime) / 1000);
+      return Math.max(0, 240 - elapsed);
+    };
+
+    setTimeoutRemaining(calculateRemaining());
+
+    const interval = setInterval(() => {
+      setTimeoutRemaining(prev => {
+        if (prev === null || prev <= 1) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [status, (props as any).created_at]);
+
+  // Formater le temps restant
+  const formatTimeRemaining = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
   // Support both new and legacy field names
   const booking_date = props.booking_date || props.date || '';
   const booking_time = props.booking_time || props.time || '';
@@ -184,6 +226,34 @@ export default function BookingCard(props: BookingCardProps) {
           <Text style={styles.priceLabel}>Prix</Text>
           <Text style={styles.priceValue}>{formatPrice(total)}</Text>
         </View>
+
+        {/* Timer Countdown pour pending */}
+        {normalizedStatus === 'pending' && timeoutRemaining !== null && (
+          <View style={[
+            styles.timerContainer,
+            timeoutRemaining < 60 && styles.timerContainerUrgent
+          ]}>
+            <Text style={styles.timerIcon}>⏱️</Text>
+            <View style={styles.timerContent}>
+              <Text style={[
+                styles.timerValue,
+                timeoutRemaining < 60 && styles.timerValueUrgent
+              ]}>
+                {formatTimeRemaining(timeoutRemaining)}
+              </Text>
+              <Text style={styles.timerLabel}>
+                {timeoutRemaining < 60 ? 'Reponse imminente!' : 'Attente reponse prestataire'}
+              </Text>
+            </View>
+            <View style={styles.timerProgressBg}>
+              <View style={[
+                styles.timerProgress,
+                { width: `${Math.round((timeoutRemaining / 240) * 100)}%` },
+                timeoutRemaining < 60 && styles.timerProgressUrgent
+              ]} />
+            </View>
+          </View>
+        )}
 
         {/* Notes (if present) */}
         {notes && (
@@ -487,5 +557,57 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginTop: spacing.xs,
     fontWeight: typography.fontWeight.medium,
+  },
+  // Timer styles
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.warning + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning + '30',
+  },
+  timerContainerUrgent: {
+    backgroundColor: colors.error + '15',
+    borderColor: colors.error + '50',
+  },
+  timerIcon: {
+    fontSize: 24,
+    marginRight: spacing.sm,
+  },
+  timerContent: {
+    flex: 1,
+  },
+  timerValue: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: 'bold' as const,
+    color: colors.warning,
+  },
+  timerValueUrgent: {
+    color: colors.error,
+  },
+  timerLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+  },
+  timerProgressBg: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: colors.gray[200],
+    borderBottomLeftRadius: borderRadius.md,
+    borderBottomRightRadius: borderRadius.md,
+    overflow: 'hidden' as const,
+  },
+  timerProgress: {
+    height: '100%' as any,
+    backgroundColor: colors.warning,
+  },
+  timerProgressUrgent: {
+    backgroundColor: colors.error,
   },
 });

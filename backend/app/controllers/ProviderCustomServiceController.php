@@ -1,0 +1,518 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Database;
+
+class ProviderCustomServiceController extends Controller
+{
+    private const MAX_SERVICES = 10;
+    private const MAX_IMAGES = 5;
+
+    /**
+     * Liste les services personnalisés du prestataire connecté
+     */
+    public function index(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        try {
+            $db = Database::getInstance();
+            $stmt = $db->prepare("
+                SELECT
+                    pcs.*,
+                    c.name as category_name,
+                    c.slug as category_slug
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.provider_id = ?
+                ORDER BY pcs.created_at DESC
+            ");
+            $stmt->execute([$providerId]);
+            $services = $stmt->fetchAll();
+
+            // Décoder les images JSON
+            foreach ($services as &$service) {
+                $service['images'] = json_decode($service['images'] ?? '[]', true);
+            }
+
+            $this->success([
+                'services' => $services,
+                'count' => count($services),
+                'max_allowed' => self::MAX_SERVICES
+            ]);
+
+        } catch (\Exception $e) {
+            $this->error('Erreur lors de la récupération des services: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Crée un nouveau service personnalisé
+     */
+    public function create(): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        // Validation
+        $errors = $this->validate($data, [
+            'name' => 'required|min:3|max:100',
+            'category_id' => 'required|numeric',
+            'price' => 'required|numeric',
+            'duration_minutes' => 'required|numeric'
+        ]);
+
+        // Validation numérique additionnelle
+        if (empty($errors)) {
+            if (isset($data['price']) && floatval($data['price']) < 1) {
+                $errors['price'][] = "Le prix doit être d'au moins 1 MAD";
+            }
+            if (isset($data['duration_minutes'])) {
+                $duration = intval($data['duration_minutes']);
+                if ($duration < 15 || $duration > 480) {
+                    $errors['duration_minutes'][] = "La durée doit être entre 15 et 480 minutes";
+                }
+            }
+        }
+
+        if (!empty($errors)) {
+            $this->error('Erreurs de validation', 422, $errors);
+        }
+
+        try {
+            $db = Database::getInstance();
+
+            // Vérifier la limite
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM provider_custom_services WHERE provider_id = ?");
+            $stmt->execute([$providerId]);
+            $count = $stmt->fetch()['count'];
+
+            if ($count >= self::MAX_SERVICES) {
+                $this->error("Limite atteinte: vous ne pouvez pas créer plus de " . self::MAX_SERVICES . " services personnalisés", 400);
+            }
+
+            // Vérifier que la catégorie existe
+            $stmt = $db->prepare("SELECT id FROM categories WHERE id = ?");
+            $stmt->execute([$data['category_id']]);
+            if (!$stmt->fetch()) {
+                $this->error('Catégorie invalide', 400);
+            }
+
+            // Créer le service
+            $stmt = $db->prepare("
+                INSERT INTO provider_custom_services
+                (provider_id, category_id, name, description, price, duration_minutes, images, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, '[]'::jsonb, TRUE)
+                RETURNING id
+            ");
+            $stmt->execute([
+                $providerId,
+                $data['category_id'],
+                trim($data['name']),
+                trim($data['description'] ?? ''),
+                floatval($data['price']),
+                intval($data['duration_minutes'])
+            ]);
+
+            $newId = $stmt->fetch()['id'];
+
+            // Récupérer le service créé
+            $stmt = $db->prepare("
+                SELECT pcs.*, c.name as category_name
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.id = ?
+            ");
+            $stmt->execute([$newId]);
+            $service = $stmt->fetch();
+            $service['images'] = [];
+
+            $this->success([
+                'service' => $service
+            ], 'Service créé avec succès', 201);
+
+        } catch (\Exception $e) {
+            $this->error('Erreur lors de la création: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Affiche un service personnalisé
+     */
+    public function show(string $id): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        try {
+            $db = Database::getInstance();
+            $stmt = $db->prepare("
+                SELECT pcs.*, c.name as category_name, c.slug as category_slug
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.id = ? AND pcs.provider_id = ?
+            ");
+            $stmt->execute([$id, $providerId]);
+            $service = $stmt->fetch();
+
+            if (!$service) {
+                $this->error('Service non trouvé', 404);
+            }
+
+            $service['images'] = json_decode($service['images'] ?? '[]', true);
+
+            $this->success(['service' => $service]);
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Met à jour un service personnalisé
+     */
+    public function update(string $id): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+
+        // Debug: vérifier si update est appelé par erreur
+        error_log("[CustomService] UPDATE function called - id: " . $id . ", method: " . $_SERVER['REQUEST_METHOD'] . ", data: " . json_encode($data));
+
+        // Validation
+        $errors = $this->validate($data, [
+            'name' => 'min:3|max:100',
+            'category_id' => 'numeric',
+            'price' => 'numeric|min:1',
+            'duration_minutes' => 'numeric|min:15|max:480'
+        ]);
+
+        if (!empty($errors)) {
+            $this->error('Erreurs de validation', 422, $errors);
+        }
+
+        try {
+            $db = Database::getInstance();
+
+            // Vérifier que le service appartient au prestataire
+            $stmt = $db->prepare("SELECT id FROM provider_custom_services WHERE id = ? AND provider_id = ?");
+            $stmt->execute([$id, $providerId]);
+            if (!$stmt->fetch()) {
+                $this->error('Service non trouvé', 404);
+            }
+
+            // Si category_id est fourni, vérifier qu'elle existe
+            if (isset($data['category_id'])) {
+                $stmt = $db->prepare("SELECT id FROM categories WHERE id = ?");
+                $stmt->execute([$data['category_id']]);
+                if (!$stmt->fetch()) {
+                    $this->error('Catégorie invalide', 400);
+                }
+            }
+
+            // Construire la requête de mise à jour
+            $updates = [];
+            $params = [];
+
+            if (isset($data['name'])) {
+                $updates[] = "name = ?";
+                $params[] = trim($data['name']);
+            }
+            if (isset($data['description'])) {
+                $updates[] = "description = ?";
+                $params[] = trim($data['description']);
+            }
+            if (isset($data['category_id'])) {
+                $updates[] = "category_id = ?";
+                $params[] = intval($data['category_id']);
+            }
+            if (isset($data['price'])) {
+                $updates[] = "price = ?";
+                $params[] = floatval($data['price']);
+            }
+            if (isset($data['duration_minutes'])) {
+                $updates[] = "duration_minutes = ?";
+                $params[] = intval($data['duration_minutes']);
+            }
+            if (isset($data['is_active'])) {
+                $updates[] = "is_active = ?";
+                // Convertir explicitement en booléen PostgreSQL-compatible
+                $isActive = filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                $params[] = $isActive === true ? 't' : 'f';
+            }
+
+            if (empty($updates)) {
+                $this->error('Aucune donnée à mettre à jour', 400);
+            }
+
+            $updates[] = "updated_at = CURRENT_TIMESTAMP";
+            $params[] = $id;
+            $params[] = $providerId;
+
+            $sql = "UPDATE provider_custom_services SET " . implode(', ', $updates) . " WHERE id = ? AND provider_id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+
+            // Récupérer le service mis à jour
+            $stmt = $db->prepare("
+                SELECT pcs.*, c.name as category_name
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.id = ?
+            ");
+            $stmt->execute([$id]);
+            $service = $stmt->fetch();
+            $service['images'] = json_decode($service['images'] ?? '[]', true);
+
+            $this->success([
+                'service' => $service
+            ], 'Service mis à jour');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Supprime un service personnalisé
+     */
+    public function delete(string $id): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        // Debug: vérifier que c'est bien la fonction delete qui est appelée
+        error_log("[CustomService] DELETE function called - id: " . $id . ", providerId: " . $providerId . ", method: " . $_SERVER['REQUEST_METHOD']);
+
+        try {
+            $db = Database::getInstance();
+            error_log("[CustomService] Step 1: Getting DB instance");
+
+            // Récupérer le service pour supprimer les images
+            $stmt = $db->prepare("SELECT id, images FROM provider_custom_services WHERE id = ? AND provider_id = ?");
+            $stmt->execute([(int)$id, (int)$providerId]);
+            $service = $stmt->fetch();
+            error_log("[CustomService] Step 2: Service found = " . ($service ? 'yes' : 'no'));
+
+            if (!$service) {
+                $this->error('Service non trouvé', 404);
+                return;
+            }
+
+            // Supprimer les fichiers images (ignorer les erreurs)
+            $images = json_decode($service['images'] ?? '[]', true) ?: [];
+            error_log("[CustomService] Step 3: Images count = " . count($images));
+            foreach ($images as $imagePath) {
+                try {
+                    $fullPath = __DIR__ . '/../../public' . $imagePath;
+                    if (file_exists($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                } catch (\Exception $imgEx) {
+                    error_log("[CustomService] Image delete error (ignored): " . $imgEx->getMessage());
+                }
+            }
+
+            // Supprimer le service
+            $idInt = (int)$id;
+            $providerIdInt = (int)$providerId;
+            error_log("[CustomService] Step 4: Executing DELETE with id=$idInt, providerId=$providerIdInt");
+
+            $stmt = $db->prepare("DELETE FROM provider_custom_services WHERE id = ? AND provider_id = ?");
+            $stmt->execute([$idInt, $providerIdInt]);
+            error_log("[CustomService] Step 5: DELETE executed successfully");
+
+            $this->success(null, 'Service supprimé');
+
+        } catch (\Exception $e) {
+            error_log("[CustomService] ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Upload des images pour un service
+     */
+    public function uploadImages(string $id): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+
+        try {
+            $db = Database::getInstance();
+
+            // Vérifier que le service appartient au prestataire
+            $stmt = $db->prepare("SELECT id, images FROM provider_custom_services WHERE id = ? AND provider_id = ?");
+            $stmt->execute([$id, $providerId]);
+            $service = $stmt->fetch();
+
+            if (!$service) {
+                $this->error('Service non trouvé', 404);
+            }
+
+            $existingImages = json_decode($service['images'] ?? '[]', true);
+
+            // PHP reçoit 'images' ou 'images[]' selon le client
+            $filesKey = isset($_FILES['images']) ? 'images' : (isset($_FILES['images[]']) ? 'images[]' : null);
+            if (!$filesKey) {
+                $this->error('Aucune image fournie', 400);
+            }
+
+            $files = $_FILES[$filesKey];
+            $uploadedImages = [];
+
+            // Gérer le cas d'un seul fichier ou plusieurs
+            if (!is_array($files['name'])) {
+                $files = [
+                    'name' => [$files['name']],
+                    'type' => [$files['type']],
+                    'tmp_name' => [$files['tmp_name']],
+                    'error' => [$files['error']],
+                    'size' => [$files['size']]
+                ];
+            }
+
+            $uploadDir = __DIR__ . '/../../public/uploads/custom-services/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            foreach ($files['name'] as $index => $name) {
+                if ($files['error'][$index] !== UPLOAD_ERR_OK) {
+                    continue;
+                }
+
+                // Vérifier la limite
+                if (count($existingImages) + count($uploadedImages) >= self::MAX_IMAGES) {
+                    break;
+                }
+
+                // Vérifier le type
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                if (!in_array($files['type'][$index], $allowedTypes)) {
+                    continue;
+                }
+
+                // Vérifier la taille (5MB max)
+                if ($files['size'][$index] > 5 * 1024 * 1024) {
+                    continue;
+                }
+
+                // Générer un nom unique
+                $extension = pathinfo($name, PATHINFO_EXTENSION);
+                $filename = "service_{$id}_" . uniqid() . '.' . $extension;
+                $filepath = $uploadDir . $filename;
+
+                if (move_uploaded_file($files['tmp_name'][$index], $filepath)) {
+                    $uploadedImages[] = '/uploads/custom-services/' . $filename;
+                }
+            }
+
+            if (empty($uploadedImages)) {
+                $this->error('Aucune image valide uploadée', 400);
+            }
+
+            // Mettre à jour les images
+            $allImages = array_merge($existingImages, $uploadedImages);
+            $stmt = $db->prepare("UPDATE provider_custom_services SET images = ?::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmt->execute([json_encode($allImages), $id]);
+
+            $this->success([
+                'images' => $allImages,
+                'uploaded_count' => count($uploadedImages)
+            ], 'Images uploadées');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Supprime une image d'un service
+     */
+    public function deleteImage(string $id, string $index): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $imageIndex = intval($index);
+
+        try {
+            $db = Database::getInstance();
+
+            // Vérifier que le service appartient au prestataire
+            $stmt = $db->prepare("SELECT id, images FROM provider_custom_services WHERE id = ? AND provider_id = ?");
+            $stmt->execute([$id, $providerId]);
+            $service = $stmt->fetch();
+
+            if (!$service) {
+                $this->error('Service non trouvé', 404);
+            }
+
+            $images = json_decode($service['images'] ?? '[]', true);
+
+            if (!isset($images[$imageIndex])) {
+                $this->error('Image non trouvée', 404);
+            }
+
+            // Supprimer le fichier
+            $imagePath = $images[$imageIndex];
+            $fullPath = __DIR__ . '/../../public' . $imagePath;
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
+
+            // Retirer de la liste
+            array_splice($images, $imageIndex, 1);
+
+            // Mettre à jour
+            $stmt = $db->prepare("UPDATE provider_custom_services SET images = ?::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmt->execute([json_encode($images), $id]);
+
+            $this->success([
+                'images' => $images
+            ], 'Image supprimée');
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Récupère les services personnalisés d'un prestataire (route publique)
+     */
+    public function getProviderCustomServices(string $providerId): void
+    {
+        try {
+            $db = Database::getInstance();
+            $stmt = $db->prepare("
+                SELECT
+                    pcs.id,
+                    pcs.name,
+                    pcs.description,
+                    pcs.price,
+                    pcs.duration_minutes,
+                    pcs.images,
+                    c.name as category_name,
+                    c.slug as category_slug
+                FROM provider_custom_services pcs
+                LEFT JOIN categories c ON pcs.category_id = c.id
+                WHERE pcs.provider_id = ? AND pcs.is_active = TRUE
+                ORDER BY pcs.created_at DESC
+            ");
+            $stmt->execute([$providerId]);
+            $services = $stmt->fetchAll();
+
+            // Décoder les images JSON
+            foreach ($services as &$service) {
+                $service['images'] = json_decode($service['images'] ?? '[]', true);
+                $service['is_custom'] = true; // Marquer comme service personnalisé
+            }
+
+            $this->success([
+                'services' => $services,
+                'count' => count($services)
+            ]);
+
+        } catch (\Exception $e) {
+            $this->error('Erreur: ' . $e->getMessage(), 500);
+        }
+    }
+}

@@ -24,7 +24,7 @@ import apiClient from '../src/lib/api/client';
 import { ENDPOINTS } from '../src/lib/api/endpoints';
 
 // Types
-type NotificationType = 'booking' | 'promo' | 'system' | 'review' | 'reminder' | 'new_order' | 'order_accepted' | 'order_completed' | 'provider_cancelled';
+type NotificationType = 'booking' | 'promo' | 'system' | 'review' | 'reminder' | 'new_order' | 'order_accepted' | 'order_completed' | 'provider_cancelled' | 'satisfaction_received' | 'order_expired';
 
 interface Notification {
   id: number;
@@ -44,6 +44,9 @@ interface Notification {
 
 // Mapper les types de notification DB vers les types d'icones
 const getNotificationType = (dbType: string): NotificationType => {
+  // Types specifiques d'abord
+  if (dbType === 'satisfaction_received') return 'satisfaction_received';
+  if (dbType === 'order_expired') return 'order_expired';
   if (dbType.includes('order') || dbType.includes('booking')) return 'booking';
   if (dbType.includes('promo')) return 'promo';
   if (dbType.includes('review')) return 'review';
@@ -171,21 +174,37 @@ export default function NotificationsScreen() {
         }
         break;
       case 'review':
-        if (orderId) {
-          // Aller vers la page d'avis
+        // Client: aller vers la page d'avis
+        // Prestataire: aller vers ses commandes
+        if (isProvider) {
+          router.push('/(provider)/bookings' as any);
+        } else if (orderId) {
           router.push(`/booking/review/${orderId}` as any);
         }
         break;
       case 'satisfaction_received':
-        // Prestataire a recu une evaluation - aller vers ses gains ou bookings
+        // Prestataire a recu une evaluation - aller vers ses gains
         if (isProvider) {
           router.push('/(provider)/earnings' as any);
         } else if (orderId) {
           router.push(`/booking/track/${orderId}` as any);
         }
         break;
+      case 'order_expired':
+        // Commande expiree - aller vers les reservations
+        if (isProvider) {
+          router.push('/(provider)/bookings' as any);
+        } else {
+          router.push('/(client)/bookings' as any);
+        }
+        break;
       case 'promo':
-        router.push('/(client)/services' as any);
+        // Promo - uniquement pour client, prestataire va vers son dashboard
+        if (isProvider) {
+          router.push('/(provider)' as any);
+        } else {
+          router.push('/(client)/services' as any);
+        }
         break;
       default:
         // Pour les autres types, navigation selon le role
@@ -194,6 +213,13 @@ export default function NotificationsScreen() {
             router.push(`/(provider)/booking/journey/${orderId}` as any);
           } else {
             router.push(`/booking/track/${orderId}` as any);
+          }
+        } else {
+          // Sans orderId, aller vers la page principale
+          if (isProvider) {
+            router.push('/(provider)/bookings' as any);
+          } else {
+            router.push('/(client)/bookings' as any);
           }
         }
         break;
@@ -230,6 +256,10 @@ export default function NotificationsScreen() {
         return '⭐';
       case 'reminder':
         return '⏰';
+      case 'satisfaction_received':
+        return '🎉';
+      case 'order_expired':
+        return '⏱️';
       default:
         return '📬';
     }

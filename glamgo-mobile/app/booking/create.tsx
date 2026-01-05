@@ -3,7 +3,7 @@
  * Ecran de reservation complet avec formules, prix et paiement
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Image,
   Alert,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Input from '../../src/components/ui/Input';
@@ -28,8 +29,12 @@ import PriceBreakdownCard from '../../src/components/features/PriceBreakdownCard
 import AddressAutocomplete, { AddressData } from '../../src/components/features/AddressAutocomplete';
 import ProviderSelector, { Provider } from '../../src/components/features/ProviderSelector';
 import NearbyProvidersMap, { NearbyProvider } from '../../src/components/features/NearbyProvidersMap';
+import RadiusSelector, { calculateDistanceFee } from '../../src/components/features/RadiusSelector';
+import GuestSelector from '../../src/components/features/GuestSelector';
+import PackSelector, { COACH_PACKS, Pack } from '../../src/components/features/PackSelector';
 import { usePriceCalculation } from '../../src/lib/hooks/usePriceCalculation';
 import { getNearbyProviders } from '../../src/lib/api/servicesAPI';
+import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { createBooking } from '../../src/lib/store/slices/bookingsSlice';
@@ -42,8 +47,23 @@ import { selectUser } from '../../src/lib/store/slices/authSlice';
 import { showToast } from '../../src/lib/store/slices/uiSlice';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 
+// Type pour service personnalisé
+interface CustomServiceData {
+  id: number;
+  name: string;
+  price: number;
+  duration_minutes: number;
+  provider_id: number;
+  provider_name?: string;
+  images?: string[];
+}
+
 export default function CreateBookingScreen() {
-  const { service_id } = useLocalSearchParams<{ service_id: string }>();
+  const { service_id, custom_service_id, provider_id: preselectedProviderId } = useLocalSearchParams<{
+    service_id?: string;
+    custom_service_id?: string;
+    provider_id?: string;
+  }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -51,8 +71,14 @@ export default function CreateBookingScreen() {
   const currentService = useAppSelector(selectCurrentService);
   const user = useAppSelector(selectUser);
 
-  // Find service from list or use current
-  const service = services.find(s => String(s.id) === String(service_id)) || currentService;
+  // State pour service personnalisé
+  const [customServiceData, setCustomServiceData] = useState<CustomServiceData | null>(null);
+
+  // Déterminer si c'est un service personnalisé
+  const isCustomService = !!custom_service_id;
+
+  // Find service from list or use current (pour services standards)
+  const service = isCustomService ? null : (services.find(s => String(s.id) === String(service_id)) || currentService);
 
   // Form state
   const [selectedFormula, setSelectedFormula] = useState<FormulaType>('standard');
@@ -81,7 +107,11 @@ export default function CreateBookingScreen() {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionLockRef = useRef(false); // Verrou synchrone anti double-tap
   const [isLoading, setIsLoading] = useState(!service);
+  const [selectedRadius, setSelectedRadius] = useState<number>(15);
+  const [numberOfGuests, setNumberOfGuests] = useState<number>(2); // Pour service chef
+  const [selectedPackId, setSelectedPackId] = useState<string>('decouverte'); // Pour service coach
 
   // Providers state
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
@@ -91,46 +121,208 @@ export default function CreateBookingScreen() {
   const [dateTimeError, setDateTimeError] = useState('');
   const [addressError, setAddressError] = useState('');
 
+  // Pending review check
+  const [hasPendingReview, setHasPendingReview] = useState(false);
+  const [pendingReviewOrder, setPendingReviewOrder] = useState<any>(null);
+  const [checkingPendingReview, setCheckingPendingReview] = useState(true);
+
   // Use provider's distance for pricing
   const distanceKm = selectedProvider?.distance || 0;
 
-  // Price calculation
+  // Calculate CGU distance fee
+  const distanceFeeInfo = calculateDistanceFee(distanceKm);
+
+  // Detecter si c'est un service type "chef" (prix par personne)
+  const isChefService = service?.service_type === 'chef' || (service as any)?.price_per_person;
+  const pricePerPerson = (service as any)?.price_per_person || 250;
+  const minGuests = (service as any)?.min_guests || 2;
+  const maxGuests = (service as any)?.max_guests || 12;
+
+  // Detecter si c'est un service type "coach" (packs de seances)
+  const isCoachService = service?.service_type === 'coach' ||
+    (service?.slug === 'coach-sportif') ||
+    (service?.title?.toLowerCase().includes('coach'));
+  const servicePacks: Pack[] = Array.isArray((service as any)?.packs)
+    ? (service as any).packs
+    : COACH_PACKS;
+  const selectedPack = servicePacks.find(p => p.id === selectedPackId) || servicePacks[0] || COACH_PACKS[0];
+
+  // Price calculation - utilise le prix du service standard ou personnalisé
+  // Pour chef: prix = nombre_personnes × prix_par_personne
+  // Pour coach: prix = prix du pack selectionne
+  const basePrice = isCustomService
+    ? (customServiceData?.price || 0)
+    : isChefService
+      ? (numberOfGuests * pricePerPerson)
+      : isCoachService
+        ? (selectedPack?.price || 700)
+        : (service?.price || 0);
+
   const priceBreakdown = usePriceCalculation({
-    basePrice: service?.price || 0,
+    basePrice: basePrice,
     formula: selectedFormula,
     selectedDateTime: selectedDateTime,
     distance: distanceKm,
     includeServiceFee: true,
+    distanceFee: distanceFeeInfo.fee,
   });
 
   // Handle address selection
   const handleAddressSelect = (data: AddressData) => {
     setAddressData(data);
     setAddressError('');
-    // Reset provider when address changes
-    setSelectedProvider(null);
+    // Reset provider when address changes - sauf pour services personnalisés
+    if (!isCustomService) {
+      setSelectedProvider(null);
+    }
   };
 
-  // Fetch nearby providers when address is selected
+  // Vérifier s'il y a une évaluation en attente (bloque nouvelle réservation)
   useEffect(() => {
-    if (addressData?.coords && service_id) {
+    checkPendingReviews();
+  }, [user]);
+
+  const checkPendingReviews = async () => {
+    if (!user) {
+      setCheckingPendingReview(false);
+      return;
+    }
+
+    try {
+      setCheckingPendingReview(true);
+      const response = await apiClient.get('/api/orders');
+      const orders = response.data?.data || [];
+
+      // Chercher une commande avec statut completed_pending_review
+      const pendingReview = orders.find(
+        (o: any) => o.status === 'completed_pending_review'
+      );
+
+      if (pendingReview) {
+        console.log('[Booking] Found pending review for order:', pendingReview.id);
+        setHasPendingReview(true);
+        setPendingReviewOrder(pendingReview);
+      } else {
+        setHasPendingReview(false);
+        setPendingReviewOrder(null);
+      }
+    } catch (error) {
+      console.log('[Booking] Error checking pending reviews:', error);
+      setHasPendingReview(false);
+    } finally {
+      setCheckingPendingReview(false);
+    }
+  };
+
+  // Charger les infos du service personnalisé si custom_service_id est fourni
+  useEffect(() => {
+    console.log('[Booking] useEffect custom_service_id:', custom_service_id, 'provider_id:', preselectedProviderId);
+    if (custom_service_id && preselectedProviderId) {
+      loadCustomService();
+    }
+  }, [custom_service_id, preselectedProviderId]);
+
+  const loadCustomService = async () => {
+    if (!preselectedProviderId) {
+      console.error('[Booking] No provider_id provided for custom service');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('[Booking] Loading custom service:', custom_service_id, 'from provider:', preselectedProviderId);
+
+      // Récupérer les infos du service personnalisé via l'API publique
+      const response = await apiClient.get(`/api/providers/${preselectedProviderId}/custom-services`);
+      console.log('[Booking] Custom services API response:', JSON.stringify(response.data, null, 2));
+
+      // Gérer différentes structures de réponse
+      let services = [];
+      if (response.data?.success && response.data.data?.services) {
+        services = response.data.data.services;
+      } else if (response.data?.data?.services) {
+        services = response.data.data.services;
+      } else if (response.data?.services) {
+        services = response.data.services;
+      } else if (Array.isArray(response.data)) {
+        services = response.data;
+      }
+
+      console.log('[Booking] Extracted services:', services.length, 'services found');
+      console.log('[Booking] Looking for service ID:', custom_service_id, 'type:', typeof custom_service_id);
+
+      if (services.length > 0) {
+        services.forEach((s: any) => {
+          console.log('[Booking] Service in list - ID:', s.id, 'type:', typeof s.id, 'name:', s.name);
+        });
+      }
+
+      const customService = services.find(
+        (s: any) => String(s.id) === String(custom_service_id)
+      );
+      console.log('[Booking] Found custom service:', customService);
+
+      if (customService) {
+        setCustomServiceData({
+          id: customService.id,
+          name: customService.name,
+          price: parseFloat(customService.price),
+          duration_minutes: customService.duration_minutes,
+          provider_id: parseInt(preselectedProviderId || '0'),
+          images: customService.images || [],
+        });
+        console.log('[Booking] Custom service data set successfully');
+      } else {
+        console.error('[Booking] Custom service ID', custom_service_id, 'not found in provider', preselectedProviderId, 'services');
+      }
+    } catch (error: any) {
+      console.error('[Booking] Error loading custom service:', error.message || error);
+      console.error('[Booking] Error details:', error.response?.data || error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pour services personnalisés, pré-sélectionner le prestataire
+  useEffect(() => {
+    console.log('[Booking] Provider selection useEffect - isCustomService:', isCustomService, 'customServiceData:', !!customServiceData, 'preselectedProviderId:', preselectedProviderId);
+    if (isCustomService && customServiceData && preselectedProviderId) {
+      console.log('[Booking] Setting selectedProvider for custom service');
+      // Créer un provider minimal pour la sélection
+      setSelectedProvider({
+        id: parseInt(preselectedProviderId),
+        name: customServiceData.name ? `Prestataire` : 'Prestataire',
+        initials: 'PR',
+        rating: 0,
+        reviewsCount: 0,
+        specialties: [],
+        isOnline: true,
+        isVerified: true,
+        completedServices: 0,
+      });
+    }
+  }, [isCustomService, customServiceData, preselectedProviderId]);
+
+  // Fetch nearby providers when address is selected or radius changes (services standards uniquement)
+  useEffect(() => {
+    if (addressData?.coords && service_id && !isCustomService) {
       fetchNearbyProviders();
     }
-  }, [addressData, service_id]);
+  }, [addressData, service_id, selectedRadius, isCustomService]);
 
   const fetchNearbyProviders = async () => {
-    if (!addressData?.coords) return;
+    if (!addressData?.coords || isCustomService) return;
 
     setLoadingProviders(true);
     setAvailableProviders([]);
 
     try {
-      console.log('[Booking] Searching providers for service:', service_id, 'at:', addressData.coords);
+      console.log('[Booking] Searching providers for service:', service_id, 'at:', addressData.coords, 'radius:', selectedRadius);
       const providersResponse = await getNearbyProviders({
         latitude: addressData.coords.latitude,
         longitude: addressData.coords.longitude,
         service_id: Number(service_id),
-        radius: 100, // 100km radius for testing
+        radius: selectedRadius,
       });
       console.log('[Booking] Providers response:', providersResponse);
 
@@ -152,6 +344,25 @@ export default function CreateBookingScreen() {
           ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
           : name.substring(0, 2).toUpperCase();
 
+        // Convertir les spécialités en tableau (peut venir comme string ou array)
+        let specialtiesArray: string[] = [];
+        if (typeof p.specialties === 'string' && p.specialties) {
+          specialtiesArray = p.specialties.split(', ').filter(Boolean);
+        } else if (Array.isArray(p.specialties)) {
+          specialtiesArray = p.specialties;
+        }
+
+        // Calculer le temps de réponse estimé basé sur les commandes
+        const completedOrders = p.completed_orders || p.completed_services || 0;
+        let responseTime = '< 30 min';
+        if (completedOrders > 100) {
+          responseTime = '< 5 min';
+        } else if (completedOrders > 50) {
+          responseTime = '< 10 min';
+        } else if (completedOrders > 20) {
+          responseTime = '< 15 min';
+        }
+
         return {
           id: p.id,
           name,
@@ -161,11 +372,11 @@ export default function CreateBookingScreen() {
           reviewsCount: p.reviews_count || p.total_reviews || 0,
           distance: p.distance || 0,
           price: service?.price || 0,
-          specialties: p.specialties || [],
+          specialties: specialtiesArray,
           isOnline: p.is_online ?? p.is_available ?? true,
           isVerified: p.is_verified ?? true,
-          completedServices: p.completed_orders || p.completed_services || 0,
-          responseTime: p.response_time,
+          completedServices: completedOrders,
+          responseTime: p.response_time || responseTime,
           location: (p.latitude && p.longitude) ? {
             latitude: parseFloat(p.latitude),
             longitude: parseFloat(p.longitude),
@@ -292,6 +503,8 @@ export default function CreateBookingScreen() {
 
   const handleSubmit = async () => {
     console.log('[Booking] handleSubmit called');
+    console.log('[Booking] isCustomService:', isCustomService);
+    console.log('[Booking] customServiceData:', customServiceData);
     console.log('[Booking] selectedProvider:', selectedProvider);
     console.log('[Booking] service:', service);
     console.log('[Booking] address:', address);
@@ -311,10 +524,13 @@ export default function CreateBookingScreen() {
       return;
     }
 
-    if (!service) {
+    if (!service && !customServiceData) {
       Alert.alert('Erreur', 'Service non trouve');
       return;
     }
+
+    // Nom du service pour l'affichage
+    const serviceName = isCustomService ? customServiceData?.name : service?.title;
 
     if (!selectedProvider) {
       console.log('[Booking] No provider selected, showing alert');
@@ -336,29 +552,49 @@ export default function CreateBookingScreen() {
       return;
     }
 
+    // Empêcher double soumission (verrou synchrone + state)
+    if (isSubmitting || submissionLockRef.current) {
+      console.log('[Booking] Already submitting, ignoring');
+      return;
+    }
+
     console.log('[Booking] Showing confirmation dialog');
     // Confirmation dialog
     const providerInfo = selectedProvider ? `\nPrestataire: ${selectedProvider.name}` : '';
+    const serviceTypeLabel = isCustomService ? ' (Service exclusif)' : '';
+    const guestsInfo = isChefService ? `\nNombre de personnes: ${numberOfGuests}` : '';
+    const packInfo = isCoachService ? `\nProgramme: Pack ${selectedPack?.name} (${selectedPack?.sessions} seances)` : '';
     Alert.alert(
       'Confirmer la reservation',
-      `Service: ${service.title}\nFormule: ${getFormulaById(selectedFormula).name}${providerInfo}\nTotal: ${priceBreakdown.total} DH\n\nConfirmer ?`,
+      `Service: ${serviceName}${serviceTypeLabel}${guestsInfo}${packInfo}\nFormule: ${getFormulaById(selectedFormula).name}${providerInfo}\nTotal: ${priceBreakdown.total} DH\n\nConfirmer ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Confirmer',
           onPress: async () => {
+            // VERROU SYNCHRONE: empêche double-tap immédiatement
+            if (submissionLockRef.current) {
+              console.log('[Booking] LOCK: Double tap blocked by ref');
+              return;
+            }
+            submissionLockRef.current = true; // Verrouillage immédiat
             setIsSubmitting(true);
 
             // Format date and time for API
-            const formattedDate = selectedDateTime.toISOString().split('T')[0];
+            const formattedDate = `${selectedDateTime.getFullYear()}-${String(selectedDateTime.getMonth() + 1).padStart(2, "0")}-${String(selectedDateTime.getDate()).padStart(2, "0")}`;
             const formattedTime = `${selectedDateTime.getHours().toString().padStart(2, '0')}:${selectedDateTime.getMinutes().toString().padStart(2, '0')}`;
 
             try {
-              const result = await dispatch(createBooking({
-                service_id: Number(service_id),
-                provider_id: selectedProvider?.id || Number(service.provider?.id || 1),
+              // Format scheduled_at for backend en heure LOCALE (pas UTC!)
+              // Format: "2026-01-04 08:00:00" sans timezone
+              const scheduledAt = `${formattedDate} ${formattedTime}:00`;
+
+              // Préparer les données de réservation
+              const bookingData: any = {
+                provider_id: selectedProvider?.id || (isCustomService ? customServiceData?.provider_id : service?.provider?.id) || 1,
                 date: formattedDate,
                 start_time: formattedTime,
+                scheduled_at: scheduledAt,
                 address: address,
                 latitude: addressData?.coords?.latitude,
                 longitude: addressData?.coords?.longitude,
@@ -366,8 +602,29 @@ export default function CreateBookingScreen() {
                 formula: selectedFormula,
                 payment_method: paymentMethod,
                 total_price: priceBreakdown.total,
-              })).unwrap();
+                // Pour service chef: nombre de personnes
+                ...(isChefService && { number_of_guests: numberOfGuests }),
+                // Pour service coach: pack selectionne
+                ...(isCoachService && selectedPack && {
+                  pack_id: selectedPack.id,
+                  pack_name: selectedPack.name,
+                  pack_sessions: selectedPack.sessions,
+                }),
+              };
 
+              // Ajouter l'ID approprié selon le type de service
+              if (isCustomService && customServiceData) {
+                bookingData.custom_service_id = customServiceData.id;
+              } else if (service_id) {
+                bookingData.service_id = Number(service_id);
+              }
+
+              console.log('[Booking] Submitting bookingData:', JSON.stringify(bookingData));
+
+              const result = await dispatch(createBooking(bookingData)).unwrap();
+
+              // Libérer le verrou APRÈS succès confirmé
+              submissionLockRef.current = false;
               setIsSubmitting(false);
               hapticFeedback.success();
 
@@ -377,7 +634,7 @@ export default function CreateBookingScreen() {
                 pathname: '/booking/confirmation',
                 params: {
                   booking_id: String(bookingId),
-                  service_name: service.title,
+                  service_name: serviceName || 'Service',
                   provider_name: selectedProvider?.name || 'Prestataire',
                   date: formattedDate,
                   time: formattedTime,
@@ -387,6 +644,8 @@ export default function CreateBookingScreen() {
                 },
               });
             } catch (error: any) {
+              // Libérer le verrou en cas d'erreur
+              submissionLockRef.current = false;
               setIsSubmitting(false);
               hapticFeedback.warning();
               dispatch(showToast({
@@ -405,11 +664,58 @@ export default function CreateBookingScreen() {
     router.back();
   };
 
-  if (isLoading) {
+  if (isLoading || checkingPendingReview) {
     return <Loading fullScreen message="Chargement..." />;
   }
 
-  if (!service) {
+  // Bloquer si évaluation en attente
+  if (hasPendingReview && pendingReviewOrder) {
+    return (
+      <View style={styles.blockedContainer}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.blockedContent}>
+          <Text style={styles.blockedIcon}>⚠️</Text>
+          <Text style={styles.blockedTitle}>Évaluation en attente</Text>
+          <Text style={styles.blockedMessage}>
+            Vous devez d'abord évaluer votre dernière prestation avant de pouvoir faire une nouvelle réservation.
+          </Text>
+          <View style={styles.blockedOrderInfo}>
+            <Text style={styles.blockedOrderLabel}>Prestation à évaluer :</Text>
+            <Text style={styles.blockedOrderService}>
+              {pendingReviewOrder.service_name || 'Service'}
+            </Text>
+            <Text style={styles.blockedOrderProvider}>
+              avec {pendingReviewOrder.provider_name ||
+                `${pendingReviewOrder.provider_first_name || ''} ${pendingReviewOrder.provider_last_name || ''}`.trim() ||
+                'le prestataire'}
+            </Text>
+          </View>
+          <Text style={styles.blockedNote}>
+            💳 Le paiement sera déclenché après votre évaluation.
+          </Text>
+          <Button
+            variant="primary"
+            onPress={() => router.replace('/(client)' as any)}
+            fullWidth
+            style={styles.blockedButton}
+          >
+            Retour à l'accueil pour évaluer
+          </Button>
+          <TouchableOpacity onPress={handleBack} style={styles.cancelLink}>
+            <Text style={styles.cancelLinkText}>Annuler</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Pour services personnalisés, on attend que customServiceData soit chargé
+  if (isCustomService && !customServiceData) {
+    return <Loading fullScreen message="Chargement du service..." />;
+  }
+
+  // Pour services standards, vérifier que service existe
+  if (!isCustomService && !service) {
     return (
       <View style={styles.errorContainer}>
         <StatusBar barStyle="dark-content" />
@@ -444,62 +750,148 @@ export default function CreateBookingScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Service Summary - Style Web App */}
-        <Card style={styles.serviceCard}>
-          {/* Image */}
-          {service.images?.[0] || service.thumbnail ? (
-            <Image
-              source={{ uri: service.images?.[0] || service.thumbnail }}
-              style={styles.serviceImageLarge}
-            />
-          ) : (
+        {isCustomService && customServiceData ? (
+          // Affichage pour service personnalisé
+          <Card style={styles.serviceCard}>
+            {customServiceData.images && customServiceData.images.length > 0 ? (
+              <Image
+                source={{ uri: customServiceData.images[0].startsWith('http')
+                  ? customServiceData.images[0]
+                  : `${API_BASE_URL}${customServiceData.images[0]}`
+                }}
+                style={styles.serviceImageLarge}
+              />
+            ) : (
+              <View style={[styles.serviceImageLarge, styles.serviceImagePlaceholder]}>
+                <Text style={styles.serviceImagePlaceholderText}>✨</Text>
+              </View>
+            )}
+
+            <View style={styles.serviceContent}>
+              {/* Badge Service Exclusif */}
+              <View style={[styles.categoryBadge, { backgroundColor: colors.warning }]}>
+                <Text style={styles.categoryBadgeText}>Service exclusif</Text>
+              </View>
+
+              {/* Title */}
+              <Text style={styles.serviceName}>{customServiceData.name}</Text>
+
+              {/* Price & Duration */}
+              <View style={styles.detailsRow}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Prix</Text>
+                  <Text style={styles.detailValue}>{customServiceData.price} DH</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Duree estimee</Text>
+                  <Text style={styles.detailValue}>⏱ {customServiceData.duration_minutes} min</Text>
+                </View>
+              </View>
+            </View>
+          </Card>
+        ) : service ? (
+          // Affichage pour service standard
+          <Card style={styles.serviceCard}>
+            {/* Image */}
+            {service.images?.[0] || service.thumbnail ? (
+              <Image
+                source={{ uri: service.images?.[0] || service.thumbnail }}
+                style={styles.serviceImageLarge}
+              />
+            ) : (
+              <View style={[styles.serviceImageLarge, styles.serviceImagePlaceholder]}>
+                <Text style={styles.serviceImagePlaceholderText}>💇</Text>
+              </View>
+            )}
+
+            {/* Content */}
+            <View style={styles.serviceContent}>
+              {/* Category Badge */}
+              {service.category && (
+                <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
+                  <Text style={styles.categoryBadgeText}>
+                    {(service.category as any).name || 'Service'}
+                  </Text>
+                </View>
+              )}
+
+              {/* Title */}
+              <Text style={styles.serviceName}>{service.title || service.name}</Text>
+
+              {/* Rating */}
+              {service.rating > 0 && (
+                <View style={styles.ratingRow}>
+                  <Text style={styles.ratingStar}>★</Text>
+                  <Text style={styles.ratingValue}>{service.rating.toFixed(1)}</Text>
+                  <Text style={styles.reviewsCount}>
+                    ({service.reviews_count || service.reviewsCount || 0} avis)
+                  </Text>
+                </View>
+              )}
+
+              {/* Price & Duration */}
+              <View style={styles.detailsRow}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Prix de base</Text>
+                  <Text style={styles.detailValue}>{service.price} DH</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Duree estimee</Text>
+                  <Text style={styles.detailValue}>⏱ {service.duration_minutes} min</Text>
+                </View>
+              </View>
+            </View>
+          </Card>
+        ) : (
+          // Loading state
+          <Card style={styles.serviceCard}>
             <View style={[styles.serviceImageLarge, styles.serviceImagePlaceholder]}>
-              <Text style={styles.serviceImagePlaceholderText}>💇</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
-          )}
-
-          {/* Content */}
-          <View style={styles.serviceContent}>
-            {/* Category Badge */}
-            {service.category && (
-              <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
-                <Text style={styles.categoryBadgeText}>
-                  {(service.category as any).name || 'Service'}
-                </Text>
-              </View>
-            )}
-
-            {/* Title */}
-            <Text style={styles.serviceName}>{service.title || service.name}</Text>
-
-            {/* Rating */}
-            {service.rating > 0 && (
-              <View style={styles.ratingRow}>
-                <Text style={styles.ratingStar}>★</Text>
-                <Text style={styles.ratingValue}>{service.rating.toFixed(1)}</Text>
-                <Text style={styles.reviewsCount}>
-                  ({service.reviews_count || service.reviewsCount || 0} avis)
-                </Text>
-              </View>
-            )}
-
-            {/* Price & Duration */}
-            <View style={styles.detailsRow}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Prix de base</Text>
-                <Text style={styles.detailValue}>{service.price} DH</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Duree estimee</Text>
-                <Text style={styles.detailValue}>⏱ {service.duration_minutes} min</Text>
-              </View>
+            <View style={styles.serviceContent}>
+              <Text style={styles.serviceName}>Chargement du service...</Text>
             </View>
-          </View>
-        </Card>
+          </Card>
+        )}
 
-        {/* ETAPE 1: Date & Time */}
+        {/* ETAPE CHEF: Nombre de personnes (uniquement pour service chef) */}
+        {isChefService && !isCustomService && (
+          <Card style={styles.formCard}>
+            <View style={styles.stepHeader}>
+              <Text style={styles.stepNumber}>1</Text>
+              <Text style={styles.sectionTitle}>Combien de personnes ?</Text>
+            </View>
+            <GuestSelector
+              value={numberOfGuests}
+              onChange={setNumberOfGuests}
+              minGuests={minGuests}
+              maxGuests={maxGuests}
+              pricePerPerson={pricePerPerson}
+              disabled={isSubmitting}
+            />
+          </Card>
+        )}
+
+        {/* ETAPE COACH: Selection du pack (uniquement pour service coach) */}
+        {isCoachService && !isCustomService && (
+          <Card style={styles.formCard}>
+            <View style={styles.stepHeader}>
+              <Text style={styles.stepNumber}>1</Text>
+              <Text style={styles.sectionTitle}>Votre programme</Text>
+            </View>
+            <PackSelector
+              packs={servicePacks}
+              selectedPackId={selectedPackId}
+              onChange={setSelectedPackId}
+              disabled={isSubmitting}
+            />
+          </Card>
+        )}
+
+        {/* ETAPE 1/2: Date & Time */}
         <Card style={styles.formCard}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepNumber}>1</Text>
+            <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '2' : '1'}</Text>
             <Text style={styles.sectionTitle}>Quand ?</Text>
           </View>
           <DateTimePicker
@@ -523,10 +915,10 @@ export default function CreateBookingScreen() {
           )}
         </Card>
 
-        {/* ETAPE 2: Address */}
+        {/* ETAPE 2/3: Address */}
         <Card style={[styles.formCard, { zIndex: 100, overflow: 'visible' }]}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepNumber}>2</Text>
+            <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '3' : '2'}</Text>
             <Text style={styles.sectionTitle}>Ou ?</Text>
           </View>
           <AddressAutocomplete
@@ -542,7 +934,25 @@ export default function CreateBookingScreen() {
           />
         </Card>
 
-        {/* ETAPE 3: Provider Selection - Shown only after address is selected */}
+        {/* ETAPE 3/4: Choix du perimetre - Shown only after address is selected */}
+        {addressData?.coords ? (
+          <Card style={styles.formCard}>
+            <View style={styles.stepHeader}>
+              <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '4' : '3'}</Text>
+              <Text style={styles.sectionTitle}>Perimetre de recherche</Text>
+            </View>
+            <RadiusSelector
+              selectedRadius={selectedRadius}
+              onRadiusChange={(radius: number) => {
+                setSelectedRadius(radius);
+                setSelectedProvider(null);
+              }}
+              disabled={isSubmitting}
+            />
+          </Card>
+        ) : null}
+
+        {/* ETAPE 4: Provider Selection - Shown only after address is selected */}
         {addressData?.coords ? (
           <>
             {/* Carte des prestataires */}
@@ -552,6 +962,7 @@ export default function CreateBookingScreen() {
                 id: p.id,
                 name: p.name || 'Prestataire',
                 initials: p.initials || 'PR',
+                avatar: p.avatar,
                 rating: Number(p.rating) || 0,
                 reviewsCount: Number(p.reviewsCount) || 0,
                 distance: Number(p.distance) || 0,
@@ -566,63 +977,77 @@ export default function CreateBookingScreen() {
                 if (provider) handleProviderSelect(provider);
               }}
               loading={loadingProviders}
-              radius={15}
+              radius={selectedRadius}
               compact={false}
             />
 
-            {/* Liste des prestataires */}
-            <Card style={styles.formCard}>
-              <View style={styles.stepHeader}>
-                <Text style={styles.stepNumber}>3</Text>
-                <Text style={styles.sectionTitle}>Choisir un prestataire</Text>
-              </View>
-              {loadingProviders ? (
-                <View style={styles.providersLoading}>
-                  <Text style={styles.providersLoadingText}>
-                    Recherche des prestataires disponibles...
+            {/* Liste des prestataires - caché pour services personnalisés */}
+            {isCustomService ? (
+              <Card style={styles.formCard}>
+                <View style={styles.stepHeader}>
+                  <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '5' : '4'}</Text>
+                  <Text style={styles.sectionTitle}>Prestataire</Text>
+                </View>
+                <View style={styles.customServiceProviderInfo}>
+                  <Text style={styles.customServiceProviderText}>
+                    ✅ Ce service exclusif sera réalisé par le prestataire qui l'a créé.
                   </Text>
                 </View>
-              ) : availableProviders.length > 0 ? (
-                <ProviderSelector
-                  providers={availableProviders}
-                  selectedProviderId={selectedProvider?.id}
-                  onSelect={handleProviderSelect}
-                  showDistance={true}
-                />
-              ) : (
-                <View style={styles.noProvidersContainer}>
-                  <Text style={styles.noProvidersIcon}>😕</Text>
-                  <Text style={styles.noProvidersText}>
-                    Aucun prestataire disponible dans cette zone.
-                  </Text>
-                  <Text style={styles.noProvidersHint}>
-                    Essayez une autre adresse ou date.
-                  </Text>
+              </Card>
+            ) : (
+              <Card style={styles.formCard}>
+                <View style={styles.stepHeader}>
+                  <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '5' : '4'}</Text>
+                  <Text style={styles.sectionTitle}>Choisir un prestataire</Text>
                 </View>
-              )}
-            </Card>
+                {loadingProviders ? (
+                  <View style={styles.providersLoading}>
+                    <Text style={styles.providersLoadingText}>
+                      Recherche des prestataires disponibles...
+                    </Text>
+                  </View>
+                ) : availableProviders.length > 0 ? (
+                  <ProviderSelector
+                    providers={availableProviders}
+                    selectedProviderId={selectedProvider?.id}
+                    onSelect={handleProviderSelect}
+                    showDistance={true}
+                  />
+                ) : (
+                  <View style={styles.noProvidersContainer}>
+                    <Text style={styles.noProvidersIcon}>😕</Text>
+                    <Text style={styles.noProvidersText}>
+                      Aucun prestataire disponible dans cette zone.
+                    </Text>
+                    <Text style={styles.noProvidersHint}>
+                      Essayez une autre adresse ou date.
+                    </Text>
+                  </View>
+                )}
+              </Card>
+            )}
           </>
         ) : (
           <Card style={[styles.formCard, styles.formCardDisabled]}>
             <View style={styles.stepHeader}>
-              <Text style={[styles.stepNumber, styles.stepNumberDisabled]}>3</Text>
-              <Text style={[styles.sectionTitle, styles.sectionTitleDisabled]}>Avec qui ?</Text>
+              <Text style={[styles.stepNumber, styles.stepNumberDisabled]}>{(isChefService || isCoachService) ? '4' : '3'}</Text>
+              <Text style={[styles.sectionTitle, styles.sectionTitleDisabled]}>Perimetre et prestataire</Text>
             </View>
             <Text style={styles.stepHint}>
-              Renseignez d'abord l'adresse pour voir les prestataires disponibles
+              Renseignez d'abord l'adresse pour choisir le perimetre
             </Text>
           </Card>
         )}
 
-        {/* ETAPE 4: Formula Selection */}
+        {/* ETAPE 5/6: Formula Selection */}
         <View style={styles.formulaSection}>
           <View style={styles.stepHeaderInline}>
-            <Text style={styles.stepNumber}>4</Text>
+            <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '6' : '5'}</Text>
           </View>
           <FormulaSelector
             selectedFormula={selectedFormula}
             onSelect={setSelectedFormula}
-            basePrice={service.price}
+            basePrice={basePrice}
             disabled={isSubmitting}
           />
         </View>
@@ -657,14 +1082,16 @@ export default function CreateBookingScreen() {
         <Button
           variant="primary"
           onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={isSubmitting || !selectedProvider}
+          loading={isSubmitting || (isCustomService && isLoading)}
+          disabled={isSubmitting || !selectedProvider || (isCustomService && !customServiceData)}
           fullWidth
           style={styles.submitButton}
         >
-          {selectedProvider
-            ? `Reserver avec ${selectedProvider.name} - ${priceBreakdown.total} DH`
-            : 'Selectionnez un prestataire'
+          {isCustomService && !customServiceData
+            ? 'Chargement du service...'
+            : selectedProvider
+              ? `Reserver avec ${selectedProvider.name} - ${priceBreakdown.total} DH`
+              : 'Selectionnez un prestataire'
           }
         </Button>
 
@@ -896,6 +1323,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // Custom Service Provider Info
+  customServiceProviderInfo: {
+    padding: spacing.md,
+    backgroundColor: colors.success + '10',
+    borderRadius: borderRadius.md,
+  },
+  customServiceProviderText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.success,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+
   // Formula Section
   formulaSection: {
     flexDirection: 'row',
@@ -961,5 +1401,71 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+
+  // Blocked (pending review)
+  blockedContainer: {
+    flex: 1,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  blockedContent: {
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  blockedIcon: {
+    fontSize: 64,
+    marginBottom: spacing.lg,
+  },
+  blockedTitle: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: '700',
+    color: colors.warning,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  blockedMessage: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray[600],
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: spacing.lg,
+  },
+  blockedOrderInfo: {
+    width: '100%',
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  blockedOrderLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[500],
+    marginBottom: spacing.xs,
+  },
+  blockedOrderService: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '600',
+    color: colors.gray[900],
+    textAlign: 'center',
+  },
+  blockedOrderProvider: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    marginTop: spacing.xs,
+  },
+  blockedNote: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    fontWeight: '500',
+  },
+  blockedButton: {
+    marginBottom: spacing.md,
   },
 });

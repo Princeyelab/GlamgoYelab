@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import CustomTabBar from '../../src/components/navigation/CustomTabBar';
 import ChatBot from '../../src/components/features/ChatBot';
 import GlobalEmergencyButton from '../../src/components/features/GlobalEmergencyButton';
+import PendingBookingBanner from '../../src/components/features/PendingBookingBanner';
 
 /**
  * Client Layout
@@ -25,6 +26,9 @@ export default function ClientLayout() {
         <Tabs.Screen name="favorites" />
         <Tabs.Screen name="profile" />
       </Tabs>
+
+      {/* Bannière timer pour commandes en attente */}
+      <PendingBookingBanner />
 
       {/* ChatBot flottant */}
       <ChatBot />
