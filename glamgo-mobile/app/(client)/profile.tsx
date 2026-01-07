@@ -8,28 +8,31 @@ import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import CurrencySelector from '../../src/components/features/CurrencySelector';
+import LanguageSelector from '../../src/components/features/LanguageSelector';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { logoutUser, selectAuth, switchRole, resetAuth } from '../../src/lib/store/slices/authSlice';
 import { persistor } from '../../src/lib/store';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, isLoading } = useAppSelector(selectAuth);
   const { currencyInfo } = useCurrency();
+  const { t, isRTL } = useLanguage();
 
   const handleSwitchToProvider = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Mode Prestataire',
-      'Voulez-vous passer en mode Prestataire pour gerer vos services ?',
+      t('profile.providerMode'),
+      t('profile.switchToProviderMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('common.confirm'),
           onPress: () => {
             dispatch(switchRole('provider'));
             router.replace('/(provider)');
@@ -41,12 +44,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Deconnexion',
-      'Etes-vous sur de vouloir vous deconnecter ?',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Deconnexion',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             // Appeler l'API logout EN PREMIER pour notifier le backend
@@ -69,16 +72,16 @@ export default function ProfileScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.notLoggedIn}>
-          <Text style={styles.notLoggedInTitle}>Non connecte</Text>
-          <Text style={styles.notLoggedInText}>
-            Connectez-vous pour acceder a votre profil
+          <Text style={[styles.notLoggedInTitle, isRTL && styles.textRTL]}>{t('profile.notLoggedIn')}</Text>
+          <Text style={[styles.notLoggedInText, isRTL && styles.textRTL]}>
+            {t('profile.loginToAccess')}
           </Text>
           <Button
             variant="primary"
             onPress={() => router.push('/auth/login')}
             style={{ marginTop: spacing.lg }}
           >
-            Se connecter
+            {t('auth.loginButton')}
           </Button>
         </View>
       </View>
@@ -102,54 +105,65 @@ export default function ProfileScreen() {
           <Text style={styles.name}>
             {user.first_name && user.last_name
               ? `${user.first_name} ${user.last_name}`
-              : user.name || 'Utilisateur'}
+              : user.name || t('profile.defaultUserName')}
           </Text>
           <Text style={styles.email}>{user.email}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>
-              {user.role === 'provider' ? 'Prestataire' : 'Client'}
+              {user.role === 'provider' ? t('auth.provider') : t('auth.client')}
             </Text>
           </View>
         </View>
 
         {/* User Info Card */}
         <Card variant="outlined" style={styles.card}>
-          <Text style={styles.cardTitle}>Informations du compte</Text>
+          <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>{t('profile.accountInfo')}</Text>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ID</Text>
+          <View style={[styles.infoRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.infoLabel, isRTL && styles.textRTL]}>ID</Text>
             <Text style={styles.infoValue}>{user.id}</Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Email</Text>
+          <View style={[styles.infoRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.infoLabel, isRTL && styles.textRTL]}>{t('auth.email')}</Text>
             <Text style={styles.infoValue}>{user.email}</Text>
           </View>
 
           {user.phone && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Telephone</Text>
+            <View style={[styles.infoRow, isRTL && styles.rowRTL]}>
+              <Text style={[styles.infoLabel, isRTL && styles.textRTL]}>{t('auth.phone')}</Text>
               <Text style={styles.infoValue}>{user.phone}</Text>
             </View>
           )}
 
-          <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.infoLabel}>Role</Text>
-            <Text style={styles.infoValue}>{user.role}</Text>
+          <View style={[styles.infoRow, { borderBottomWidth: 0 }, isRTL && styles.rowRTL]}>
+            <Text style={[styles.infoLabel, isRTL && styles.textRTL]}>{t('profile.role')}</Text>
+            <Text style={styles.infoValue}>{user.role === 'provider' ? t('auth.provider') : t('auth.client')}</Text>
           </View>
         </Card>
 
         {/* Preferences Card */}
         <Card variant="outlined" style={styles.card}>
-          <Text style={styles.cardTitle}>Preferences</Text>
+          <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>
+            {t('profile.settings')}
+          </Text>
 
           <View style={styles.preferenceRow}>
             <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceLabel}>Devise</Text>
-              <Text style={styles.preferenceHint}>{currencyInfo.name}</Text>
+              <Text style={[styles.preferenceLabel, isRTL && styles.textRTL]}>
+                {t('profile.currency')}
+              </Text>
+              <Text style={[styles.preferenceHint, isRTL && styles.textRTL]}>
+                {currencyInfo.name}
+              </Text>
             </View>
             <CurrencySelector />
           </View>
+
+          <View style={[styles.divider, { marginVertical: spacing.md }]} />
+
+          {/* Language Selector */}
+          <LanguageSelector />
         </Card>
 
         {/* Actions */}
@@ -160,7 +174,7 @@ export default function ProfileScreen() {
             onPress={() => router.push('/edit-profile')}
             style={styles.actionButton}
           >
-            Modifier le profil
+            {t('profile.editProfile')}
           </Button>
 
           <Button
@@ -169,20 +183,20 @@ export default function ProfileScreen() {
             onPress={() => router.push('/settings')}
             style={styles.actionButton}
           >
-            Parametres
+            {t('profile.settings')}
           </Button>
         </View>
 
         {/* Switch to Provider Mode - Prominent for existing providers */}
         {user.is_provider ? (
-          <Card style={styles.providerCard}>
+          <Card style={[styles.providerCard, isRTL && styles.rowRTL]}>
             <View style={styles.providerIcon}>
               <Text style={styles.providerIconText}>💼</Text>
             </View>
             <View style={styles.providerInfo}>
-              <Text style={styles.providerTitle}>Espace Prestataire</Text>
-              <Text style={styles.providerDescription}>
-                Accédez à votre tableau de bord et gérez vos réservations
+              <Text style={[styles.providerTitle, isRTL && styles.textRTL]}>{t('profile.providerSpace')}</Text>
+              <Text style={[styles.providerDescription, isRTL && styles.textRTL]}>
+                {t('profile.accessDashboard')}
               </Text>
             </View>
             <Button
@@ -190,15 +204,15 @@ export default function ProfileScreen() {
               size="md"
               onPress={handleSwitchToProvider}
             >
-              Accéder →
+              {t('common.access')} →
             </Button>
           </Card>
         ) : (
-          <Card style={styles.switchCard}>
+          <Card style={[styles.switchCard, isRTL && styles.rowRTL]}>
             <View style={styles.switchInfo}>
-              <Text style={styles.switchTitle}>Devenir Prestataire</Text>
-              <Text style={styles.switchDescription}>
-                Proposez vos services de beauté sur GlamGo
+              <Text style={[styles.switchTitle, isRTL && styles.textRTL]}>{t('profile.becomeProvider')}</Text>
+              <Text style={[styles.switchDescription, isRTL && styles.textRTL]}>
+                {t('profile.offerServices')}
               </Text>
             </View>
             <Button
@@ -207,12 +221,12 @@ export default function ProfileScreen() {
               onPress={() => {
                 hapticFeedback.medium();
                 Alert.alert(
-                  'Devenir Prestataire',
-                  'Souhaitez-vous créer votre profil prestataire et proposer vos services ?',
+                  t('profile.becomeProvider'),
+                  t('profile.becomeProviderMessage'),
                   [
-                    { text: 'Annuler', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Commencer',
+                      text: t('common.start'),
                       onPress: () => {
                         dispatch(switchRole('provider'));
                         router.replace('/(provider)');
@@ -222,7 +236,7 @@ export default function ProfileScreen() {
                 );
               }}
             >
-              S'inscrire
+              {t('auth.signup')}
             </Button>
           </Card>
         )}
@@ -237,7 +251,7 @@ export default function ProfileScreen() {
           style={styles.logoutButton}
           textStyle={styles.logoutText}
         >
-          Se deconnecter
+          {t('auth.logout')}
         </Button>
 
         {/* App Version */}
@@ -441,5 +455,16 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[400],
     textAlign: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.gray[200],
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

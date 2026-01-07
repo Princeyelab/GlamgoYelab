@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../src/components/ui/Card';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 import {
   getAllBookingFormulas,
   getProviderFormulas,
@@ -29,8 +30,32 @@ import {
   BookingFormula,
 } from '../../src/lib/api/providerAPI';
 
+// Mapping API formula names to translation keys
+const FORMULA_NAME_TO_KEY: Record<string, string> = {
+  'standard': 'standard',
+  'premium': 'premium',
+  'urgent': 'urgent',
+  'récurrent': 'recurring',
+  'recurrent': 'recurring',
+  'nuit': 'night',
+};
+
 export default function ProviderFormulasScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
+
+  // Get translated formula name and description
+  const getFormulaTranslation = (formula: BookingFormula) => {
+    const normalizedName = formula.name.toLowerCase().trim();
+    const key = FORMULA_NAME_TO_KEY[normalizedName];
+    if (key) {
+      return {
+        name: t(`formulas.${key}`),
+        description: t(`formulas.${key}Desc`),
+      };
+    }
+    return { name: formula.name, description: formula.description };
+  };
   const [allFormulas, setAllFormulas] = useState<BookingFormula[]>([]);
   const [myFormulas, setMyFormulas] = useState<BookingFormula[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,14 +115,14 @@ export default function ProviderFormulasScreen() {
       }
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Erreur', 'Impossible de modifier la formule');
+      Alert.alert(t('common.error'), t('formulas.modifyError'));
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== formula.id));
     }
   };
 
   const getPriceModifierText = (modifier: number): string => {
-    if (modifier === 1) return 'Prix standard';
+    if (modifier === 1) return t('formulas.standardPrice');
     if (modifier > 1) return `+${Math.round((modifier - 1) * 100)}%`;
     return `-${Math.round((1 - modifier) * 100)}%`;
   };
@@ -112,7 +137,7 @@ export default function ProviderFormulasScreen() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>{'Chargement des formules...'}</Text>
+        <Text style={styles.loadingText}>{t('formulas.loading')}</Text>
       </View>
     );
   }
@@ -127,12 +152,12 @@ export default function ProviderFormulasScreen() {
         style={styles.header}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backIcon}>{'←'}</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{'Mes Formules'}</Text>
-          <Text style={styles.headerSubtitle}>
-            {'Choisissez les formules que vous proposez'}
+          <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>{t('formulas.myFormulas')}</Text>
+          <Text style={[styles.headerSubtitle, isRTL && styles.rtlText]}>
+            {t('formulas.chooseFormulas')}
           </Text>
         </View>
       </LinearGradient>
@@ -158,28 +183,29 @@ export default function ProviderFormulasScreen() {
             style={styles.statCard}
           >
             <Text style={styles.statValue}>{myFormulas.length}</Text>
-            <Text style={styles.statLabel}>{'Formules actives'}</Text>
+            <Text style={styles.statLabel}>{t('formulas.activeFormulas')}</Text>
           </LinearGradient>
           <View style={[styles.statCard, styles.statCardLight]}>
             <Text style={[styles.statValue, styles.statValueDark]}>{allFormulas.length}</Text>
-            <Text style={[styles.statLabel, styles.statLabelDark]}>{'Disponibles'}</Text>
+            <Text style={[styles.statLabel, styles.statLabelDark]}>{t('formulas.available')}</Text>
           </View>
         </View>
 
         {/* Info Card */}
         <Card style={styles.infoCard}>
           <Text style={styles.infoIcon}>{'💡'}</Text>
-          <Text style={styles.infoText}>
-            {'Les formules vous permettent d\'apparaitre dans les recherches specifiques des clients. Plus vous activez de formules, plus vous serez visible !'}
+          <Text style={[styles.infoText, isRTL && styles.rtlText]}>
+            {t('formulas.infoText')}
           </Text>
         </Card>
 
         {/* All Formulas */}
-        <Text style={styles.sectionTitle}>{'Toutes les formules'}</Text>
+        <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('formulas.allFormulas')}</Text>
 
         {allFormulas.map((formula) => {
           const isActive = isFormulaActive(formula.id);
           const isProcessing = processingIds.includes(formula.id);
+          const translated = getFormulaTranslation(formula);
 
           return (
             <Card key={formula.id} style={[styles.formulaCard, isActive && styles.formulaCardActive]}>
@@ -189,15 +215,15 @@ export default function ProviderFormulasScreen() {
                 </View>
                 <View style={styles.formulaInfo}>
                   <View style={styles.formulaNameRow}>
-                    <Text style={styles.formulaName}>{formula.name}</Text>
+                    <Text style={[styles.formulaName, isRTL && styles.rtlText]}>{translated.name}</Text>
                     {formula.badge_text && (
                       <View style={[styles.badge, { backgroundColor: formula.badge_color || colors.primary }]}>
                         <Text style={styles.badgeText}>{formula.badge_text}</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.formulaDescription} numberOfLines={2}>
-                    {formula.description}
+                  <Text style={[styles.formulaDescription, isRTL && styles.rtlText]} numberOfLines={2}>
+                    {translated.description}
                   </Text>
                 </View>
                 {isProcessing ? (
@@ -212,17 +238,17 @@ export default function ProviderFormulasScreen() {
                 )}
               </View>
 
-              <View style={styles.formulaDetails}>
+              <View style={[styles.formulaDetails, isRTL && styles.rtlRow]}>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>{'Modificateur prix'}</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('formulas.priceModifier')}</Text>
                   <Text style={[styles.detailValue, { color: getPriceModifierColor(formula.price_modifier) }]}>
                     {getPriceModifierText(formula.price_modifier)}
                   </Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>{'Statut'}</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('formulas.status')}</Text>
                   <Text style={[styles.statusText, isActive ? styles.statusActive : styles.statusInactive]}>
-                    {isActive ? '✓ Active' : 'Inactive'}
+                    {isActive ? `✓ ${t('formulas.active')}` : t('formulas.inactive')}
                   </Text>
                 </View>
               </View>
@@ -455,5 +481,12 @@ const styles = StyleSheet.create({
   // Bottom
   bottomSpacer: {
     height: spacing['3xl'],
+  },
+  // RTL styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  rtlRow: {
+    flexDirection: 'row-reverse',
   },
 });

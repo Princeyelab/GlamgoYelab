@@ -16,9 +16,11 @@ import {
   Platform,
   Animated,
   Keyboard,
+  I18nManager,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Message {
   id: string;
@@ -29,117 +31,60 @@ interface Message {
 
 interface QuickQuestion {
   id: string;
-  text: string;
-  answer: string;
+  textKey: string;
+  answerKey: string;
 }
 
-const QUICK_QUESTIONS: QuickQuestion[] = [
-  {
-    id: '1',
-    text: 'Comment reserver ?',
-    answer: 'C\'est tres simple ! Choisissez le service qui vous fait envie, indiquez votre adresse et la date souhaitee, puis selectionnez le prestataire qui vous convient. En quelques clics, c\'est reserve ! Je reste la si vous avez besoin d\'aide 😊',
-  },
-  {
-    id: '2',
-    text: 'Modes de paiement ?',
-    answer: 'Vous avez le choix ! Payez par carte bancaire directement dans l\'app (c\'est 100% securise), ou en especes au prestataire si vous preferez. Comme vous voulez, on s\'adapte a vous !',
-  },
-  {
-    id: '3',
-    text: 'Annuler une reservation ?',
-    answer: 'Pas de souci, ca arrive ! Allez dans "Mes reservations" et cliquez sur "Annuler". Si c\'est au moins 2h avant le rendez-vous, c\'est gratuit. On espere vous revoir bientot !',
-  },
-  {
-    id: '4',
-    text: 'Contacter le prestataire ?',
-    answer: 'Bien sur ! Des que votre reservation est confirmee, vous pouvez discuter avec votre prestataire via le chat. C\'est pratique pour les petits details de derniere minute.',
-  },
-  {
-    id: '5',
-    text: 'Probleme avec ma commande ?',
-    answer: 'Oh non, je suis desolee ! Dites-moi ce qui s\'est passe. Vous pouvez signaler le souci depuis votre commande, ou m\'ecrire a support@glamgo.ma. Je fais tout pour vous aider rapidement !',
-  },
+// Keys pour les questions rapides
+const QUICK_QUESTION_KEYS: QuickQuestion[] = [
+  { id: '1', textKey: 'chat.howToBook', answerKey: 'chat.howToBookAnswer' },
+  { id: '2', textKey: 'chat.paymentMethods', answerKey: 'chat.paymentMethodsAnswer' },
+  { id: '3', textKey: 'chat.cancelBooking', answerKey: 'chat.cancelBookingAnswer' },
+  { id: '4', textKey: 'chat.contactProvider', answerKey: 'chat.contactProviderAnswer' },
+  { id: '5', textKey: 'chat.orderProblem', answerKey: 'chat.orderProblemAnswer' },
 ];
 
-const BOT_RESPONSES: { keywords: string[]; response: string }[] = [
-  {
-    keywords: ['bonjour', 'salut', 'hello', 'hi', 'salam', 'coucou'],
-    response: 'Bonjour ! Je suis Yamina, votre assistante GlamGo. Comment puis-je vous aider ?',
-  },
-  {
-    keywords: ['yamina', 'qui es tu', 'tu es qui', 'c\'est qui'],
-    response: 'Je suis Yamina, votre assistante personnelle GlamGo ! Je suis la pour repondre a toutes vos questions et vous faciliter la vie. N\'hesitez pas, je suis disponible 24h/24 !',
-  },
-  {
-    keywords: ['glamgo', 'c\'est quoi', 'qu\'est-ce que', 'application', 'appli', 'comment ca marche', 'fonctionnement'],
-    response: 'GlamGo, c\'est votre application de services a domicile ! Beaute, bien-etre, menage, bricolage... Des professionnels verifies viennent directement chez vous. Vous choisissez le service, la date, le prestataire, et on s\'occupe du reste. Simple, pratique et sans vous deplacer !',
-  },
-  {
-    keywords: ['prix', 'tarif', 'cout', 'combien', 'cher'],
-    response: 'Les prix dependent du service et du prestataire que vous choisissez. Vous verrez le prix exact avant de confirmer, sans surprise ! Les frais de deplacement sont calcules selon la distance, tout est transparent 😊',
-  },
-  {
-    keywords: ['reservation', 'reserver', 'rdv', 'rendez-vous'],
-    response: 'Reserver, c\'est tres facile ! Choisissez votre service prefere, indiquez ou et quand, puis selectionnez votre prestataire. En 2 minutes c\'est fait ! Besoin que je vous guide ?',
-  },
-  {
-    keywords: ['annuler', 'annulation', 'rembours'],
-    response: 'Pas de probleme ! Vous pouvez annuler gratuitement jusqu\'a 2h avant le RDV depuis "Mes reservations". Si vous avez paye par carte, le remboursement est automatique. Ca arrive a tout le monde !',
-  },
-  {
-    keywords: ['paiement', 'payer', 'carte', 'espece', 'cash'],
-    response: 'Vous etes libre de choisir ! Carte bancaire (100% securise dans l\'app) ou especes au prestataire. Ce qui vous arrange le mieux !',
-  },
-  {
-    keywords: ['prestataire', 'coiffeur', 'coiffeuse', 'estheticienne', 'pro'],
-    response: 'Nos prestataires sont tous verifies et professionnels. Regardez leurs avis et leurs notes pour choisir celui qui vous correspond. Vous etes entre de bonnes mains !',
-  },
-  {
-    keywords: ['horaire', 'heure', 'disponible', 'quand', 'creneau'],
-    response: 'Chaque prestataire a ses propres disponibilites. Quand vous reservez, vous voyez en direct les creneaux libres. Pratique, non ?',
-  },
-  {
-    keywords: ['adresse', 'domicile', 'deplacement', 'venir', 'maison'],
-    response: 'Le top, c\'est que le prestataire vient directement chez vous ! Indiquez votre adresse et installez-vous confortablement. Le luxe a domicile 💅',
-  },
-  {
-    keywords: ['contact', 'telephone', 'email', 'support', 'aide', 'probleme'],
-    response: 'Je suis la pour vous ! Si j\'arrive pas a vous aider, ecrivez a support@glamgo.ma et l\'equipe vous repondra dans les 24h. On ne vous laisse jamais tomber !',
-  },
-  {
-    keywords: ['merci', 'thanks', 'super', 'parfait', 'genial', 'top', 'cool'],
-    response: 'Avec grand plaisir ! Ca me fait plaisir de vous aider. Passez une excellente journee et prenez soin de vous ! 💕',
-  },
-  {
-    keywords: ['au revoir', 'bye', 'a bientot', 'ciao', 'tchao'],
-    response: 'A tres bientot ! N\'hesitez pas a revenir me voir si vous avez des questions. Prenez soin de vous ! 👋💕',
-  },
-  {
-    keywords: ['retard', 'attend', 'arrive pas', 'ou est'],
-    response: 'Je comprends votre inquietude. Vous pouvez suivre le trajet de votre prestataire en temps reel depuis la reservation. Si le retard est important, contactez-le via le chat ou appelez-le. Je suis la si ca ne s\'arrange pas !',
-  },
-  {
-    keywords: ['avis', 'note', 'evaluation', 'etoile'],
-    response: 'Apres chaque prestation, vous pouvez noter et laisser un commentaire. C\'est super important pour les autres clientes et pour les prestataires ! Votre avis compte vraiment 🌟',
-  },
+// Mapping des reponses du bot selon les mots-cles
+const BOT_RESPONSE_KEYS: { keywords: string[]; responseKey: string }[] = [
+  { keywords: ['bonjour', 'salut', 'hello', 'hi', 'salam', 'coucou', 'مرحبا', 'اهلا'], responseKey: 'chat.greetingResponse' },
+  { keywords: ['yamina', 'qui es tu', 'tu es qui', 'يمينة', 'من انت'], responseKey: 'chat.whoAmIResponse' },
+  { keywords: ['glamgo', 'c\'est quoi', 'application', 'ما هو', 'التطبيق'], responseKey: 'chat.aboutAppResponse' },
+  { keywords: ['prix', 'tarif', 'cout', 'combien', 'سعر', 'كم'], responseKey: 'chat.priceResponse' },
+  { keywords: ['reservation', 'reserver', 'rdv', 'حجز', 'احجز'], responseKey: 'chat.bookingResponse' },
+  { keywords: ['annuler', 'annulation', 'الغاء'], responseKey: 'chat.cancellationResponse' },
+  { keywords: ['paiement', 'payer', 'carte', 'espece', 'دفع', 'بطاقة'], responseKey: 'chat.paymentResponse' },
+  { keywords: ['prestataire', 'coiffeur', 'مقدم', 'خدمة'], responseKey: 'chat.providerResponse' },
+  { keywords: ['horaire', 'heure', 'disponible', 'موعد', 'متاح'], responseKey: 'chat.scheduleResponse' },
+  { keywords: ['adresse', 'domicile', 'عنوان', 'منزل'], responseKey: 'chat.addressResponse' },
+  { keywords: ['contact', 'support', 'aide', 'دعم', 'مساعدة'], responseKey: 'chat.supportResponse' },
+  { keywords: ['merci', 'thanks', 'شكرا'], responseKey: 'chat.thanksResponse' },
+  { keywords: ['au revoir', 'bye', 'مع السلامة'], responseKey: 'chat.goodbyeResponse' },
+  { keywords: ['retard', 'attend', 'تاخر', 'انتظر'], responseKey: 'chat.delayResponse' },
+  { keywords: ['avis', 'note', 'evaluation', 'تقييم'], responseKey: 'chat.reviewResponse' },
 ];
-
-const DEFAULT_RESPONSE = 'Hmm, je n\'ai pas bien compris votre question. Pouvez-vous reformuler ou choisir une des questions ci-dessous ? Je veux vraiment vous aider ! 😊';
 
 export default function ChatBot() {
+  const { t, isRTL } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '0',
-      text: 'Bonjour, moi c\'est Yamina, votre assistante GlamGo. Comment puis-je vous aider aujourd\'hui ?',
-      isBot: true,
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize welcome message with translation
+  useEffect(() => {
+    if (!initialized) {
+      setMessages([{
+        id: '0',
+        text: t('chat.assistantWelcome'),
+        isBot: true,
+        timestamp: new Date(),
+      }]);
+      setInitialized(true);
+    }
+  }, [t, initialized]);
 
   // Animation du bouton
   useEffect(() => {
@@ -164,13 +109,13 @@ export default function ChatBot() {
   const findBotResponse = (text: string): string => {
     const lowerText = text.toLowerCase();
 
-    for (const item of BOT_RESPONSES) {
+    for (const item of BOT_RESPONSE_KEYS) {
       if (item.keywords.some(keyword => lowerText.includes(keyword))) {
-        return item.response;
+        return t(item.responseKey);
       }
     }
 
-    return DEFAULT_RESPONSE;
+    return t('chat.defaultResponse');
   };
 
   const sendMessage = (text: string) => {
@@ -205,7 +150,7 @@ export default function ChatBot() {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: question.text,
+      text: t(question.textKey),
       isBot: false,
       timestamp: new Date(),
     };
@@ -216,7 +161,7 @@ export default function ChatBot() {
     setTimeout(() => {
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: question.answer,
+        text: t(question.answerKey),
         isBot: true,
         timestamp: new Date(),
       };
@@ -248,7 +193,7 @@ export default function ChatBot() {
     <>
       {/* Floating Button */}
       {!isOpen && (
-        <Animated.View style={[styles.floatingButton, { transform: [{ scale: pulseAnim }] }]}>
+        <Animated.View style={[styles.floatingButton, isRTL && styles.floatingButtonRTL, { transform: [{ scale: pulseAnim }] }]}>
           <TouchableOpacity
             style={styles.floatingButtonInner}
             onPress={openChat}
@@ -270,16 +215,16 @@ export default function ChatBot() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalContainer}
         >
-          <View style={styles.chatContainer}>
+          <View style={[styles.chatContainer, isRTL && styles.chatContainerRTL]}>
             {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerInfo}>
-                <View style={styles.botAvatar}>
+            <View style={[styles.header, isRTL && styles.headerRTL]}>
+              <View style={[styles.headerInfo, isRTL && styles.headerInfoRTL]}>
+                <View style={[styles.botAvatar, isRTL && styles.botAvatarRTL]}>
                   <Text style={styles.botAvatarText}>👩🏽</Text>
                 </View>
                 <View>
-                  <Text style={styles.headerTitle}>Yamina</Text>
-                  <Text style={styles.headerSubtitle}>Votre assistante • En ligne</Text>
+                  <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('chat.assistant')}</Text>
+                  <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>{t('chat.yourAssistant')} • {t('chat.online')}</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.closeButton} onPress={closeChat}>
@@ -300,11 +245,14 @@ export default function ChatBot() {
                   style={[
                     styles.messageBubble,
                     message.isBot ? styles.botBubble : styles.userBubble,
+                    message.isBot && isRTL && styles.botBubbleRTL,
+                    !message.isBot && isRTL && styles.userBubbleRTL,
                   ]}
                 >
                   <Text
                     style={[
                       styles.messageText,
+                      isRTL && styles.textRTL,
                       message.isBot ? styles.botText : styles.userText,
                     ]}
                   >
@@ -314,22 +262,22 @@ export default function ChatBot() {
               ))}
 
               {isTyping && (
-                <View style={[styles.messageBubble, styles.botBubble]}>
-                  <Text style={styles.typingText}>...</Text>
+                <View style={[styles.messageBubble, styles.botBubble, isRTL && styles.botBubbleRTL]}>
+                  <Text style={styles.typingText}>{t('chat.thinking')}</Text>
                 </View>
               )}
 
               {/* Quick Questions */}
               {messages.length <= 2 && (
                 <View style={styles.quickQuestions}>
-                  <Text style={styles.quickQuestionsTitle}>💡 Je peux vous aider avec :</Text>
-                  {QUICK_QUESTIONS.map((q) => (
+                  <Text style={[styles.quickQuestionsTitle, isRTL && styles.textRTL]}>💡 {t('chat.canHelpWith')}</Text>
+                  {QUICK_QUESTION_KEYS.map((q) => (
                     <TouchableOpacity
                       key={q.id}
                       style={styles.quickQuestionButton}
                       onPress={() => handleQuickQuestion(q)}
                     >
-                      <Text style={styles.quickQuestionText}>{q.text}</Text>
+                      <Text style={[styles.quickQuestionText, isRTL && styles.textRTL]}>{t(q.textKey)}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -337,23 +285,24 @@ export default function ChatBot() {
             </ScrollView>
 
             {/* Input */}
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, isRTL && styles.inputContainerRTL]}>
               <TextInput
-                style={styles.input}
-                placeholder="Ecrivez a Yamina..."
+                style={[styles.input, isRTL && styles.inputRTL]}
+                placeholder={t('chat.writeToYamina')}
                 placeholderTextColor={colors.gray[400]}
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={() => sendMessage(inputText)}
                 returnKeyType="send"
                 multiline={false}
+                textAlign={isRTL ? 'right' : 'left'}
               />
               <TouchableOpacity
                 style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
                 onPress={() => sendMessage(inputText)}
                 disabled={!inputText.trim()}
               >
-                <Text style={styles.sendButtonText}>➤</Text>
+                <Text style={[styles.sendButtonText, isRTL && styles.sendButtonTextRTL]}>{isRTL ? '◂' : '➤'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -367,7 +316,7 @@ const styles = StyleSheet.create({
   // Floating Button
   floatingButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 110,
     right: 16,
     zIndex: 1000,
   },
@@ -550,5 +499,46 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 20,
     color: colors.white,
+  },
+  // RTL Styles
+  floatingButtonRTL: {
+    right: undefined,
+    left: 16,
+  },
+  chatContainerRTL: {
+    direction: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  headerInfoRTL: {
+    flexDirection: 'row-reverse',
+  },
+  botAvatarRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  botBubbleRTL: {
+    alignSelf: 'flex-end',
+    borderBottomLeftRadius: borderRadius.lg,
+    borderBottomRightRadius: 4,
+  },
+  userBubbleRTL: {
+    alignSelf: 'flex-start',
+    borderBottomRightRadius: borderRadius.lg,
+    borderBottomLeftRadius: 4,
+  },
+  inputContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  sendButtonTextRTL: {
+    transform: [{ rotate: '180deg' }],
   },
 });

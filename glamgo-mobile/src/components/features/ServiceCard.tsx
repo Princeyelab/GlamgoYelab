@@ -14,6 +14,8 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../lib/co
 import { hapticFeedback } from '../../lib/utils/haptics';
 import { ServiceCardProps } from '../../types/service';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getServiceTranslation, getCategoryTranslation } from '../../i18n/translations/services';
 
 // Images locales par defaut
 const DEFAULT_LOCAL_IMAGES: Record<string, ImageSourcePropType> = {
@@ -51,6 +53,14 @@ export default function ServiceCard({
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [imageError, setImageError] = useState(false);
   const { formatPrice } = useCurrency();
+  const { t, isRTL, language } = useLanguage();
+
+  // Get translated content with fallbacks
+  const translatedService = getServiceTranslation(title || '', language);
+  const categoryName = category?.name || t('services.service');
+  const translatedCategoryName = getCategoryTranslation(categoryName, language);
+  const displayTitle = translatedService.title || title || t('services.service');
+  const displayDescription = translatedService.description || description;
 
   // Get display image (first from images array, thumbnail, or default by category)
   const getCategorySlug = () => {
@@ -135,7 +145,7 @@ export default function ServiceCard({
             size="sm"
             style={styles.categoryBadge}
           >
-            {category.name}
+            {translatedCategoryName}
           </Badge>
 
           {/* Badge Nouveau (top-right si isNew) */}
@@ -145,7 +155,7 @@ export default function ServiceCard({
               size="sm"
               style={styles.newBadge}
             >
-              Nouveau
+              {t('services.new')}
             </Badge>
           )}
 
@@ -156,7 +166,7 @@ export default function ServiceCard({
               size="sm"
               style={styles.featuredBadge}
             >
-              Populaire
+              {t('services.popular')}
             </Badge>
           )}
 
@@ -176,29 +186,29 @@ export default function ServiceCard({
       {/* Content */}
       <View style={styles.content}>
         {/* Titre */}
-        <Text style={styles.title} numberOfLines={2}>
-          {title || 'Service'}
+        <Text style={[styles.title, isRTL && styles.textRTL]} numberOfLines={2}>
+          {displayTitle || t('services.service')}
         </Text>
 
         {/* Description */}
-        <Text style={styles.description} numberOfLines={3}>
-          {description}
+        <Text style={[styles.description, isRTL && styles.textRTL]} numberOfLines={3}>
+          {displayDescription}
         </Text>
 
         {/* Footer (Prix + Duration | Rating) - Style Web App */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, isRTL && styles.footerRTL]}>
           {/* Left: Prix + Duration */}
           <View style={styles.priceSection}>
-            <View style={styles.priceRow}>
+            <View style={[styles.priceRow, isRTL && styles.rowRTL]}>
               <Text style={styles.priceValue}>
                 {formatPrice(price)}
               </Text>
-              <Text style={styles.priceLabel}> / service</Text>
+              <Text style={styles.priceLabel}> / {t('services.serviceSingular')}</Text>
             </View>
             {duration_minutes && (
               <View style={styles.durationRow}>
                 <Text style={styles.durationIcon}>⏱</Text>
-                <Text style={styles.durationText}>{duration_minutes} min</Text>
+                <Text style={styles.durationText}>{duration_minutes} {t('common.min')}</Text>
               </View>
             )}
           </View>
@@ -221,7 +231,7 @@ export default function ServiceCard({
             size="sm"
             style={styles.statusBadge}
           >
-            {status === 'inactive' ? 'Inactif' : 'Brouillon'}
+            {status === 'inactive' ? t('common.inactive') : t('common.draft')}
           </Badge>
         )}
       </View>
@@ -385,5 +395,16 @@ const styles = StyleSheet.create({
   statusBadge: {
     marginTop: spacing.xs,
     alignSelf: 'flex-start',
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  footerRTL: {
+    flexDirection: 'row-reverse',
   },
 });

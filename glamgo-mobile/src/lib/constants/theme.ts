@@ -48,6 +48,14 @@ export const typography = {
     regular: 'Roboto_400Regular',
     medium: 'Roboto_500Medium',
     bold: 'Roboto_700Bold',
+    // Arabic fonts (Cairo)
+    arabic: {
+      light: 'Cairo_300Light',
+      regular: 'Cairo_400Regular',
+      medium: 'Cairo_500Medium',
+      semibold: 'Cairo_600SemiBold',
+      bold: 'Cairo_700Bold',
+    },
   },
   fontSize: {
     xs: 12,
@@ -98,5 +106,44 @@ export const theme = {
   typography,
   shadows,
 };
+
+// Helper to get font family based on language
+export type FontWeight = 'light' | 'regular' | 'medium' | 'semibold' | 'bold';
+
+export function getFontFamily(isRTL: boolean, weight: FontWeight = 'regular'): string {
+  if (isRTL) {
+    // Arabic fonts
+    const arabicFonts = typography.fontFamily.arabic;
+    switch (weight) {
+      case 'light':
+        return arabicFonts.light;
+      case 'regular':
+        return arabicFonts.regular;
+      case 'medium':
+        return arabicFonts.medium;
+      case 'semibold':
+        return arabicFonts.semibold;
+      case 'bold':
+        return arabicFonts.bold;
+      default:
+        return arabicFonts.regular;
+    }
+  } else {
+    // Latin fonts (Roboto)
+    switch (weight) {
+      case 'light':
+        return typography.fontFamily.light;
+      case 'regular':
+        return typography.fontFamily.regular;
+      case 'medium':
+        return typography.fontFamily.medium;
+      case 'semibold':
+      case 'bold':
+        return typography.fontFamily.bold;
+      default:
+        return typography.fontFamily.regular;
+    }
+  }
+}
 
 export default theme;

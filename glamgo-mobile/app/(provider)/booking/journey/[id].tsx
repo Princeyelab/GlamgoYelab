@@ -26,6 +26,8 @@ import EmergencyButton from '../../../../src/components/features/EmergencyButton
 import CancellationModal from '../../../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../../src/lib/constants/theme';
 import { hapticFeedback } from '../../../../src/lib/utils/haptics';
+import { useLanguage } from '../../../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../../../src/i18n/translations/services';
 import {
   getProviderOrderDetail,
   arriveAtClient,
@@ -71,29 +73,24 @@ const INITIAL_BOOKING: BookingDetails = {
   },
 };
 
-// Status configuration with gradients
-const STATUS_CONFIG: Record<JourneyStatus, {
-  title: string;
+// Status configuration gradients (titles are in translations)
+const STATUS_GRADIENTS: Record<JourneyStatus, {
   icon: string;
   gradient: [string, string];
 }> = {
   on_way: {
-    title: 'En route',
     icon: '🚗',
     gradient: ['#3B82F6', '#1D4ED8'],
   },
   arrived: {
-    title: 'Arrivé',
     icon: '📍',
     gradient: ['#8B5CF6', '#6D28D9'],
   },
   in_progress: {
-    title: 'En cours',
     icon: '✂️',
     gradient: [colors.primary, '#BE185D'],
   },
   completed: {
-    title: 'Terminé',
     icon: '✅',
     gradient: ['#10B981', '#059669'],
   },
@@ -102,8 +99,20 @@ const STATUS_CONFIG: Record<JourneyStatus, {
 export default function JourneyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
   const mapRef = useRef<MapView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Get status title from translations
+  const getStatusTitle = (statusKey: JourneyStatus): string => {
+    const titles: Record<JourneyStatus, string> = {
+      on_way: t('journeyScreen.statusOnWay'),
+      arrived: t('journeyScreen.statusArrived'),
+      in_progress: t('journeyScreen.statusInProgress'),
+      completed: t('journeyScreen.statusCompleted'),
+    };
+    return titles[statusKey];
+  };
 
   const [status, setStatus] = useState<JourneyStatus>('on_way');
   const [booking, setBooking] = useState<BookingDetails>(INITIAL_BOOKING);
@@ -156,7 +165,7 @@ export default function JourneyScreen() {
           clientPhone: orderData.user_phone || orderData.client?.phone || orderData.client_phone || '',
           clientAvatar: clientName.substring(0, 2).toUpperCase(),
           service: orderData.service?.title || orderData.service_name || 'Service',
-          address: orderData.address || orderData.client_address || 'Adresse non specifiee',
+          address: orderData.address || orderData.client_address || t('journeyScreen.addressNotSpecified'),
           scheduledTime: orderData.start_time || orderData.scheduled_time || '',
           price: price,
           notes: orderData.notes || orderData.client_notes,
@@ -184,9 +193,9 @@ export default function JourneyScreen() {
 
         if (error?.response?.status === 403) {
           Alert.alert(
-            'Commande non disponible',
-            'Cette commande n\'est plus accessible.',
-            [{ text: 'Retour', onPress: () => router.back() }]
+            t('journeyScreen.orderUnavailable'),
+            t('journeyScreen.orderNoLongerAccessible'),
+            [{ text: t('journeyScreen.back'), onPress: () => router.back() }]
           );
         }
 
@@ -262,8 +271,8 @@ export default function JourneyScreen() {
           setElapsedTime(0);
           hapticFeedback.success();
           Alert.alert(
-            'Client a confirmé',
-            'Le client a confirmé votre arrivée. La prestation peut commencer !',
+            t('journeyScreen.clientConfirmed'),
+            t('journeyScreen.clientConfirmedMessage'),
             [{ text: 'OK' }]
           );
         }
@@ -271,9 +280,9 @@ export default function JourneyScreen() {
         if (error?.response?.status === 403) {
           setIsCancelled(true);
           Alert.alert(
-            'Commande non disponible',
-            'Cette commande n\'est plus accessible.',
-            [{ text: 'Retour', onPress: () => router.back() }]
+            t('journeyScreen.orderUnavailable'),
+            t('journeyScreen.orderNoLongerAccessible'),
+            [{ text: t('journeyScreen.back'), onPress: () => router.back() }]
           );
         }
       }
@@ -290,7 +299,7 @@ export default function JourneyScreen() {
     const startLocationTracking = async () => {
       const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
       if (permStatus !== 'granted') {
-        Alert.alert('Permission requise', 'L\'accès à la localisation est nécessaire.');
+        Alert.alert(t('journeyScreen.permissionRequired'), t('journeyScreen.locationRequired'));
         return;
       }
 
@@ -357,12 +366,12 @@ export default function JourneyScreen() {
   const handleArrivedAtClient = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Arrivé chez le client',
-      'Confirmer votre arrivée ?',
+      t('journeyScreen.arrivedAtClient'),
+      t('journeyScreen.confirmArrival'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('journeyScreen.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('journeyScreen.confirm'),
           onPress: async () => {
             try {
               if (id) {
@@ -370,10 +379,10 @@ export default function JourneyScreen() {
               }
               setStatus('arrived');
               hapticFeedback.success();
-              Alert.alert('Arrivée confirmée', 'En attente de la confirmation du client.');
+              Alert.alert(t('journeyScreen.arrivalConfirmed'), t('journeyScreen.waitingClientConfirmation'));
             } catch (error: any) {
               hapticFeedback.error();
-              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée.');
+              Alert.alert(t('journeyScreen.error'), error?.response?.data?.message || t('journeyScreen.arrivalError'));
             }
           },
         },
@@ -384,12 +393,12 @@ export default function JourneyScreen() {
   const handleCompleteService = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Terminer la prestation',
-      'Confirmer que la prestation est terminée ?',
+      t('journeyScreen.completeService'),
+      t('journeyScreen.confirmCompletion'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('journeyScreen.cancel'), style: 'cancel' },
         {
-          text: 'Terminer',
+          text: t('journeyScreen.finish'),
           onPress: async () => {
             try {
               if (id) {
@@ -424,7 +433,8 @@ export default function JourneyScreen() {
     );
   };
 
-  const statusConfig = STATUS_CONFIG[status];
+  const statusGradient = STATUS_GRADIENTS[status];
+  const statusTitle = getStatusTitle(status);
 
   // Loading state
   if (isLoading) {
@@ -436,7 +446,7 @@ export default function JourneyScreen() {
         >
           <ActivityIndicator size="large" color={colors.white} />
         </LinearGradient>
-        <Text style={styles.loadingText}>Chargement du trajet...</Text>
+        <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('journeyScreen.loading')}</Text>
       </View>
     );
   }
@@ -451,16 +461,16 @@ export default function JourneyScreen() {
         >
           <Text style={styles.stateIcon}>❌</Text>
         </LinearGradient>
-        <Text style={styles.stateTitle}>Réservation introuvable</Text>
-        <Text style={styles.stateText}>
-          Cette réservation n'existe pas ou a été annulée.
+        <Text style={[styles.stateTitle, isRTL && styles.textRTL]}>{t('journeyScreen.bookingNotFound')}</Text>
+        <Text style={[styles.stateText, isRTL && styles.textRTL]}>
+          {t('journeyScreen.bookingNotFoundText')}
         </Text>
         <TouchableOpacity style={styles.stateButton} onPress={() => router.back()}>
           <LinearGradient
             colors={[colors.gray[600], colors.gray[700]]}
             style={styles.stateButtonGradient}
           >
-            <Text style={styles.stateButtonText}>Retour</Text>
+            <Text style={[styles.stateButtonText, isRTL && styles.textRTL]}>{t('journeyScreen.back')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -477,9 +487,9 @@ export default function JourneyScreen() {
         >
           <Text style={styles.stateIcon}>❌</Text>
         </LinearGradient>
-        <Text style={styles.stateTitle}>Commande annulée</Text>
-        <Text style={styles.stateText}>
-          Cette commande a été annulée par le client.
+        <Text style={[styles.stateTitle, isRTL && styles.textRTL]}>{t('journeyScreen.orderCancelled')}</Text>
+        <Text style={[styles.stateText, isRTL && styles.textRTL]}>
+          {t('journeyScreen.orderCancelledByClient')}
         </Text>
         <TouchableOpacity
           style={styles.stateButton}
@@ -489,7 +499,7 @@ export default function JourneyScreen() {
             colors={[colors.gray[600], colors.gray[700]]}
             style={styles.stateButtonGradient}
           >
-            <Text style={styles.stateButtonText}>Retour aux commandes</Text>
+            <Text style={[styles.stateButtonText, isRTL && styles.textRTL]}>{t('journeyScreen.backToOrders')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -506,12 +516,12 @@ export default function JourneyScreen() {
         >
           <Text style={styles.stateIcon}>✅</Text>
         </LinearGradient>
-        <Text style={styles.stateTitle}>Prestation terminée</Text>
-        <Text style={styles.stateText}>
-          Votre prestation a été terminée avec succès.
+        <Text style={[styles.stateTitle, isRTL && styles.textRTL]}>{t('journeyScreen.serviceCompleted')}</Text>
+        <Text style={[styles.stateText, isRTL && styles.textRTL]}>
+          {t('journeyScreen.serviceCompletedSuccess')}
         </Text>
         <View style={styles.completedEarnings}>
-          <Text style={styles.completedEarningsLabel}>Gains</Text>
+          <Text style={[styles.completedEarningsLabel, isRTL && styles.textRTL]}>{t('journeyScreen.earnings')}</Text>
           <Text style={styles.completedEarningsValue}>+{booking.price} DH</Text>
         </View>
         <TouchableOpacity
@@ -522,7 +532,7 @@ export default function JourneyScreen() {
             colors={[colors.primary, '#8B5CF6']}
             style={styles.stateButtonGradient}
           >
-            <Text style={styles.stateButtonText}>Retour au tableau de bord</Text>
+            <Text style={[styles.stateButtonText, isRTL && styles.textRTL]}>{t('journeyScreen.backToDashboard')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -548,7 +558,7 @@ export default function JourneyScreen() {
         <Marker coordinate={providerLocation} anchor={{ x: 0.5, y: 0.5 }}>
           <Animated.View style={[styles.providerMarker, { transform: [{ scale: pulseAnim }] }]}>
             <LinearGradient
-              colors={statusConfig.gradient}
+              colors={statusGradient.gradient}
               style={styles.providerMarkerInner}
             >
               <Text style={styles.providerMarkerIcon}>🚗</Text>
@@ -589,19 +599,19 @@ export default function JourneyScreen() {
 
       {/* Status Banner */}
       <LinearGradient
-        colors={statusConfig.gradient}
+        colors={statusGradient.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.statusBanner}
       >
-        <View style={styles.statusBannerLeft}>
-          <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
+        <View style={[styles.statusBannerLeft, isRTL && styles.statusBannerLeftRTL]}>
+          <Text style={[styles.statusIcon, isRTL && styles.statusIconRTL]}>{statusGradient.icon}</Text>
           <View>
-            <Text style={styles.statusTitle}>{statusConfig.title}</Text>
-            <Text style={styles.statusSubtitle}>
-              {status === 'on_way' && `Arrivée dans ${Math.ceil(eta)} min`}
-              {status === 'arrived' && 'En attente du client'}
-              {status === 'in_progress' && `Temps écoulé: ${elapsedTime} min`}
+            <Text style={[styles.statusTitle, isRTL && styles.textRTL]}>{statusTitle}</Text>
+            <Text style={[styles.statusSubtitle, isRTL && styles.textRTL]}>
+              {status === 'on_way' && t('journeyScreen.arrivalIn').replace('{min}', Math.ceil(eta).toString())}
+              {status === 'arrived' && t('journeyScreen.waitingForClient')}
+              {status === 'in_progress' && t('journeyScreen.elapsedTime').replace('{min}', elapsedTime.toString())}
             </Text>
           </View>
         </View>
@@ -620,38 +630,38 @@ export default function JourneyScreen() {
 
         {/* Client Card */}
         <View style={styles.clientCard}>
-          <View style={styles.clientCardHeader}>
+          <View style={[styles.clientCardHeader, isRTL && styles.clientCardHeaderRTL]}>
             <LinearGradient
               colors={[colors.primary, '#8B5CF6']}
               style={styles.clientAvatar}
             >
               <Text style={styles.clientAvatarText}>{booking.clientAvatar}</Text>
             </LinearGradient>
-            <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>{booking.clientName}</Text>
-              <Text style={styles.serviceName}>{booking.service}</Text>
+            <View style={[styles.clientInfo, isRTL && styles.clientInfoRTL]}>
+              <Text style={[styles.clientName, isRTL && styles.textRTL]}>{booking.clientName}</Text>
+              <Text style={[styles.serviceName, isRTL && styles.textRTL]}>{getServiceTranslation(booking.service, language).title}</Text>
             </View>
-            <View style={styles.priceTag}>
+            <View style={[styles.priceTag, isRTL && styles.priceTagRTL]}>
               <Text style={styles.priceTagValue}>{booking.price}</Text>
               <Text style={styles.priceTagUnit}>DH</Text>
             </View>
           </View>
 
-          <View style={styles.addressRow}>
-            <Text style={styles.addressIcon}>📍</Text>
-            <Text style={styles.addressText} numberOfLines={1}>{booking.address}</Text>
+          <View style={[styles.addressRow, isRTL && styles.addressRowRTL]}>
+            <Text style={[styles.addressIcon, isRTL && styles.addressIconRTL]}>📍</Text>
+            <Text style={[styles.addressText, isRTL && styles.textRTL]} numberOfLines={1}>{booking.address}</Text>
           </View>
 
           {/* Notes */}
           {booking.notes && (
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesLabel}>📝 Notes</Text>
-              <Text style={styles.notesText}>{booking.notes}</Text>
+            <View style={[styles.notesContainer, isRTL && styles.notesContainerRTL]}>
+              <Text style={[styles.notesLabel, isRTL && styles.textRTL]}>📝 {t('journeyScreen.notes')}</Text>
+              <Text style={[styles.notesText, isRTL && styles.textRTL]}>{booking.notes}</Text>
             </View>
           )}
 
           {/* Quick Actions */}
-          <View style={styles.quickActions}>
+          <View style={[styles.quickActions, isRTL && styles.quickActionsRTL]}>
             <TouchableOpacity style={styles.quickActionBtn} onPress={handleOpenMaps}>
               <LinearGradient
                 colors={['#3B82F6', '#1D4ED8']}
@@ -659,7 +669,7 @@ export default function JourneyScreen() {
               >
                 <Text style={styles.quickActionIcon}>🗺️</Text>
               </LinearGradient>
-              <Text style={styles.quickActionLabel}>GPS</Text>
+              <Text style={[styles.quickActionLabel, isRTL && styles.textRTL]}>{t('journeyScreen.gps')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -675,7 +685,7 @@ export default function JourneyScreen() {
               >
                 <Text style={styles.quickActionIcon}>💬</Text>
               </LinearGradient>
-              <Text style={styles.quickActionLabel}>Chat</Text>
+              <Text style={[styles.quickActionLabel, isRTL && styles.textRTL]}>{t('journeyScreen.chat')}</Text>
             </TouchableOpacity>
 
             {status === 'on_way' && (
@@ -692,7 +702,7 @@ export default function JourneyScreen() {
                 >
                   <Text style={styles.quickActionIcon}>❌</Text>
                 </LinearGradient>
-                <Text style={[styles.quickActionLabel, { color: colors.error }]}>Annuler</Text>
+                <Text style={[styles.quickActionLabel, { color: colors.error }, isRTL && styles.textRTL]}>{t('journeyScreen.cancel')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -703,10 +713,10 @@ export default function JourneyScreen() {
           <TouchableOpacity style={styles.mainActionBtn} onPress={handleArrivedAtClient}>
             <LinearGradient
               colors={['#8B5CF6', '#6D28D9']}
-              style={styles.mainActionGradient}
+              style={[styles.mainActionGradient, isRTL && styles.mainActionGradientRTL]}
             >
               <Text style={styles.mainActionIcon}>📍</Text>
-              <Text style={styles.mainActionText}>Je suis arrivé</Text>
+              <Text style={[styles.mainActionText, isRTL && styles.textRTL]}>{t('journeyScreen.iArrived')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -715,13 +725,13 @@ export default function JourneyScreen() {
           <View style={styles.waitingCard}>
             <LinearGradient
               colors={['#EDE9FE', '#DDD6FE']}
-              style={styles.waitingCardGradient}
+              style={[styles.waitingCardGradient, isRTL && styles.waitingCardGradientRTL]}
             >
-              <Text style={styles.waitingIcon}>⏳</Text>
+              <Text style={[styles.waitingIcon, isRTL && styles.waitingIconRTL]}>⏳</Text>
               <View style={styles.waitingTextContainer}>
-                <Text style={styles.waitingTitle}>En attente de confirmation</Text>
-                <Text style={styles.waitingSubtext}>
-                  Le client doit confirmer votre arrivée
+                <Text style={[styles.waitingTitle, isRTL && styles.textRTL]}>{t('journeyScreen.waitingConfirmation')}</Text>
+                <Text style={[styles.waitingSubtext, isRTL && styles.textRTL]}>
+                  {t('journeyScreen.clientMustConfirm')}
                 </Text>
               </View>
             </LinearGradient>
@@ -732,10 +742,10 @@ export default function JourneyScreen() {
           <TouchableOpacity style={styles.mainActionBtn} onPress={handleCompleteService}>
             <LinearGradient
               colors={['#10B981', '#059669']}
-              style={styles.mainActionGradient}
+              style={[styles.mainActionGradient, isRTL && styles.mainActionGradientRTL]}
             >
               <Text style={styles.mainActionIcon}>✅</Text>
-              <Text style={styles.mainActionText}>Terminer la prestation</Text>
+              <Text style={[styles.mainActionText, isRTL && styles.textRTL]}>{t('journeyScreen.finishService')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -1175,5 +1185,54 @@ const styles = StyleSheet.create({
   waitingSubtext: {
     fontSize: typography.fontSize.sm,
     color: '#7C3AED',
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  statusBannerLeftRTL: {
+    flexDirection: 'row-reverse',
+  },
+  statusIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
+  },
+  clientCardHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  clientInfoRTL: {
+    marginLeft: 0,
+    marginRight: spacing.md,
+    alignItems: 'flex-end',
+  },
+  priceTagRTL: {
+    flexDirection: 'row-reverse',
+  },
+  addressRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  addressIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  notesContainerRTL: {
+    borderLeftWidth: 0,
+    borderRightWidth: 3,
+    borderRightColor: colors.warning,
+  },
+  quickActionsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  mainActionGradientRTL: {
+    flexDirection: 'row-reverse',
+  },
+  waitingCardGradientRTL: {
+    flexDirection: 'row-reverse',
+  },
+  waitingIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
   },
 });

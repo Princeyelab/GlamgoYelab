@@ -17,10 +17,12 @@ import {
   toggleFavorite,
 } from '../../src/lib/store/slices/servicesSlice';
 import { Service } from '../../src/types/service';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, isRTL } = useLanguage();
 
   const services = useAppSelector(selectServices);
   const favorites = useAppSelector(selectFavorites);
@@ -48,9 +50,9 @@ export default function FavoritesScreen() {
       rating={item.rating}
       reviews_count={item.reviews_count}
       duration_minutes={item.duration_minutes}
-      category={item.category || { id: 0, name: 'Service' }}
+      category={item.category || { id: 0, name: t('services.service') }}
       is_featured={item.is_featured}
-      provider={item.provider || { id: 0, name: 'Prestataire' }}
+      provider={item.provider || { id: 0, name: t('provider.provider') }}
       isNew={item.isNew}
       isFavorite={true}
       onPress={() => handleServicePress(item.id)}
@@ -60,9 +62,9 @@ export default function FavoritesScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>Mes Favoris</Text>
-      <Text style={styles.subtitle}>
-        {favoriteServices.length} service{favoriteServices.length !== 1 ? 's' : ''} sauvegarde{favoriteServices.length !== 1 ? 's' : ''}
+      <Text style={[styles.title, isRTL && styles.rtlText]}>{t('favorites.myFavorites')}</Text>
+      <Text style={[styles.subtitle, isRTL && styles.rtlText]}>
+        {t('favorites.savedCount', { count: favoriteServices.length })}
       </Text>
     </View>
   );
@@ -70,16 +72,16 @@ export default function FavoritesScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>❤️</Text>
-      <Text style={styles.emptyTitle}>Aucun favori</Text>
-      <Text style={styles.emptyText}>
-        Ajoutez des services en favoris pour les retrouver facilement ici
+      <Text style={[styles.emptyTitle, isRTL && styles.rtlText]}>{t('favorites.noFavorites')}</Text>
+      <Text style={[styles.emptyText, isRTL && styles.rtlText]}>
+        {t('favorites.addFavoritesHint')}
       </Text>
       <TouchableOpacity
         style={styles.browseButton}
         onPress={() => router.push('/(tabs)/services')}
         activeOpacity={0.8}
       >
-        <Text style={styles.browseButtonText}>Parcourir les services</Text>
+        <Text style={styles.browseButtonText}>{t('favorites.browseServices')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -164,5 +166,9 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
   },
 });

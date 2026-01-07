@@ -24,6 +24,7 @@ import { colors, spacing, typography, shadows, borderRadius } from '../../src/li
 import { useAppSelector } from '../../src/lib/store/hooks';
 import { selectServices } from '../../src/lib/store/slices/servicesSlice';
 import { Service } from '../../src/types/service';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -50,6 +51,7 @@ export default function ProviderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const services = useAppSelector(selectServices);
+  const { t } = useLanguage();
 
   const [provider, setProvider] = useState<Provider | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -254,8 +256,8 @@ export default function ProviderDetailScreen() {
                       rating={service.rating}
                       reviews_count={service.reviews_count}
                       duration_minutes={service.duration_minutes}
-                      category={service.category || { id: 0, name: 'Service' }}
-                      provider={service.provider || { id: 0, name: 'Prestataire' }}
+                      category={service.category || { id: 0, name: t('services.service') }}
+                      provider={service.provider || { id: 0, name: t('provider.provider') }}
                       is_featured={service.is_featured}
                       onPress={() => handleServicePress(service.id)}
                     />
@@ -314,7 +316,7 @@ export default function ProviderDetailScreen() {
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Membre depuis</Text>
                     <Text style={styles.infoValue}>
-                      {new Date(provider.joined_date).toLocaleDateString('fr-FR', {
+                      {new Date(provider.joined_date).toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
                         year: 'numeric',
                         month: 'long',
                       })}

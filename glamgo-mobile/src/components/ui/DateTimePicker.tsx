@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DateTimePickerProps {
   mode: 'date' | 'time' | 'datetime';
@@ -33,11 +34,16 @@ export default function DateTimePicker({
   minDate,
   maxDate,
   label,
-  placeholder = 'Selectionner',
+  placeholder,
   error,
 }: DateTimePickerProps) {
+  const { t, isRTL, language } = useLanguage();
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(value);
+
+  // Get locale based on language
+  const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
+  const displayPlaceholder = placeholder || t('calendar.select');
 
   // Generate date options
   const generateDates = () => {
@@ -88,18 +94,18 @@ export default function DateTimePicker({
       day: 'numeric',
       month: 'short',
     };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString(locale, options);
   };
 
   const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString('fr-FR', {
+    return date.toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
   };
 
   const formatDisplay = (): string => {
-    if (!value || value.getTime() === 0) return placeholder;
+    if (!value || value.getTime() === 0) return displayPlaceholder;
 
     switch (mode) {
       case 'date':
@@ -107,9 +113,9 @@ export default function DateTimePicker({
       case 'time':
         return formatTime(value);
       case 'datetime':
-        return `${formatDate(value)} a ${formatTime(value)}`;
+        return `${formatDate(value)} ${t('calendar.at')} ${formatTime(value)}`;
       default:
-        return placeholder;
+        return displayPlaceholder;
     }
   };
 
@@ -154,8 +160,8 @@ export default function DateTimePicker({
   };
 
   const getDayLabel = (date: Date): string => {
-    if (isToday(date)) return "Aujourd'hui";
-    if (isTomorrow(date)) return 'Demain';
+    if (isToday(date)) return t('calendar.today');
+    if (isTomorrow(date)) return t('calendar.tomorrow');
     return formatDate(date);
   };
 
@@ -194,28 +200,28 @@ export default function DateTimePicker({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, isRTL && styles.modalHeaderRTL]}>
               <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <Text style={styles.modalCancel}>Annuler</Text>
+                <Text style={styles.modalCancel}>{t('calendar.cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>
-                {mode === 'date' && 'Choisir une date'}
-                {mode === 'time' && 'Choisir une heure'}
-                {mode === 'datetime' && 'Choisir date et heure'}
+              <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>
+                {mode === 'date' && t('calendar.chooseDate')}
+                {mode === 'time' && t('calendar.chooseTime')}
+                {mode === 'datetime' && t('calendar.chooseDateAndTime')}
               </Text>
               <TouchableOpacity onPress={handleConfirm}>
-                <Text style={styles.modalConfirm}>OK</Text>
+                <Text style={styles.modalConfirm}>{t('calendar.confirm')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Date Picker */}
             {(mode === 'date' || mode === 'datetime') && (
               <View style={styles.dateSection}>
-                <Text style={styles.sectionTitle}>Date</Text>
+                <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('calendar.date')}</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.datesScroll}
+                  contentContainerStyle={[styles.datesScroll, isRTL && styles.datesScrollRTL]}
                 >
                   {generateDates().map((date, index) => {
                     const isSelected =
@@ -233,7 +239,7 @@ export default function DateTimePicker({
                           styles.dateDay,
                           isSelected && styles.dateDaySelected,
                         ]}>
-                          {date.toLocaleDateString('fr-FR', { weekday: 'short' })}
+                          {date.toLocaleDateString(locale, { weekday: 'short' })}
                         </Text>
                         <Text style={[
                           styles.dateNumber,
@@ -245,14 +251,14 @@ export default function DateTimePicker({
                           styles.dateMonth,
                           isSelected && styles.dateMonthSelected,
                         ]}>
-                          {date.toLocaleDateString('fr-FR', { month: 'short' })}
+                          {date.toLocaleDateString(locale, { month: 'short' })}
                         </Text>
                         {(isToday(date) || isTomorrow(date)) && (
                           <Text style={[
                             styles.dateLabel,
                             isSelected && styles.dateLabelSelected,
                           ]}>
-                            {isToday(date) ? "Auj." : "Dem."}
+                            {isToday(date) ? t('calendar.todayShort') : t('calendar.tomorrowShort')}
                           </Text>
                         )}
                       </TouchableOpacity>
@@ -265,12 +271,12 @@ export default function DateTimePicker({
             {/* Time Picker */}
             {(mode === 'time' || mode === 'datetime') && (
               <View style={styles.timeSection}>
-                <Text style={styles.sectionTitle}>Heure</Text>
+                <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('calendar.time')}</Text>
                 <ScrollView
                   style={styles.timesScroll}
                   showsVerticalScrollIndicator={false}
                 >
-                  <View style={styles.timesGrid}>
+                  <View style={[styles.timesGrid, isRTL && styles.timesGridRTL]}>
                     {generateTimeSlots().map((time, index) => {
                       const isSelected = formatTime(tempDate) === time;
                       const isNight = isNightHour(time);
@@ -297,17 +303,17 @@ export default function DateTimePicker({
                   </View>
                   {/* Legende */}
                   <View style={styles.timeLegend}>
-                    <Text style={styles.timeLegendText}>🌙 = Horaire de nuit (+25%)</Text>
+                    <Text style={[styles.timeLegendText, isRTL && styles.textRTL]}>🌙 = {t('calendar.nightHour')}</Text>
                   </View>
                 </ScrollView>
               </View>
             )}
 
             {/* Preview */}
-            <View style={styles.preview}>
-              <Text style={styles.previewLabel}>Selection:</Text>
-              <Text style={styles.previewValue}>
-                {mode === 'datetime' && `${getDayLabel(tempDate)} a ${formatTime(tempDate)}`}
+            <View style={[styles.preview, isRTL && styles.previewRTL]}>
+              <Text style={[styles.previewLabel, isRTL && styles.textRTL]}>{t('calendar.selection')}</Text>
+              <Text style={[styles.previewValue, isRTL && styles.textRTL]}>
+                {mode === 'datetime' && `${getDayLabel(tempDate)} ${t('calendar.at')} ${formatTime(tempDate)}`}
                 {mode === 'date' && getDayLabel(tempDate)}
                 {mode === 'time' && formatTime(tempDate)}
               </Text>
@@ -526,5 +532,24 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[900],
+  },
+
+  // RTL Styles
+  modalHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  datesScrollRTL: {
+    flexDirection: 'row-reverse',
+  },
+  timesGridRTL: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+  },
+  previewRTL: {
+    flexDirection: 'row-reverse',
   },
 });

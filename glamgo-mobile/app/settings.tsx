@@ -21,10 +21,12 @@ import { colors, spacing, typography, borderRadius } from '../src/lib/constants/
 import { hapticFeedback, setHapticsEnabled } from '../src/lib/utils/haptics';
 import { useAppDispatch } from '../src/lib/store/hooks';
 import { logoutUser } from '../src/lib/store/slices/authSlice';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, isRTL } = useLanguage();
 
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
@@ -53,15 +55,15 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     hapticFeedback.warning();
     Alert.alert(
-      'Vider le cache',
-      'Cela supprimera les données temporaires. Continuer ?',
+      t('settings.clearCacheTitle'),
+      t('settings.clearCacheMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('settings.confirm'),
           onPress: () => {
             hapticFeedback.success();
-            Alert.alert('Succès', 'Cache vidé avec succès');
+            Alert.alert(t('settings.success'), t('settings.clearCacheSuccess'));
           },
         },
       ]
@@ -71,15 +73,15 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     hapticFeedback.error();
     Alert.alert(
-      'Supprimer le compte',
-      'Cette action est irréversible. Toutes vos données seront supprimées.',
+      t('settings.deleteAccountTitle'),
+      t('settings.deleteAccountMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('settings.delete'),
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Info', 'Fonctionnalité disponible en production');
+            Alert.alert(t('settings.info'), t('settings.deleteAccountInfo'));
           },
         },
       ]
@@ -89,12 +91,12 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Déconnexion',
-      'Voulez-vous vraiment vous déconnecter ?',
+      t('settings.logoutTitle'),
+      t('settings.logoutMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Déconnexion',
+          text: t('settings.logout'),
           style: 'destructive',
           onPress: () => {
             dispatch(logoutUser());
@@ -114,7 +116,7 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isRTL && styles.rowRTL]}>
           <TouchableOpacity
             onPress={() => {
               hapticFeedback.light();
@@ -122,21 +124,21 @@ export default function SettingsScreen() {
             }}
             style={styles.backButton}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Paramètres</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         {/* Notifications */}
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('settings.notifications')}</Text>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Notifications push</Text>
-              <Text style={styles.settingDescription}>
-                Recevoir les alertes de réservation
+          <View style={[styles.settingRow, isRTL && styles.rowRTL]}>
+            <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
+              <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.pushNotifications')}</Text>
+              <Text style={[styles.settingDescription, isRTL && styles.textRTL]}>
+                {t('settings.receiveBookingAlerts')}
               </Text>
             </View>
             <Switch
@@ -150,13 +152,13 @@ export default function SettingsScreen() {
 
         {/* Privacy */}
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Confidentialité</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('settings.privacy')}</Text>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Services de localisation</Text>
-              <Text style={styles.settingDescription}>
-                Autoriser l'accès à votre position
+          <View style={[styles.settingRow, isRTL && styles.rowRTL]}>
+            <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
+              <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.locationServices')}</Text>
+              <Text style={[styles.settingDescription, isRTL && styles.textRTL]}>
+                {t('settings.allowLocationAccess')}
               </Text>
             </View>
             <Switch
@@ -170,13 +172,13 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Apparence</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('settings.appearance')}</Text>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Mode sombre</Text>
-              <Text style={styles.settingDescription}>
-                Bientôt disponible
+          <View style={[styles.settingRow, isRTL && styles.rowRTL]}>
+            <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
+              <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.darkMode')}</Text>
+              <Text style={[styles.settingDescription, isRTL && styles.textRTL]}>
+                {t('settings.comingSoon')}
               </Text>
             </View>
             <Switch
@@ -188,11 +190,11 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <View style={[styles.settingRow, styles.settingRowLast]}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Retour haptique</Text>
-              <Text style={styles.settingDescription}>
-                Vibrations lors des interactions
+          <View style={[styles.settingRow, styles.settingRowLast, isRTL && styles.rowRTL]}>
+            <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
+              <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.hapticFeedback')}</Text>
+              <Text style={[styles.settingDescription, isRTL && styles.textRTL]}>
+                {t('settings.vibrationsOnInteraction')}
               </Text>
             </View>
             <Switch
@@ -206,37 +208,37 @@ export default function SettingsScreen() {
 
         {/* About */}
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>À propos</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('settings.about')}</Text>
 
           <TouchableOpacity
-            style={styles.linkRow}
+            style={[styles.linkRow, isRTL && styles.rowRTL]}
             onPress={() => hapticFeedback.light()}
           >
-            <Text style={styles.linkLabel}>Conditions d'utilisation</Text>
-            <Text style={styles.linkIcon}>→</Text>
+            <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.termsOfUse')}</Text>
+            <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.linkRow}
+            style={[styles.linkRow, isRTL && styles.rowRTL]}
             onPress={() => hapticFeedback.light()}
           >
-            <Text style={styles.linkLabel}>Politique de confidentialité</Text>
-            <Text style={styles.linkIcon}>→</Text>
+            <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.privacyPolicy')}</Text>
+            <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.linkRow, styles.linkRowLast]}
+            style={[styles.linkRow, styles.linkRowLast, isRTL && styles.rowRTL]}
             onPress={() => hapticFeedback.light()}
           >
-            <Text style={styles.linkLabel}>Contact & Support</Text>
-            <Text style={styles.linkIcon}>→</Text>
+            <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.contactSupport')}</Text>
+            <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
           </TouchableOpacity>
         </Card>
 
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appName}>GlamGo Mobile</Text>
-          <Text style={styles.appVersion}>Version 1.0.0</Text>
+          <Text style={styles.appVersion}>{t('settings.version')} 1.0.0</Text>
           <Text style={styles.appBuild}>Build 100 • MVP Complete</Text>
         </View>
 
@@ -247,19 +249,19 @@ export default function SettingsScreen() {
           onPress={handleLogout}
           style={styles.logoutButton}
         >
-          Déconnexion
+          {t('settings.logout')}
         </Button>
 
         {/* Danger Zone */}
         <Card style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>Zone dangereuse</Text>
+          <Text style={[styles.dangerTitle, isRTL && styles.textRTL]}>{t('settings.dangerZone')}</Text>
 
           <Button
             variant="ghost"
             fullWidth
             onPress={handleClearCache}
           >
-            Vider le cache
+            {t('settings.clearCache')}
           </Button>
 
           <Button
@@ -269,7 +271,7 @@ export default function SettingsScreen() {
             style={styles.deleteButton}
             textStyle={styles.deleteButtonText}
           >
-            Supprimer le compte
+            {t('settings.deleteAccount')}
           </Button>
         </Card>
       </ScrollView>
@@ -416,5 +418,18 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: colors.error,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  settingInfoRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
+    alignItems: 'flex-end',
   },
 });

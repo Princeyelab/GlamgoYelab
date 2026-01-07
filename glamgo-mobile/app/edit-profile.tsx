@@ -26,11 +26,13 @@ import { selectAuth, updateUserProfile, setUser } from '../src/lib/store/slices/
 import { hapticFeedback } from '../src/lib/utils/haptics';
 import { uploadProviderImage, getProviderProfile } from '../src/lib/api/providerAPI';
 import { API_BASE_URL } from '../src/lib/api/client';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, isLoading } = useAppSelector(selectAuth);
+  const { t, isRTL } = useLanguage();
 
   // Form state
   const [firstName, setFirstName] = useState(user?.first_name || '');
@@ -78,15 +80,15 @@ export default function EditProfileScreen() {
     hapticFeedback.light();
 
     Alert.alert(
-      'Changer la photo',
-      'Comment souhaitez-vous ajouter la photo ?',
+      t('editProfile.changePhotoTitle'),
+      t('editProfile.changePhotoMessage'),
       [
         {
-          text: 'Appareil photo',
+          text: t('editProfile.camera'),
           onPress: async () => {
             const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
             if (!cameraPermission.granted) {
-              Alert.alert('Permission requise', 'Autorisez l\'accès à la caméra pour prendre une photo');
+              Alert.alert(t('editProfile.permissionRequired'), t('editProfile.cameraPermissionMessage'));
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
@@ -101,11 +103,11 @@ export default function EditProfileScreen() {
           },
         },
         {
-          text: 'Galerie',
+          text: t('editProfile.gallery'),
           onPress: async () => {
             const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!galleryPermission.granted) {
-              Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie pour choisir une photo');
+              Alert.alert(t('editProfile.permissionRequired'), t('editProfile.galleryPermissionMessage'));
               return;
             }
             const result = await ImagePicker.launchImageLibraryAsync({
@@ -119,7 +121,7 @@ export default function EditProfileScreen() {
             }
           },
         },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('editProfile.cancel'), style: 'cancel' },
       ]
     );
   };
@@ -160,7 +162,7 @@ export default function EditProfileScreen() {
           }));
         } catch (uploadError: any) {
           console.error('[EditProfile] Photo upload error:', uploadError);
-          Alert.alert('Erreur', 'Impossible de mettre à jour la photo');
+          Alert.alert(t('editProfile.error'), t('editProfile.cannotUpdatePhoto'));
           setIsUploadingPhoto(false);
           return;
         }
@@ -183,28 +185,28 @@ export default function EditProfileScreen() {
 
       hapticFeedback.success();
       const message = photoUpdated && profileChanged
-        ? 'Photo et profil mis à jour'
+        ? t('editProfile.photoAndProfileUpdated')
         : photoUpdated
-        ? 'Photo de profil mise à jour'
-        : 'Profil mis à jour';
+        ? t('editProfile.photoUpdated')
+        : t('editProfile.profileUpdated');
 
-      Alert.alert('Succès', message, [
+      Alert.alert(t('editProfile.success'), message, [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.message || 'Impossible de mettre à jour le profil');
+      Alert.alert(t('editProfile.error'), error?.message || t('editProfile.cannotUpdateProfile'));
     }
   };
 
   const handleCancel = () => {
     if (hasChanges) {
       Alert.alert(
-        'Modifications non sauvegardees',
-        'Voulez-vous vraiment quitter sans sauvegarder ?',
+        t('editProfile.unsavedChangesTitle'),
+        t('editProfile.unsavedChangesMessage'),
         [
-          { text: 'Continuer', style: 'cancel' },
-          { text: 'Quitter', style: 'destructive', onPress: () => router.back() },
+          { text: t('editProfile.continueEditing'), style: 'cancel' },
+          { text: t('editProfile.quit'), style: 'destructive', onPress: () => router.back() },
         ]
       );
     } else {
@@ -215,7 +217,7 @@ export default function EditProfileScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>Non connecte</Text>
+        <Text>{t('editProfile.notConnected')}</Text>
       </View>
     );
   }
@@ -227,11 +229,11 @@ export default function EditProfileScreen() {
     >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isRTL && styles.rowRTL]}>
           <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Modifier le profil</Text>
+          <Text style={styles.headerTitle}>{t('editProfile.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -259,43 +261,46 @@ export default function EditProfileScreen() {
               </View>
             )}
             {/* Badge de modification */}
-            <View style={styles.avatarEditBadge}>
+            <View style={[styles.avatarEditBadge, isRTL && styles.avatarEditBadgeRTL]}>
               <Text style={styles.avatarEditIcon}>{'📷'}</Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.avatarHint}>{'Appuyez pour changer la photo'}</Text>
+          <Text style={[styles.avatarHint, isRTL && styles.textRTL]}>{t('editProfile.tapToChangePhoto')}</Text>
 
           {/* Form */}
           <View style={styles.form}>
             <Input
-              label="Prenom"
+              label={t('editProfile.firstName')}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Votre prenom"
+              placeholder={t('editProfile.firstNamePlaceholder')}
               autoCapitalize="words"
+              style={isRTL ? styles.inputRTL : undefined}
             />
 
             <Input
-              label="Nom"
+              label={t('editProfile.lastName')}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Votre nom"
+              placeholder={t('editProfile.lastNamePlaceholder')}
               autoCapitalize="words"
+              style={isRTL ? styles.inputRTL : undefined}
             />
 
             <Input
-              label="Email"
+              label={t('editProfile.email')}
               value={user.email}
               editable={false}
-              style={styles.disabledInput}
+              style={[styles.disabledInput, isRTL && styles.inputRTL]}
             />
 
             <Input
-              label="Telephone"
+              label={t('editProfile.phone')}
               value={phone}
               onChangeText={setPhone}
-              placeholder="06 XX XX XX XX"
+              placeholder={t('editProfile.phonePlaceholder')}
               keyboardType="phone-pad"
+              style={isRTL ? styles.inputRTL : undefined}
             />
           </View>
 
@@ -308,7 +313,7 @@ export default function EditProfileScreen() {
               loading={isLoading || isUploadingPhoto}
               disabled={isLoading || isUploadingPhoto || !hasChanges}
             >
-              {isUploadingPhoto ? 'Upload en cours...' : 'Sauvegarder'}
+              {isUploadingPhoto ? t('editProfile.uploading') : t('editProfile.saveChanges')}
             </Button>
 
             <Button
@@ -317,7 +322,7 @@ export default function EditProfileScreen() {
               onPress={handleCancel}
               style={styles.cancelButton}
             >
-              Annuler
+              {t('editProfile.cancel')}
             </Button>
           </View>
         </View>
@@ -426,5 +431,21 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     marginTop: spacing.xs,
+  },
+  // RTL Styles
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  avatarEditBadgeRTL: {
+    right: 'auto',
+    left: 0,
   },
 });

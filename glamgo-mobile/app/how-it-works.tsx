@@ -6,299 +6,300 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Image,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 type TabType = 'client' | 'provider';
 
-const CLIENT_STEPS = [
-  {
-    number: '1',
-    icon: '📱',
-    title: 'Inscription et Profil',
-    desc: 'Creez votre compte en quelques clics',
-    details: [
-      'Inscription rapide par email',
-      'Verification de votre numero de telephone',
-      'Ajout de vos adresses favorites (domicile, bureau...)',
-      'Enregistrement de votre methode de paiement',
-    ],
-  },
-  {
-    number: '2',
-    icon: '🔍',
-    title: 'Recherche de Services',
-    desc: 'Parcourez notre catalogue complet',
-    details: [
-      'Plus de 50 services disponibles (menage, coiffure, massage...)',
-      'Filtrage par categorie et prix',
-      'Visualisation des prestataires sur la carte',
-      'Consultation des avis et notes',
-    ],
-  },
-  {
-    number: '3',
-    icon: '📅',
-    title: 'Reservation Flexible',
-    desc: 'Choisissez votre creneau',
-    details: [
-      'Calendrier avec disponibilites en temps reel',
-      'Choix de formules : Standard, Premium ou Nuit',
-      'Selection de l adresse d intervention',
-      'Ajout de notes speciales pour le prestataire',
-      'Supplement nuit automatique (22h-6h) : +30 MAD',
-    ],
-  },
-  {
-    number: '4',
-    icon: '💳',
-    title: 'Paiement Securise',
-    desc: 'Plusieurs options de paiement',
-    details: [
-      'Paiement par carte bancaire (debite a la fin)',
-      'Paiement en especes au prestataire',
-      'Prix affiche = prix final (pas de frais caches)',
-      'Frais de deplacement calcules automatiquement',
-      'Commission GlamGo : 20% (incluse dans le prix)',
-    ],
-  },
-  {
-    number: '5',
-    icon: '📍',
-    title: 'Suivi en Temps Reel',
-    desc: 'Suivez l arrivee de votre prestataire',
-    details: [
-      'Notification quand le prestataire accepte',
-      'Suivi GPS en temps reel quand il est en route',
-      'Chat integre pour communiquer directement',
-      'Confirmation d arrivee a votre domicile',
-      'Numero de telephone du prestataire accessible',
-    ],
-  },
-  {
-    number: '6',
-    icon: '⭐',
-    title: 'Evaluation et Pourboire',
-    desc: 'Notez votre experience',
-    details: [
-      'Questionnaire de satisfaction en 3 etapes',
-      'Note de qualite (1 a 5 etoiles)',
-      'Evaluation ponctualite et respect du prix',
-      'Possibilite de laisser un pourboire (carte)',
-      'Commentaires et photos optionnels',
-    ],
-  },
-];
-
-const PROVIDER_STEPS = [
-  {
-    number: '1',
-    icon: '📝',
-    title: 'Inscription Prestataire',
-    desc: 'Creez votre compte professionnel',
-    details: [
-      'Formulaire d inscription dedie aux professionnels',
-      'Verification de votre identite (CIN)',
-      'Upload de vos certifications professionnelles',
-      'Definition de votre zone d intervention (rayon en km)',
-      'Configuration de vos coordonnees GPS',
-    ],
-  },
-  {
-    number: '2',
-    icon: '🛠️',
-    title: 'Configuration des Services',
-    desc: 'Selectionnez vos services',
-    details: [
-      'Choix parmi plus de 50 services disponibles',
-      'Personnalisation de votre tarif de base',
-      'Definition de votre rayon d intervention',
-      'Ajout de votre bio et experience',
-      'Upload de photos de vos realisations',
-    ],
-  },
-  {
-    number: '3',
-    icon: '🔔',
-    title: 'Reception des Commandes',
-    desc: 'Notifications en temps reel',
-    details: [
-      'Notifications push en temps reel',
-      'Badge de notification sur le tableau de bord',
-      'Details complets de chaque demande',
-      'Adresse et distance du client affichees',
-      'Date, heure et formule demandee visibles',
-    ],
-  },
-  {
-    number: '4',
-    icon: '✅',
-    title: 'Acceptation et Gestion',
-    desc: 'Gerez votre planning',
-    details: [
-      'Acceptation en un clic depuis le dashboard',
-      'Tableau de bord avec toutes vos commandes',
-      'Statuts : En attente, Acceptee, En route, En cours, Terminee',
-      'Possibilite d annulation avec frais selon delai',
-      'Chat integre avec le client',
-    ],
-  },
-  {
-    number: '5',
-    icon: '🚗',
-    title: 'Navigation vers le Client',
-    desc: 'Suivi GPS integre',
-    details: [
-      'Bouton "En route" pour signaler votre depart',
-      'Votre position partagee en temps reel avec le client',
-      'Acces a l adresse et au numero du client',
-      'Navigation GPS integree',
-      'Le client confirme votre arrivee',
-    ],
-  },
-  {
-    number: '6',
-    icon: '💼',
-    title: 'Realisation du Service',
-    desc: 'Effectuez la prestation',
-    details: [
-      'Bouton "Commencer" pour demarrer le service',
-      'Chronometre de duree de prestation',
-      'Communication continue avec le client si besoin',
-      'Bouton "Terminer" avec confirmation photo optionnelle',
-      'Le client evalue ensuite la prestation',
-    ],
-  },
-  {
-    number: '7',
-    icon: '💰',
-    title: 'Paiement et Revenus',
-    desc: 'Paiement automatique',
-    details: [
-      'Paiement carte : credite automatiquement (moins 20% commission)',
-      'Paiement especes : vous gardez 80%, 20% preleve sur votre compte',
-      'Pourboires 100% pour vous (pas de commission)',
-      'Historique detaille de vos gains',
-      'Tableau de bord financier complet',
-    ],
-  },
-];
-
-const CLIENT_FEATURES = [
-  {
-    icon: '🛡️',
-    title: 'Prestataires Verifies',
-    desc: 'Tous nos prestataires sont controles et certifies',
-  },
-  {
-    icon: '🔄',
-    title: 'Annulation Flexible',
-    desc: 'Annulez gratuitement jusqu a 2h avant le RDV',
-  },
-  {
-    icon: '💬',
-    title: 'Support 24/7',
-    desc: 'Notre equipe disponible via chat ou telephone',
-  },
-  {
-    icon: '🔔',
-    title: 'Notifications Intelligentes',
-    desc: 'Informe a chaque etape : acceptation, depart, arrivee',
-  },
-];
-
-const PROVIDER_FEATURES = [
-  {
-    icon: '📊',
-    title: 'Tableau de Bord Complet',
-    desc: 'Gerez vos commandes, statistiques et revenus en temps reel',
-  },
-  {
-    icon: '⭐',
-    title: 'Systeme de Notation',
-    desc: 'Une bonne note augmente votre visibilite',
-  },
-  {
-    icon: '🗺️',
-    title: 'Zone d Intervention',
-    desc: 'Definissez votre rayon d action',
-  },
-  {
-    icon: '🔄',
-    title: 'Gestion des Annulations',
-    desc: '0 MAD (>2h), 20 MAD (1-2h), 50 MAD (<1h)',
-  },
-];
-
-const PROVIDER_REVENUES = [
-  {
-    percent: '20%',
-    title: 'Commission GlamGo',
-    desc: 'Prelevee sur chaque prestation',
-  },
-  {
-    percent: '80%',
-    title: 'Vos Revenus',
-    desc: 'Du montant total de la prestation',
-  },
-  {
-    percent: '100%',
-    title: 'Pourboires',
-    desc: 'Integralement pour vous',
-  },
-];
-
-const CANCELLATION_POLICY = [
-  { delay: 'Plus de 2h avant', fee: '0 MAD' },
-  { delay: 'Entre 1h et 2h', fee: '20 MAD' },
-  { delay: 'Moins de 1h', fee: '50 MAD' },
-  { delay: 'No-show', fee: '100 MAD' },
-];
-
-const PRICING = [
-  {
-    formula: 'Standard',
-    desc: 'Service de base avec produits standards',
-    modifier: 'Prix de base',
-  },
-  {
-    formula: 'Premium',
-    desc: 'Service premium avec produits haut de gamme',
-    modifier: '+50 MAD',
-  },
-  {
-    formula: 'Nuit',
-    desc: 'Service entre 22h et 6h du matin',
-    modifier: '+30 MAD',
-  },
-];
-
 export default function HowItWorksScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('client');
+
+  const CLIENT_STEPS = [
+    {
+      number: '1',
+      icon: '📱',
+      title: t('howItWorksPage.clientStep1Title'),
+      desc: t('howItWorksPage.clientStep1Desc'),
+      details: [
+        t('howItWorksPage.clientStep1Detail1'),
+        t('howItWorksPage.clientStep1Detail2'),
+        t('howItWorksPage.clientStep1Detail3'),
+        t('howItWorksPage.clientStep1Detail4'),
+      ],
+    },
+    {
+      number: '2',
+      icon: '🔍',
+      title: t('howItWorksPage.clientStep2Title'),
+      desc: t('howItWorksPage.clientStep2Desc'),
+      details: [
+        t('howItWorksPage.clientStep2Detail1'),
+        t('howItWorksPage.clientStep2Detail2'),
+        t('howItWorksPage.clientStep2Detail3'),
+        t('howItWorksPage.clientStep2Detail4'),
+      ],
+    },
+    {
+      number: '3',
+      icon: '📅',
+      title: t('howItWorksPage.clientStep3Title'),
+      desc: t('howItWorksPage.clientStep3Desc'),
+      details: [
+        t('howItWorksPage.clientStep3Detail1'),
+        t('howItWorksPage.clientStep3Detail2'),
+        t('howItWorksPage.clientStep3Detail3'),
+        t('howItWorksPage.clientStep3Detail4'),
+        t('howItWorksPage.clientStep3Detail5'),
+      ],
+    },
+    {
+      number: '4',
+      icon: '💳',
+      title: t('howItWorksPage.clientStep4Title'),
+      desc: t('howItWorksPage.clientStep4Desc'),
+      details: [
+        t('howItWorksPage.clientStep4Detail1'),
+        t('howItWorksPage.clientStep4Detail2'),
+        t('howItWorksPage.clientStep4Detail3'),
+        t('howItWorksPage.clientStep4Detail4'),
+        t('howItWorksPage.clientStep4Detail5'),
+      ],
+    },
+    {
+      number: '5',
+      icon: '📍',
+      title: t('howItWorksPage.clientStep5Title'),
+      desc: t('howItWorksPage.clientStep5Desc'),
+      details: [
+        t('howItWorksPage.clientStep5Detail1'),
+        t('howItWorksPage.clientStep5Detail2'),
+        t('howItWorksPage.clientStep5Detail3'),
+        t('howItWorksPage.clientStep5Detail4'),
+        t('howItWorksPage.clientStep5Detail5'),
+      ],
+    },
+    {
+      number: '6',
+      icon: '⭐',
+      title: t('howItWorksPage.clientStep6Title'),
+      desc: t('howItWorksPage.clientStep6Desc'),
+      details: [
+        t('howItWorksPage.clientStep6Detail1'),
+        t('howItWorksPage.clientStep6Detail2'),
+        t('howItWorksPage.clientStep6Detail3'),
+        t('howItWorksPage.clientStep6Detail4'),
+        t('howItWorksPage.clientStep6Detail5'),
+      ],
+    },
+  ];
+
+  const PROVIDER_STEPS = [
+    {
+      number: '1',
+      icon: '📝',
+      title: t('howItWorksPage.providerStep1Title'),
+      desc: t('howItWorksPage.providerStep1Desc'),
+      details: [
+        t('howItWorksPage.providerStep1Detail1'),
+        t('howItWorksPage.providerStep1Detail2'),
+        t('howItWorksPage.providerStep1Detail3'),
+        t('howItWorksPage.providerStep1Detail4'),
+        t('howItWorksPage.providerStep1Detail5'),
+      ],
+    },
+    {
+      number: '2',
+      icon: '🛠️',
+      title: t('howItWorksPage.providerStep2Title'),
+      desc: t('howItWorksPage.providerStep2Desc'),
+      details: [
+        t('howItWorksPage.providerStep2Detail1'),
+        t('howItWorksPage.providerStep2Detail2'),
+        t('howItWorksPage.providerStep2Detail3'),
+        t('howItWorksPage.providerStep2Detail4'),
+        t('howItWorksPage.providerStep2Detail5'),
+      ],
+    },
+    {
+      number: '3',
+      icon: '🔔',
+      title: t('howItWorksPage.providerStep3Title'),
+      desc: t('howItWorksPage.providerStep3Desc'),
+      details: [
+        t('howItWorksPage.providerStep3Detail1'),
+        t('howItWorksPage.providerStep3Detail2'),
+        t('howItWorksPage.providerStep3Detail3'),
+        t('howItWorksPage.providerStep3Detail4'),
+        t('howItWorksPage.providerStep3Detail5'),
+      ],
+    },
+    {
+      number: '4',
+      icon: '✅',
+      title: t('howItWorksPage.providerStep4Title'),
+      desc: t('howItWorksPage.providerStep4Desc'),
+      details: [
+        t('howItWorksPage.providerStep4Detail1'),
+        t('howItWorksPage.providerStep4Detail2'),
+        t('howItWorksPage.providerStep4Detail3'),
+        t('howItWorksPage.providerStep4Detail4'),
+        t('howItWorksPage.providerStep4Detail5'),
+      ],
+    },
+    {
+      number: '5',
+      icon: '🚗',
+      title: t('howItWorksPage.providerStep5Title'),
+      desc: t('howItWorksPage.providerStep5Desc'),
+      details: [
+        t('howItWorksPage.providerStep5Detail1'),
+        t('howItWorksPage.providerStep5Detail2'),
+        t('howItWorksPage.providerStep5Detail3'),
+        t('howItWorksPage.providerStep5Detail4'),
+        t('howItWorksPage.providerStep5Detail5'),
+      ],
+    },
+    {
+      number: '6',
+      icon: '💼',
+      title: t('howItWorksPage.providerStep6Title'),
+      desc: t('howItWorksPage.providerStep6Desc'),
+      details: [
+        t('howItWorksPage.providerStep6Detail1'),
+        t('howItWorksPage.providerStep6Detail2'),
+        t('howItWorksPage.providerStep6Detail3'),
+        t('howItWorksPage.providerStep6Detail4'),
+        t('howItWorksPage.providerStep6Detail5'),
+      ],
+    },
+    {
+      number: '7',
+      icon: '💰',
+      title: t('howItWorksPage.providerStep7Title'),
+      desc: t('howItWorksPage.providerStep7Desc'),
+      details: [
+        t('howItWorksPage.providerStep7Detail1'),
+        t('howItWorksPage.providerStep7Detail2'),
+        t('howItWorksPage.providerStep7Detail3'),
+        t('howItWorksPage.providerStep7Detail4'),
+        t('howItWorksPage.providerStep7Detail5'),
+      ],
+    },
+  ];
+
+  const CLIENT_FEATURES = [
+    {
+      icon: '🛡️',
+      title: t('howItWorksPage.verifiedProviders'),
+      desc: t('howItWorksPage.verifiedProvidersDesc'),
+    },
+    {
+      icon: '🔄',
+      title: t('howItWorksPage.flexibleCancellation'),
+      desc: t('howItWorksPage.flexibleCancellationDesc'),
+    },
+    {
+      icon: '💬',
+      title: t('howItWorksPage.support247'),
+      desc: t('howItWorksPage.support247Desc'),
+    },
+    {
+      icon: '🔔',
+      title: t('howItWorksPage.smartNotifications'),
+      desc: t('howItWorksPage.smartNotificationsDesc'),
+    },
+  ];
+
+  const PROVIDER_FEATURES = [
+    {
+      icon: '📊',
+      title: t('howItWorksPage.completeDashboard'),
+      desc: t('howItWorksPage.completeDashboardDesc'),
+    },
+    {
+      icon: '⭐',
+      title: t('howItWorksPage.ratingSystem'),
+      desc: t('howItWorksPage.ratingSystemDesc'),
+    },
+    {
+      icon: '🗺️',
+      title: t('howItWorksPage.interventionZone'),
+      desc: t('howItWorksPage.interventionZoneDesc'),
+    },
+    {
+      icon: '🔄',
+      title: t('howItWorksPage.cancellationManagement'),
+      desc: t('howItWorksPage.cancellationManagementDesc'),
+    },
+  ];
+
+  const PROVIDER_REVENUES = [
+    {
+      percent: '20%',
+      title: t('howItWorksPage.commission'),
+      desc: t('howItWorksPage.commissionDesc'),
+    },
+    {
+      percent: '80%',
+      title: t('howItWorksPage.yourEarnings'),
+      desc: t('howItWorksPage.yourEarningsDesc'),
+    },
+    {
+      percent: '100%',
+      title: t('howItWorksPage.tips'),
+      desc: t('howItWorksPage.tipsDesc'),
+    },
+  ];
+
+  const CANCELLATION_POLICY = [
+    { delay: t('howItWorksPage.moreThan2h'), fee: '0 MAD' },
+    { delay: t('howItWorksPage.between1and2h'), fee: '20 MAD' },
+    { delay: t('howItWorksPage.lessThan1h'), fee: '50 MAD' },
+    { delay: t('howItWorksPage.noShow'), fee: '100 MAD' },
+  ];
+
+  const PRICING = [
+    {
+      formula: t('howItWorksPage.standard'),
+      desc: t('howItWorksPage.standardDesc'),
+      modifier: t('howItWorksPage.standardPrice'),
+    },
+    {
+      formula: t('howItWorksPage.premium'),
+      desc: t('howItWorksPage.premiumDesc'),
+      modifier: t('howItWorksPage.premiumPrice'),
+    },
+    {
+      formula: t('howItWorksPage.night'),
+      desc: t('howItWorksPage.nightDesc'),
+      modifier: t('howItWorksPage.nightPrice'),
+    },
+  ];
 
   const steps = activeTab === 'client' ? CLIENT_STEPS : PROVIDER_STEPS;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Comment ca marche</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, isRTL && styles.tabsRTL]}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'client' && styles.tabActive]}
           onPress={() => setActiveTab('client')}
         >
           <Text style={styles.tabIcon}>👤</Text>
-          <Text style={[styles.tabText, activeTab === 'client' && styles.tabTextActive]}>
-            Je suis client
+          <Text style={[styles.tabText, activeTab === 'client' && styles.tabTextActive, isRTL && styles.textRTL]}>
+            {t('howItWorksPage.tabClient')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -306,39 +307,39 @@ export default function HowItWorksScreen() {
           onPress={() => setActiveTab('provider')}
         >
           <Text style={styles.tabIcon}>💼</Text>
-          <Text style={[styles.tabText, activeTab === 'provider' && styles.tabTextActive]}>
-            Je suis prestataire
+          <Text style={[styles.tabText, activeTab === 'provider' && styles.tabTextActive, isRTL && styles.textRTL]}>
+            {t('howItWorksPage.tabProvider')}
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>
-          {activeTab === 'client' ? 'Comment reserver un service ?' : 'Comment devenir prestataire ?'}
+        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>
+          {activeTab === 'client' ? t('howItWorksPage.clientTitle') : t('howItWorksPage.providerTitle')}
         </Text>
-        <Text style={styles.sectionSubtitle}>
+        <Text style={[styles.sectionSubtitle, isRTL && styles.textRTL]}>
           {activeTab === 'client'
-            ? 'Guide complet pour profiter de tous les services GlamGo a domicile'
-            : 'Rejoignez notre reseau de prestataires professionnels'}
+            ? t('howItWorksPage.clientSubtitle')
+            : t('howItWorksPage.providerSubtitle')}
         </Text>
 
         {steps.map((step, index) => (
           <View key={index} style={styles.stepCard}>
-            <View style={styles.stepHeader}>
+            <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{step.number}</Text>
               </View>
               <Text style={styles.stepIcon}>{step.icon}</Text>
               <View style={styles.stepTitleContainer}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepDesc}>{step.desc}</Text>
+                <Text style={[styles.stepTitle, isRTL && styles.textRTL]}>{step.title}</Text>
+                <Text style={[styles.stepDesc, isRTL && styles.textRTL]}>{step.desc}</Text>
               </View>
             </View>
-            <View style={styles.stepDetails}>
+            <View style={[styles.stepDetails, isRTL && styles.stepDetailsRTL]}>
               {step.details.map((detail, i) => (
-                <View key={i} style={styles.detailRow}>
+                <View key={i} style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
                   <Text style={styles.detailBullet}>•</Text>
-                  <Text style={styles.detailText}>{detail}</Text>
+                  <Text style={[styles.detailText, isRTL && styles.textRTL]}>{detail}</Text>
                 </View>
               ))}
             </View>
@@ -347,15 +348,15 @@ export default function HowItWorksScreen() {
 
         {/* Features Section */}
         <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>
-            {activeTab === 'client' ? 'Vos Avantages Client' : 'Vos Outils Prestataire'}
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>
+            {activeTab === 'client' ? t('howItWorksPage.clientAdvantages') : t('howItWorksPage.providerTools')}
           </Text>
-          <View style={styles.featuresGrid}>
+          <View style={[styles.featuresGrid, isRTL && styles.featuresGridRTL]}>
             {(activeTab === 'client' ? CLIENT_FEATURES : PROVIDER_FEATURES).map((feature, index) => (
               <View key={index} style={styles.featureCard}>
                 <Text style={styles.featureIcon}>{feature.icon}</Text>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDesc}>{feature.desc}</Text>
+                <Text style={[styles.featureTitle, isRTL && styles.textRTL]}>{feature.title}</Text>
+                <Text style={[styles.featureDesc, isRTL && styles.textRTL]}>{feature.desc}</Text>
               </View>
             ))}
           </View>
@@ -364,21 +365,21 @@ export default function HowItWorksScreen() {
         {/* Pricing Section - Client only */}
         {activeTab === 'client' && (
           <View style={styles.pricingSection}>
-            <Text style={styles.sectionTitle}>Tarification Transparente</Text>
-            <Text style={styles.sectionSubtitle}>Comprenez comment sont calcules les prix</Text>
+            <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.transparentPricing')}</Text>
+            <Text style={[styles.sectionSubtitle, isRTL && styles.textRTL]}>{t('howItWorksPage.understandPricing')}</Text>
             {PRICING.map((item, index) => (
-              <View key={index} style={styles.pricingCard}>
+              <View key={index} style={[styles.pricingCard, isRTL && styles.pricingCardRTL]}>
                 <View style={styles.pricingInfo}>
-                  <Text style={styles.pricingFormula}>{item.formula}</Text>
-                  <Text style={styles.pricingDesc}>{item.desc}</Text>
+                  <Text style={[styles.pricingFormula, isRTL && styles.textRTL]}>{item.formula}</Text>
+                  <Text style={[styles.pricingDesc, isRTL && styles.textRTL]}>{item.desc}</Text>
                 </View>
                 <Text style={styles.pricingModifier}>{item.modifier}</Text>
               </View>
             ))}
-            <View style={styles.pricingNote}>
-              <Text style={styles.pricingNoteTitle}>Calcul du prix final :</Text>
-              <Text style={styles.pricingNoteText}>
-                Prix de base + Formule + Frais de deplacement (si {'>'} 5km) + Supplement nuit (si applicable)
+            <View style={[styles.pricingNote, isRTL && styles.pricingNoteRTL]}>
+              <Text style={[styles.pricingNoteTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.priceFormula')}</Text>
+              <Text style={[styles.pricingNoteText, isRTL && styles.textRTL]}>
+                {t('howItWorksPage.priceFormulaDetail')}
               </Text>
             </View>
           </View>
@@ -387,14 +388,14 @@ export default function HowItWorksScreen() {
         {/* Revenues Section - Provider only */}
         {activeTab === 'provider' && (
           <View style={styles.pricingSection}>
-            <Text style={styles.sectionTitle}>Vos Revenus</Text>
-            <Text style={styles.sectionSubtitle}>Tarification transparente et equitable</Text>
-            <View style={styles.revenuesGrid}>
+            <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.yourRevenues')}</Text>
+            <Text style={[styles.sectionSubtitle, isRTL && styles.textRTL]}>{t('howItWorksPage.fairPricing')}</Text>
+            <View style={[styles.revenuesGrid, isRTL && styles.revenuesGridRTL]}>
               {PROVIDER_REVENUES.map((item, index) => (
                 <View key={index} style={styles.revenueCard}>
                   <Text style={styles.revenuePercent}>{item.percent}</Text>
-                  <Text style={styles.revenueTitle}>{item.title}</Text>
-                  <Text style={styles.revenueDesc}>{item.desc}</Text>
+                  <Text style={[styles.revenueTitle, isRTL && styles.textRTL]}>{item.title}</Text>
+                  <Text style={[styles.revenueDesc, isRTL && styles.textRTL]}>{item.desc}</Text>
                 </View>
               ))}
             </View>
@@ -404,37 +405,37 @@ export default function HowItWorksScreen() {
         {/* Cancellation Policy - Provider only */}
         {activeTab === 'provider' && (
           <View style={styles.pricingSection}>
-            <Text style={styles.sectionTitle}>Politique d Annulation</Text>
-            <Text style={styles.sectionSubtitle}>Frais si vous annulez une commande acceptee</Text>
+            <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.cancellationPolicy')}</Text>
+            <Text style={[styles.sectionSubtitle, isRTL && styles.textRTL]}>{t('howItWorksPage.cancellationSubtitle')}</Text>
             {CANCELLATION_POLICY.map((item, index) => (
-              <View key={index} style={styles.cancellationRow}>
-                <Text style={styles.cancellationDelay}>{item.delay}</Text>
+              <View key={index} style={[styles.cancellationRow, isRTL && styles.cancellationRowRTL]}>
+                <Text style={[styles.cancellationDelay, isRTL && styles.textRTL]}>{item.delay}</Text>
                 <Text style={[
                   styles.cancellationFee,
                   item.fee === '0 MAD' && styles.cancellationFeeGreen
                 ]}>{item.fee}</Text>
               </View>
             ))}
-            <View style={styles.pricingNote}>
-              <Text style={styles.pricingNoteText}>
-                En cas d annulation, la commande est automatiquement re-proposee aux autres prestataires disponibles.
+            <View style={[styles.pricingNote, isRTL && styles.pricingNoteRTL]}>
+              <Text style={[styles.pricingNoteText, isRTL && styles.textRTL]}>
+                {t('howItWorksPage.cancellationNote')}
               </Text>
             </View>
           </View>
         )}
 
         <View style={styles.ctaSection}>
-          <Text style={styles.ctaTitle}>Pret a commencer ?</Text>
+          <Text style={[styles.ctaTitle, isRTL && styles.textRTL]}>{t('howItWorksPage.readyToStart')}</Text>
           <Link href={activeTab === 'client' ? '/auth/signup-client' : '/auth/signup-provider'} asChild>
             <TouchableOpacity style={styles.ctaButton}>
-              <Text style={styles.ctaButtonText}>
-                {activeTab === 'client' ? 'Creer mon compte client' : 'Devenir prestataire'}
+              <Text style={[styles.ctaButtonText, isRTL && styles.textRTL]}>
+                {activeTab === 'client' ? t('howItWorksPage.createClientAccount') : t('howItWorksPage.becomeProvider')}
               </Text>
             </TouchableOpacity>
           </Link>
           <Link href="/" asChild>
             <TouchableOpacity style={styles.backLink}>
-              <Text style={styles.backLinkText}>Retour a l accueil</Text>
+              <Text style={[styles.backLinkText, isRTL && styles.textRTL]}>{t('howItWorksPage.backToHome')}</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -741,5 +742,44 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     fontSize: typography.fontSize.sm,
     textDecorationLine: 'underline',
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  tabsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepDetailsRTL: {
+    marginLeft: 0,
+    marginRight: 36,
+  },
+  detailRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  featuresGridRTL: {
+    flexDirection: 'row-reverse',
+  },
+  pricingCardRTL: {
+    flexDirection: 'row-reverse',
+  },
+  pricingNoteRTL: {
+    borderLeftWidth: 0,
+    borderRightWidth: 3,
+    borderRightColor: colors.primary,
+  },
+  revenuesGridRTL: {
+    flexDirection: 'row-reverse',
+  },
+  cancellationRowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

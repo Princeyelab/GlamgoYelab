@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export type PaymentMethod = 'cash' | 'card';
 
@@ -28,17 +29,18 @@ interface PaymentMethodSelectorProps {
   disabled?: boolean;
 }
 
-const PAYMENT_OPTIONS: PaymentOption[] = [
+// Get payment options with translations
+const getPaymentOptions = (t: (key: string) => string): PaymentOption[] => [
   {
     id: 'cash',
-    name: 'Especes',
-    description: 'Paiement a la fin du service',
+    name: t('payment.cash'),
+    description: t('payment.cashDesc'),
     icon: '💵',
   },
   {
     id: 'card',
-    name: 'Carte bancaire',
-    description: 'Paiement securise en ligne',
+    name: t('payment.card'),
+    description: t('payment.cardDesc'),
     icon: '💳',
   },
 ];
@@ -48,6 +50,9 @@ export default function PaymentMethodSelector({
   onSelect,
   disabled = false,
 }: PaymentMethodSelectorProps) {
+  const { t, isRTL } = useLanguage();
+  const paymentOptions = getPaymentOptions(t);
+
   const handleSelect = (method: PaymentMethod) => {
     if (disabled) return;
     hapticFeedback.selection();
@@ -56,10 +61,10 @@ export default function PaymentMethodSelector({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mode de paiement</Text>
+      <Text style={[styles.title, isRTL && styles.rtlText]}>{t('payment.paymentMethod')}</Text>
 
       <View style={styles.options}>
-        {PAYMENT_OPTIONS.map((option) => {
+        {paymentOptions.map((option) => {
           const isSelected = selectedMethod === option.id;
 
           return (
@@ -94,20 +99,20 @@ export default function PaymentMethodSelector({
 
       {/* Card info notice */}
       {selectedMethod === 'card' && (
-        <View style={styles.notice}>
+        <View style={[styles.notice, isRTL && styles.noticeRTL]}>
           <Text style={styles.noticeIcon}>🔒</Text>
-          <Text style={styles.noticeText}>
-            Paiement securise. Votre carte ne sera debitee qu'apres le service.
+          <Text style={[styles.noticeText, isRTL && styles.rtlText]}>
+            {t('payment.cardNotice')}
           </Text>
         </View>
       )}
 
       {/* Cash notice */}
       {selectedMethod === 'cash' && (
-        <View style={styles.notice}>
+        <View style={[styles.notice, isRTL && styles.noticeRTL]}>
           <Text style={styles.noticeIcon}>ℹ️</Text>
-          <Text style={styles.noticeText}>
-            Preparez le montant exact si possible. Le prestataire peut ne pas avoir de monnaie.
+          <Text style={[styles.noticeText, isRTL && styles.rtlText]}>
+            {t('payment.cashNotice')}
           </Text>
         </View>
       )}
@@ -213,5 +218,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[600],
     lineHeight: 20,
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  noticeRTL: {
+    flexDirection: 'row-reverse',
   },
 });

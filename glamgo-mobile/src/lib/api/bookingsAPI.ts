@@ -477,21 +477,44 @@ export interface SatisfactionResponse {
 
 /**
  * Soumettre le questionnaire de satisfaction
- * Declenche la finalisation de la commande et le paiement
+ * Endpoint: POST /api/orders/{id}/satisfaction
+ * Body: { quality_rating, punctuality, price_respected, professionalism_rating?, comment?, tip? }
  */
 export const submitSatisfaction = async (
   orderId: number | string,
   data: SatisfactionData
 ): Promise<SatisfactionResponse> => {
-  console.log('[API] submitSatisfaction - orderId:', orderId, 'data:', data);
+  const endpoint = ENDPOINTS.BOOKINGS.SATISFACTION(orderId);
+  console.log('🔴 [API] submitSatisfaction - CALLING:', endpoint);
+  console.log('🔴 [API] submitSatisfaction - orderId:', orderId, 'type:', typeof orderId);
+  console.log('🔴 [API] submitSatisfaction - data:', JSON.stringify(data));
 
-  const response = await apiClient.post<SatisfactionResponse>(
-    ENDPOINTS.BOOKINGS.SATISFACTION(orderId),
-    data
-  );
+  // Format attendu par le backend SatisfactionController
+  const satisfactionData = {
+    quality_rating: data.quality_rating,
+    punctuality: data.punctuality ?? true,        // Requis par le backend
+    price_respected: data.price_respected ?? true, // Requis par le backend
+    professionalism_rating: data.professionalism_rating || null,
+    comment: data.comment || null,
+    tip: data.tip || 0,
+  };
 
-  console.log('[API] submitSatisfaction - response:', response.data);
-  return response.data;
+  console.log('🔴 [API] submitSatisfaction - sending:', JSON.stringify(satisfactionData));
+
+  try {
+    const response = await apiClient.post<SatisfactionResponse>(
+      endpoint,
+      satisfactionData
+    );
+    console.log('🟢 [API] submitSatisfaction - SUCCESS:', JSON.stringify(response.data));
+    return response.data;
+  } catch (error: any) {
+    console.log('🔴 [API] submitSatisfaction - ERROR STATUS:', error?.response?.status);
+    console.log('🔴 [API] submitSatisfaction - ERROR DATA:', JSON.stringify(error?.response?.data));
+    console.log('🔴 [API] submitSatisfaction - ERROR MESSAGE:', error?.message);
+    console.log('🔴 [API] submitSatisfaction - FULL URL:', apiClient.defaults.baseURL + endpoint);
+    throw error;
+  }
 };
 
 // === AVIS ===

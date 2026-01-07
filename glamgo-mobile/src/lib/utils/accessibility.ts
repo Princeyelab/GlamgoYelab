@@ -66,9 +66,10 @@ export const formatCurrencyForA11y = (amount: number, currency: string = 'MAD'):
 /**
  * Format date for screen readers
  */
-export const formatDateForA11y = (dateStr: string): string => {
+export const formatDateForA11y = (dateStr: string, language: 'fr' | 'ar' | 'en' = 'fr'): string => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('fr-FR', {
+  const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -79,15 +80,19 @@ export const formatDateForA11y = (dateStr: string): string => {
 /**
  * Format time for screen readers
  */
-export const formatTimeForA11y = (timeStr: string): string => {
+export const formatTimeForA11y = (timeStr: string, language: 'fr' | 'ar' | 'en' = 'fr'): string => {
   const [hours, minutes] = timeStr.split(':');
+  if (language === 'en') return `${hours} hours ${minutes}`;
+  if (language === 'ar') return `${hours} ساعة ${minutes}`;
   return `${hours} heures ${minutes}`;
 };
 
 /**
  * Format rating for screen readers
  */
-export const formatRatingForA11y = (rating: number, maxRating: number = 5): string => {
+export const formatRatingForA11y = (rating: number, maxRating: number = 5, language: 'fr' | 'ar' | 'en' = 'fr'): string => {
+  if (language === 'en') return `${rating} out of ${maxRating} stars`;
+  if (language === 'ar') return `${rating} من ${maxRating} نجوم`;
   return `${rating} sur ${maxRating} étoiles`;
 };
 

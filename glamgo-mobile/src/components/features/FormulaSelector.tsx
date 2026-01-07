@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export type FormulaType = 'standard' | 'premium' | 'urgent' | 'recurring' | 'night';
 
@@ -33,50 +34,31 @@ interface FormulaSelectorProps {
   disabled?: boolean;
 }
 
+// Base formula data without translations
+const FORMULA_DATA: Omit<Formula, 'name' | 'description'>[] = [
+  { id: 'standard', icon: '📅', priceModifier: 1 },
+  { id: 'premium', icon: '⭐', priceModifier: 1.3, badge: '+30%', badgeColor: colors.warning },
+  { id: 'urgent', icon: '⚡', priceModifier: 1.5, badge: '+50%', badgeColor: colors.error },
+  { id: 'recurring', icon: '🔄', priceModifier: 0.9, badge: '-10%', badgeColor: colors.success },
+  { id: 'night', icon: '🌙', priceModifier: 1.25, badge: '+25%', badgeColor: colors.accent },
+];
+
+// Get formulas with translations
+export const getFormulas = (t: (key: string) => string): Formula[] => [
+  { ...FORMULA_DATA[0], name: t('formulas.standard'), description: t('formulas.standardDesc') },
+  { ...FORMULA_DATA[1], name: t('formulas.premium'), description: t('formulas.premiumDesc') },
+  { ...FORMULA_DATA[2], name: t('formulas.urgent'), description: t('formulas.urgentDesc') },
+  { ...FORMULA_DATA[3], name: t('formulas.recurring'), description: t('formulas.recurringDesc') },
+  { ...FORMULA_DATA[4], name: t('formulas.night'), description: t('formulas.nightDesc') },
+];
+
+// For backward compatibility - default French
 export const FORMULAS: Formula[] = [
-  {
-    id: 'standard',
-    name: 'Standard',
-    description: 'Reservation classique avec prestataire disponible',
-    icon: '📅',
-    priceModifier: 1,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    description: 'Prestataire experimente, produits haut de gamme',
-    icon: '⭐',
-    priceModifier: 1.3,
-    badge: '+30%',
-    badgeColor: colors.warning,
-  },
-  {
-    id: 'urgent',
-    name: 'Urgent',
-    description: 'Intervention dans les 2 heures',
-    icon: '⚡',
-    priceModifier: 1.5,
-    badge: '+50%',
-    badgeColor: colors.error,
-  },
-  {
-    id: 'recurring',
-    name: 'Recurrent',
-    description: 'Reservation hebdomadaire ou mensuelle',
-    icon: '🔄',
-    priceModifier: 0.9,
-    badge: '-10%',
-    badgeColor: colors.success,
-  },
-  {
-    id: 'night',
-    name: 'Nuit',
-    description: 'Service entre 20h et 8h',
-    icon: '🌙',
-    priceModifier: 1.25,
-    badge: '+25%',
-    badgeColor: colors.accent,
-  },
+  { id: 'standard', name: 'Standard', description: 'Reservation classique avec prestataire disponible', icon: '📅', priceModifier: 1 },
+  { id: 'premium', name: 'Premium', description: 'Prestataire experimente, produits haut de gamme', icon: '⭐', priceModifier: 1.3, badge: '+30%', badgeColor: colors.warning },
+  { id: 'urgent', name: 'Urgent', description: 'Intervention dans les 2 heures', icon: '⚡', priceModifier: 1.5, badge: '+50%', badgeColor: colors.error },
+  { id: 'recurring', name: 'Recurrent', description: 'Reservation hebdomadaire ou mensuelle', icon: '🔄', priceModifier: 0.9, badge: '-10%', badgeColor: colors.success },
+  { id: 'night', name: 'Nuit', description: 'Service entre 20h et 8h', icon: '🌙', priceModifier: 1.25, badge: '+25%', badgeColor: colors.accent },
 ];
 
 export const getFormulaById = (id: FormulaType): Formula => {
@@ -94,22 +76,30 @@ export default function FormulaSelector({
   basePrice,
   disabled = false,
 }: FormulaSelectorProps) {
+  const { t, isRTL } = useLanguage();
+  const formulas = getFormulas(t);
+
   const handleSelect = (formula: FormulaType) => {
     if (disabled) return;
     hapticFeedback.selection();
     onSelect(formula);
   };
 
+  // Get formula by id with translations
+  const getLocalizedFormula = (id: FormulaType): Formula => {
+    return formulas.find(f => f.id === id) || formulas[0];
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Choisir une formule</Text>
+      <Text style={[styles.title, isRTL && styles.rtlText]}>{t('formulas.chooseFormula')}</Text>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isRTL && styles.scrollContentRTL]}
       >
-        {FORMULAS.map((formula) => {
+        {formulas.map((formula) => {
           const isSelected = selectedFormula === formula.id;
           const calculatedPrice = calculateFormulaPrice(basePrice, formula.id);
 
@@ -161,27 +151,29 @@ export default function FormulaSelector({
 
       {/* Selected Formula Details */}
       <View style={styles.selectedDetails}>
-        <View style={styles.selectedHeader}>
-          <Text style={styles.selectedIcon}>{getFormulaById(selectedFormula).icon}</Text>
+        <View style={[styles.selectedHeader, isRTL && styles.selectedHeaderRTL]}>
+          <Text style={styles.selectedIcon}>{getLocalizedFormula(selectedFormula).icon}</Text>
           <View style={styles.selectedInfo}>
-            <Text style={styles.selectedTitle}>Formule {getFormulaById(selectedFormula).name}</Text>
-            <Text style={styles.selectedDescription}>
-              {getFormulaById(selectedFormula).description}
+            <Text style={[styles.selectedTitle, isRTL && styles.rtlText]}>
+              {t('formulas.formulaLabel')} {getLocalizedFormula(selectedFormula).name}
+            </Text>
+            <Text style={[styles.selectedDescription, isRTL && styles.rtlText]}>
+              {getLocalizedFormula(selectedFormula).description}
             </Text>
           </View>
         </View>
-        {getFormulaById(selectedFormula).priceModifier !== 1 && (
-          <View style={styles.modifierBadge}>
-            <Text style={styles.modifierBadgeLabel}>Modification tarifaire</Text>
+        {getLocalizedFormula(selectedFormula).priceModifier !== 1 && (
+          <View style={[styles.modifierBadge, isRTL && styles.modifierBadgeRTL]}>
+            <Text style={[styles.modifierBadgeLabel, isRTL && styles.rtlText]}>{t('formulas.priceModification')}</Text>
             <View style={[
               styles.modifierPill,
-              getFormulaById(selectedFormula).priceModifier > 1
+              getLocalizedFormula(selectedFormula).priceModifier > 1
                 ? styles.modifierPillUp
                 : styles.modifierPillDown
             ]}>
               <Text style={styles.modifierPillText}>
-                {getFormulaById(selectedFormula).priceModifier > 1 ? '+' : ''}
-                {Math.round((getFormulaById(selectedFormula).priceModifier - 1) * 100)}%
+                {getLocalizedFormula(selectedFormula).priceModifier > 1 ? '+' : ''}
+                {Math.round((getLocalizedFormula(selectedFormula).priceModifier - 1) * 100)}%
               </Text>
             </View>
           </View>
@@ -370,5 +362,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: colors.white,
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  scrollContentRTL: {
+    flexDirection: 'row-reverse',
+  },
+  selectedHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  modifierBadgeRTL: {
+    flexDirection: 'row-reverse',
   },
 });

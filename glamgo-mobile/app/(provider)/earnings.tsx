@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import Card from '../../src/components/ui/Card';
 import Button from '../../src/components/ui/Button';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../src/i18n/translations/services';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 import {
@@ -141,12 +143,12 @@ const getStatusColor = (status: Transaction['status']) => {
   }
 };
 
-const getStatusLabel = (status: Transaction['status']) => {
+const getStatusLabel = (status: Transaction['status'], t: (key: string) => string) => {
   switch (status) {
     case 'pending_payout':
-      return 'En attente';
+      return t('provider.statusPendingPayout');
     case 'paid':
-      return 'Payé';
+      return t('provider.statusPaid');
     default:
       return status;
   }
@@ -242,11 +244,24 @@ const chartStyles = StyleSheet.create({
 });
 
 export default function ProviderEarningsScreen() {
+  const { t, isRTL, language } = useLanguage();
   const [period, setPeriod] = useState<PeriodType>('month');
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>(DEMO_TRANSACTIONS);
   const [earnings, setEarnings] = useState<{ [key in PeriodType]: typeof DEMO_EARNINGS.week }>(DEMO_EARNINGS);
+
+  // Translated status labels
+  const getStatusLabelTranslated = (status: Transaction['status']) => {
+    switch (status) {
+      case 'pending_payout':
+        return t('providerEarnings.pending');
+      case 'paid':
+        return t('providerEarnings.paid');
+      default:
+        return status;
+    }
+  };
 
   // Charger les donnees depuis l'API
   const loadData = useCallback(async (showLoader = true) => {
@@ -368,23 +383,23 @@ export default function ProviderEarningsScreen() {
   const handleWithdraw = () => {
     hapticFeedback.medium();
     Alert.alert(
-      'Demande de retrait',
-      `Retirer ${pendingAmount} DH vers votre compte bancaire ?`,
+      t('providerEarnings.withdraw'),
+      `${t('providerEarnings.withdraw')} ${pendingAmount} DH ?`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('common.confirm'),
           onPress: async () => {
             try {
               await requestWithdrawal(pendingAmount);
               hapticFeedback.success();
-              Alert.alert('Succes', 'Votre demande de retrait a ete envoyee. Vous recevrez les fonds sous 24-48h.');
+              Alert.alert(t('common.success'), t('notifications.withdrawalSuccess'));
               loadData(false); // Recharger les donnees
             } catch (error) {
               console.error('Erreur retrait:', error);
               // Afficher le succes quand meme (fallback)
               hapticFeedback.success();
-              Alert.alert('Succes', 'Votre demande de retrait a ete envoyee. Vous recevrez les fonds sous 24-48h.');
+              Alert.alert(t('common.success'), t('notifications.withdrawalSuccess'));
             }
           },
         },
@@ -398,7 +413,7 @@ export default function ProviderEarningsScreen() {
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={{ marginTop: spacing.md, color: colors.gray[600] }}>
-          Chargement des gains...
+          {t('common.loading')}
         </Text>
       </View>
     );
@@ -409,15 +424,15 @@ export default function ProviderEarningsScreen() {
       {/* Header with gradient-like effect */}
       <View style={styles.headerGradient}>
         <View style={styles.header}>
-          <Text style={styles.title}>Mes gains</Text>
-          <Text style={styles.subtitle}>Suivez vos revenus en temps réel</Text>
+          <Text style={[styles.title, isRTL && styles.textRTL]}>{t('providerEarnings.myEarnings')}</Text>
+          <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t('providerEarnings.trackEarnings')}</Text>
         </View>
 
         {/* Balance Card */}
         <Card style={styles.balanceCard}>
-          <View style={styles.balanceRow}>
-            <View>
-              <Text style={styles.balanceLabel}>Solde disponible</Text>
+          <View style={[styles.balanceRow, isRTL && styles.rowRTL]}>
+            <View style={isRTL && { alignItems: 'flex-end' }}>
+              <Text style={[styles.balanceLabel, isRTL && styles.textRTL]}>{t('providerEarnings.availableBalance')}</Text>
               <Text style={styles.balanceAmount}>{pendingAmount} DH</Text>
             </View>
             <Button
@@ -427,7 +442,7 @@ export default function ProviderEarningsScreen() {
               disabled={pendingAmount === 0}
               style={styles.withdrawButton}
             >
-              Retirer 💳
+              {t('providerEarnings.withdraw')} 💳
             </Button>
           </View>
         </Card>
@@ -441,7 +456,7 @@ export default function ProviderEarningsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Period Selector */}
-        <View style={styles.periodSelector}>
+        <View style={[styles.periodSelector, isRTL && styles.rowRTL]}>
           {(['week', 'month', 'year'] as PeriodType[]).map(p => (
             <TouchableOpacity
               key={p}
@@ -452,34 +467,34 @@ export default function ProviderEarningsScreen() {
               }}
             >
               <Text style={[styles.periodText, period === p && styles.periodTextActive]}>
-                {p === 'week' ? 'Semaine' : p === 'month' ? 'Mois' : 'Année'}
+                {p === 'week' ? t('providerEarnings.week') : p === 'month' ? t('providerEarnings.month') : t('providerEarnings.year')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Stats Cards Row */}
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, isRTL && styles.rowRTL]}>
           <Card style={[styles.statCard, styles.statCardGreen]}>
             <Text style={styles.statIcon}>💰</Text>
             <Text style={styles.statValue}>{currentEarnings.net} DH</Text>
-            <Text style={styles.statLabel}>Gains nets</Text>
+            <Text style={styles.statLabel}>{t('providerEarnings.netEarnings')}</Text>
           </Card>
           <Card style={[styles.statCard, styles.statCardBlue]}>
             <Text style={styles.statIcon}>📅</Text>
             <Text style={styles.statValue}>{currentEarnings.bookings}</Text>
-            <Text style={styles.statLabel}>Réservations</Text>
+            <Text style={styles.statLabel}>{t('providerEarnings.reservations')}</Text>
           </Card>
         </View>
 
         {/* Weekly Chart */}
         {period === 'week' && (
           <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>Gains cette semaine</Text>
-              <View style={styles.chartSummary}>
+            <View style={[styles.chartHeader, isRTL && styles.rowRTL]}>
+              <Text style={[styles.chartTitle, isRTL && styles.textRTL]}>{t('providerEarnings.earningsThisWeek')}</Text>
+              <View style={[styles.chartSummary, isRTL && { alignItems: 'flex-start' }]}>
                 <Text style={styles.chartTotal}>{totalWeeklyAmount} DH</Text>
-                <Text style={styles.chartBookings}>{totalWeeklyBookings} réservations</Text>
+                <Text style={styles.chartBookings}>{totalWeeklyBookings} {t('providerEarnings.reservations')}</Text>
               </View>
             </View>
             <WeeklyChart data={weeklyData} />
@@ -488,41 +503,41 @@ export default function ProviderEarningsScreen() {
 
         {/* Earnings Details */}
         <Card style={styles.detailsCard}>
-          <Text style={styles.detailsTitle}>Détails des gains</Text>
-          <View style={styles.detailsRow}>
+          <Text style={[styles.detailsTitle, isRTL && styles.textRTL]}>{t('providerEarnings.earningsDetails')}</Text>
+          <View style={[styles.detailsRow, isRTL && styles.rowRTL]}>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Total brut</Text>
+              <Text style={styles.detailLabel}>{t('providerEarnings.grossTotal')}</Text>
               <Text style={styles.detailValue}>{currentEarnings.total} DH</Text>
             </View>
             <View style={styles.detailDivider} />
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Commission (20%)</Text>
+              <Text style={styles.detailLabel}>{t('providerEarnings.commission')} (20%)</Text>
               <Text style={[styles.detailValue, styles.detailNegative]}>
                 -{currentEarnings.commission} DH
               </Text>
             </View>
           </View>
-          <View style={styles.netRow}>
-            <Text style={styles.netLabel}>Gains nets</Text>
+          <View style={[styles.netRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.netLabel, isRTL && styles.textRTL]}>{t('providerEarnings.netEarnings')}</Text>
             <Text style={styles.netValue}>{currentEarnings.net} DH</Text>
           </View>
         </Card>
 
         {/* Transactions Header */}
-        <View style={styles.historyHeader}>
-          <View style={styles.historyTitleRow}>
+        <View style={[styles.historyHeader, isRTL && styles.rowRTL]}>
+          <View style={[styles.historyTitleRow, isRTL && styles.rowRTL]}>
             <Text style={styles.historyIcon}>📋</Text>
-            <Text style={styles.historyTitle}>Historique</Text>
+            <Text style={[styles.historyTitle, isRTL && styles.textRTL]}>{t('providerEarnings.history')}</Text>
           </View>
-          <Text style={styles.historyCount}>{transactions.length} transaction{transactions.length > 1 ? 's' : ''}</Text>
+          <Text style={styles.historyCount}>{transactions.length} {t('providerEarnings.transactions')}</Text>
         </View>
 
         {/* Transactions List */}
         {transactions.length === 0 ? (
           <Card style={styles.emptyHistoryCard}>
             <Text style={styles.emptyHistoryIcon}>💸</Text>
-            <Text style={styles.emptyHistoryText}>Aucune transaction</Text>
-            <Text style={styles.emptyHistorySubtext}>Vos gains apparaîtront ici</Text>
+            <Text style={[styles.emptyHistoryText, isRTL && styles.textRTL]}>{t('providerEarnings.noTransactions')}</Text>
+            <Text style={[styles.emptyHistorySubtext, isRTL && styles.textRTL]}>{t('providerEarnings.trackEarnings')}</Text>
           </Card>
         ) : (
           <View style={styles.transactionsList}>
@@ -543,10 +558,10 @@ export default function ProviderEarningsScreen() {
                     </View>
                     <View style={styles.transactionInfo}>
                       <Text style={styles.transactionClient}>{transaction.clientName}</Text>
-                      <Text style={styles.transactionService}>{transaction.service}</Text>
+                      <Text style={styles.transactionService}>{getServiceTranslation(transaction.service, language).title || transaction.service}</Text>
                       <View style={styles.transactionMeta}>
                         <Text style={styles.transactionDate}>
-                          {new Date(transaction.date).toLocaleDateString('fr-FR', {
+                          {new Date(transaction.date).toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
                             day: 'numeric',
                             month: 'short',
                           })}
@@ -575,7 +590,7 @@ export default function ProviderEarningsScreen() {
                           { color: getStatusColor(transaction.status) },
                         ]}
                       >
-                        {getStatusLabel(transaction.status)}
+                        {getStatusLabelTranslated(transaction.status)}
                       </Text>
                     </View>
                   </View>
@@ -949,5 +964,13 @@ const styles = StyleSheet.create({
   transactionStatusText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '500',
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

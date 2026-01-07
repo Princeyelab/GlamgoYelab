@@ -2,8 +2,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 export default function ForgotPasswordScreen() {
+  const { t, isRTL } = useLanguage();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -18,13 +20,13 @@ export default function ForgotPasswordScreen() {
       <View style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.emoji}>✉️</Text>
-          <Text style={styles.title}>Email envoyé !</Text>
-          <Text style={styles.message}>
-            Si un compte existe avec l'adresse {email}, vous recevrez un lien pour réinitialiser votre mot de passe.
+          <Text style={[styles.title, isRTL && styles.textRTL]}>{t('forgotPassword.emailSent')}</Text>
+          <Text style={[styles.message, isRTL && styles.textRTL]}>
+            {t('forgotPassword.emailSentMessage').replace('{email}', email)}
           </Text>
           <Link href="/auth/login" asChild>
             <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Retour à la connexion</Text>
+              <Text style={[styles.buttonText, isRTL && styles.textRTL]}>{t('forgotPassword.backToLogin')}</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -37,37 +39,40 @@ export default function ForgotPasswordScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <Link href="/auth/login" asChild>
           <TouchableOpacity style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Retour</Text>
+            <Text style={[styles.backButtonText, isRTL && styles.textRTL]}>
+              {isRTL ? `${t('forgotPassword.back')} →` : `← ${t('forgotPassword.back')}`}
+            </Text>
           </TouchableOpacity>
         </Link>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Mot de passe oublié</Text>
-        <Text style={styles.subtitle}>
-          Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+        <Text style={[styles.title, isRTL && styles.textRTL]}>{t('forgotPassword.title')}</Text>
+        <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+          {t('forgotPassword.subtitle')}
         </Text>
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, isRTL && styles.textRTL]}>{t('forgotPassword.email')}</Text>
             <TextInput
-              style={styles.input}
-              placeholder="votre@email.com"
+              style={[styles.input, isRTL && styles.inputRTL]}
+              placeholder={t('forgotPassword.emailPlaceholder')}
               placeholderTextColor={colors.gray[400]}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              textAlign={isRTL ? 'right' : 'left'}
             />
           </View>
 
           <TouchableOpacity style={styles.button} onPress={handleReset}>
-            <Text style={styles.buttonText}>Envoyer le lien</Text>
+            <Text style={[styles.buttonText, isRTL && styles.textRTL]}>{t('forgotPassword.sendLink')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -157,5 +162,17 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    alignItems: 'flex-end',
+  },
+  inputRTL: {
+    textAlign: 'right',
   },
 });

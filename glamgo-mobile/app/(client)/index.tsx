@@ -19,7 +19,8 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import ServiceCard from '../../src/components/features/ServiceCard';
 import CurrencySelector from '../../src/components/features/CurrencySelector';
-import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { colors, spacing, typography, borderRadius, shadows, getFontFamily } from '../../src/lib/constants/theme';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser } from '../../src/lib/store/slices/authSlice';
 import {
@@ -31,12 +32,14 @@ import {
   fetchCategories,
 } from '../../src/lib/store/slices/servicesSlice';
 import { CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS } from '../../src/lib/constants/categories';
+import { getCategoryTranslation } from '../../src/i18n/translations/services';
 import apiClient from '../../src/lib/api/client';
 import { ENDPOINTS } from '../../src/lib/api/endpoints';
 
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, isRTL, language } = useLanguage();
 
   const user = useAppSelector(selectUser);
   const services = useAppSelector(selectServices);
@@ -206,11 +209,11 @@ export default function HomeScreen() {
       <View style={styles.stickyHeader}>
         <View style={styles.headerTop}>
           <View style={styles.greetingContainer}>
-            <Text style={styles.greeting} numberOfLines={1}>
-              Bonjour{user ? `, ${user.first_name || user.name?.split(' ')[0] || ''}` : ''} 👋
+            <Text style={[styles.greeting, isRTL && styles.textRTL]} numberOfLines={1}>
+              {t('home.greeting')}{user ? `, ${user.first_name || user.name?.split(' ')[0] || ''}` : ''} 👋
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              Que recherchez-vous ?
+            <Text style={[styles.subtitle, isRTL && styles.textRTL]} numberOfLines={1}>
+              {t('home.searchPlaceholder')}
             </Text>
           </View>
 
@@ -249,13 +252,13 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <TouchableOpacity
-          style={styles.searchBar}
+          style={[styles.searchBar, isRTL && styles.searchBarRTL]}
           onPress={handleSearchPress}
           activeOpacity={0.8}
         >
           <Text style={styles.searchIcon}>🔍</Text>
-          <Text style={styles.searchPlaceholder}>
-            Rechercher un service...
+          <Text style={[styles.searchPlaceholder, isRTL && styles.textRTL]}>
+            {t('home.searchPlaceholder')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -264,7 +267,7 @@ export default function HomeScreen() {
 
       {/* Categories - UI locale mappee avec API */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Categories</Text>
+        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('home.categories')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -292,7 +295,7 @@ export default function HomeScreen() {
                 <View style={[styles.categoryIconContainer, { backgroundColor: localCat.color + '20' }]}>
                   <Text style={styles.categoryIcon}>{localCat.icon}</Text>
                 </View>
-                <Text style={[styles.categoryName, { color: localCat.color }]}>{localCat.name}</Text>
+                <Text style={[styles.categoryName, { color: localCat.color }]}>{getCategoryTranslation(localCat.name, language)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -301,10 +304,10 @@ export default function HomeScreen() {
 
       {/* Popular Services */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Services populaires</Text>
+        <View style={[styles.sectionHeader, isRTL && styles.rowRTL]}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('home.popularServices')}</Text>
           <TouchableOpacity onPress={() => router.push('/(client)/services')}>
-            <Text style={styles.seeAll}>Voir tout →</Text>
+            <Text style={styles.seeAll}>{t('common.seeAll')} →</Text>
           </TouchableOpacity>
         </View>
 
@@ -326,8 +329,8 @@ export default function HomeScreen() {
                   rating={service.rating}
                   reviews_count={service.reviews_count}
                   duration_minutes={service.duration_minutes}
-                  category={service.category || { id: 0, name: 'Service' }}
-                  provider={service.provider || { id: 0, name: 'Prestataire' }}
+                  category={service.category || { id: 0, name: t('services.service') }}
+                  provider={service.provider || { id: 0, name: t('provider.provider') }}
                   is_featured={service.is_featured}
                   isFavorite={favorites.includes(Number(service.id))}
                   onPress={() => handleServicePress(service.id)}
@@ -339,15 +342,15 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.emptyServices}>
-            <Text style={styles.emptyText}>Chargement des services...</Text>
+            <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t('common.loading')}</Text>
           </View>
         )}
       </View>
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Acces rapide</Text>
-        <View style={styles.quickActions}>
+        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('home.featuredServices')}</Text>
+        <View style={[styles.quickActions, isRTL && styles.rowRTL]}>
           <TouchableOpacity
             style={styles.quickAction}
             onPress={() => router.push('/(client)/bookings')}
@@ -355,7 +358,7 @@ export default function HomeScreen() {
             <View style={styles.quickActionIconContainer}>
               <Text style={styles.quickActionEmoji}>📅</Text>
             </View>
-            <Text style={styles.quickActionText}>Mes reservations</Text>
+            <Text style={[styles.quickActionText, isRTL && styles.textRTL]}>{t('bookings.title')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -365,7 +368,7 @@ export default function HomeScreen() {
             <View style={styles.quickActionIconContainer}>
               <Text style={styles.quickActionEmoji}>❤️</Text>
             </View>
-            <Text style={styles.quickActionText}>Mes favoris</Text>
+            <Text style={[styles.quickActionText, isRTL && styles.textRTL]}>{t('profile.favorites')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -375,7 +378,7 @@ export default function HomeScreen() {
             <View style={styles.quickActionIconContainer}>
               <Text style={styles.quickActionEmoji}>👤</Text>
             </View>
-            <Text style={styles.quickActionText}>Mon profil</Text>
+            <Text style={[styles.quickActionText, isRTL && styles.textRTL]}>{t('profile.title')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -596,5 +599,15 @@ const styles = StyleSheet.create({
     color: colors.gray[700],
     fontWeight: '600',
     textAlign: 'center',
+  },
+  // RTL styles
+  textRTL: {
+    textAlign: 'right',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  searchBarRTL: {
+    flexDirection: 'row-reverse',
   },
 });

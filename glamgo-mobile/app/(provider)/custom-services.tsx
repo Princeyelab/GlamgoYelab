@@ -24,6 +24,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { colors, spacing, typography, borderRadius, shadows } from "../../src/lib/constants/theme";
+import { useLanguage } from "../../src/contexts/LanguageContext";
+import { getCategoryTranslation } from "../../src/i18n/translations/services";
 import { getCategories } from "../../src/lib/api/servicesAPI";
 import {
   getCustomServices,
@@ -41,6 +43,7 @@ import { Category } from "../../src/types/service";
 
 export default function CustomServicesScreen() {
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
   const [services, setServices] = useState<CustomService[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +76,7 @@ export default function CustomServicesScreen() {
       setCategories(categoriesData);
     } catch (error) {
       console.error("Erreur chargement:", error);
-      Alert.alert("Erreur", "Impossible de charger les services");
+      Alert.alert(t('common.error'), t('customServices.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -87,8 +90,8 @@ export default function CustomServicesScreen() {
   const handleAdd = () => {
     if (services.length >= maxAllowed) {
       Alert.alert(
-        "Limite atteinte",
-        `Vous ne pouvez pas créer plus de ${maxAllowed} services personnalisés.`
+        t('customServices.limitReached'),
+        t('customServices.maxServicesMessage', { max: maxAllowed })
       );
       return;
     }
@@ -121,12 +124,12 @@ export default function CustomServicesScreen() {
   // Delete service
   const handleDelete = (service: CustomService) => {
     Alert.alert(
-      "Supprimer le service",
-      `Êtes-vous sûr de vouloir supprimer "${service.name}" ?`,
+      t('customServices.deleteService'),
+      t('customServices.confirmDeleteService', { name: service.name }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t('common.delete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -135,7 +138,7 @@ export default function CustomServicesScreen() {
               setServices((prev) => prev.filter((s) => s.id !== service.id));
             } catch (error) {
               console.error("Erreur suppression:", error);
-              Alert.alert("Erreur", "Impossible de supprimer le service");
+              Alert.alert(t('common.error'), t('customServices.deleteError'));
             }
           },
         },
@@ -162,7 +165,7 @@ export default function CustomServicesScreen() {
   const handlePickImages = async () => {
     const currentTotal = formImages.length + newImages.length;
     if (currentTotal >= 5) {
-      Alert.alert("Limite", "Maximum 5 images par service");
+      Alert.alert(t('customServices.limitReached'), t('customServices.maxImagesMessage'));
       return;
     }
 
@@ -203,15 +206,15 @@ export default function CustomServicesScreen() {
   // Save service
   const handleSave = async () => {
     if (!formName.trim()) {
-      Alert.alert("Erreur", "Le nom du service est requis");
+      Alert.alert(t('common.error'), t('customServices.nameRequired'));
       return;
     }
     if (!formCategoryId) {
-      Alert.alert("Erreur", "Veuillez sélectionner une catégorie");
+      Alert.alert(t('common.error'), t('customServices.categoryRequired'));
       return;
     }
     if (!formPrice || parseFloat(formPrice) <= 0) {
-      Alert.alert("Erreur", "Le prix doit être supérieur à 0");
+      Alert.alert(t('common.error'), t('customServices.priceRequired'));
       return;
     }
 
@@ -245,7 +248,7 @@ export default function CustomServicesScreen() {
         } catch (imgError: any) {
           console.error("[CustomServices] Erreur upload images:", imgError);
           console.error("[CustomServices] Response:", imgError?.response?.data);
-          Alert.alert("Attention", "Service créé mais erreur lors de l'upload des images");
+          Alert.alert(t('customServices.warning'), t('customServices.imageUploadError'));
         }
       }
 
@@ -265,7 +268,7 @@ export default function CustomServicesScreen() {
       console.error("Erreur sauvegarde:", error);
       console.error("Response data:", JSON.stringify(error?.response?.data));
 
-      let errorMessage = "Impossible de sauvegarder le service";
+      let errorMessage = t('customServices.saveError');
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -276,7 +279,7 @@ export default function CustomServicesScreen() {
         }
       }
 
-      Alert.alert("Erreur", errorMessage);
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -293,7 +296,7 @@ export default function CustomServicesScreen() {
       <View style={styles.container}>
         <LinearGradient colors={[colors.primary, "#8B5CF6"]} style={styles.loadingGradient}>
           <ActivityIndicator size="large" color={colors.white} />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </LinearGradient>
       </View>
     );
@@ -312,9 +315,9 @@ export default function CustomServicesScreen() {
               <Ionicons name="arrow-back" size={24} color={colors.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>Mes Services</Text>
-              <Text style={styles.headerSubtitle}>
-                {services.length}/{maxAllowed} services
+              <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>{t('customServices.myServices')}</Text>
+              <Text style={[styles.headerSubtitle, isRTL && styles.rtlText]}>
+                {services.length}/{maxAllowed} {t('common.services')}
               </Text>
             </View>
             <TouchableOpacity
@@ -337,9 +340,9 @@ export default function CustomServicesScreen() {
         {services.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>Aucun service personnalisé</Text>
-            <Text style={styles.emptyText}>
-              Créez vos propres services pour proposer des prestations uniques à vos clients.
+            <Text style={[styles.emptyTitle, isRTL && styles.rtlText]}>{t('customServices.noCustomServices')}</Text>
+            <Text style={[styles.emptyText, isRTL && styles.rtlText]}>
+              {t('customServices.emptyDescription')}
             </Text>
             <TouchableOpacity style={styles.emptyButton} onPress={handleAdd}>
               <LinearGradient
@@ -347,7 +350,7 @@ export default function CustomServicesScreen() {
                 style={styles.emptyButtonGradient}
               >
                 <Ionicons name="add" size={20} color={colors.white} />
-                <Text style={styles.emptyButtonText}>Créer un service</Text>
+                <Text style={styles.emptyButtonText}>{t('customServices.createService')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -382,11 +385,11 @@ export default function CustomServicesScreen() {
                           service.is_active ? styles.statusTextActive : styles.statusTextInactive,
                         ]}
                       >
-                        {service.is_active ? "Actif" : "Inactif"}
+                        {service.is_active ? t('common.active') : t('common.inactive')}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.serviceCategory}>{service.category_name}</Text>
+                  <Text style={styles.serviceCategory}>{getCategoryTranslation(service.category_name || '', language)}</Text>
                   <View style={styles.serviceMeta}>
                     <Text style={styles.servicePrice}>{service.price} MAD</Text>
                     <Text style={styles.serviceDuration}>{service.duration_minutes} min</Text>
@@ -416,7 +419,7 @@ export default function CustomServicesScreen() {
                       { color: service.is_active ? colors.warning : colors.success },
                     ]}
                   >
-                    {service.is_active ? "Désactiver" : "Activer"}
+                    {service.is_active ? t('customServices.deactivate') : t('customServices.activate')}
                   </Text>
                 </TouchableOpacity>
 
@@ -426,7 +429,7 @@ export default function CustomServicesScreen() {
                 >
                   <Ionicons name="create-outline" size={20} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>
-                    Modifier
+                    {t('common.edit')}
                   </Text>
                 </TouchableOpacity>
 
@@ -436,7 +439,7 @@ export default function CustomServicesScreen() {
                 >
                   <Ionicons name="trash-outline" size={20} color={colors.error} />
                   <Text style={[styles.actionText, { color: colors.error }]}>
-                    Supprimer
+                    {t('common.delete')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -447,9 +450,8 @@ export default function CustomServicesScreen() {
         {/* Info card */}
         <View style={styles.infoCard}>
           <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
-          <Text style={styles.infoText}>
-            Vos services personnalisés apparaîtront sur votre profil et seront réservables par les
-            clients.
+          <Text style={[styles.infoText, isRTL && styles.rtlText]}>
+            {t('customServices.infoText')}
           </Text>
         </View>
       </ScrollView>
@@ -462,8 +464,8 @@ export default function CustomServicesScreen() {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingService ? "Modifier le service" : "Nouveau service"}
+              <Text style={[styles.modalTitle, isRTL && styles.rtlText]}>
+                {editingService ? t('customServices.editService') : t('customServices.newService')}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.gray[600]} />
@@ -473,19 +475,19 @@ export default function CustomServicesScreen() {
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {/* Name */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Nom du service *</Text>
+                <Text style={[styles.formLabel, isRTL && styles.rtlText]}>{t('customServices.serviceName')} *</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, isRTL && styles.rtlInput]}
                   value={formName}
                   onChangeText={setFormName}
-                  placeholder="Ex: Coiffure express"
+                  placeholder={t('customServices.serviceNamePlaceholder')}
                   maxLength={100}
                 />
               </View>
 
               {/* Category */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Catégorie *</Text>
+                <Text style={[styles.formLabel, isRTL && styles.rtlText]}>{t('customServices.category')} *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.categoryChips}>
                     {categories.map((cat) => (
@@ -503,7 +505,7 @@ export default function CustomServicesScreen() {
                             formCategoryId === Number(cat.id) && styles.categoryChipTextSelected,
                           ]}
                         >
-                          {cat.name}
+                          {getCategoryTranslation(cat.name, language)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -514,9 +516,9 @@ export default function CustomServicesScreen() {
               {/* Price & Duration */}
               <View style={styles.formRow}>
                 <View style={[styles.formGroup, { flex: 1, marginRight: spacing.sm }]}>
-                  <Text style={styles.formLabel}>Prix (MAD) *</Text>
+                  <Text style={[styles.formLabel, isRTL && styles.rtlText]}>{t('customServices.price')} *</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, isRTL && styles.rtlInput]}
                     value={formPrice}
                     onChangeText={setFormPrice}
                     placeholder="0"
@@ -524,9 +526,9 @@ export default function CustomServicesScreen() {
                   />
                 </View>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={styles.formLabel}>Durée (min) *</Text>
+                  <Text style={[styles.formLabel, isRTL && styles.rtlText]}>{t('customServices.duration')} *</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, isRTL && styles.rtlInput]}
                     value={formDuration}
                     onChangeText={setFormDuration}
                     placeholder="60"
@@ -537,12 +539,12 @@ export default function CustomServicesScreen() {
 
               {/* Description */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Description</Text>
+                <Text style={[styles.formLabel, isRTL && styles.rtlText]}>{t('customServices.description')}</Text>
                 <TextInput
-                  style={[styles.formInput, styles.formTextarea]}
+                  style={[styles.formInput, styles.formTextarea, isRTL && styles.rtlInput]}
                   value={formDescription}
                   onChangeText={setFormDescription}
-                  placeholder="Décrivez votre service..."
+                  placeholder={t('customServices.descriptionPlaceholder')}
                   multiline
                   numberOfLines={3}
                   maxLength={500}
@@ -551,8 +553,8 @@ export default function CustomServicesScreen() {
 
               {/* Images */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>
-                  Photos ({formImages.length + newImages.length}/5)
+                <Text style={[styles.formLabel, isRTL && styles.rtlText]}>
+                  {t('customServices.photos')} ({formImages.length + newImages.length}/5)
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.imagesRow}>
@@ -599,7 +601,7 @@ export default function CustomServicesScreen() {
                 style={styles.cancelButton}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -610,7 +612,7 @@ export default function CustomServicesScreen() {
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <Text style={styles.saveButtonText}>
-                    {editingService ? "Enregistrer" : "Créer"}
+                    {editingService ? t('common.save') : t('customServices.create')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -992,5 +994,12 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
+  },
+  // RTL styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  rtlInput: {
+    textAlign: 'right',
   },
 });

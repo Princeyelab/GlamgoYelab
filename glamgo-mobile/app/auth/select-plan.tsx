@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 import {
   getAllBookingFormulas,
   getProviderFormulas,
@@ -27,6 +28,16 @@ import {
 } from '../../src/lib/api/providerAPI';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Mapping API formula names to translation keys
+const FORMULA_NAME_TO_KEY: Record<string, string> = {
+  'standard': 'standard',
+  'premium': 'premium',
+  'urgent': 'urgent',
+  'récurrent': 'recurring',
+  'recurrent': 'recurring',
+  'nuit': 'night',
+};
 
 // Configuration visuelle des formules
 const FORMULA_CONFIG: Record<string, {
@@ -57,11 +68,25 @@ const FORMULA_CONFIG: Record<string, {
 
 export default function SelectFormulasScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   const [formulas, setFormulas] = useState<BookingFormula[]>([]);
   const [selectedFormulas, setSelectedFormulas] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get translated formula name and description
+  const getFormulaTranslation = (formula: BookingFormula) => {
+    const normalizedName = formula.name.toLowerCase().trim();
+    const key = FORMULA_NAME_TO_KEY[normalizedName];
+    if (key) {
+      return {
+        name: t(`formulas.${key}`),
+        description: t(`formulas.${key}Desc`),
+      };
+    }
+    return { name: formula.name, description: formula.description };
+  };
 
   useEffect(() => {
     loadFormulas();
@@ -91,7 +116,7 @@ export default function SelectFormulasScreen() {
       }
     } catch (error) {
       console.error('Erreur chargement formules:', error);
-      Alert.alert('Erreur', 'Impossible de charger les formules');
+      Alert.alert(t('selectPlan.error'), t('selectPlan.cannotLoadFormulas'));
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +128,7 @@ export default function SelectFormulasScreen() {
       if (prev.includes(formula.id)) {
         // Ne pas permettre de tout désélectionner
         if (prev.length === 1) {
-          Alert.alert('Attention', 'Vous devez sélectionner au moins une formule');
+          Alert.alert(t('selectPlan.attention'), t('selectPlan.mustSelectOne'));
           return prev;
         }
         return prev.filter(id => id !== formula.id);
@@ -114,7 +139,7 @@ export default function SelectFormulasScreen() {
 
   const handleContinue = async () => {
     if (selectedFormulas.length === 0) {
-      Alert.alert('Attention', 'Veuillez sélectionner au moins une formule');
+      Alert.alert(t('selectPlan.attention'), t('selectPlan.selectAtLeastOne'));
       return;
     }
 
@@ -128,11 +153,11 @@ export default function SelectFormulasScreen() {
 
       hapticFeedback.success();
       Alert.alert(
-        'Bienvenue !',
-        `${selectedFormulas.length} formule(s) activée(s). Vous pouvez maintenant recevoir des réservations.`,
+        t('selectPlan.welcome'),
+        t('selectPlan.formulasActivated').replace('{count}', selectedFormulas.length.toString()),
         [
           {
-            text: 'Commencer',
+            text: t('selectPlan.start'),
             onPress: () => router.replace('/(provider)'),
           },
         ]
@@ -141,8 +166,8 @@ export default function SelectFormulasScreen() {
       console.error('Erreur enregistrement formules:', error);
       hapticFeedback.error();
       Alert.alert(
-        'Erreur',
-        error?.response?.data?.message || 'Impossible d\'enregistrer les formules'
+        t('selectPlan.error'),
+        error?.response?.data?.message || t('selectPlan.cannotSaveFormulas')
       );
     } finally {
       setIsSubmitting(false);
@@ -154,16 +179,16 @@ export default function SelectFormulasScreen() {
   };
 
   const getPriceModifierText = (modifier: number): string => {
-    if (modifier === 1) return 'Prix standard';
-    if (modifier > 1) return `+${Math.round((modifier - 1) * 100)}% sur le prix`;
-    return `-${Math.round((1 - modifier) * 100)}% sur le prix`;
+    if (modifier === 1) return t('selectPlan.standardPriceLabel');
+    if (modifier > 1) return t('selectPlan.plusOnPrice').replace('{percent}', Math.round((modifier - 1) * 100).toString());
+    return t('selectPlan.minusOnPrice').replace('{percent}', Math.round((1 - modifier) * 100).toString());
   };
 
   if (isLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement des formules...</Text>
+        <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('selectPlan.loading')}</Text>
       </View>
     );
   }
@@ -178,13 +203,13 @@ export default function SelectFormulasScreen() {
         style={styles.header}
       >
         <Text style={styles.headerIcon}>📋</Text>
-        <Text style={styles.headerTitle}>Choisissez vos formules</Text>
-        <Text style={styles.headerSubtitle}>
-          Selectionnez les formules que vous proposez aux clients
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('selectPlan.title')}</Text>
+        <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>
+          {t('selectPlan.subtitle')}
         </Text>
         <View style={styles.selectedCount}>
-          <Text style={styles.selectedCountText}>
-            {selectedFormulas.length} formule(s) selectionnee(s)
+          <Text style={[styles.selectedCountText, isRTL && styles.textRTL]}>
+            {t('selectPlan.selectedCount').replace('{count}', selectedFormulas.length.toString())}
           </Text>
         </View>
       </LinearGradient>
@@ -197,6 +222,7 @@ export default function SelectFormulasScreen() {
         {formulas.map((formula) => {
           const config = getFormulaConfig(formula.slug);
           const isSelected = selectedFormulas.includes(formula.id);
+          const translated = getFormulaTranslation(formula);
 
           return (
             <TouchableOpacity
@@ -222,11 +248,11 @@ export default function SelectFormulasScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.formulaHeader}
                 >
-                  <View style={styles.formulaHeaderContent}>
-                    <Text style={styles.formulaIcon}>{formula.icon}</Text>
+                  <View style={[styles.formulaHeaderContent, isRTL && styles.formulaHeaderContentRTL]}>
+                    <Text style={[styles.formulaIcon, isRTL && styles.formulaIconRTL]}>{formula.icon}</Text>
                     <View style={styles.formulaTitleContainer}>
-                      <Text style={styles.formulaName}>{formula.name}</Text>
-                      <Text style={styles.formulaModifier}>
+                      <Text style={[styles.formulaName, isRTL && styles.textRTL]}>{translated.name}</Text>
+                      <Text style={[styles.formulaModifier, isRTL && styles.textRTL]}>
                         {getPriceModifierText(formula.price_modifier)}
                       </Text>
                     </View>
@@ -236,21 +262,21 @@ export default function SelectFormulasScreen() {
                 {/* Corps de la carte */}
                 <View style={styles.formulaBody}>
                   {/* Description */}
-                  <Text style={styles.formulaDescription}>{formula.description}</Text>
+                  <Text style={[styles.formulaDescription, isRTL && styles.textRTL]}>{translated.description}</Text>
 
                   {/* Info modificateur */}
-                  <View style={[styles.modifierCard, { backgroundColor: config.accentColor + '15' }]}>
-                    <Text style={styles.modifierLabel}>Modificateur de prix</Text>
+                  <View style={[styles.modifierCard, { backgroundColor: config.accentColor + '15' }, isRTL && styles.modifierCardRTL]}>
+                    <Text style={[styles.modifierLabel, isRTL && styles.textRTL]}>{t('selectPlan.priceModifier')}</Text>
                     <Text style={[styles.modifierValue, { color: config.accentColor }]}>
                       x{formula.price_modifier.toFixed(2)}
                     </Text>
                   </View>
 
                   {/* Exemple de calcul */}
-                  <View style={styles.exampleContainer}>
-                    <Text style={styles.exampleLabel}>Exemple:</Text>
-                    <Text style={styles.exampleText}>
-                      Service a 100 DH → <Text style={[styles.examplePrice, { color: config.accentColor }]}>
+                  <View style={[styles.exampleContainer, isRTL && styles.exampleContainerRTL]}>
+                    <Text style={[styles.exampleLabel, isRTL && styles.exampleLabelRTL]}>{t('selectPlan.example')}</Text>
+                    <Text style={[styles.exampleText, isRTL && styles.textRTL]}>
+                      {t('selectPlan.serviceTo').replace('{price}', '100')} → <Text style={[styles.examplePrice, { color: config.accentColor }]}>
                         {Math.round(100 * formula.price_modifier)} DH
                       </Text>
                     </Text>
@@ -270,10 +296,10 @@ export default function SelectFormulasScreen() {
         })}
 
         {/* Note d'information */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>💡</Text>
-          <Text style={styles.infoText}>
-            En activant une formule, vous apparaitrez dans les recherches des clients qui filtrent par cette formule. Plus vous activez de formules, plus vous serez visible !
+        <View style={[styles.infoCard, isRTL && styles.infoCardRTL]}>
+          <Text style={[styles.infoIcon, isRTL && styles.infoIconRTL]}>💡</Text>
+          <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+            {t('selectPlan.infoText')}
           </Text>
         </View>
       </ScrollView>
@@ -300,11 +326,12 @@ export default function SelectFormulasScreen() {
             ) : (
               <Text style={[
                 styles.continueButtonText,
-                selectedFormulas.length === 0 && styles.continueButtonTextDisabled
+                selectedFormulas.length === 0 && styles.continueButtonTextDisabled,
+                isRTL && styles.textRTL
               ]}>
                 {selectedFormulas.length > 0
-                  ? `Continuer avec ${selectedFormulas.length} formule(s)`
-                  : 'Selectionnez au moins une formule'}
+                  ? t('selectPlan.continueWith').replace('{count}', selectedFormulas.length.toString())
+                  : t('selectPlan.selectAtLeastOne')}
               </Text>
             )}
           </LinearGradient>
@@ -556,5 +583,35 @@ const styles = StyleSheet.create({
   },
   continueButtonTextDisabled: {
     color: colors.gray[500],
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  formulaHeaderContentRTL: {
+    flexDirection: 'row-reverse',
+  },
+  formulaIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
+  },
+  modifierCardRTL: {
+    flexDirection: 'row-reverse',
+  },
+  exampleContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  exampleLabelRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  infoCardRTL: {
+    flexDirection: 'row-reverse',
+  },
+  infoIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });

@@ -174,10 +174,15 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Log erreur en dev (sauf codes geres par l'UI: 400, 404, 409)
+    // Log erreur en dev (sauf codes geres par l'UI: 400, 409)
+    // Inclure 404 temporairement pour debug
     // Utiliser console.log au lieu de console.error pour eviter la boite rouge
-    if (__DEV__ && ![400, 404, 409].includes(error.response?.status || 0)) {
-      console.log(`[API] Error ${error.response?.status} ${originalRequest?.url}:`, error.message);
+    if (__DEV__) {
+      console.log(`🔴 [API] Error ${error.response?.status} ${originalRequest?.url}:`, error.message);
+      if (error.response?.status === 404) {
+        console.log('🔴 [API] 404 FULL URL:', apiClient.defaults.baseURL + originalRequest?.url);
+        console.log('🔴 [API] 404 Response data:', JSON.stringify(error.response?.data));
+      }
     }
 
     return Promise.reject(error);

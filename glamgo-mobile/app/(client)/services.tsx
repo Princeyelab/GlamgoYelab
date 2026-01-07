@@ -31,11 +31,14 @@ import {
 } from '../../src/lib/store/slices/servicesSlice';
 import { CATEGORIES } from '../../src/lib/constants/categories';
 import { Service, Category } from '../../src/types/service';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getCategoryTranslation } from '../../src/i18n/translations/services';
 
 export default function ServicesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
+  const { t, isRTL, language } = useLanguage();
 
   // Redux state
   const services = useAppSelector(selectServices);
@@ -126,12 +129,12 @@ export default function ServicesScreen() {
       }
     }
     if (!category) {
-      category = { id: item.category_id || 0, name: 'Service', color: colors.gray[500] };
+      category = { id: item.category_id || 0, name: t('services.service'), color: colors.gray[500] };
     }
-    const provider = item.provider || { id: 0, name: 'Prestataire' };
+    const provider = item.provider || { id: 0, name: t('provider.provider') };
 
     // Utiliser name si title n'existe pas (compatibilite API)
-    const serviceTitle = item.title || (item as any).name || 'Service';
+    const serviceTitle = item.title || (item as any).name || t('services.service');
 
     return (
       <ServiceCard
@@ -161,18 +164,18 @@ export default function ServicesScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>🔍</Text>
-      <Text style={styles.emptyTitle}>Aucun service trouve</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, isRTL && styles.rtlText]}>{t('services.noServiceFound')}</Text>
+      <Text style={[styles.emptyText, isRTL && styles.rtlText]}>
         {searchText
-          ? `Aucun resultat pour "${searchText}"`
-          : 'Aucun service disponible'}
+          ? t('services.noResultsFor', { query: searchText })
+          : t('services.noServices')}
       </Text>
       {searchText ? (
         <TouchableOpacity
           style={styles.clearSearchButton}
           onPress={() => setSearchText('')}
         >
-          <Text style={styles.clearSearchText}>Effacer la recherche</Text>
+          <Text style={styles.clearSearchText}>{t('services.clearSearch')}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -209,17 +212,17 @@ export default function ServicesScreen() {
       {/* HEADER FIXE - En dehors du FlatList */}
       <View style={styles.fixedHeader}>
         {/* Title */}
-        <Text style={styles.title}>Services GlamGo</Text>
-        <Text style={styles.subtitle}>
-          {services.length} services a domicile a Marrakech
+        <Text style={[styles.title, isRTL && styles.rtlText]}>{t('services.glamgoServices')}</Text>
+        <Text style={[styles.subtitle, isRTL && styles.rtlText]}>
+          {t('services.homeServicesCount', { count: services.length })}
         </Text>
 
         {/* Search Bar - State local */}
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un service..."
+            style={[styles.searchInput, isRTL && styles.rtlText]}
+            placeholder={t('home.searchPlaceholder')}
             value={searchText}
             onChangeText={setSearchText}
             placeholderTextColor={colors.gray[400]}
@@ -227,6 +230,7 @@ export default function ServicesScreen() {
             autoCapitalize="none"
             returnKeyType="search"
             clearButtonMode="while-editing"
+            textAlign={isRTL ? 'right' : 'left'}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')}>
@@ -256,7 +260,7 @@ export default function ServicesScreen() {
                 !selectedCategory && styles.categoryChipTextActive,
               ]}
             >
-              Tous ({services.length})
+              {t('services.all')} ({services.length})
             </Text>
           </TouchableOpacity>
 
@@ -289,7 +293,7 @@ export default function ServicesScreen() {
                     selectedCategory === filterCatId && styles.categoryChipTextActive,
                   ]}
                 >
-                  {localCat.name} ({count})
+                  {getCategoryTranslation(localCat.name, language)} ({count})
                 </Text>
               </TouchableOpacity>
             );
@@ -298,9 +302,9 @@ export default function ServicesScreen() {
 
         {/* Results Count */}
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsText}>
-            {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
-            {selectedCategory ? ' dans cette categorie' : ''}
+          <Text style={[styles.resultsText, isRTL && styles.rtlText]}>
+            {filteredServices.length} {filteredServices.length !== 1 ? t('services.servicesPlural') : t('services.serviceSingular')}
+            {selectedCategory ? ` ${t('services.inThisCategory')}` : ''}
           </Text>
           {favorites.length > 0 && (
             <Badge color="primary" size="sm">
@@ -513,5 +517,9 @@ const styles = StyleSheet.create({
   },
   skeletonList: {
     padding: spacing.lg,
+  },
+  // RTL support
+  rtlText: {
+    textAlign: 'right',
   },
 });

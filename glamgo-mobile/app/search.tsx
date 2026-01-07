@@ -25,6 +25,7 @@ import {
   toggleFavorite,
 } from '../src/lib/store/slices/servicesSlice';
 import { Service } from '../src/types/service';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 type FilterType = 'all' | 'services' | 'providers';
 type SortType = 'relevance' | 'price_low' | 'price_high' | 'rating';
@@ -33,6 +34,7 @@ export default function SearchResultsScreen() {
   const { q } = useLocalSearchParams<{ q: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, isRTL } = useLanguage();
 
   const services = useAppSelector(selectServices);
   const favorites = useAppSelector(selectFavorites);
@@ -100,8 +102,8 @@ export default function SearchResultsScreen() {
       rating={item.rating}
       reviews_count={item.reviews_count}
       duration_minutes={item.duration_minutes}
-      category={item.category || { id: 0, name: 'Service' }}
-      provider={item.provider || { id: 0, name: 'Prestataire' }}
+      category={item.category || { id: 0, name: t('services.service') }}
+      provider={item.provider || { id: 0, name: t('provider.provider') }}
       is_featured={item.is_featured}
       isFavorite={favorites.includes(Number(item.id))}
       onPress={() => handleServicePress(item.id)}
@@ -113,21 +115,21 @@ export default function SearchResultsScreen() {
     <View>
       {/* Search Stats */}
       <View style={styles.statsBar}>
-        <Text style={styles.statsText}>
-          {searchResults.length} resultat{searchResults.length !== 1 ? 's' : ''} pour "{searchQuery}"
+        <Text style={[styles.statsText, isRTL && styles.rtlText]}>
+          {t('search.resultsFor', { count: searchResults.length, query: searchQuery })}
         </Text>
       </View>
 
       {/* Sort Options */}
-      <View style={styles.sortBar}>
-        <Text style={styles.sortLabel}>Trier par:</Text>
-        <View style={styles.sortOptions}>
+      <View style={[styles.sortBar, isRTL && styles.sortBarRTL]}>
+        <Text style={styles.sortLabel}>{t('search.sortBy')}</Text>
+        <View style={[styles.sortOptions, isRTL && styles.sortOptionsRTL]}>
           <TouchableOpacity
             style={[styles.sortOption, sort === 'relevance' && styles.sortOptionActive]}
             onPress={() => setSort('relevance')}
           >
             <Text style={[styles.sortOptionText, sort === 'relevance' && styles.sortOptionTextActive]}>
-              Pertinence
+              {t('search.relevance')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -135,7 +137,7 @@ export default function SearchResultsScreen() {
             onPress={() => setSort('price_low')}
           >
             <Text style={[styles.sortOptionText, sort === 'price_low' && styles.sortOptionTextActive]}>
-              Prix ↑
+              {t('search.priceLow')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -143,7 +145,7 @@ export default function SearchResultsScreen() {
             onPress={() => setSort('price_high')}
           >
             <Text style={[styles.sortOptionText, sort === 'price_high' && styles.sortOptionTextActive]}>
-              Prix ↓
+              {t('search.priceHigh')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -151,7 +153,7 @@ export default function SearchResultsScreen() {
             onPress={() => setSort('rating')}
           >
             <Text style={[styles.sortOptionText, sort === 'rating' && styles.sortOptionTextActive]}>
-              Note
+              {t('search.rating')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -162,17 +164,17 @@ export default function SearchResultsScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>🔍</Text>
-      <Text style={styles.emptyTitle}>Aucun resultat</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, isRTL && styles.rtlText]}>{t('search.noResults')}</Text>
+      <Text style={[styles.emptyText, isRTL && styles.rtlText]}>
         {searchQuery.trim()
-          ? `Aucun service trouve pour "${searchQuery}"`
-          : 'Entrez un terme de recherche'}
+          ? t('search.noResultsFor', { query: searchQuery })
+          : t('search.enterSearchTerm')}
       </Text>
       <TouchableOpacity
         style={styles.browseCta}
         onPress={() => router.push('/(tabs)/services')}
       >
-        <Text style={styles.browseCtaText}>Parcourir tous les services</Text>
+        <Text style={styles.browseCtaText}>{t('search.browseAll')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -190,8 +192,8 @@ export default function SearchResultsScreen() {
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un service..."
+            style={[styles.searchInput, isRTL && styles.searchInputRTL]}
+            placeholder={t('search.placeholder')}
             placeholderTextColor={colors.gray[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -212,7 +214,7 @@ export default function SearchResultsScreen() {
 
       {/* Results */}
       {isLoading ? (
-        <Loading message="Recherche en cours..." />
+        <Loading message={t('search.searching')} />
       ) : (
         <FlatList
           data={searchResults}
@@ -229,15 +231,21 @@ export default function SearchResultsScreen() {
       {/* Quick Suggestions */}
       {!searchQuery.trim() && (
         <View style={styles.suggestions}>
-          <Text style={styles.suggestionsTitle}>Suggestions</Text>
-          <View style={styles.suggestionsList}>
-            {['Coiffure', 'Massage', 'Manucure', 'Maquillage', 'Epilation'].map((suggestion) => (
+          <Text style={[styles.suggestionsTitle, isRTL && styles.rtlText]}>{t('search.suggestions')}</Text>
+          <View style={[styles.suggestionsList, isRTL && styles.suggestionsListRTL]}>
+            {[
+              { key: 'hair', label: t('search.suggestionHair') },
+              { key: 'massage', label: t('search.suggestionMassage') },
+              { key: 'manicure', label: t('search.suggestionManicure') },
+              { key: 'makeup', label: t('search.suggestionMakeup') },
+              { key: 'waxing', label: t('search.suggestionWaxing') },
+            ].map((suggestion) => (
               <TouchableOpacity
-                key={suggestion}
+                key={suggestion.key}
                 style={styles.suggestionChip}
-                onPress={() => setSearchQuery(suggestion)}
+                onPress={() => setSearchQuery(suggestion.label)}
               >
-                <Text style={styles.suggestionChipText}>{suggestion}</Text>
+                <Text style={styles.suggestionChipText}>{suggestion.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -430,5 +438,21 @@ const styles = StyleSheet.create({
   suggestionChipText: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[700],
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  sortBarRTL: {
+    flexDirection: 'row-reverse',
+  },
+  sortOptionsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  searchInputRTL: {
+    textAlign: 'right',
+  },
+  suggestionsListRTL: {
+    flexDirection: 'row-reverse',
   },
 });

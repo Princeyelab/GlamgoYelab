@@ -33,11 +33,14 @@ import {
   deleteCustomService,
   CustomService,
 } from '../../src/lib/api/providerAPI';
+import useTranslation from '../../src/hooks/useTranslatedData';
+import { getServiceTranslation } from '../../src/i18n/translations/services';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ProviderServicesScreen() {
   const router = useRouter();
+  const { t, translateService, language } = useTranslation();
   const [services, setServices] = useState<ProviderService[]>([]);
   const [customServices, setCustomServices] = useState<CustomService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,14 +143,15 @@ export default function ProviderServicesScreen() {
 
   // Delete custom service
   const handleDeleteCustomService = (service: CustomService) => {
+    const translatedName = getServiceTranslation(service.name, language).title;
     console.log('[Services] Delete custom service requested:', service.id, service.name);
     Alert.alert(
-      'Supprimer le service',
-      `Êtes-vous sûr de vouloir supprimer "${service.name}" ?`,
+      t('customServices.delete'),
+      t('customServices.confirmDelete'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             hapticFeedback.medium();
@@ -167,7 +171,7 @@ export default function ProviderServicesScreen() {
               console.error('[Services] Delete custom service error:', error);
               console.error('[Services] Error response:', error?.response?.data);
               hapticFeedback.error();
-              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de supprimer ce service');
+              Alert.alert(t('common.error'), error?.response?.data?.message || t('customServices.deleteError'));
             }
           },
         },
@@ -200,12 +204,12 @@ export default function ProviderServicesScreen() {
     });
 
     Alert.alert(
-      'Supprimer le service',
-      `Êtes-vous sûr de vouloir retirer "${serviceName}" de votre catalogue ?`,
+      t('customServices.delete'),
+      t('customServices.confirmRemoveFromCatalog'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             hapticFeedback.medium();
@@ -224,7 +228,7 @@ export default function ProviderServicesScreen() {
             } catch (error: any) {
               console.error('[Services] Delete failed:', error?.response?.data || error);
               hapticFeedback.error();
-              Alert.alert('Erreur', 'Impossible de supprimer ce service.');
+              Alert.alert(t('common.error'), t('customServices.deleteError'));
             }
           },
         },
@@ -241,7 +245,7 @@ export default function ProviderServicesScreen() {
         >
           <ActivityIndicator size="large" color={colors.white} />
         </LinearGradient>
-        <Text style={styles.loadingText}>Chargement des services...</Text>
+        <Text style={styles.loadingText}>{t('loadingMessages.services')}</Text>
       </View>
     );
   }
@@ -262,7 +266,7 @@ export default function ProviderServicesScreen() {
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mes Services</Text>
+          <Text style={styles.headerTitle}>{t('providerProfile.myServices')}</Text>
           <TouchableOpacity
             style={styles.addHeaderBtn}
             onPress={handleAddServices}
@@ -272,7 +276,7 @@ export default function ProviderServicesScreen() {
         </View>
 
         <Text style={styles.headerSubtitle}>
-          Gérez les services que vous proposez
+          {t('providerProfile.manageServices')}
         </Text>
 
         {/* Stats */}
@@ -285,7 +289,7 @@ export default function ProviderServicesScreen() {
               <Text style={styles.statIcon}>💼</Text>
             </LinearGradient>
             <Text style={styles.statValue}>{totalServices}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.statLabel}>{t('common.total')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -296,7 +300,7 @@ export default function ProviderServicesScreen() {
               <Text style={styles.statIcon}>✅</Text>
             </LinearGradient>
             <Text style={styles.statValue}>{activeServices}</Text>
-            <Text style={styles.statLabel}>Actifs</Text>
+            <Text style={styles.statLabel}>{t('common.active')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -307,7 +311,7 @@ export default function ProviderServicesScreen() {
               <Text style={styles.statIcon}>⏸️</Text>
             </LinearGradient>
             <Text style={styles.statValue}>{inactiveServices}</Text>
-            <Text style={styles.statLabel}>Inactifs</Text>
+            <Text style={styles.statLabel}>{t('common.inactive')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -335,9 +339,9 @@ export default function ProviderServicesScreen() {
             >
               <Text style={styles.emptyIcon}>💼</Text>
             </LinearGradient>
-            <Text style={styles.emptyTitle}>Aucun service</Text>
+            <Text style={styles.emptyTitle}>{t('providerProfile.noServicesConfigured')}</Text>
             <Text style={styles.emptyText}>
-              Ajoutez des services à votre catalogue pour recevoir des réservations
+              {t('providerProfile.addServicesToReceive')}
             </Text>
             <TouchableOpacity
               style={styles.emptyButton}
@@ -347,7 +351,7 @@ export default function ProviderServicesScreen() {
                 colors={[colors.primary, '#8B5CF6']}
                 style={styles.emptyButtonGradient}
               >
-                <Text style={styles.emptyButtonText}>+ Ajouter des services</Text>
+                <Text style={styles.emptyButtonText}>+ {t('providerProfile.addServices')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -357,8 +361,10 @@ export default function ProviderServicesScreen() {
               const isActive = service.is_active;
               const price = parseFloat(service.price) || service.custom_price || service.service?.base_price || 0;
               const duration = service.duration_minutes || service.custom_duration || service.service?.duration_minutes || 0;
-              const serviceName = service.name || service.service?.title || 'Service';
-              const serviceDesc = service.description || service.service?.description;
+              const rawServiceName = service.name || service.service?.title || t('services.service');
+              const translatedServiceData = getServiceTranslation(rawServiceName, language);
+              const serviceName = translatedServiceData.title || rawServiceName;
+              const serviceDesc = translatedServiceData.description || service.description || service.service?.description;
               // Récupérer l'image du service
               const serviceImage = service.image || service.service?.image || service.images?.[0] || service.service?.images?.[0];
               const imageUrl = serviceImage ? getImageUrl(serviceImage) : null;
@@ -411,7 +417,7 @@ export default function ProviderServicesScreen() {
                           styles.statusBadgeText,
                           isActive ? styles.statusBadgeTextActive : styles.statusBadgeTextInactive
                         ]}>
-                          {isActive ? 'Actif' : 'Inactif'}
+                          {isActive ? t('common.active') : t('common.inactive')}
                         </Text>
                       </View>
                     </View>
@@ -419,12 +425,12 @@ export default function ProviderServicesScreen() {
                     {/* Details */}
                     <View style={styles.serviceDetails}>
                       <View style={styles.detailCard}>
-                        <Text style={styles.detailLabel}>Prix</Text>
+                        <Text style={styles.detailLabel}>{t('services.price')}</Text>
                         <Text style={styles.detailValue}>{price} DH</Text>
                       </View>
                       <View style={styles.detailCard}>
-                        <Text style={styles.detailLabel}>Durée</Text>
-                        <Text style={styles.detailValue}>{duration} min</Text>
+                        <Text style={styles.detailLabel}>{t('services.duration')}</Text>
+                        <Text style={styles.detailValue}>{duration} {t('common.min')}</Text>
                       </View>
                     </View>
 
@@ -433,7 +439,7 @@ export default function ProviderServicesScreen() {
                       style={styles.deleteButton}
                       onPress={() => handleDeleteService(service)}
                     >
-                      <Text style={styles.deleteButtonText}>🗑️ Retirer du catalogue</Text>
+                      <Text style={styles.deleteButtonText}>🗑️ {t('customServices.removeFromCatalog')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -444,12 +450,15 @@ export default function ProviderServicesScreen() {
             {customServices.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>📦 Services personnalisés</Text>
+                  <Text style={styles.sectionTitle}>📦 {t('providerProfile.customServices')}</Text>
                   <Text style={styles.sectionCount}>{customServices.length}</Text>
                 </View>
 
                 {customServices.map((service) => {
                   const imageUrl = service.images?.[0] ? getImageUrl(service.images[0]) : null;
+                  const translatedCustom = getServiceTranslation(service.name, language);
+                  const customServiceName = translatedCustom.title || service.name;
+                  const customServiceDesc = translatedCustom.description || service.description;
 
                   return (
                     <View key={`custom-${service.id}`} style={styles.serviceCard}>
@@ -480,10 +489,10 @@ export default function ProviderServicesScreen() {
                             )}
                           </View>
                           <View style={styles.serviceInfo}>
-                            <Text style={styles.serviceName}>{service.name}</Text>
-                            {service.description && (
+                            <Text style={styles.serviceName}>{customServiceName}</Text>
+                            {customServiceDesc && (
                               <Text style={styles.serviceDescription} numberOfLines={2}>
-                                {service.description}
+                                {customServiceDesc}
                               </Text>
                             )}
                           </View>
@@ -495,19 +504,19 @@ export default function ProviderServicesScreen() {
                               styles.statusBadgeText,
                               service.is_active ? styles.statusBadgeTextActive : styles.statusBadgeTextInactive
                             ]}>
-                              {service.is_active ? 'Actif' : 'Inactif'}
+                              {service.is_active ? t('common.active') : t('common.inactive')}
                             </Text>
                           </View>
                         </View>
 
                         <View style={styles.serviceDetails}>
                           <View style={styles.detailCard}>
-                            <Text style={styles.detailLabel}>Prix</Text>
+                            <Text style={styles.detailLabel}>{t('services.price')}</Text>
                             <Text style={styles.detailValue}>{service.price} DH</Text>
                           </View>
                           <View style={styles.detailCard}>
-                            <Text style={styles.detailLabel}>Durée</Text>
-                            <Text style={styles.detailValue}>{service.duration_minutes} min</Text>
+                            <Text style={styles.detailLabel}>{t('services.duration')}</Text>
+                            <Text style={styles.detailValue}>{service.duration_minutes} {t('common.min')}</Text>
                           </View>
                         </View>
 
@@ -518,7 +527,7 @@ export default function ProviderServicesScreen() {
                             onPress={() => handleToggleCustomService(service)}
                           >
                             <Text style={[styles.actionBtnText, { color: service.is_active ? colors.warning : colors.success }]}>
-                              {service.is_active ? '⏸️ Désactiver' : '▶️ Activer'}
+                              {service.is_active ? `⏸️ ${t('customServices.deactivate')}` : `▶️ ${t('customServices.activate')}`}
                             </Text>
                           </TouchableOpacity>
 
@@ -527,7 +536,7 @@ export default function ProviderServicesScreen() {
                             onPress={() => handleEditCustomService(service)}
                           >
                             <Text style={[styles.actionBtnText, { color: colors.primary }]}>
-                              ✏️ Modifier
+                              ✏️ {t('common.edit')}
                             </Text>
                           </TouchableOpacity>
 
@@ -536,7 +545,7 @@ export default function ProviderServicesScreen() {
                             onPress={() => handleDeleteCustomService(service)}
                           >
                             <Text style={[styles.actionBtnText, { color: colors.error }]}>
-                              🗑️ Supprimer
+                              🗑️ {t('common.delete')}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -564,7 +573,7 @@ export default function ProviderServicesScreen() {
                     <Text style={styles.addMoreIcon}>+</Text>
                   </LinearGradient>
                 </View>
-                <Text style={styles.addMoreText}>Ajouter d'autres services</Text>
+                <Text style={styles.addMoreText}>{t('customServices.addMore')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -585,7 +594,7 @@ export default function ProviderServicesScreen() {
                     <Text style={styles.addMoreIcon}>📦</Text>
                   </LinearGradient>
                 </View>
-                <Text style={[styles.addMoreText, { color: '#92400E' }]}>Créer un service personnalisé</Text>
+                <Text style={[styles.addMoreText, { color: '#92400E' }]}>{t('customServices.createCustom')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </>

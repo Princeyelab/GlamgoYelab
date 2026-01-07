@@ -9,6 +9,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import { CategoryCardProps } from '../../types/service';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getCategoryTranslation } from '../../i18n/translations/services';
 
 // Helper pour assombrir couleur
 function adjustColor(color: string, amount: number): string {
@@ -28,6 +30,11 @@ export default function CategoryCard({
   variant = 'default',
   onPress,
 }: CategoryCardProps) {
+  const { t, isRTL, language } = useLanguage();
+
+  // Get translated category name
+  const displayName = getCategoryTranslation(name, language);
+
   // Créer couleur gradient (plus foncé)
   const gradientColors: [string, string] = [
     color,
@@ -77,14 +84,14 @@ export default function CategoryCard({
           {/* Text */}
           <View style={styles.textContainer}>
             <Text
-              style={styles.name}
+              style={[styles.name, isRTL && styles.textRTL]}
               numberOfLines={variant === 'list' ? 1 : 2}
             >
-              {name}
+              {displayName}
             </Text>
             {services_count > 0 && (
-              <Text style={styles.count}>
-                {services_count} service{services_count > 1 ? 's' : ''}
+              <Text style={[styles.count, isRTL && styles.textRTL]}>
+                {services_count} {services_count > 1 ? t('services.servicesPlural') : t('services.serviceSingular')}
               </Text>
             )}
           </View>
@@ -158,5 +165,9 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 });

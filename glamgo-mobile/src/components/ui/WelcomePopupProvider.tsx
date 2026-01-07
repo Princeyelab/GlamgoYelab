@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface WelcomePopupProviderProps {
   visible: boolean;
@@ -31,6 +32,7 @@ export default function WelcomePopupProvider({
   onGoToDashboard,
   onGoToOnboarding,
 }: WelcomePopupProviderProps) {
+  const { t, isRTL } = useLanguage();
 
   const handleSelectServices = () => {
     if (onGoToOnboarding) {
@@ -48,6 +50,13 @@ export default function WelcomePopupProvider({
     }
   };
 
+  const getTitle = () => {
+    if (userName) {
+      return t('welcomePopupProvider.titleWithName').replace('{name}', userName);
+    }
+    return t('welcomePopupProvider.title');
+  };
+
   return (
     <Modal
       visible={visible}
@@ -58,7 +67,7 @@ export default function WelcomePopupProvider({
       <View style={styles.overlay}>
         <View style={styles.popup}>
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity style={[styles.closeBtn, isRTL && styles.closeBtnRTL]} onPress={onClose}>
             <Text style={styles.closeBtnText}>×</Text>
           </TouchableOpacity>
 
@@ -66,28 +75,27 @@ export default function WelcomePopupProvider({
           <View style={styles.content}>
             <Text style={styles.emoji}>🎉</Text>
 
-            <Text style={styles.title}>
-              Bienvenue{userName ? `, ${userName}` : ''} !
+            <Text style={[styles.title, isRTL && styles.textRTL]}>
+              {getTitle()}
             </Text>
 
-            <Text style={styles.message}>
-              Votre compte prestataire est pret !{'\n\n'}
-              Selectionnez vos services pour commencer a recevoir des demandes de clients.
+            <Text style={[styles.message, isRTL && styles.textRTL]}>
+              {t('welcomePopupProvider.message')}
             </Text>
 
             {/* Info Box */}
-            <View style={styles.infoBox}>
-              <Text style={styles.infoIcon}>💡</Text>
-              <Text style={styles.infoText}>
-                Vous pourrez activer/desactiver votre disponibilite depuis votre tableau de bord, comme un chauffeur Uber.
+            <View style={[styles.infoBox, isRTL && styles.infoBoxRTL]}>
+              <Text style={[styles.infoIcon, isRTL && styles.infoIconRTL]}>💡</Text>
+              <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+                {t('welcomePopupProvider.infoTip')}
               </Text>
             </View>
 
             {/* Highlight Box */}
-            <View style={styles.highlightBox}>
-              <Text style={styles.highlightIcon}>💎</Text>
-              <Text style={styles.highlightText}>
-                Vous gardez 80% de chaque prestation !
+            <View style={[styles.highlightBox, isRTL && styles.highlightBoxRTL]}>
+              <Text style={[styles.highlightIcon, isRTL && styles.highlightIconRTL]}>💎</Text>
+              <Text style={[styles.highlightText, isRTL && styles.textRTL]}>
+                {t('welcomePopupProvider.highlight')}
               </Text>
             </View>
 
@@ -98,7 +106,7 @@ export default function WelcomePopupProvider({
                 onPress={handleSelectServices}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryBtnText}>Selectionner mes services</Text>
+                <Text style={[styles.primaryBtnText, isRTL && styles.textRTL]}>{t('welcomePopupProvider.selectServices')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -106,7 +114,7 @@ export default function WelcomePopupProvider({
                 onPress={handleGoToDashboard}
                 activeOpacity={0.8}
               >
-                <Text style={styles.secondaryBtnText}>Plus tard</Text>
+                <Text style={[styles.secondaryBtnText, isRTL && styles.textRTL]}>{t('welcomePopupProvider.later')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -238,5 +246,29 @@ const styles = StyleSheet.create({
     color: colors.gray[700],
     fontSize: typography.fontSize.base,
     fontWeight: '500',
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  closeBtnRTL: {
+    right: undefined,
+    left: spacing.sm,
+  },
+  infoBoxRTL: {
+    flexDirection: 'row-reverse',
+  },
+  infoIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  highlightBoxRTL: {
+    flexDirection: 'row-reverse',
+  },
+  highlightIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });

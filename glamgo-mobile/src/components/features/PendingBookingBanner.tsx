@@ -16,6 +16,9 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import apiClient from '../../lib/api/client';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getServiceTranslation } from '../../i18n/translations/services';
+import { isOrderCancelled, initCancelledOrdersCache } from '../../lib/utils/cancelledOrdersCache';
 
 interface PendingBooking {
   id: number;
@@ -26,6 +29,7 @@ interface PendingBooking {
 
 export default function PendingBookingBanner() {
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
   const [pendingBooking, setPendingBooking] = useState<PendingBooking | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const pulseAnim = useState(new Animated.Value(1))[0];
@@ -48,11 +52,12 @@ export default function PendingBookingBanner() {
       const response = await apiClient.get('/api/orders');
       const orders = response.data?.data || [];
 
-      // Trouver une commande pending NON expirée et NON déjà marquée comme expirée
+      // Trouver une commande pending NON expirée, NON déjà marquée comme expirée, et NON annulée
       const pending = orders.find((o: any) =>
         o.status === 'pending' &&
         !expiredIdsRef.current.has(o.id) &&
-        !isOrderExpired(o.created_at)
+        !isOrderExpired(o.created_at) &&
+        !isOrderCancelled(o.id)  // Vérifier le cache des annulations
       );
 
       if (pending) {
@@ -75,7 +80,10 @@ export default function PendingBookingBanner() {
   // Vérifier au montage et quand l'écran devient actif
   useFocusEffect(
     useCallback(() => {
-      checkPendingBookings();
+      // Recharger le cache AsyncStorage d'abord pour avoir les IDs annulés à jour
+      initCancelledOrdersCache().then(() => {
+        checkPendingBookings();
+      });
       const interval = setInterval(checkPendingBookings, 10000);
       return () => clearInterval(interval);
     }, [checkPendingBookings])
@@ -89,6 +97,14 @@ export default function PendingBookingBanner() {
 
   // Calculer le temps restant
   useEffect(() => {
+    // Vérifier si la commande est annulée
+    if (pendingBooking && isOrderCancelled(pendingBooking.id)) {
+      console.log('[PendingBanner] Timer stopped - order in cancelled cache:', pendingBooking.id);
+      setPendingBooking(null);
+      setTimeRemaining(0);
+      return;
+    }
+
     if (!pendingBooking?.created_at) {
       setTimeRemaining(0);
       return;
@@ -126,15 +142,16 @@ export default function PendingBookingBanner() {
       // Supprimer immédiatement la bannière
       setPendingBooking(null);
 
+      const translatedServiceName = getServiceTranslation(booking.service_name, language).title;
       Alert.alert(
-        'Commande expirée',
-        `Le prestataire n'a pas répondu dans le délai de 4 minutes pour "${booking.service_name}". La commande a été automatiquement annulée.`,
+        t('pendingBooking.orderExpired'),
+        t('pendingBooking.orderExpiredMessage').replace('{serviceName}', translatedServiceName),
         [
           {
-            text: 'Voir mes réservations',
+            text: t('pendingBooking.viewBookings'),
             onPress: () => router.push('/(client)/bookings' as any),
           },
-          { text: 'OK', style: 'cancel' },
+          { text: t('pendingBooking.ok'), style: 'cancel' },
         ]
       );
 
@@ -191,31 +208,31 @@ export default function PendingBookingBanner() {
       ]}
     >
       <TouchableOpacity
-        style={styles.content}
+        style={[styles.content, isRTL && styles.contentRTL]}
         onPress={() => router.push(`/booking/track/${pendingBooking.id}` as any)}
         activeOpacity={0.8}
       >
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, isRTL && styles.iconContainerRTL]}>
           <Text style={styles.icon}>⏱️</Text>
         </View>
 
-        <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>
-            {pendingBooking.service_name}
+        <View style={[styles.info, isRTL && styles.infoRTL]}>
+          <Text style={[styles.title, isRTL && styles.textRTL]} numberOfLines={1}>
+            {getServiceTranslation(pendingBooking.service_name, language).title}
           </Text>
-          <Text style={styles.subtitle}>
-            {isUrgent ? 'Réponse imminente!' : 'En attente de confirmation'}
+          <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+            {isUrgent ? t('pendingBooking.responseImminent') : t('pendingBooking.waitingConfirmation')}
           </Text>
         </View>
 
-        <View style={styles.timerContainer}>
+        <View style={[styles.timerContainer, isRTL && styles.timerContainerRTL]}>
           <Text style={[styles.timer, isUrgent && styles.timerUrgent]}>
             {formatTime(timeRemaining)}
           </Text>
-          <Text style={styles.timerLabel}>restant</Text>
+          <Text style={styles.timerLabel}>{t('pendingBooking.remaining')}</Text>
         </View>
 
-        <Text style={styles.arrow}>›</Text>
+        <Text style={styles.arrow}>{isRTL ? '‹' : '›'}</Text>
       </TouchableOpacity>
 
       {/* Barre de progression */}
@@ -224,7 +241,8 @@ export default function PendingBookingBanner() {
           style={[
             styles.progress,
             { width: `${progressPercent}%` },
-            isUrgent && styles.progressUrgent
+            isUrgent && styles.progressUrgent,
+            isRTL && styles.progressRTL
           ]}
         />
       </View>
@@ -313,5 +331,29 @@ const styles = StyleSheet.create({
   },
   progressUrgent: {
     backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  // RTL Styles
+  contentRTL: {
+    flexDirection: 'row-reverse',
+  },
+  iconContainerRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  infoRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+    alignItems: 'flex-end',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  timerContainerRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  progressRTL: {
+    alignSelf: 'flex-end',
   },
 });

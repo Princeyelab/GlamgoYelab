@@ -19,6 +19,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../lib/co
 import { hapticFeedback } from '../../lib/utils/haptics';
 import apiClient from '../../lib/api/client';
 import ProviderProfileModal from './ProviderProfileModal';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface Provider {
   id: number;
@@ -127,9 +128,10 @@ export default function ProviderSelector({
   selectedProviderId,
   onSelect,
   loading = false,
-  title = 'Choisir un prestataire',
+  title,
   showDistance = true,
 }: ProviderSelectorProps) {
+  const { t, language, isRTL } = useLanguage();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [reviewsProvider, setReviewsProvider] = useState<Provider | null>(null);
@@ -139,6 +141,9 @@ export default function ProviderSelector({
   // Profile modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileProvider, setProfileProvider] = useState<any>(null);
+
+  // Use translated title or provided one
+  const displayTitle = title || t('providerSelector.chooseProvider');
 
   const handleSelect = (provider: Provider) => {
     hapticFeedback.selection();
@@ -181,7 +186,8 @@ export default function ProviderSelector({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   // Afficher le profil d'un prestataire
@@ -242,14 +248,14 @@ export default function ProviderSelector({
             styles.availabilityBadgeText,
             provider.isOnline ? styles.availableText : styles.unavailableText
           ]}>
-            {provider.isOnline ? 'Disponible' : 'Indisponible'}
+            {provider.isOnline ? t('providerSelector.available') : t('providerSelector.unavailable')}
           </Text>
         </View>
 
         {/* Badge Plus Proche */}
         {isNearest && provider.isOnline ? (
-          <View style={styles.nearestBadge}>
-            <Text style={styles.nearestBadgeText}>{'Plus proche'}</Text>
+          <View style={[styles.nearestBadge, isRTL && styles.nearestBadgeRTL]}>
+            <Text style={styles.nearestBadgeText}>{t('providerSelector.nearest')}</Text>
           </View>
         ) : null}
 
@@ -289,7 +295,7 @@ export default function ProviderSelector({
               </Text>
               {isSelected ? (
                 <View style={styles.selectedBadge}>
-                  <Text style={styles.selectedBadgeText}>{'Selectionne'}</Text>
+                  <Text style={styles.selectedBadgeText}>{t('providerSelector.selected')}</Text>
                 </View>
               ) : null}
             </View>
@@ -302,7 +308,7 @@ export default function ProviderSelector({
                 onPress={() => handleShowReviews(provider)}
                 hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
               >
-                <Text style={styles.reviewsCountLink}>({provider.reviewsCount} avis)</Text>
+                <Text style={styles.reviewsCountLink}>({provider.reviewsCount} {t('providerSelector.reviews')})</Text>
               </TouchableOpacity>
             </View>
 
@@ -316,7 +322,7 @@ export default function ProviderSelector({
               ) : null}
               <View style={styles.statBadge}>
                 <Text style={styles.statIcon}>✅</Text>
-                <Text style={styles.statText}>{provider.completedServices} services</Text>
+                <Text style={styles.statText}>{provider.completedServices} {t('providerSelector.services')}</Text>
               </View>
               {/* Bouton Voir profil */}
               <TouchableOpacity
@@ -324,7 +330,7 @@ export default function ProviderSelector({
                 onPress={() => handleShowProfile(provider)}
                 hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
               >
-                <Text style={styles.profileButtonText}>Voir profil</Text>
+                <Text style={styles.profileButtonText}>{t('providerSelector.viewProfile')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -352,7 +358,7 @@ export default function ProviderSelector({
         {!provider.isOnline ? (
           <View style={styles.offlineRow}>
             <View style={styles.offlineBadge}>
-              <Text style={styles.offlineBadgeText}>{'Hors ligne'}</Text>
+              <Text style={styles.offlineBadgeText}>{t('providerSelector.offline')}</Text>
             </View>
           </View>
         ) : null}
@@ -367,11 +373,11 @@ export default function ProviderSelector({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
+        <Text style={[styles.title, isRTL && styles.rtlText]}>{displayTitle}</Text>
         {onlineProviders.length > 0 ? (
           <Text style={styles.subtitle}>
-            {onlineProviders.length} dispo.
+            {onlineProviders.length} {t('providerSelector.availableShort')}
           </Text>
         ) : null}
       </View>
@@ -387,15 +393,15 @@ export default function ProviderSelector({
         {/* Offline Section */}
         {offlineProviders.length > 0 ? (
           <>
-            <Text style={styles.sectionLabel}>{'Actuellement indisponibles'}</Text>
+            <Text style={[styles.sectionLabel, isRTL && styles.rtlText]}>{t('providerSelector.currentlyUnavailable')}</Text>
             {offlineProviders.map(renderProvider)}
           </>
         ) : null}
       </ScrollView>
 
       {/* Helper Text */}
-      <Text style={styles.helperText}>
-        Appuyez sur les avis pour les consulter
+      <Text style={[styles.helperText, isRTL && styles.rtlText]}>
+        {t('providerSelector.tapReviewsHint')}
       </Text>
 
       {/* Modal Avis */}
@@ -409,8 +415,8 @@ export default function ProviderSelector({
           <View style={styles.reviewsModalContent}>
             {/* Header */}
             <View style={styles.reviewsModalHeader}>
-              <View style={styles.reviewsModalTitleRow}>
-                <Text style={styles.reviewsModalTitle}>Avis clients</Text>
+              <View style={[styles.reviewsModalTitleRow, isRTL && styles.reviewsModalTitleRowRTL]}>
+                <Text style={[styles.reviewsModalTitle, isRTL && styles.rtlText]}>{t('providerSelector.clientReviews')}</Text>
                 {reviewsProvider ? (
                   <View style={styles.reviewsModalRating}>
                     <Text style={styles.reviewsModalRatingText}>
@@ -420,10 +426,10 @@ export default function ProviderSelector({
                 ) : null}
               </View>
               {reviewsProvider ? (
-                <Text style={styles.reviewsModalSubtitle}>{reviewsProvider.name}</Text>
+                <Text style={[styles.reviewsModalSubtitle, isRTL && styles.rtlText]}>{reviewsProvider.name}</Text>
               ) : null}
               <TouchableOpacity
-                style={styles.reviewsModalClose}
+                style={[styles.reviewsModalClose, isRTL && styles.reviewsModalCloseRTL]}
                 onPress={() => setShowReviewsModal(false)}
               >
                 <Text style={styles.reviewsModalCloseText}>✕</Text>
@@ -435,7 +441,7 @@ export default function ProviderSelector({
               {loadingReviews ? (
                 <View style={styles.reviewsLoading}>
                   <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={styles.reviewsLoadingText}>Chargement des avis...</Text>
+                  <Text style={[styles.reviewsLoadingText, isRTL && styles.rtlText]}>{t('providerSelector.loadingReviews')}</Text>
                 </View>
               ) : reviews.length > 0 ? (
                 reviews.map((review) => (
@@ -477,7 +483,7 @@ export default function ProviderSelector({
               ) : (
                 <View style={styles.noReviews}>
                   <Text style={styles.noReviewsIcon}>💬</Text>
-                  <Text style={styles.noReviewsText}>Aucun avis pour le moment</Text>
+                  <Text style={[styles.noReviewsText, isRTL && styles.rtlText]}>{t('providerSelector.noReviews')}</Text>
                 </View>
               )}
             </ScrollView>
@@ -493,7 +499,7 @@ export default function ProviderSelector({
               }}
             >
               <Text style={styles.reviewsModalButtonText}>
-                Choisir {reviewsProvider?.name}
+                {t('providerSelector.choose')} {reviewsProvider?.name}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1235,5 +1241,23 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.white,
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  nearestBadgeRTL: {
+    left: undefined,
+    right: spacing.md,
+  },
+  reviewsModalTitleRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  reviewsModalCloseRTL: {
+    right: undefined,
+    left: spacing.md,
   },
 });

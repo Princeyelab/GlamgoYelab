@@ -23,6 +23,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../lib/co
 import { API_BASE_URL } from '../../lib/api/client';
 import { getProviderCustomServices, CustomService } from '../../lib/api/providerAPI';
 import Badge from '../ui/Badge';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -56,6 +57,7 @@ export default function ProviderProfileModal({
   onSelectService,
 }: ProviderProfileModalProps) {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [customServices, setCustomServices] = useState<CustomService[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -82,12 +84,12 @@ export default function ProviderProfileModal({
   // Handler pour réserver un service personnalisé
   const handleBookCustomService = (service: CustomService) => {
     Alert.alert(
-      'Réserver ce service',
-      `Voulez-vous réserver "${service.name}" pour ${service.price} MAD ?`,
+      t('providerProfile.bookService'),
+      t('providerProfile.bookConfirmation', { serviceName: service.name, price: service.price }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Réserver',
+          text: t('providerProfile.book'),
           onPress: () => {
             onClose();
             // Naviguer vers la page de réservation avec les infos du service personnalisé
@@ -102,7 +104,7 @@ export default function ProviderProfileModal({
   if (!provider) return null;
 
   const name = provider.business_name || provider.name ||
-    `${provider.first_name || ''} ${provider.last_name || ''}`.trim() || 'Prestataire';
+    `${provider.first_name || ''} ${provider.last_name || ''}`.trim() || t('providerProfile.provider');
 
   const avatarUrl = provider.avatar || provider.profile_photo;
   const rating = typeof provider.rating === 'number' ? provider.rating : parseFloat(String(provider.rating || '0')) || 0;
@@ -167,7 +169,7 @@ export default function ProviderProfileModal({
             <View style={styles.ratingRow}>
               <Text style={styles.stars}>{'★'.repeat(Math.floor(rating || 0))}</Text>
               <Text style={styles.ratingValue}>{(rating || 0).toFixed(1)}</Text>
-              <Text style={styles.reviewCount}>({reviewsCount} avis)</Text>
+              <Text style={styles.reviewCount}>({t('providerProfile.reviewsCount', { count: reviewsCount })})</Text>
             </View>
           </LinearGradient>
 
@@ -176,16 +178,16 @@ export default function ProviderProfileModal({
             {/* Bio */}
             {provider.bio && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>À propos</Text>
-                <Text style={styles.bioText}>{provider.bio}</Text>
+                <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('providerProfile.about')}</Text>
+                <Text style={[styles.bioText, isRTL && styles.rtlText]}>{provider.bio}</Text>
               </View>
             )}
 
             {/* Spécialités */}
             {specialties.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Services standards</Text>
-                <View style={styles.tagsContainer}>
+                <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('providerProfile.standardServices')}</Text>
+                <View style={[styles.tagsContainer, isRTL && styles.tagsContainerRTL]}>
                   {specialties.map((specialty, index) => (
                     <Badge key={index} color="primary" variant="soft" size="sm">
                       {specialty}
@@ -197,8 +199,8 @@ export default function ProviderProfileModal({
 
             {/* Services personnalisés */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>✨ Services exclusifs</Text>
+              <View style={[styles.sectionHeader, isRTL && styles.sectionHeaderRTL]}>
+                <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>✨ {t('providerProfile.exclusiveServices')}</Text>
                 {customServices.length > 0 && (
                   <Badge color="warning" variant="filled" size="sm">
                     {customServices.length}
@@ -209,15 +211,15 @@ export default function ProviderProfileModal({
               {isLoading ? (
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: spacing.lg }} />
               ) : customServices.length === 0 ? (
-                <Text style={styles.emptyText}>
-                  Aucun service exclusif pour le moment
+                <Text style={[styles.emptyText, isRTL && styles.rtlText]}>
+                  {t('providerProfile.noExclusiveServices')}
                 </Text>
               ) : (
                 <View style={styles.customServicesList}>
                   {customServices.map((service) => (
                     <TouchableOpacity
                       key={service.id}
-                      style={styles.customServiceCard}
+                      style={[styles.customServiceCard, isRTL && styles.customServiceCardRTL]}
                       onPress={() => handleBookCustomService(service)}
                       activeOpacity={0.8}
                     >
@@ -234,23 +236,23 @@ export default function ProviderProfileModal({
                       )}
 
                       {/* Info */}
-                      <View style={styles.serviceInfo}>
-                        <Text style={styles.serviceName} numberOfLines={1}>
+                      <View style={[styles.serviceInfo, isRTL && styles.serviceInfoRTL]}>
+                        <Text style={[styles.serviceName, isRTL && styles.rtlText]} numberOfLines={1}>
                           {service.name}
                         </Text>
                         {service.description && (
-                          <Text style={styles.serviceDescription} numberOfLines={2}>
+                          <Text style={[styles.serviceDescription, isRTL && styles.rtlText]} numberOfLines={2}>
                             {service.description}
                           </Text>
                         )}
-                        <View style={styles.serviceMeta}>
+                        <View style={[styles.serviceMeta, isRTL && styles.serviceMetaRTL]}>
                           <Text style={styles.servicePrice}>{service.price} MAD</Text>
-                          <Text style={styles.serviceDuration}>{service.duration_minutes} min</Text>
+                          <Text style={styles.serviceDuration}>{service.duration_minutes} {t('common.min')}</Text>
                         </View>
                       </View>
 
                       {/* Arrow */}
-                      <Ionicons name="chevron-forward" size={20} color={colors.gray[400]} />
+                      <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={20} color={colors.gray[400]} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -437,5 +439,26 @@ const styles = StyleSheet.create({
   serviceDuration: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[500],
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  tagsContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  sectionHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  customServiceCardRTL: {
+    flexDirection: 'row-reverse',
+  },
+  serviceInfoRTL: {
+    marginLeft: spacing.sm,
+    marginRight: spacing.md,
+    alignItems: 'flex-end',
+  },
+  serviceMetaRTL: {
+    flexDirection: 'row-reverse',
   },
 });

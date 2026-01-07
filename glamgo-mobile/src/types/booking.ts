@@ -15,21 +15,21 @@ export type BookingStatus =
   | 'no_show';
 
 export const BOOKING_STATUS_CONFIG: Record<BookingStatus, {
-  label: string;
+  labelKey: string;
   color: 'warning' | 'success' | 'accent' | 'primary' | 'default' | 'error';
-  description: string;
+  descriptionKey: string;
 }> = {
-  pending: { label: 'En attente', color: 'warning', description: 'En attente de confirmation' },
-  accepted: { label: 'Accepte', color: 'success', description: 'Prestataire a confirme' },
-  confirmed: { label: 'Confirme', color: 'success', description: 'Reservation confirmee' },
-  on_way: { label: 'En route', color: 'accent', description: 'Prestataire en route' },
-  arrived: { label: 'Arrive', color: 'accent', description: 'Prestataire est arrive' },
-  in_progress: { label: 'En cours', color: 'primary', description: 'Service en cours' },
-  completed_pending_review: { label: 'Avis en attente', color: 'warning', description: 'En attente de l\'avis client' },
-  completed: { label: 'Termine', color: 'default', description: 'Service termine' },
-  cancelled: { label: 'Annule', color: 'error', description: 'Reservation annulee' },
-  rejected: { label: 'Refuse', color: 'error', description: 'Reservation refusee' },
-  no_show: { label: 'Absent', color: 'error', description: 'Client absent' },
+  pending: { labelKey: 'bookingStatus.pending', color: 'warning', descriptionKey: 'bookingStatus.pendingDesc' },
+  accepted: { labelKey: 'bookingStatus.accepted', color: 'success', descriptionKey: 'bookingStatus.acceptedDesc' },
+  confirmed: { labelKey: 'bookingStatus.confirmed', color: 'success', descriptionKey: 'bookingStatus.confirmedDesc' },
+  on_way: { labelKey: 'bookingStatus.onWay', color: 'accent', descriptionKey: 'bookingStatus.onWayDesc' },
+  arrived: { labelKey: 'bookingStatus.arrived', color: 'accent', descriptionKey: 'bookingStatus.arrivedDesc' },
+  in_progress: { labelKey: 'bookingStatus.inProgress', color: 'primary', descriptionKey: 'bookingStatus.inProgressDesc' },
+  completed_pending_review: { labelKey: 'bookingStatus.pendingReview', color: 'warning', descriptionKey: 'bookingStatus.pendingReviewDesc' },
+  completed: { labelKey: 'bookingStatus.completed', color: 'default', descriptionKey: 'bookingStatus.completedDesc' },
+  cancelled: { labelKey: 'bookingStatus.cancelled', color: 'error', descriptionKey: 'bookingStatus.cancelledDesc' },
+  rejected: { labelKey: 'bookingStatus.rejected', color: 'error', descriptionKey: 'bookingStatus.rejectedDesc' },
+  no_show: { labelKey: 'bookingStatus.noShow', color: 'error', descriptionKey: 'bookingStatus.noShowDesc' },
 };
 
 export interface Booking {

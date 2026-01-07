@@ -31,6 +31,9 @@ import {
   LocationCoords,
 } from '../../../src/lib/hooks/useLocation';
 import apiClient from '../../../src/lib/api/client';
+import { useLanguage } from '../../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../../src/i18n/translations/services';
+import { isOrderCancelled } from '../../../src/lib/utils/cancelledOrdersCache';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -76,6 +79,7 @@ const CASABLANCA_CENTER = {
 export default function TrackingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
   const mapRef = useRef<MapView>(null);
 
   const [booking, setBooking] = useState<BookingData | null>(null);
@@ -159,7 +163,7 @@ export default function TrackingScreen() {
         // Construire le nom du prestataire
         const providerName = order.provider_name ||
           [order.provider_first_name, order.provider_last_name].filter(Boolean).join(' ') ||
-          'Prestataire';
+          t('bookingTrack.provider');
 
         // Construire l'URL de l'avatar du prestataire
         let providerAvatar = order.provider_avatar || order.avatar;
@@ -171,14 +175,14 @@ export default function TrackingScreen() {
 
         // Construire l'adresse
         const address = [order.address_line, order.city].filter(Boolean).join(', ') ||
-          order.address || 'Adresse non disponible';
+          order.address || t('bookingTrack.addressNotAvailable');
 
         // Mapper les donnees
         const bookingData: BookingData = {
           id: order.id,
           service: {
             id: order.service_id,
-            title: order.service_name || 'Service',
+            title: order.service_name || t('common.service'),
           },
           provider: {
             id: order.provider_id || 0,
@@ -229,6 +233,15 @@ export default function TrackingScreen() {
 
   // Timer countdown pour commandes pending (4 minutes max)
   useEffect(() => {
+    // Vérifier si la commande est annulée dans le cache AsyncStorage
+    const bookingId = booking?.id || (id ? parseInt(id) : 0);
+    if (bookingId && isOrderCancelled(bookingId)) {
+      console.log('[TrackingScreen] Timer stopped - order in cancelled cache:', bookingId);
+      setTimeoutRemaining(null);
+      setIsExpired(false);
+      return;
+    }
+
     if (booking?.status !== 'pending') {
       setTimeoutRemaining(null);
       setIsExpired(false);
@@ -313,77 +326,77 @@ export default function TrackingScreen() {
     switch (booking?.status) {
       case 'pending':
         return {
-          label: 'En attente',
+          label: t('bookingTrack.statusPending'),
           color: timeoutRemaining !== null && timeoutRemaining < 60 ? colors.error : colors.warning,
           icon: '⏳',
           message: timeoutRemaining !== null
-            ? `Le prestataire a ${formatTimeRemaining(timeoutRemaining)} pour repondre`
-            : 'En attente de confirmation du prestataire',
+            ? t('bookingTrack.providerHasTime', { time: formatTimeRemaining(timeoutRemaining) })
+            : t('bookingTrack.waitingConfirmation'),
           showTimer: true,
         };
       case 'accepted':
         return {
-          label: 'Acceptée',
+          label: t('bookingTrack.statusAccepted'),
           color: colors.success,
           icon: '✅',
-          message: 'Le prestataire a accepté votre demande',
+          message: t('bookingTrack.providerAccepted'),
         };
       case 'on_way':
         return {
-          label: 'En route',
+          label: t('bookingTrack.statusOnWay'),
           color: colors.warning,
           icon: '🚗',
-          message: `Arrivée dans environ ${eta} min`,
+          message: t('bookingTrack.arrivalIn', { minutes: eta }),
         };
       case 'arrived':
         return {
-          label: 'Arrivé(e)',
+          label: t('bookingTrack.statusArrived'),
           color: colors.success,
           icon: '📍',
-          message: 'Le prestataire est arrivé !',
+          message: t('bookingTrack.providerArrived'),
         };
       case 'in_progress':
         return {
-          label: 'En cours',
+          label: t('bookingTrack.statusInProgress'),
           color: colors.primary,
           icon: '💇',
-          message: 'Prestation en cours...',
+          message: t('bookingTrack.serviceInProgress'),
         };
       case 'completed':
         return {
-          label: 'Terminé',
+          label: t('bookingTrack.statusCompleted'),
           color: colors.gray[500],
           icon: '🎉',
-          message: 'Prestation terminée',
+          message: t('bookingTrack.serviceCompleted'),
         };
       case 'cancelled':
         return {
-          label: 'Annulée',
+          label: t('bookingTrack.statusCancelled'),
           color: colors.error,
           icon: '❌',
-          message: 'Cette réservation a été annulée',
+          message: t('bookingTrack.bookingCancelled'),
         };
       default:
         return {
-          label: 'En attente',
+          label: t('bookingTrack.statusPending'),
           color: colors.gray[400],
           icon: '⏳',
-          message: 'En attente de confirmation',
+          message: t('bookingTrack.waitingConfirmation'),
         };
     }
   };
 
   if (isLoading) {
-    return <Loading fullScreen message="Chargement du suivi..." />;
+    return <Loading fullScreen message={t('bookingTrack.loadingTracking')} />;
   }
 
   if (!booking || !providerLocation) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorIcon}>😕</Text>
-        <Text style={styles.errorText}>Réservation non trouvée</Text>
+        <Text style={[styles.errorText, isRTL && styles.rtlText]}>{t('bookingTrack.bookingNotFound')}</Text>
         <Button variant="outline" onPress={() => router.back()}>
-          Retour
+          {t('common.back')}
         </Button>
       </View>
     );
@@ -416,7 +429,7 @@ export default function TrackingScreen() {
             longitude: providerLocation.longitude,
           }}
           title={providerLocation.name}
-          description="Prestataire"
+          description={t('bookingTrack.provider')}
         >
           <View style={styles.providerMarker}>
             <Animated.View
@@ -443,7 +456,7 @@ export default function TrackingScreen() {
         {/* Client Destination Marker */}
         <Marker
           coordinate={booking.client_location}
-          title="Votre adresse"
+          title={t('bookingTrack.yourAddress')}
           description={booking.client_location.address}
         >
           <View style={styles.destinationMarker}>
@@ -467,14 +480,14 @@ export default function TrackingScreen() {
       </MapView>
 
       {/* Header Overlay */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Suivi en direct</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>{t('bookingTrack.liveTracking')}</Text>
         <TouchableOpacity style={styles.centerButton} onPress={handleCenterMap}>
           <Text style={styles.centerIcon}>◎</Text>
         </TouchableOpacity>
@@ -490,24 +503,25 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
-        {/* Timer Countdown pour commandes pending */}
-        {booking.status === 'pending' && (
+        {/* Timer Countdown pour commandes pending - Vérifie aussi le cache des annulations */}
+        {booking.status === 'pending' && !isOrderCancelled(booking.id) && timeoutRemaining !== null && timeoutRemaining > 0 && (
           <View style={[
             styles.timerContainer,
-            (timeoutRemaining !== null && timeoutRemaining < 60) && styles.timerContainerUrgent
+            timeoutRemaining < 60 && styles.timerContainerUrgent,
+            isRTL && styles.timerContainerRTL
           ]}>
-            <Text style={styles.timerIcon}>⏱️</Text>
-            <View style={styles.timerContent}>
+            <Text style={[styles.timerIcon, isRTL && styles.timerIconRTL]}>⏱️</Text>
+            <View style={[styles.timerContent, isRTL && styles.timerContentRTL]}>
               <Text style={[
                 styles.timerValue,
-                (timeoutRemaining !== null && timeoutRemaining < 60) && styles.timerValueUrgent
+                timeoutRemaining < 60 && styles.timerValueUrgent
               ]}>
-                {timeoutRemaining !== null ? formatTimeRemaining(timeoutRemaining) : '4:00'}
+                {formatTimeRemaining(timeoutRemaining)}
               </Text>
-              <Text style={styles.timerLabel}>
-                {timeoutRemaining !== null && timeoutRemaining < 60
-                  ? 'Expiration imminente!'
-                  : 'Temps restant pour reponse'}
+              <Text style={[styles.timerLabel, isRTL && styles.rtlText]}>
+                {timeoutRemaining < 60
+                  ? t('bookingTrack.expirationImminent')
+                  : t('bookingTrack.timeRemaining')}
               </Text>
             </View>
           </View>
@@ -530,12 +544,12 @@ export default function TrackingScreen() {
 
           <View style={styles.providerDetails}>
             <Text style={styles.providerName}>{providerLocation.name}</Text>
-            <Text style={styles.serviceName}>{booking.service.title}</Text>
+            <Text style={styles.serviceName}>{getServiceTranslation(booking.service.title, language).title}</Text>
           </View>
 
           <TouchableOpacity style={styles.chatButton} onPress={handleMessage}>
             <Text style={styles.chatButtonIcon}>💬</Text>
-            <Text style={styles.chatButtonText}>Chat</Text>
+            <Text style={styles.chatButtonText}>{t('bookingTrack.chat')}</Text>
             {unreadMessages > 0 && (
               <View style={styles.chatBadge}>
                 <Text style={styles.chatBadgeText}>{unreadMessages}</Text>
@@ -546,15 +560,15 @@ export default function TrackingScreen() {
 
         {/* ETA & Distance */}
         {booking.status === 'on_way' && (
-          <View style={styles.etaContainer}>
+          <View style={[styles.etaContainer, isRTL && styles.etaContainerRTL]}>
             <View style={styles.etaItem}>
               <Text style={styles.etaValue}>{eta}</Text>
-              <Text style={styles.etaLabel}>min</Text>
+              <Text style={styles.etaLabel}>{t('bookingTrack.minutes')}</Text>
             </View>
             <View style={styles.etaDivider} />
             <View style={styles.etaItem}>
               <Text style={styles.etaValue}>{formatDistance(distance)}</Text>
-              <Text style={styles.etaLabel}>restant</Text>
+              <Text style={styles.etaLabel}>{t('bookingTrack.remaining')}</Text>
             </View>
           </View>
         )}
@@ -576,7 +590,7 @@ export default function TrackingScreen() {
             style={styles.cancelButton}
             onPress={() => setShowCancellationModal(true)}
           >
-            <Text style={styles.cancelButtonText}>Annuler la reservation</Text>
+            <Text style={[styles.cancelButtonText, isRTL && styles.rtlText]}>{t('bookingTrack.cancelBooking')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -958,5 +972,26 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  etaContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  timerContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  timerIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  timerContentRTL: {
+    alignItems: 'flex-end',
   },
 });

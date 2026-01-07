@@ -25,27 +25,30 @@ import Card from '../../../src/components/ui/Card';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../src/lib/constants/theme';
 import { hapticFeedback } from '../../../src/lib/utils/haptics';
 import { getBookingById, createReview, Booking } from '../../../src/lib/api/bookingsAPI';
-
-const RATING_LABELS = [
-  { value: 1, label: 'Tres mauvais', emoji: '😞' },
-  { value: 2, label: 'Mauvais', emoji: '😕' },
-  { value: 3, label: 'Moyen', emoji: '😐' },
-  { value: 4, label: 'Bien', emoji: '😊' },
-  { value: 5, label: 'Excellent', emoji: '🤩' },
-];
-
-const QUICK_COMMENTS = [
-  'Service professionnel',
-  'Tres ponctuel(le)',
-  'Resultat impeccable',
-  'Tres sympathique',
-  'Bon rapport qualite/prix',
-  'A recommander',
-];
+import { useLanguage } from '../../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../../src/i18n/translations/services';
 
 export default function ReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
+
+  const RATING_LABELS = [
+    { value: 1, label: t('reviewScreen.veryBad'), emoji: '😞' },
+    { value: 2, label: t('reviewScreen.bad'), emoji: '😕' },
+    { value: 3, label: t('reviewScreen.average'), emoji: '😐' },
+    { value: 4, label: t('reviewScreen.good'), emoji: '😊' },
+    { value: 5, label: t('reviewScreen.excellent'), emoji: '🤩' },
+  ];
+
+  const QUICK_COMMENTS = [
+    t('reviewScreen.professionalService'),
+    t('reviewScreen.veryPunctual'),
+    t('reviewScreen.perfectResult'),
+    t('reviewScreen.veryFriendly'),
+    t('reviewScreen.goodValueForMoney'),
+    t('reviewScreen.recommended'),
+  ];
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,7 +142,7 @@ export default function ReviewScreen() {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Note requise', 'Veuillez selectionner une note pour continuer.');
+      Alert.alert(t('reviewScreen.ratingRequired'), t('reviewScreen.selectRating'));
       return;
     }
 
@@ -172,11 +175,11 @@ export default function ReviewScreen() {
 
       setTimeout(() => {
         Alert.alert(
-          'Merci pour votre avis !',
-          'Votre retour aide la communaute GlamGo.',
+          t('reviewScreen.thankYou'),
+          t('reviewScreen.reviewHelps'),
           [
             {
-              text: 'Terminer',
+              text: t('reviewScreen.finish'),
               onPress: () => router.replace('/(client)/bookings'),
             },
           ]
@@ -195,11 +198,11 @@ export default function ReviewScreen() {
 
       setTimeout(() => {
         Alert.alert(
-          'Merci pour votre avis !',
-          'Votre retour aide la communaute GlamGo.',
+          t('reviewScreen.thankYou'),
+          t('reviewScreen.reviewHelps'),
           [
             {
-              text: 'Terminer',
+              text: t('reviewScreen.finish'),
               onPress: () => router.replace('/(client)/bookings'),
             },
           ]
@@ -212,12 +215,12 @@ export default function ReviewScreen() {
 
   const handleSkip = () => {
     Alert.alert(
-      'Passer cette etape ?',
-      'Vous pourrez noter cette prestation plus tard.',
+      t('reviewScreen.skipTitle'),
+      t('reviewScreen.skipMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('reviewScreen.cancel'), style: 'cancel' },
         {
-          text: 'Passer',
+          text: t('reviewScreen.skipBtn'),
           onPress: () => router.replace('/(client)/bookings'),
         },
       ]
@@ -225,7 +228,7 @@ export default function ReviewScreen() {
   };
 
   const getRatingLabel = () => {
-    if (rating === 0) return 'Touchez pour noter';
+    if (rating === 0) return t('reviewScreen.tapToRate');
     return RATING_LABELS.find((r) => r.value === rating)?.label || '';
   };
 
@@ -239,7 +242,7 @@ export default function ReviewScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('reviewScreen.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -250,9 +253,9 @@ export default function ReviewScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorText}>Reservation non trouvee</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{t('reviewScreen.bookingNotFound')}</Text>
           <Button variant="outline" onPress={() => router.back()}>
-            Retour
+            {t('reviewScreen.back')}
           </Button>
         </View>
       </SafeAreaView>
@@ -266,13 +269,13 @@ export default function ReviewScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isRTL && styles.headerRTL]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Donner un avis</Text>
+          <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('reviewScreen.title')}</Text>
           <TouchableOpacity onPress={handleSkip}>
-            <Text style={styles.skipText}>Passer</Text>
+            <Text style={[styles.skipText, isRTL && styles.textRTL]}>{t('reviewScreen.skip')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -296,16 +299,16 @@ export default function ReviewScreen() {
                 </Text>
               </View>
             )}
-            <Text style={styles.providerName}>{booking.provider?.name}</Text>
-            <Text style={styles.serviceName}>{booking.service?.title}</Text>
+            <Text style={[styles.providerName, isRTL && styles.textRTL]}>{booking.provider?.name}</Text>
+            <Text style={[styles.serviceName, isRTL && styles.textRTL]}>{getServiceTranslation(booking.service?.title || '', language).title}</Text>
           </View>
 
           {/* Rating Section */}
           <Card style={styles.ratingCard}>
-            <Text style={styles.ratingTitle}>Comment etait la prestation ?</Text>
+            <Text style={[styles.ratingTitle, isRTL && styles.textRTL]}>{t('reviewScreen.howWasService')}</Text>
 
             {/* Stars */}
-            <View style={styles.starsContainer}>
+            <View style={[styles.starsContainer, isRTL && styles.starsContainerRTL]}>
               {[1, 2, 3, 4, 5].map((value) => (
                 <TouchableOpacity
                   key={value}
@@ -326,17 +329,17 @@ export default function ReviewScreen() {
             </View>
 
             {/* Rating Label */}
-            <View style={styles.ratingLabelContainer}>
+            <View style={[styles.ratingLabelContainer, isRTL && styles.ratingLabelContainerRTL]}>
               <Text style={styles.ratingEmoji}>{getRatingEmoji()}</Text>
-              <Text style={styles.ratingLabel}>{getRatingLabel()}</Text>
+              <Text style={[styles.ratingLabel, isRTL && styles.textRTL]}>{getRatingLabel()}</Text>
             </View>
           </Card>
 
           {/* Quick Comments */}
           {rating > 0 && (
             <View style={styles.quickCommentsSection}>
-              <Text style={styles.sectionTitle}>Qu'avez-vous apprecie ?</Text>
-              <View style={styles.quickCommentsContainer}>
+              <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('reviewScreen.whatDidYouLike')}</Text>
+              <View style={[styles.quickCommentsContainer, isRTL && styles.quickCommentsContainerRTL]}>
                 {QUICK_COMMENTS.map((text) => (
                   <TouchableOpacity
                     key={text}
@@ -353,6 +356,7 @@ export default function ReviewScreen() {
                         styles.quickCommentText,
                         selectedQuickComments.includes(text) &&
                           styles.quickCommentTextSelected,
+                        isRTL && styles.textRTL,
                       ]}
                     >
                       {text}
@@ -366,10 +370,10 @@ export default function ReviewScreen() {
           {/* Comment Input */}
           {rating > 0 && (
             <View style={styles.commentSection}>
-              <Text style={styles.sectionTitle}>Ajouter un commentaire (optionnel)</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('reviewScreen.addComment')}</Text>
               <TextInput
-                style={styles.commentInput}
-                placeholder="Partagez votre experience..."
+                style={[styles.commentInput, isRTL && styles.commentInputRTL]}
+                placeholder={t('reviewScreen.commentPlaceholder')}
                 placeholderTextColor={colors.gray[400]}
                 value={comment}
                 onChangeText={setComment}
@@ -377,16 +381,17 @@ export default function ReviewScreen() {
                 numberOfLines={4}
                 maxLength={500}
                 textAlignVertical="top"
+                textAlign={isRTL ? 'right' : 'left'}
               />
-              <Text style={styles.characterCount}>{comment.length}/500</Text>
+              <Text style={[styles.characterCount, isRTL && styles.characterCountRTL]}>{comment.length}/500</Text>
             </View>
           )}
 
           {/* Info */}
-          <View style={styles.infoBox}>
+          <View style={[styles.infoBox, isRTL && styles.infoBoxRTL]}>
             <Text style={styles.infoIcon}>💡</Text>
-            <Text style={styles.infoText}>
-              Votre avis aide les autres clients a choisir et permet aux prestataires de s'ameliorer.
+            <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+              {t('reviewScreen.infoText')}
             </Text>
           </View>
         </ScrollView>
@@ -401,7 +406,7 @@ export default function ReviewScreen() {
             disabled={isSubmitting || rating === 0}
             onPress={handleSubmit}
           >
-            {isSubmitting ? 'Envoi en cours...' : 'Publier mon avis'}
+            {isSubmitting ? t('reviewScreen.sending') : t('reviewScreen.publishReview')}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -643,5 +648,32 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.gray[200],
     ...shadows.lg,
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  starsContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  ratingLabelContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  quickCommentsContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  commentInputRTL: {
+    textAlign: 'right',
+  },
+  characterCountRTL: {
+    textAlign: 'left',
+  },
+  infoBoxRTL: {
+    flexDirection: 'row-reverse',
   },
 });

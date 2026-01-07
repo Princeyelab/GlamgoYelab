@@ -26,6 +26,7 @@ import { useAppDispatch, useAppSelector } from "../../src/lib/store/hooks";
 import { setUser, setToken, clearError, selectAuth } from "../../src/lib/store/slices/authSlice";
 import { registerProvider } from "../../src/lib/api";
 import { setTokens } from "../../src/lib/api/client";
+import { useLanguage } from "../../src/contexts/LanguageContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -40,6 +41,7 @@ export default function SignupProviderScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
+  const { t, isRTL } = useLanguage();
 
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
@@ -117,7 +119,7 @@ export default function SignupProviderScreen() {
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Veuillez autoriser l acces a la galerie");
+      Alert.alert(t('signupProvider.permissionRequired'), t('signupProvider.allowGalleryAccess'));
       return;
     }
 
@@ -136,20 +138,20 @@ export default function SignupProviderScreen() {
   const pickDocument = async (type: "front" | "back") => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Veuillez autoriser l'acces a la galerie");
+      Alert.alert(t('signupProvider.permissionRequired'), t('signupProvider.allowGalleryAccess'));
       return;
     }
 
     Alert.alert(
-      "Ajouter une photo",
-      "Comment souhaitez-vous ajouter la photo ?",
+      t('signupProvider.addPhoto'),
+      t('signupProvider.howToAddPhoto'),
       [
         {
-          text: "Appareil photo",
+          text: t('signupProvider.camera'),
           onPress: async () => {
             const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
             if (!cameraPermission.granted) {
-              Alert.alert("Permission requise", "Veuillez autoriser l'acces a la camera");
+              Alert.alert(t('signupProvider.permissionRequired'), t('signupProvider.allowCameraAccess'));
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
@@ -168,7 +170,7 @@ export default function SignupProviderScreen() {
           },
         },
         {
-          text: "Galerie",
+          text: t('signupProvider.gallery'),
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -186,7 +188,7 @@ export default function SignupProviderScreen() {
             }
           },
         },
-        { text: "Annuler", style: "cancel" },
+        { text: t('signupProvider.cancel'), style: "cancel" },
       ]
     );
   };
@@ -207,67 +209,67 @@ export default function SignupProviderScreen() {
 
     if (step === 1) {
       if (!firstName || firstName.length < 2) {
-        newErrors.firstName = "Prenom requis (min. 2 caracteres)";
+        newErrors.firstName = t('signupProvider.firstNameRequired');
       }
       if (!lastName || lastName.length < 2) {
-        newErrors.lastName = "Nom requis (min. 2 caracteres)";
+        newErrors.lastName = t('signupProvider.lastNameRequired');
       }
       if (!email) {
-        newErrors.email = "Email requis";
+        newErrors.email = t('signupProvider.emailRequired');
       } else if (!validateEmail(email)) {
-        newErrors.email = "Format email invalide";
+        newErrors.email = t('signupProvider.emailInvalid');
       }
       if (!phone) {
-        newErrors.phone = "Telephone requis";
+        newErrors.phone = t('signupProvider.phoneRequired');
       } else if (!validatePhone(phone)) {
-        newErrors.phone = "Format: 06XXXXXXXX ou 07XXXXXXXX";
+        newErrors.phone = t('signupProvider.phoneFormat');
       }
       if (!birthDate) {
-        newErrors.birthDate = "Date de naissance requise";
+        newErrors.birthDate = t('signupProvider.birthDateRequired');
       } else {
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         if (age < 18) {
-          newErrors.birthDate = "Vous devez avoir au moins 18 ans";
+          newErrors.birthDate = t('signupProvider.mustBe18');
         }
       }
       if (!password || password.length < 6) {
-        newErrors.password = "Mot de passe requis (min. 6 caracteres)";
+        newErrors.password = t('signupProvider.passwordRequired');
       }
       if (password !== confirmPassword) {
-        newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
+        newErrors.confirmPassword = t('signupProvider.passwordMismatch');
       }
       if (!profilePhoto) {
-        newErrors.photo = "Photo de profil requise";
+        newErrors.photo = t('signupProvider.photoRequired');
       }
       if (!experience) {
-        newErrors.experience = "Annees d'experience requises";
+        newErrors.experience = t('signupProvider.experienceRequired');
       }
       if (!acceptTerms) {
-        newErrors.acceptTerms = "Vous devez accepter les conditions";
+        newErrors.acceptTerms = t('signupProvider.mustAcceptTerms');
       }
     }
 
     if (step === 2) {
       if (!address) {
-        newErrors.address = "Adresse requise";
+        newErrors.address = t('signupProvider.addressRequired');
       }
       if (!selectedCity) {
-        newErrors.city = "Selectionnez une ville";
+        newErrors.city = t('signupProvider.selectCity');
       }
     }
 
     if (step === 3) {
       if (!cin) {
-        newErrors.cin = "Numero CIN requis";
+        newErrors.cin = t('signupProvider.cinRequired');
       } else if (!validateCIN(cin)) {
-        newErrors.cin = "Format invalide (ex: AB123456)";
+        newErrors.cin = t('signupProvider.cinInvalid');
       }
       if (!cinFrontPhoto || !cinBackPhoto) {
-        newErrors.cinPhotos = "Les photos recto et verso de la CIN sont requises";
+        newErrors.cinPhotos = t('signupProvider.cinPhotosRequired');
       }
       if (!acceptCharter) {
-        newErrors.charter = "Vous devez accepter la charte";
+        newErrors.charter = t('signupProvider.mustAcceptCharter');
       }
     }
 
@@ -275,32 +277,32 @@ export default function SignupProviderScreen() {
       // Validation carte bancaire (pour prelever commissions)
       const cleanedCardNumber = cardData.cardNumber.replace(/\s/g, "");
       if (!cleanedCardNumber || cleanedCardNumber.length < 16) {
-        newErrors.cardNumber = "Numero de carte invalide (16 chiffres)";
+        newErrors.cardNumber = t('signupProvider.cardNumberInvalid');
       }
       if (!cardData.expMonth) {
-        newErrors.expMonth = "Mois requis";
+        newErrors.expMonth = t('signupProvider.monthRequired');
       }
       if (!cardData.expYear) {
-        newErrors.expYear = "Annee requise";
+        newErrors.expYear = t('signupProvider.yearRequired');
       }
       if (!cardData.cvv || cardData.cvv.length < 3) {
-        newErrors.cvv = "CVV invalide (3 chiffres)";
+        newErrors.cvv = t('signupProvider.cvvInvalid');
       }
 
       // Validation RIB (pour recevoir virements)
       if (!ribData.titulaire || ribData.titulaire.length < 3) {
-        newErrors.ribTitulaire = "Nom du titulaire requis";
+        newErrors.ribTitulaire = t('signupProvider.ribHolderRequired');
       }
       if (!ribData.banque) {
-        newErrors.ribBanque = "Selectionnez votre banque";
+        newErrors.ribBanque = t('signupProvider.selectBank');
       }
       const cleanedRib = ribData.numero.replace(/\s/g, "");
       if (!cleanedRib || cleanedRib.length !== 24) {
-        newErrors.ribNumero = "RIB invalide (24 chiffres)";
+        newErrors.ribNumero = t('signupProvider.ribInvalid');
       }
 
       if (!acceptTerms) {
-        newErrors.terms = "Vous devez accepter les CGU";
+        newErrors.terms = t('signupProvider.mustAcceptCGU');
       }
     }
 
@@ -339,10 +341,10 @@ export default function SignupProviderScreen() {
       setIsSubmitting(false);
 
       if (!isEmailAvailable) {
-        setErrors(prev => ({ ...prev, email: "Cet email est deja utilise" }));
+        setErrors(prev => ({ ...prev, email: t('signupProvider.emailAlreadyUsed') }));
         Alert.alert(
-          "Email deja utilise",
-          "Un compte existe deja avec cet email. Connectez-vous ou utilisez un autre email."
+          t('signupProvider.emailAlreadyUsedTitle'),
+          t('signupProvider.emailAlreadyUsedMessage')
         );
         return;
       }
@@ -435,9 +437,9 @@ export default function SignupProviderScreen() {
           if (!savedToken) {
             console.error("[Signup] CRITICAL: Token still not available after retries!");
             Alert.alert(
-              "Erreur",
-              "Problème de sauvegarde du token. Veuillez réessayer.",
-              [{ text: "OK" }]
+              t('common.error'),
+              t('signupProvider.tokenError'),
+              [{ text: t('common.ok') }]
             );
             setIsSubmitting(false);
             return;
@@ -452,9 +454,9 @@ export default function SignupProviderScreen() {
           console.error("[Signup] PAS DE TOKEN DANS LA REPONSE!");
           console.log("[Signup] Response.data:", JSON.stringify(response.data, null, 2));
           Alert.alert(
-            "Erreur",
-            "Le serveur n'a pas retourné de token. Veuillez réessayer.",
-            [{ text: "OK" }]
+            t('common.error'),
+            t('signupProvider.noTokenError'),
+            [{ text: t('common.ok') }]
           );
           setIsSubmitting(false);
           return;
@@ -481,18 +483,18 @@ export default function SignupProviderScreen() {
       // Gerer l'erreur 409 (email deja utilise)
       if (err?.response?.status === 409 || err?.message?.includes('409') || err?.message?.includes('deja utilise')) {
         Alert.alert(
-          "Email deja utilise",
-          "Un compte existe deja avec cet email. Veuillez vous connecter ou utiliser un autre email.",
-          [{ text: "OK" }]
+          t('signupProvider.emailAlreadyUsedTitle'),
+          t('signupProvider.emailAlreadyUsedMessage'),
+          [{ text: t('common.ok') }]
         );
         setCurrentStep(1); // Retour a l'etape 1 pour changer l'email
         return;
       }
       // Autre erreur: afficher un message generique
       Alert.alert(
-        "Erreur d'inscription",
-        "Une erreur est survenue. Veuillez reessayer.",
-        [{ text: "OK" }]
+        t('signupProvider.registrationError'),
+        t('signupProvider.registrationErrorMessage'),
+        [{ text: t('common.ok') }]
       );
     } finally {
       setIsSubmitting(false);
@@ -519,7 +521,7 @@ export default function SignupProviderScreen() {
   };
 
   const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
+    <View style={[styles.stepIndicator, isRTL && styles.stepIndicatorRTL]}>
       {[1, 2, 3, 4].map((step) => (
         <View key={step} style={styles.stepWrapper}>
           <View style={[
@@ -539,16 +541,18 @@ export default function SignupProviderScreen() {
           <Text style={[
             styles.stepLabel,
             currentStep >= step && styles.stepLabelActive,
+            isRTL && styles.textRTL,
           ]}>
-            {step === 1 && "Infos"}
-            {step === 2 && "Zone"}
-            {step === 3 && "Documents"}
-            {step === 4 && "Paiement"}
+            {step === 1 && t('signupProvider.stepInfos')}
+            {step === 2 && t('signupProvider.stepZone')}
+            {step === 3 && t('signupProvider.stepDocuments')}
+            {step === 4 && t('signupProvider.stepPayment')}
           </Text>
           {step < 4 && (
             <View style={[
               styles.stepLine,
               currentStep > step && styles.stepLineActive,
+              isRTL && styles.stepLineRTL,
             ]} />
           )}
         </View>
@@ -559,17 +563,17 @@ export default function SignupProviderScreen() {
   const renderStep1 = () => (
     <View style={styles.stepContent}>
       {/* Header */}
-      <View style={styles.stepHeader}>
-        <Text style={styles.stepHeaderTitle}>Informations personnelles</Text>
-        <Text style={styles.stepHeaderSubtitle}>Creez votre profil prestataire GlamGo</Text>
+      <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
+        <Text style={[styles.stepHeaderTitle, isRTL && styles.textRTL]}>{t('signupProvider.personalInfoTitle')}</Text>
+        <Text style={[styles.stepHeaderSubtitle, isRTL && styles.textRTL]}>{t('signupProvider.personalInfoSubtitle')}</Text>
       </View>
 
       {/* Section: Informations personnelles */}
-      <Text style={styles.sectionTitle}>Informations personnelles</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.personalInfo')}</Text>
 
       <Input
-        label="Prenom *"
-        placeholder="Votre prenom"
+        label={t('signupProvider.firstName')}
+        placeholder={t('signupProvider.firstNamePlaceholder')}
         value={firstName}
         onChangeText={setFirstName}
         errorText={errors.firstName}
@@ -578,8 +582,8 @@ export default function SignupProviderScreen() {
       />
 
       <Input
-        label="Nom *"
-        placeholder="Votre nom"
+        label={t('signupProvider.lastName')}
+        placeholder={t('signupProvider.lastNamePlaceholder')}
         value={lastName}
         onChangeText={setLastName}
         errorText={errors.lastName}
@@ -588,9 +592,9 @@ export default function SignupProviderScreen() {
       />
 
       <Input
-        label="Email *"
+        label={t('signupProvider.email')}
         type="email"
-        placeholder="votre.email@exemple.com"
+        placeholder={t('signupProvider.emailPlaceholder')}
         value={email}
         onChangeText={setEmail}
         errorText={errors.email}
@@ -599,19 +603,19 @@ export default function SignupProviderScreen() {
       />
 
       <Input
-        label="Telephone *"
+        label={t('signupProvider.phone')}
         type="phone"
-        placeholder="0612345678"
+        placeholder={t('signupProvider.phonePlaceholder')}
         value={phone}
         onChangeText={setPhone}
         errorText={errors.phone}
         error={!!errors.phone}
-        helperText="Utilise pour les contacts clients et WhatsApp"
+        helperText={t('signupProvider.phoneHelper')}
         editable={!isLoading}
       />
 
       <BirthDatePicker
-        label="Date de naissance *"
+        label={t('signupProvider.birthDate')}
         value={birthDate}
         onChange={setBirthDate}
         error={errors.birthDate}
@@ -620,21 +624,21 @@ export default function SignupProviderScreen() {
       />
 
       <Input
-        label="Mot de passe *"
+        label={t('signupProvider.password')}
         type="password"
-        placeholder="Minimum 6 caracteres"
+        placeholder={t('signupProvider.passwordPlaceholder')}
         value={password}
         onChangeText={setPassword}
         errorText={errors.password}
         error={!!errors.password}
-        helperText="Minimum 6 caracteres"
+        helperText={t('signupProvider.passwordHelper')}
         editable={!isLoading}
       />
 
       <Input
-        label="Confirmer le mot de passe *"
+        label={t('signupProvider.confirmPassword')}
         type="password"
-        placeholder="Retapez votre mot de passe"
+        placeholder={t('signupProvider.confirmPasswordPlaceholder')}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         errorText={errors.confirmPassword}
@@ -643,34 +647,34 @@ export default function SignupProviderScreen() {
       />
 
       {/* Section: Profil professionnel */}
-      <Text style={styles.sectionTitle}>Profil professionnel</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.professionalProfile')}</Text>
 
       <View style={styles.photoSection}>
-        <Text style={styles.inputLabel}>Photo de profil *</Text>
-        <View style={styles.photoContainer}>
+        <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('signupProvider.profilePhoto')}</Text>
+        <View style={[styles.photoContainer, isRTL && styles.photoContainerRTL]}>
           <TouchableOpacity style={styles.photoUpload} onPress={pickImage}>
             {profilePhoto ? (
               <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Text style={styles.photoIcon}>📷</Text>
-                <Text style={styles.photoText}>Votre photo</Text>
+                <Text style={[styles.photoText, isRTL && styles.textRTL]}>{t('signupProvider.yourPhoto')}</Text>
               </View>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.photoButton} onPress={pickImage}>
-            <Text style={styles.photoButtonText}>Choisir une photo</Text>
+            <Text style={[styles.photoButtonText, isRTL && styles.textRTL]}>{t('signupProvider.choosePhoto')}</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.photoHelper}>
-          Photo professionnelle, visage visible. Format JPG, PNG ou WEBP. Max 5 MB.
+        <Text style={[styles.photoHelper, isRTL && styles.textRTL]}>
+          {t('signupProvider.photoHelper')}
         </Text>
-        {errors.photo && <Text style={styles.errorText}>{errors.photo}</Text>}
+        {errors.photo && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.photo}</Text>}
       </View>
 
       <Input
-        label="Annees d'experience *"
-        placeholder="Ex: 5"
+        label={t('signupProvider.yearsExperience')}
+        placeholder={t('signupProvider.yearsExperiencePlaceholder')}
         value={experience}
         onChangeText={setExperience}
         keyboardType="numeric"
@@ -682,28 +686,28 @@ export default function SignupProviderScreen() {
       {/* CGU Section */}
       <View style={styles.termsSection}>
         <TouchableOpacity
-          style={styles.checkboxRow}
+          style={[styles.checkboxRow, isRTL && styles.checkboxRowRTL]}
           onPress={() => setAcceptTerms(!acceptTerms)}
           disabled={isLoading}
         >
-          <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
+          <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked, isRTL && styles.checkboxRTL]}>
             {acceptTerms && <Text style={styles.checkmark}>✓</Text>}
           </View>
-          <Text style={styles.termsText}>J'accepte les </Text>
+          <Text style={[styles.termsText, isRTL && styles.textRTL]}>{t('signupProvider.iAcceptThe')}</Text>
         </TouchableOpacity>
-        <View style={styles.termsLinks}>
+        <View style={[styles.termsLinks, isRTL && styles.termsLinksRTL]}>
           <TouchableOpacity onPress={() => setShowTermsModal(true)} disabled={isLoading}>
-            <Text style={styles.termsLink}>conditions generales</Text>
+            <Text style={[styles.termsLink, isRTL && styles.textRTL]}>{t('signupProvider.termsAndConditions')}</Text>
           </TouchableOpacity>
-          <Text style={styles.termsText}> et la </Text>
+          <Text style={[styles.termsText, isRTL && styles.textRTL]}>{t('signupProvider.and')}</Text>
           <TouchableOpacity onPress={() => setShowTermsModal(true)} disabled={isLoading}>
-            <Text style={styles.termsLink}>politique de confidentialite</Text>
+            <Text style={[styles.termsLink, isRTL && styles.textRTL]}>{t('signupProvider.privacyPolicy')}</Text>
           </TouchableOpacity>
           <Text style={styles.required}> *</Text>
         </View>
       </View>
       {errors.acceptTerms && (
-        <Text style={styles.errorText}>{errors.acceptTerms}</Text>
+        <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.acceptTerms}</Text>
       )}
     </View>
   );
@@ -711,17 +715,17 @@ export default function SignupProviderScreen() {
   const renderStep2 = () => (
     <View style={styles.stepContent}>
       {/* Header */}
-      <View style={styles.stepHeader}>
-        <Text style={styles.stepHeaderTitle}>Zone d'intervention</Text>
-        <Text style={styles.stepHeaderSubtitle}>Definissez votre zone de service</Text>
+      <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
+        <Text style={[styles.stepHeaderTitle, isRTL && styles.textRTL]}>{t('signupProvider.interventionZoneTitle')}</Text>
+        <Text style={[styles.stepHeaderSubtitle, isRTL && styles.textRTL]}>{t('signupProvider.interventionZoneSubtitle')}</Text>
       </View>
 
       {/* Adresse */}
-      <Text style={styles.sectionTitle}>Adresse professionnelle</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.professionalAddress')}</Text>
 
       <AddressAutocomplete
-        label="Adresse complete *"
-        placeholder="Rue, quartier, ville..."
+        label={t('signupProvider.fullAddress')}
+        placeholder={t('signupProvider.addressPlaceholder')}
         value={address}
         onChangeText={setAddress}
         onAddressSelect={handleAddressSelect}
@@ -729,11 +733,12 @@ export default function SignupProviderScreen() {
         disabled={isLoading}
       />
 
-      <Text style={styles.inputLabel}>Ville principale *</Text>
+      <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('signupProvider.mainCity')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.citiesScroll}
+        contentContainerStyle={isRTL && styles.citiesContentRTL}
       >
         {CITIES.map((city) => (
           <TouchableOpacity
@@ -741,6 +746,7 @@ export default function SignupProviderScreen() {
             style={[
               styles.cityChip,
               selectedCity === city && styles.cityChipSelected,
+              isRTL && styles.cityChipRTL,
             ]}
             onPress={() => {
               setSelectedCity(city);
@@ -756,12 +762,12 @@ export default function SignupProviderScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
-      {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
+      {errors.city && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.city}</Text>}
 
-      <Text style={styles.sectionTitle}>Rayon d'intervention</Text>
-      <Text style={styles.helperText}>Distance maximale pour vos deplacements</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.interventionRadius')}</Text>
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>{t('signupProvider.radiusHelper')}</Text>
 
-      <View style={styles.radiusOptions}>
+      <View style={[styles.radiusOptions, isRTL && styles.radiusOptionsRTL]}>
         {RADIUS_OPTIONS.map((radius) => (
           <TouchableOpacity
             key={radius}
@@ -775,17 +781,17 @@ export default function SignupProviderScreen() {
               styles.radiusText,
               interventionRadius === radius && styles.radiusTextSelected,
             ]}>
-              {radius} km
+              {radius} {t('common.km')}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Info disponibilite */}
-      <View style={styles.infoBox}>
+      <View style={[styles.infoBox, isRTL && styles.infoBoxRTL]}>
         <Text style={styles.infoIcon}>💡</Text>
-        <Text style={styles.infoText}>
-          Vous pourrez selectionner vos services et gerer votre disponibilite apres l'inscription.
+        <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+          {t('signupProvider.infoAvailability')}
         </Text>
       </View>
     </View>
@@ -794,35 +800,35 @@ export default function SignupProviderScreen() {
   const renderStep3 = () => (
     <View style={styles.stepContent}>
       {/* Header */}
-      <View style={styles.stepHeader}>
-        <Text style={styles.stepHeaderTitle}>Documents</Text>
-        <Text style={styles.stepHeaderSubtitle}>Verification de votre identite</Text>
+      <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
+        <Text style={[styles.stepHeaderTitle, isRTL && styles.textRTL]}>{t('signupProvider.documentsTitle')}</Text>
+        <Text style={[styles.stepHeaderSubtitle, isRTL && styles.textRTL]}>{t('signupProvider.documentsSubtitle')}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Documents d'identite</Text>
-      <Text style={styles.helperText}>
-        Pour la securite de tous, nous verifions l'identite de nos prestataires
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.identityDocuments')}</Text>
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t('signupProvider.identityHelper')}
       </Text>
 
       <Input
-        label="Numero CIN *"
-        placeholder="AB123456"
+        label={t('signupProvider.cinNumber')}
+        placeholder={t('signupProvider.cinPlaceholder')}
         value={cin}
         onChangeText={(text) => setCin(text.toUpperCase())}
         errorText={errors.cin}
         error={!!errors.cin}
-        helperText="Format: 1-2 lettres + 5-6 chiffres"
+        helperText={t('signupProvider.cinHelper')}
         autoCapitalize="characters"
         editable={!isLoading}
       />
 
       {/* Upload CIN Photos */}
-      <Text style={styles.inputLabel}>Photos de la CIN *</Text>
-      <Text style={styles.helperText}>
-        Prenez en photo le recto et le verso de votre carte d'identite
+      <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('signupProvider.cinPhotos')}</Text>
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t('signupProvider.cinPhotosHelper')}
       </Text>
 
-      <View style={styles.documentsRow}>
+      <View style={[styles.documentsRow, isRTL && styles.documentsRowRTL]}>
         {/* CIN Front */}
         <TouchableOpacity
           style={styles.documentUpload}
@@ -834,12 +840,12 @@ export default function SignupProviderScreen() {
           ) : (
             <View style={styles.documentPlaceholder}>
               <Text style={styles.documentIcon}>📄</Text>
-              <Text style={styles.documentText}>Recto</Text>
+              <Text style={[styles.documentText, isRTL && styles.textRTL]}>{t('signupProvider.recto')}</Text>
             </View>
           )}
           <View style={styles.documentLabel}>
-            <Text style={styles.documentLabelText}>
-              {cinFrontPhoto ? "✓ Recto" : "Recto CIN"}
+            <Text style={[styles.documentLabelText, isRTL && styles.textRTL]}>
+              {cinFrontPhoto ? `✓ ${t('signupProvider.recto')}` : t('signupProvider.rectoCIN')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -855,98 +861,98 @@ export default function SignupProviderScreen() {
           ) : (
             <View style={styles.documentPlaceholder}>
               <Text style={styles.documentIcon}>📄</Text>
-              <Text style={styles.documentText}>Verso</Text>
+              <Text style={[styles.documentText, isRTL && styles.textRTL]}>{t('signupProvider.verso')}</Text>
             </View>
           )}
           <View style={styles.documentLabel}>
-            <Text style={styles.documentLabelText}>
-              {cinBackPhoto ? "✓ Verso" : "Verso CIN"}
+            <Text style={[styles.documentLabelText, isRTL && styles.textRTL]}>
+              {cinBackPhoto ? `✓ ${t('signupProvider.verso')}` : t('signupProvider.versoCIN')}
             </Text>
           </View>
         </TouchableOpacity>
       </View>
-      {errors.cinPhotos && <Text style={styles.errorText}>{errors.cinPhotos}</Text>}
+      {errors.cinPhotos && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.cinPhotos}</Text>}
 
-      <View style={styles.infoBox}>
+      <View style={[styles.infoBox, isRTL && styles.infoBoxRTL]}>
         <Text style={styles.infoIcon}>🔒</Text>
-        <Text style={styles.infoText}>
-          Vos documents sont securises et ne seront jamais partages avec des tiers.
+        <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+          {t('signupProvider.documentsSecure')}
         </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Charte du prestataire</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.providerCharter')}</Text>
 
       <View style={styles.charterBox}>
-        <Text style={styles.charterTitle}>En tant que prestataire GlamGo, je m engage a :</Text>
-        <Text style={styles.charterItem}>• Exercer avec professionnalisme et serieux</Text>
-        <Text style={styles.charterItem}>• Respecter les horaires convenus</Text>
-        <Text style={styles.charterItem}>• Etre ponctuel et courtois</Text>
-        <Text style={styles.charterItem}>• Fournir des services de qualite</Text>
-        <Text style={styles.charterItem}>• Respecter la confidentialite des clients</Text>
+        <Text style={[styles.charterTitle, isRTL && styles.textRTL]}>{t('signupProvider.charterIntro')}</Text>
+        <Text style={[styles.charterItem, isRTL && styles.charterItemRTL]}>• {t('signupProvider.charterItem1')}</Text>
+        <Text style={[styles.charterItem, isRTL && styles.charterItemRTL]}>• {t('signupProvider.charterItem2')}</Text>
+        <Text style={[styles.charterItem, isRTL && styles.charterItemRTL]}>• {t('signupProvider.charterItem3')}</Text>
+        <Text style={[styles.charterItem, isRTL && styles.charterItemRTL]}>• {t('signupProvider.charterItem4')}</Text>
+        <Text style={[styles.charterItem, isRTL && styles.charterItemRTL]}>• {t('signupProvider.charterItem5')}</Text>
       </View>
 
       <TouchableOpacity
-        style={styles.checkboxRow}
+        style={[styles.checkboxRow, isRTL && styles.checkboxRowRTL]}
         onPress={() => {
           setAcceptCharter(!acceptCharter);
           setErrors(prev => ({ ...prev, charter: "" }));
         }}
       >
-        <View style={[styles.checkbox, acceptCharter && styles.checkboxChecked]}>
+        <View style={[styles.checkbox, acceptCharter && styles.checkboxChecked, isRTL && styles.checkboxRTL]}>
           {acceptCharter && <Text style={styles.checkmark}>✓</Text>}
         </View>
-        <Text style={styles.checkboxLabel}>
-          J accepte la charte du prestataire GlamGo
+        <Text style={[styles.checkboxLabel, isRTL && styles.textRTL]}>
+          {t('signupProvider.iAcceptCharter')}
         </Text>
       </TouchableOpacity>
-      {errors.charter && <Text style={styles.errorText}>{errors.charter}</Text>}
+      {errors.charter && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.charter}</Text>}
     </View>
   );
 
   const renderStep4 = () => (
     <View style={styles.stepContent}>
       {/* Header */}
-      <View style={styles.stepHeader}>
-        <Text style={styles.stepHeaderTitle}>Informations bancaires</Text>
-        <Text style={styles.stepHeaderSubtitle}>Carte pour commissions + RIB pour recevoir vos gains</Text>
+      <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
+        <Text style={[styles.stepHeaderTitle, isRTL && styles.textRTL]}>{t('signupProvider.bankInfoTitle')}</Text>
+        <Text style={[styles.stepHeaderSubtitle, isRTL && styles.textRTL]}>{t('signupProvider.bankInfoSubtitle')}</Text>
       </View>
 
       {/* Explication du systeme */}
       <View style={styles.commissionExplainer}>
-        <Text style={styles.commissionTitle}>Comment ca marche ?</Text>
+        <Text style={[styles.commissionTitle, isRTL && styles.textRTL]}>{t('signupProvider.howItWorks')}</Text>
 
-        <View style={styles.commissionItem}>
-          <Text style={styles.commissionIcon}>💳</Text>
+        <View style={[styles.commissionItem, isRTL && styles.commissionItemRTL]}>
+          <Text style={[styles.commissionIcon, isRTL && styles.commissionIconRTL]}>💳</Text>
           <View style={styles.commissionContent}>
-            <Text style={styles.commissionLabel}>Client paie par carte</Text>
-            <Text style={styles.commissionDesc}>
-              GlamGo encaisse et vous verse 80% sous 7 jours
+            <Text style={[styles.commissionLabel, isRTL && styles.textRTL]}>{t('signupProvider.clientPaysByCard')}</Text>
+            <Text style={[styles.commissionDesc, isRTL && styles.textRTL]}>
+              {t('signupProvider.clientPaysByCardDesc')}
             </Text>
           </View>
         </View>
 
-        <View style={styles.commissionItem}>
-          <Text style={styles.commissionIcon}>💵</Text>
+        <View style={[styles.commissionItem, isRTL && styles.commissionItemRTL]}>
+          <Text style={[styles.commissionIcon, isRTL && styles.commissionIconRTL]}>💵</Text>
           <View style={styles.commissionContent}>
-            <Text style={styles.commissionLabel}>Client paie en especes</Text>
-            <Text style={styles.commissionDesc}>
-              Vous gardez le cash, 20% preleves sur votre carte
+            <Text style={[styles.commissionLabel, isRTL && styles.textRTL]}>{t('signupProvider.clientPaysCash')}</Text>
+            <Text style={[styles.commissionDesc, isRTL && styles.textRTL]}>
+              {t('signupProvider.clientPaysCashDesc')}
             </Text>
           </View>
         </View>
       </View>
 
       {/* Info Commission */}
-      <View style={styles.infoBox}>
+      <View style={[styles.infoBox, isRTL && styles.infoBoxRTL]}>
         <Text style={styles.infoIcon}>💰</Text>
-        <Text style={styles.infoText}>
-          Commission GlamGo : 20% par prestation. Vous gardez 80% de vos gains !
+        <Text style={[styles.infoText, isRTL && styles.textRTL]}>
+          {t('signupProvider.commissionInfo')}
         </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Votre carte bancaire *</Text>
-      <Text style={styles.helperText}>
-        Cette carte sera utilisee pour prelever les commissions sur les paiements en especes
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.yourCard')}</Text>
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t('signupProvider.cardHelper')}
       </Text>
 
       {/* Credit Card Form */}
@@ -958,9 +964,9 @@ export default function SignupProviderScreen() {
       />
 
       {/* Section RIB */}
-      <Text style={styles.sectionTitle}>Votre RIB *</Text>
-      <Text style={styles.helperText}>
-        Ce compte recevra vos virements (80% de chaque prestation)
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.yourRIB')}</Text>
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t('signupProvider.ribHelper')}
       </Text>
 
       {/* RIB Form */}
@@ -971,48 +977,48 @@ export default function SignupProviderScreen() {
         disabled={isLoading}
       />
 
-      <Text style={styles.sectionTitle}>Recapitulatif</Text>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('signupProvider.summary')}</Text>
 
       <View style={styles.summaryBox}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Nom complet</Text>
-          <Text style={styles.summaryValue}>{firstName} {lastName}</Text>
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.fullName')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{firstName} {lastName}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Email</Text>
-          <Text style={styles.summaryValue}>{email}</Text>
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.email')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{email}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Telephone</Text>
-          <Text style={styles.summaryValue}>{phone}</Text>
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.phone')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{phone}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Ville</Text>
-          <Text style={styles.summaryValue}>{selectedCity || "Non selectionnee"}</Text>
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.city')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{selectedCity || t('signupProvider.notSelected')}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Rayon</Text>
-          <Text style={styles.summaryValue}>{interventionRadius} km</Text>
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.radius')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{interventionRadius} {t('common.km')}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Carte</Text>
-          <Text style={styles.summaryValue}>
-            {cardData.cardNumber ? `**** ${cardData.cardNumber.slice(-4)}` : "Non renseignee"}
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.card')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>
+            {cardData.cardNumber ? `**** ${cardData.cardNumber.slice(-4)}` : t('signupProvider.notProvided')}
           </Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>RIB</Text>
-          <Text style={styles.summaryValue}>
-            {ribData.numero ? `****${ribData.numero.replace(/\s/g, "").slice(-4)}` : "Non renseigne"}
+        <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+          <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('signupProvider.rib')}</Text>
+          <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>
+            {ribData.numero ? `****${ribData.numero.replace(/\s/g, "").slice(-4)}` : t('signupProvider.ribNotProvided')}
           </Text>
         </View>
       </View>
 
       {/* Success message preview */}
-      <View style={styles.successPreview}>
+      <View style={[styles.successPreview, isRTL && styles.successPreviewRTL]}>
         <Text style={styles.successIcon}>🎉</Text>
-        <Text style={styles.successText}>
-          Apres inscription, vous pourrez selectionner vos services et commencer a recevoir des clients !
+        <Text style={[styles.successText, isRTL && styles.textRTL]}>
+          {t('signupProvider.successPreview')}
         </Text>
       </View>
 
@@ -1032,11 +1038,11 @@ export default function SignupProviderScreen() {
         >
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backToHomeButton}
+            style={[styles.backToHomeButton, isRTL && styles.backToHomeButtonRTL]}
             onPress={() => router.push("/")}
           >
-            <Text style={styles.backToHomeIcon}>←</Text>
-            <Text style={styles.backToHomeText}>Retour a l'accueil</Text>
+            <Text style={[styles.backToHomeIcon, isRTL && styles.backToHomeIconRTL]}>{isRTL ? '→' : '←'}</Text>
+            <Text style={[styles.backToHomeText, isRTL && styles.textRTL]}>{t('signupProvider.backToHome')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -1053,7 +1059,7 @@ export default function SignupProviderScreen() {
           </View>
         )}
 
-        <View style={styles.navigationButtons}>
+        <View style={[styles.navigationButtons, isRTL && styles.navigationButtonsRTL]}>
           {currentStep > 1 && (
             <Button
               variant="outline"
@@ -1062,7 +1068,7 @@ export default function SignupProviderScreen() {
               disabled={isLoading}
               style={styles.navButton}
             >
-              Precedent
+              {t('signupProvider.previous')}
             </Button>
           )}
 
@@ -1075,7 +1081,7 @@ export default function SignupProviderScreen() {
               disabled={isLoading || isSubmitting}
               style={[styles.navButton, currentStep === 1 ? styles.fullWidthButton : null] as any}
             >
-              {isSubmitting ? "Verification..." : "Continuer"}
+              {isSubmitting ? t('signupProvider.verifying') : t('signupProvider.continue')}
             </Button>
           ) : (
             <Button
@@ -1086,7 +1092,7 @@ export default function SignupProviderScreen() {
               disabled={isSubmitting}
               style={styles.navButton}
             >
-              {isSubmitting ? "Inscription..." : "Creer mon compte"}
+              {isSubmitting ? t('signupProvider.registering') : t('signupProvider.createAccount')}
             </Button>
           )}
         </View>
@@ -1097,9 +1103,9 @@ export default function SignupProviderScreen() {
             onPress={() => router.push("/auth/login")}
             disabled={isLoading}
           >
-            <Text style={styles.footerText}>
-              Vous avez deja un compte ?{" "}
-              <Text style={styles.footerLinkText}>Connectez-vous</Text>
+            <Text style={[styles.footerText, isRTL && styles.textRTL]}>
+              {t('signupProvider.alreadyHaveAccount')}{" "}
+              <Text style={styles.footerLinkText}>{t('signupProvider.login')}</Text>
             </Text>
           </TouchableOpacity>
 
@@ -1108,9 +1114,9 @@ export default function SignupProviderScreen() {
             onPress={() => router.push("/auth/signup-client")}
             disabled={isLoading}
           >
-            <Text style={styles.footerText}>
-              Vous etes un client ?{" "}
-              <Text style={styles.footerLinkText}>Inscrivez-vous ici</Text>
+            <Text style={[styles.footerText, isRTL && styles.textRTL]}>
+              {t('signupProvider.areYouClient')}{" "}
+              <Text style={styles.footerLinkText}>{t('signupProvider.signupHere')}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -1756,5 +1762,84 @@ const styles = StyleSheet.create({
   footerLinkText: {
     color: colors.primary,
     fontWeight: "600",
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: "right",
+    writingDirection: "rtl",
+  },
+  stepIndicatorRTL: {
+    flexDirection: "row-reverse",
+  },
+  stepLineRTL: {
+    left: undefined,
+    right: 54,
+  },
+  stepHeaderRTL: {
+    alignItems: "flex-end",
+  },
+  backToHomeButtonRTL: {
+    flexDirection: "row-reverse",
+  },
+  backToHomeIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.xs,
+  },
+  photoContainerRTL: {
+    flexDirection: "row-reverse",
+  },
+  checkboxRowRTL: {
+    flexDirection: "row-reverse",
+  },
+  checkboxRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  termsLinksRTL: {
+    flexDirection: "row-reverse",
+    marginLeft: 0,
+    marginRight: 32,
+  },
+  citiesContentRTL: {
+    flexDirection: "row-reverse",
+  },
+  cityChipRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  radiusOptionsRTL: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+  },
+  infoBoxRTL: {
+    flexDirection: "row-reverse",
+  },
+  documentsRowRTL: {
+    flexDirection: "row-reverse",
+  },
+  charterItemRTL: {
+    textAlign: "right",
+    paddingLeft: 0,
+    paddingRight: spacing.sm,
+  },
+  commissionItemRTL: {
+    flexDirection: "row-reverse",
+  },
+  commissionIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  summaryRowRTL: {
+    flexDirection: "row-reverse",
+  },
+  summaryValueRTL: {
+    textAlign: "left",
+  },
+  successPreviewRTL: {
+    flexDirection: "row-reverse",
+  },
+  navigationButtonsRTL: {
+    flexDirection: "row-reverse",
   },
 });

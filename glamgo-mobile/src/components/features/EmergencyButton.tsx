@@ -17,26 +17,29 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
+  I18nManager,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
 import apiClient from '../../lib/api/client';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-// Numeros d'urgence Maroc
-const EMERGENCY_NUMBERS = {
-  police: { number: '19', label: 'Police', icon: '👮' },
-  european: { number: '112', label: 'Urgences EU', icon: '🆘' },
-  pompiers: { number: '15', label: 'Pompiers/SAMU', icon: '🚑' },
-  gendarmerie: { number: '177', label: 'Gendarmerie', icon: '🛡️' },
+// Numeros d'urgence Maroc - Keys pour traduction
+const EMERGENCY_NUMBER_KEYS = {
+  police: { number: '19', labelKey: 'emergency.police', icon: '👮' },
+  european: { number: '112', labelKey: 'emergency.emergenciesEU', icon: '🆘' },
+  pompiers: { number: '15', labelKey: 'emergency.fireSAMU', icon: '🚑' },
+  gendarmerie: { number: '177', labelKey: 'emergency.gendarmerie', icon: '🛡️' },
 };
 
-const EMERGENCY_REASONS = [
-  { id: 'behavior', label: 'Comportement inapproprie', icon: '⚠️' },
-  { id: 'safety', label: 'Je me sens en danger', icon: '🚨' },
-  { id: 'service_issue', label: 'Probleme avec le service', icon: '❌' },
-  { id: 'fraud', label: 'Tentative de fraude', icon: '🚫' },
-  { id: 'other', label: 'Autre probleme', icon: '📞' },
+// Keys pour les raisons d'urgence
+const EMERGENCY_REASON_KEYS = [
+  { id: 'behavior', labelKey: 'emergency.inappropriateBehavior', icon: '⚠️' },
+  { id: 'safety', labelKey: 'emergency.feelInDanger', icon: '🚨' },
+  { id: 'service_issue', labelKey: 'emergency.serviceIssue', icon: '❌' },
+  { id: 'fraud', labelKey: 'emergency.fraudAttempt', icon: '🚫' },
+  { id: 'other', labelKey: 'emergency.otherProblem', icon: '📞' },
 ];
 
 interface EmergencyButtonProps {
@@ -54,6 +57,7 @@ export default function EmergencyButton({
   isProvider = false,
   onEmergencyReported,
 }: EmergencyButtonProps) {
+  const { t, isRTL } = useLanguage();
   const [showModal, setShowModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState('');
@@ -82,7 +86,7 @@ export default function EmergencyButton({
     hapticFeedback.heavy();
     const phoneUrl = Platform.OS === 'ios' ? `telprompt:${number}` : `tel:${number}`;
     Linking.openURL(phoneUrl).catch(() => {
-      Alert.alert('Erreur', `Impossible d'appeler le ${number}`);
+      Alert.alert(t('common.error'), t('emergency.errorCalling', { number }));
     });
   };
 
@@ -92,7 +96,7 @@ export default function EmergencyButton({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission refusee', 'Activez la localisation pour partager votre position.');
+        Alert.alert(t('emergency.permissionDenied'), t('emergency.permissionDenied'));
         return;
       }
 
@@ -104,18 +108,18 @@ export default function EmergencyButton({
       const mapsUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
 
       Alert.alert(
-        'Position partagee',
+        t('emergency.positionShared'),
         `Latitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`,
         [
-          { text: 'OK' },
+          { text: t('common.ok') },
           {
-            text: 'Ouvrir Maps',
+            text: t('emergency.openMaps'),
             onPress: () => Linking.openURL(mapsUrl)
           },
         ]
       );
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de recuperer votre position.');
+      Alert.alert(t('common.error'), t('emergency.unableToGetLocation'));
     } finally {
       setSharingLocation(false);
     }
@@ -124,7 +128,7 @@ export default function EmergencyButton({
   // Envoyer le signalement
   const handleSubmitEmergency = async () => {
     if (!selectedReason) {
-      Alert.alert('Attention', 'Veuillez selectionner un motif.');
+      Alert.alert(t('common.error'), t('emergency.selectReason'));
       return;
     }
 
@@ -159,7 +163,7 @@ export default function EmergencyButton({
         hapticFeedback.success();
         onEmergencyReported?.(response.data);
       } else {
-        Alert.alert('Erreur', response.data?.message || 'Erreur lors de l\'envoi du signalement.');
+        Alert.alert(t('common.error'), response.data?.message || t('emergency.errorSending'));
       }
     } catch (error: any) {
       const status = error?.response?.status;
@@ -168,12 +172,12 @@ export default function EmergencyButton({
       if (status === 409) {
         // Already has an active report
         Alert.alert(
-          'Signalement deja envoye',
-          'Un signalement est deja en cours pour cette commande. Notre equipe vous contactera rapidement.',
-          [{ text: 'OK', onPress: () => setShowModal(false) }]
+          t('emergency.reportAlreadySent'),
+          t('emergency.reportInProgress'),
+          [{ text: t('common.ok'), onPress: () => setShowModal(false) }]
         );
       } else {
-        Alert.alert('Erreur', message || 'Erreur lors de l\'envoi du signalement.');
+        Alert.alert(t('common.error'), message || t('emergency.errorSending'));
       }
     } finally {
       setLoading(false);
@@ -186,12 +190,12 @@ export default function EmergencyButton({
     <>
       {/* Bouton d'urgence flottant */}
       <TouchableOpacity
-        style={styles.emergencyButton}
+        style={[styles.emergencyButton, isRTL && styles.emergencyButtonRTL]}
         onPress={handleOpenModal}
         activeOpacity={0.8}
       >
         <Text style={styles.emergencyIcon}>🆘</Text>
-        <Text style={styles.emergencyText}>Urgence</Text>
+        <Text style={styles.emergencyText}>{t('emergency.buttonText')}</Text>
       </TouchableOpacity>
 
       {/* Modal d'urgence */}
@@ -202,34 +206,34 @@ export default function EmergencyButton({
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, isRTL && styles.modalContentRTL]}>
             {success ? (
               // Ecran de succes
               <View style={styles.successContent}>
                 <Text style={styles.successIcon}>✅</Text>
-                <Text style={styles.successTitle}>Signalement envoye</Text>
-                <Text style={styles.successMessage}>
-                  Notre equipe a ete alertee et vous contactera rapidement.
+                <Text style={[styles.successTitle, isRTL && styles.textRTL]}>{t('emergency.reportSent')}</Text>
+                <Text style={[styles.successMessage, isRTL && styles.textRTL]}>
+                  {t('emergency.teamAlerted')}
                 </Text>
 
                 {notifyPolice && (
-                  <View style={styles.policeAlert}>
+                  <View style={[styles.policeAlert, isRTL && styles.policeAlertRTL]}>
                     <Text style={styles.policeAlertIcon}>🚨</Text>
-                    <Text style={styles.policeAlertText}>
-                      Alerte police notee - Contactez le 19 si necessaire
+                    <Text style={[styles.policeAlertText, isRTL && styles.textRTL]}>
+                      {t('emergency.policeAlertNoted')}
                     </Text>
                   </View>
                 )}
 
                 <View style={styles.emergencyNumbersSuccess}>
-                  <Text style={styles.numbersTitle}>Numeros d'urgence :</Text>
-                  <View style={styles.numbersRow}>
+                  <Text style={[styles.numbersTitle, isRTL && styles.textRTL]}>{t('emergency.emergencyNumbers')}</Text>
+                  <View style={[styles.numbersRow, isRTL && styles.numbersRowRTL]}>
                     <TouchableOpacity
                       style={styles.numberButtonSmall}
                       onPress={() => handleCall('19')}
                     >
                       <Text style={styles.numberButtonIcon}>👮</Text>
-                      <Text style={styles.numberButtonLabel}>Police 19</Text>
+                      <Text style={styles.numberButtonLabel}>{t('emergency.police')} 19</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.numberButtonSmall}
@@ -245,22 +249,22 @@ export default function EmergencyButton({
                   style={styles.closeSuccessButton}
                   onPress={handleCloseModal}
                 >
-                  <Text style={styles.closeSuccessButtonText}>Fermer</Text>
+                  <Text style={styles.closeSuccessButtonText}>{t('modals.close')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               // Formulaire de signalement
               <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header */}
-                <View style={styles.modalHeader}>
-                  <View style={styles.headerLeft}>
+                <View style={[styles.modalHeader, isRTL && styles.modalHeaderRTL]}>
+                  <View style={[styles.headerLeft, isRTL && styles.headerLeftRTL]}>
                     <Text style={styles.headerIcon}>🆘</Text>
                     <View>
-                      <Text style={styles.modalTitle}>Urgence</Text>
-                      <Text style={styles.modalSubtitle}>
+                      <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t('emergency.title')}</Text>
+                      <Text style={[styles.modalSubtitle, isRTL && styles.textRTL]}>
                         {isProvider
-                          ? `Probleme avec ${personName || 'le client'} ?`
-                          : `Probleme avec ${personName || 'le prestataire'} ?`
+                          ? t('emergency.problemWithClient', { name: personName || t('common.client') })
+                          : t('emergency.problemWithProvider', { name: personName || t('common.provider') })
                         }
                       </Text>
                     </View>
@@ -276,16 +280,16 @@ export default function EmergencyButton({
 
                 {/* Section appels d'urgence */}
                 <View style={styles.urgentSection}>
-                  <Text style={styles.urgentTitle}>🚨 En cas de danger immediat</Text>
-                  <View style={styles.urgentButtons}>
-                    {Object.entries(EMERGENCY_NUMBERS).map(([key, info]) => (
+                  <Text style={[styles.urgentTitle, isRTL && styles.textRTL]}>🚨 {t('emergency.immediateHelp')}</Text>
+                  <View style={[styles.urgentButtons, isRTL && styles.urgentButtonsRTL]}>
+                    {Object.entries(EMERGENCY_NUMBER_KEYS).map(([key, info]) => (
                       <TouchableOpacity
                         key={key}
                         style={styles.urgentButton}
                         onPress={() => handleCall(info.number)}
                       >
                         <Text style={styles.urgentButtonIcon}>{info.icon}</Text>
-                        <Text style={styles.urgentButtonLabel}>{info.label}</Text>
+                        <Text style={styles.urgentButtonLabel}>{t(info.labelKey)}</Text>
                         <Text style={styles.urgentButtonNumber}>{info.number}</Text>
                       </TouchableOpacity>
                     ))}
@@ -294,7 +298,7 @@ export default function EmergencyButton({
 
                 {/* Bouton partager localisation */}
                 <TouchableOpacity
-                  style={styles.locationButton}
+                  style={[styles.locationButton, isRTL && styles.locationButtonRTL]}
                   onPress={handleShareLocation}
                   disabled={sharingLocation}
                 >
@@ -303,7 +307,7 @@ export default function EmergencyButton({
                   ) : (
                     <>
                       <Text style={styles.locationIcon}>📍</Text>
-                      <Text style={styles.locationText}>Partager ma position</Text>
+                      <Text style={styles.locationText}>{t('emergency.shareMyLocation')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -311,29 +315,31 @@ export default function EmergencyButton({
                 {/* Divider */}
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>ou signaler un probleme</Text>
+                  <Text style={styles.dividerText}>{t('emergency.orReportProblem')}</Text>
                   <View style={styles.dividerLine} />
                 </View>
 
                 {/* Raisons du signalement */}
                 <View style={styles.reasonsSection}>
-                  <Text style={styles.sectionLabel}>Quel est le probleme ?</Text>
-                  {EMERGENCY_REASONS.map((reason) => (
+                  <Text style={[styles.sectionLabel, isRTL && styles.textRTL]}>{t('emergency.whatIsTheProblem')}</Text>
+                  {EMERGENCY_REASON_KEYS.map((reason) => (
                     <TouchableOpacity
                       key={reason.id}
                       style={[
                         styles.reasonButton,
+                        isRTL && styles.reasonButtonRTL,
                         selectedReason === reason.id && styles.reasonButtonSelected,
                       ]}
                       onPress={() => setSelectedReason(reason.id)}
                       disabled={loading}
                     >
-                      <Text style={styles.reasonIcon}>{reason.icon}</Text>
+                      <Text style={[styles.reasonIcon, isRTL && styles.reasonIconRTL]}>{reason.icon}</Text>
                       <Text style={[
                         styles.reasonLabel,
+                        isRTL && styles.textRTL,
                         selectedReason === reason.id && styles.reasonLabelSelected,
                       ]}>
-                        {reason.label}
+                        {t(reason.labelKey)}
                       </Text>
                       {selectedReason === reason.id && (
                         <Text style={styles.reasonCheck}>✓</Text>
@@ -345,7 +351,7 @@ export default function EmergencyButton({
                 {/* Option alerte police */}
                 {(selectedReason === 'safety' || selectedReason === 'fraud') && (
                   <TouchableOpacity
-                    style={styles.policeOption}
+                    style={[styles.policeOption, isRTL && styles.policeOptionRTL]}
                     onPress={() => setNotifyPolice(!notifyPolice)}
                     disabled={loading}
                   >
@@ -353,11 +359,11 @@ export default function EmergencyButton({
                       {notifyPolice && <Text style={styles.checkboxMark}>✓</Text>}
                     </View>
                     <View style={styles.policeOptionText}>
-                      <Text style={styles.policeOptionLabel}>
-                        🚔 Demander une intervention police
+                      <Text style={[styles.policeOptionLabel, isRTL && styles.textRTL]}>
+                        🚔 {t('emergency.requestPoliceIntervention')}
                       </Text>
-                      <Text style={styles.policeOptionHint}>
-                        La police sera alertee de votre situation
+                      <Text style={[styles.policeOptionHint, isRTL && styles.textRTL]}>
+                        {t('emergency.policeWillBeAlerted')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -365,10 +371,10 @@ export default function EmergencyButton({
 
                 {/* Details supplementaires */}
                 <View style={styles.additionalSection}>
-                  <Text style={styles.sectionLabel}>Details (optionnel)</Text>
+                  <Text style={[styles.sectionLabel, isRTL && styles.textRTL]}>{t('emergency.detailsOptional')}</Text>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="Decrivez la situation..."
+                    style={[styles.textInput, isRTL && styles.inputRTL]}
+                    placeholder={t('emergency.describeSituation')}
                     placeholderTextColor={colors.gray[400]}
                     value={additionalInfo}
                     onChangeText={setAdditionalInfo}
@@ -376,18 +382,19 @@ export default function EmergencyButton({
                     multiline
                     numberOfLines={3}
                     editable={!loading}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
-                  <Text style={styles.charCount}>{additionalInfo.length}/500</Text>
+                  <Text style={[styles.charCount, isRTL && styles.charCountRTL]}>{additionalInfo.length}/500</Text>
                 </View>
 
                 {/* Boutons d'action */}
-                <View style={styles.actionButtons}>
+                <View style={[styles.actionButtons, isRTL && styles.actionButtonsRTL]}>
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={handleCloseModal}
                     disabled={loading}
                   >
-                    <Text style={styles.cancelButtonText}>Annuler</Text>
+                    <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -401,18 +408,18 @@ export default function EmergencyButton({
                     {loading ? (
                       <ActivityIndicator color={colors.white} size="small" />
                     ) : (
-                      <Text style={styles.submitButtonText}>🆘 Envoyer</Text>
+                      <Text style={styles.submitButtonText}>🆘 {t('emergency.send')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
 
                 {/* Support GlamGo */}
                 <TouchableOpacity
-                  style={styles.supportButton}
+                  style={[styles.supportButton, isRTL && styles.supportButtonRTL]}
                   onPress={() => handleCall('+212522000000')}
                 >
                   <Text style={styles.supportIcon}>📞</Text>
-                  <Text style={styles.supportText}>Appeler le support GlamGo</Text>
+                  <Text style={styles.supportText}>{t('emergency.callGlamGoSupport')}</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 20 }} />
@@ -819,5 +826,56 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[700],
+  },
+  // RTL Styles
+  emergencyButtonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  modalContentRTL: {
+    direction: 'rtl',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  modalHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  headerLeftRTL: {
+    flexDirection: 'row-reverse',
+  },
+  urgentButtonsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  locationButtonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  reasonButtonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  reasonIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  policeOptionRTL: {
+    flexDirection: 'row-reverse',
+  },
+  policeAlertRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  charCountRTL: {
+    textAlign: 'left',
+  },
+  actionButtonsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  supportButtonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  numbersRowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

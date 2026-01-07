@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface BirthDatePickerProps {
   value: Date | null;
@@ -24,21 +25,31 @@ interface BirthDatePickerProps {
   disabled?: boolean;
 }
 
-const MONTHS = [
-  'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'
-];
-
 export default function BirthDatePicker({
   value,
   onChange,
   label,
-  placeholder = 'Entrer votre date de naissance',
+  placeholder,
   error,
   minAge = 18,
   disabled = false,
 }: BirthDatePickerProps) {
+  const { t, isRTL, language } = useLanguage();
   const [showPicker, setShowPicker] = useState(false);
+
+  // Get locale based on language
+  const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
+  const displayPlaceholder = placeholder || t('birthDate.placeholder');
+
+  // Get months array based on language
+  const MONTHS = useMemo(() => {
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(2024, i, 1);
+      months.push(date.toLocaleDateString(locale, { month: 'long' }));
+    }
+    return months;
+  }, [locale]);
 
   // Calculate max year (minAge years ago)
   const currentYear = new Date().getFullYear();
@@ -69,8 +80,8 @@ export default function BirthDatePicker({
   }, [selectedYear, selectedMonth]);
 
   const formatDisplay = (): string => {
-    if (!value) return placeholder;
-    return value.toLocaleDateString('fr-FR', {
+    if (!value) return displayPlaceholder;
+    return value.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -119,7 +130,9 @@ export default function BirthDatePicker({
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      <Text style={styles.hintText}>Vous devez avoir au moins {minAge} ans</Text>
+      <Text style={[styles.hintText, isRTL && styles.textRTL]}>
+        {t('birthDate.mustBeAtLeast').replace('{age}', String(minAge))}
+      </Text>
 
       {/* Picker Modal */}
       <Modal
@@ -131,21 +144,21 @@ export default function BirthDatePicker({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, isRTL && styles.modalHeaderRTL]}>
               <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <Text style={styles.modalCancel}>Annuler</Text>
+                <Text style={styles.modalCancel}>{t('calendar.cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Date de naissance</Text>
+              <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t('birthDate.title')}</Text>
               <TouchableOpacity onPress={handleConfirm}>
-                <Text style={styles.modalConfirm}>OK</Text>
+                <Text style={styles.modalConfirm}>{t('calendar.confirm')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Picker Wheels */}
-            <View style={styles.pickersContainer}>
+            <View style={[styles.pickersContainer, isRTL && styles.pickersContainerRTL]}>
               {/* Day Picker */}
               <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Jour</Text>
+                <Text style={[styles.pickerLabel, isRTL && styles.textRTL]}>{t('birthDate.day')}</Text>
                 <ScrollView
                   style={styles.pickerScroll}
                   showsVerticalScrollIndicator={false}
@@ -172,7 +185,7 @@ export default function BirthDatePicker({
 
               {/* Month Picker */}
               <View style={[styles.pickerColumn, styles.pickerColumnLarge]}>
-                <Text style={styles.pickerLabel}>Mois</Text>
+                <Text style={[styles.pickerLabel, isRTL && styles.textRTL]}>{t('birthDate.month')}</Text>
                 <ScrollView
                   style={styles.pickerScroll}
                   showsVerticalScrollIndicator={false}
@@ -189,6 +202,7 @@ export default function BirthDatePicker({
                       <Text style={[
                         styles.pickerItemText,
                         selectedMonth === index && styles.pickerItemTextSelected,
+                        isRTL && styles.textRTL,
                       ]}>
                         {month}
                       </Text>
@@ -199,7 +213,7 @@ export default function BirthDatePicker({
 
               {/* Year Picker */}
               <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Annee</Text>
+                <Text style={[styles.pickerLabel, isRTL && styles.textRTL]}>{t('birthDate.year')}</Text>
                 <ScrollView
                   style={styles.pickerScroll}
                   showsVerticalScrollIndicator={false}
@@ -226,9 +240,9 @@ export default function BirthDatePicker({
             </View>
 
             {/* Preview */}
-            <View style={styles.preview}>
-              <Text style={styles.previewLabel}>Date selectionnee:</Text>
-              <Text style={styles.previewValue}>
+            <View style={[styles.preview, isRTL && styles.previewRTL]}>
+              <Text style={[styles.previewLabel, isRTL && styles.textRTL]}>{t('birthDate.selectedDate')}</Text>
+              <Text style={[styles.previewValue, isRTL && styles.textRTL]}>
                 {selectedDay} {MONTHS[selectedMonth]} {selectedYear}
               </Text>
             </View>
@@ -391,5 +405,20 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.gray[900],
+  },
+
+  // RTL Styles
+  modalHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  pickersContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  previewRTL: {
+    flexDirection: 'row-reverse',
   },
 });

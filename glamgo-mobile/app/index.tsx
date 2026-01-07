@@ -5,10 +5,12 @@ import { colors, spacing, typography, borderRadius } from '../src/lib/constants/
 import { useAppSelector } from '../src/lib/store/hooks';
 import { selectIsAuthenticated, selectUserRole } from '../src/lib/store/slices/authSlice';
 import { store } from '../src/lib/store';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 export default function Index() {
   const router = useRouter();
   const { logout } = useLocalSearchParams();
+  const { t, isRTL, language, setLanguage } = useLanguage();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const userRole = useAppSelector(selectUserRole);
 
@@ -40,8 +42,19 @@ export default function Index() {
     return () => clearTimeout(timer);
   }, [isAuthenticated, logout]);
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'fr' ? 'ar' : 'fr');
+  };
+
   return (
     <View style={styles.container}>
+      {/* Language Toggle */}
+      <TouchableOpacity style={styles.languageToggle} onPress={toggleLanguage}>
+        <Text style={[styles.languageText, language === 'fr' && styles.languageActive]}>FR</Text>
+        <Text style={styles.languageSeparator}>|</Text>
+        <Text style={[styles.languageText, language === 'ar' && styles.languageActive]}>AR</Text>
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Image
@@ -49,49 +62,55 @@ export default function Index() {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.logoText}>GlamGo</Text>
+          <Text style={[styles.logoText, isRTL && styles.textRTL]}>GlamGo</Text>
         </View>
-        <Text style={styles.title}>Services a domicile a Marrakech</Text>
-        <Text style={styles.subtitle}>
-          Beaute, menage, reparations...{'\n'}Tout ce dont vous avez besoin, a portee de main
+        <Text style={[styles.title, isRTL && styles.textRTL]}>{t('welcome.title')}</Text>
+        <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+          {t('welcome.subtitle')}
         </Text>
       </View>
 
       <View style={styles.buttons}>
         {/* Devenir Client */}
         <Link href="/auth/signup-client" asChild>
-          <TouchableOpacity style={styles.clientButton}>
-            <Text style={styles.clientButtonIcon}>👤</Text>
-            <Text style={styles.clientButtonText}>Devenir Client</Text>
+          <TouchableOpacity style={[styles.clientButton, isRTL && styles.clientButtonRTL]}>
+            <View style={styles.buttonContent}>
+              <Text style={[styles.clientButtonIcon, isRTL && styles.iconRTL]}>👤</Text>
+              <Text style={[styles.clientButtonText, isRTL && styles.providerButtonTextRTL]}>{t('welcome.becomeClient')}</Text>
+            </View>
           </TouchableOpacity>
         </Link>
 
         {/* Devenir Prestataire */}
         <Link href="/auth/signup-provider" asChild>
-          <TouchableOpacity style={styles.providerButton}>
-            <Text style={styles.providerButtonIcon}>💼</Text>
-            <Text style={styles.providerButtonText}>Devenir Prestataire</Text>
+          <TouchableOpacity style={[styles.providerButton, isRTL && styles.providerButtonRTL]}>
+            <View style={styles.buttonContent}>
+              <Text style={[styles.providerButtonIcon, isRTL && styles.iconRTL]}>💼</Text>
+              <Text style={[styles.providerButtonText, isRTL && styles.providerButtonTextRTL]}>{t('welcome.becomeProvider')}</Text>
+            </View>
           </TouchableOpacity>
         </Link>
 
         {/* Comment ca marche */}
         <Link href="/how-it-works" asChild>
-          <TouchableOpacity style={styles.howItWorksButton}>
-            <Text style={styles.howItWorksIcon}>❓</Text>
-            <Text style={styles.howItWorksText}>Comment ca marche ?</Text>
+          <TouchableOpacity style={[styles.howItWorksButton, isRTL && styles.buttonRTL]}>
+            <View style={styles.buttonContent}>
+              <Text style={[styles.howItWorksIcon, isRTL && styles.iconRTL]}>❓</Text>
+              <Text style={[styles.howItWorksText, isRTL && styles.buttonTextRTL]}>{t('welcome.howItWorks')}</Text>
+            </View>
           </TouchableOpacity>
         </Link>
 
         {/* Deja inscrit */}
         <Link href="/auth/login" asChild>
           <TouchableOpacity style={styles.loginLink}>
-            <Text style={styles.loginLinkText}>Deja inscrit ? Se connecter</Text>
+            <Text style={[styles.loginLinkText, isRTL && styles.textRTL]}>{t('welcome.alreadyRegistered')}</Text>
           </TouchableOpacity>
         </Link>
       </View>
 
       <View style={styles.footerContainer}>
-        <Text style={styles.footer}>Marrakech, Maroc</Text>
+        <Text style={[styles.footer, isRTL && styles.textRTL]}>{t('welcome.location')}</Text>
       </View>
     </View>
   );
@@ -104,6 +123,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing['2xl'],
     justifyContent: 'space-between',
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: colors.gray[100],
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.xl,
+  },
+  languageText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.gray[400],
+    paddingHorizontal: spacing.xs,
+  },
+  languageActive: {
+    color: colors.primary,
+  },
+  languageSeparator: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[300],
   },
   content: {
     flex: 1,
@@ -142,8 +185,14 @@ const styles = StyleSheet.create({
   buttons: {
     gap: spacing.sm,
   },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   // Client Button
   clientButton: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -162,9 +211,8 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   clientButtonText: {
-    color: colors.white,
+    color: '#FF0000',
     fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
   },
   // Provider Button
   providerButton: {
@@ -226,5 +274,43 @@ const styles = StyleSheet.create({
     color: colors.gray[400],
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  buttonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  clientButtonRTL: {
+    flexDirection: 'row-reverse',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+  },
+  providerButtonRTL: {
+    flexDirection: 'row-reverse',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  buttonTextRTL: {
+    writingDirection: 'rtl',
+    textAlign: 'center',
+  },
+  clientButtonTextRTL: {
+    writingDirection: 'rtl',
+    textAlign: 'center',
+    color: colors.white,
+  },
+  providerButtonTextRTL: {
+    writingDirection: 'rtl',
+    textAlign: 'center',
+    color: colors.primary,
+  },
+  iconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });

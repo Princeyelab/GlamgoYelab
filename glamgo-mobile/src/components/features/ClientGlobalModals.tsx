@@ -18,15 +18,19 @@ import {
   ActivityIndicator,
   Alert,
   Vibration,
+  I18nManager,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useAppSelector, useAppDispatch } from '../../lib/store/hooks';
-import { fetchBookings } from '../../lib/store/slices/bookingsSlice';
+import { fetchBookings, updateBookingStatus, removeBooking } from '../../lib/store/slices/bookingsSlice';
 import apiClient from '../../lib/api/client';
+import { addCancelledOrderId } from '../../lib/utils/cancelledOrdersCache';
+import { addSatisfiedOrderId, isOrderSatisfied } from '../../lib/utils/satisfiedOrdersCache';
 import { confirmProviderArrival, submitSatisfaction, SatisfactionData } from '../../lib/api/bookingsAPI';
 import { SatisfactionModal } from './SatisfactionModal';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // Clés AsyncStorage pour persister les IDs déjà montrés
 const STORAGE_KEY_REJECTED = '@glamgo_shown_rejected_ids';
@@ -80,6 +84,7 @@ interface RejectedOrder {
 }
 
 export const ClientGlobalModals: React.FC = () => {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const userRole = useAppSelector((state) => state.auth.user?.role);
@@ -178,12 +183,15 @@ export const ClientGlobalModals: React.FC = () => {
       );
 
       if (newlyAcceptedOrder && !showAcceptedModal && !showArrivalModal && !showSatisfactionModal && !showEnRouteModal) {
+        // IMMÉDIATEMENT mettre à jour le statut dans Redux (arrête le timer)
+        dispatch(updateBookingStatus({ id: newlyAcceptedOrder.id, status: 'accepted' }));
+
         setAcceptedOrder({
           id: newlyAcceptedOrder.id,
           provider_name: newlyAcceptedOrder.provider_name ||
             `${newlyAcceptedOrder.provider_first_name || ''} ${newlyAcceptedOrder.provider_last_name || ''}`.trim() ||
-            'Un prestataire',
-          service_name: newlyAcceptedOrder.service_name || 'votre prestation',
+            t('modals.aProvider'),
+          service_name: newlyAcceptedOrder.service_name || t('modals.yourService'),
           booking_date: newlyAcceptedOrder.booking_date || '',
           booking_time: newlyAcceptedOrder.booking_time || '',
         });
@@ -198,12 +206,15 @@ export const ClientGlobalModals: React.FC = () => {
       );
 
       if (enRouteOrderData && !showEnRouteModal && !showAcceptedModal && !showArrivalModal && !showSatisfactionModal && !showRejectedModal) {
+        // IMMÉDIATEMENT mettre à jour le statut dans Redux
+        dispatch(updateBookingStatus({ id: enRouteOrderData.id, status: 'on_way' }));
+
         setEnRouteOrder({
           id: enRouteOrderData.id,
           provider_name: enRouteOrderData.provider_name ||
             `${enRouteOrderData.provider_first_name || ''} ${enRouteOrderData.provider_last_name || ''}`.trim() ||
-            'Votre prestataire',
-          service_name: enRouteOrderData.service_name || 'votre prestation',
+            t('modals.yourProvider'),
+          service_name: enRouteOrderData.service_name || t('modals.yourService'),
           eta_minutes: enRouteOrderData.eta_minutes || enRouteOrderData.estimated_arrival_minutes,
         });
         persistId(STORAGE_KEY_EN_ROUTE, enRouteOrderData.id, shownEnRouteModalIds.current);
@@ -217,12 +228,15 @@ export const ClientGlobalModals: React.FC = () => {
       );
 
       if (arrivedOrderData && !showArrivalModal && !showAcceptedModal && !showSatisfactionModal && !showEnRouteModal) {
+        // IMMÉDIATEMENT mettre à jour le statut dans Redux
+        dispatch(updateBookingStatus({ id: arrivedOrderData.id, status: 'arrived' }));
+
         setArrivedOrder({
           id: arrivedOrderData.id,
           provider_name: arrivedOrderData.provider_name ||
             `${arrivedOrderData.provider_first_name || ''} ${arrivedOrderData.provider_last_name || ''}`.trim() ||
-            'Votre prestataire',
-          service_name: arrivedOrderData.service_name || 'votre prestation',
+            t('modals.yourProvider'),
+          service_name: arrivedOrderData.service_name || t('modals.yourService'),
         });
         Vibration.vibrate([0, 500, 200, 500]);
         setShowArrivalModal(true);
@@ -230,10 +244,39 @@ export const ClientGlobalModals: React.FC = () => {
 
       // 3. Fin de service - satisfaction
       const pendingReviewOrder = orders.find(
-        (o: any) => o.status === 'completed_pending_review' && !shownSatisfactionModalIds.current.has(o.id)
+        (o: any) => o.status === 'completed_pending_review' &&
+          !shownSatisfactionModalIds.current.has(o.id) &&
+          !isOrderSatisfied(o.id)  // Double vérification avec le cache persisté
       );
 
       if (pendingReviewOrder && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal && !showRejectedModal && !showEnRouteModal) {
+        console.log('🔴 [ClientGlobalModals] FOUND pendingReviewOrder:', pendingReviewOrder.id);
+
+        // VÉRIFIER d'abord si l'évaluation n'a pas déjà été soumise
+        try {
+          const statusResponse = await apiClient.get(`/api/orders/${pendingReviewOrder.id}/satisfaction-status`);
+          const satStatus = statusResponse.data?.data;
+          console.log('🔴 [ClientGlobalModals] Satisfaction status:', satStatus);
+
+          if (satStatus?.survey_submitted === true || satStatus?.order_status === 'completed') {
+            // Déjà évalué - marquer comme montré et ne pas afficher le modal
+            console.log('🟢 [ClientGlobalModals] Order already reviewed - skipping modal');
+            persistId(STORAGE_KEY_SATISFACTION, pendingReviewOrder.id, shownSatisfactionModalIds.current);
+            dispatch(updateBookingStatus({ id: pendingReviewOrder.id, status: 'completed' }));
+            return; // Ne pas afficher le modal
+          }
+        } catch (statusError: any) {
+          // Si erreur 404 ou autre, on continue quand même (l'endpoint peut ne pas exister)
+          console.log('🔴 [ClientGlobalModals] Could not check satisfaction status:', statusError?.response?.status);
+        }
+
+        // IMMÉDIATEMENT mettre à jour le statut dans Redux
+        dispatch(updateBookingStatus({ id: pendingReviewOrder.id, status: 'completed_pending_review' }));
+
+        // Marquer temporairement dans le Set AVANT d'afficher pour éviter double affichage
+        // (mais ne PAS persister dans AsyncStorage - ça sera fait APRÈS soumission)
+        shownSatisfactionModalIds.current.add(pendingReviewOrder.id);
+
         setSatisfactionOrder({
           id: pendingReviewOrder.id,
           service_name: pendingReviewOrder.service_name,
@@ -246,7 +289,8 @@ export const ClientGlobalModals: React.FC = () => {
           payment_method: pendingReviewOrder.payment_method || 'card',
           completed_at: pendingReviewOrder.completed_at,
         });
-        persistId(STORAGE_KEY_SATISFACTION, pendingReviewOrder.id, shownSatisfactionModalIds.current);
+        // NOTE: On ne persiste PAS l'ID ici - seulement APRÈS soumission réussie
+        // Cela évite que le modal réapparaisse si l'évaluation échoue puis l'app redémarre
         Vibration.vibrate([0, 200, 100, 200, 100, 200]);
         setShowSatisfactionModal(true);
       }
@@ -303,7 +347,7 @@ export const ClientGlobalModals: React.FC = () => {
             rejectedOrderData = {
               id: notifData?.order_id || rejectionNotif.order_id,
               service_id: notifData?.service_id,
-              service_name: notifData?.service_name || 'votre prestation',
+              service_name: notifData?.service_name || t('modals.yourService'),
               cancellation_reason: notifData?.reason,
               provider_name: notifData?.provider_name,
               type: notifType,
@@ -338,7 +382,7 @@ export const ClientGlobalModals: React.FC = () => {
           rejectedOrderData = {
             id: cancelledOrder.id,
             service_id: cancelledOrder.service_id,
-            service_name: cancelledOrder.service_name || 'votre prestation',
+            service_name: cancelledOrder.service_name || t('modals.yourService'),
             cancellation_reason: cancelledOrder.cancellation_reason,
           };
           console.log('[ClientGlobalModals] Found rejected order in orders:', rejectedOrderData);
@@ -350,10 +394,17 @@ export const ClientGlobalModals: React.FC = () => {
 
       if (rejectedOrderData && !showRejectedModal && !showSatisfactionModal && !showArrivalModal && !showAcceptedModal && !showEnRouteModal) {
         console.log('[ClientGlobalModals] 🚨 SHOWING REJECTED MODAL for order', rejectedOrderData.id, 'type:', rejectedOrderData.type);
+
+        // IMMÉDIATEMENT ajouter au cache AsyncStorage (plus fiable que Redux)
+        addCancelledOrderId(rejectedOrderData.id);
+
+        // IMMÉDIATEMENT mettre à jour le statut dans Redux pour supprimer de "À venir"
+        dispatch(updateBookingStatus({ id: rejectedOrderData.id, status: 'cancelled' }));
+
         setRejectedOrder({
           id: rejectedOrderData.id,
           service_id: rejectedOrderData.service_id,
-          service_name: rejectedOrderData.service_name || 'votre prestation',
+          service_name: rejectedOrderData.service_name || t('modals.yourService'),
           cancellation_reason: rejectedOrderData.cancellation_reason,
           provider_name: rejectedOrderData.provider_name,
           type: rejectedOrderData.type || 'rejected',
@@ -367,7 +418,7 @@ export const ClientGlobalModals: React.FC = () => {
     } catch (error) {
       // Silently ignore
     }
-  }, [user, userRole, showArrivalModal, showSatisfactionModal, showAcceptedModal, showRejectedModal, showEnRouteModal, checkedOrderIds, idsLoaded, persistId]);
+  }, [user, userRole, showArrivalModal, showSatisfactionModal, showAcceptedModal, showRejectedModal, showEnRouteModal, checkedOrderIds, idsLoaded, persistId, t]);
 
   // Polling - ne démarre qu'une fois les IDs chargés
   useEffect(() => {
@@ -439,33 +490,121 @@ export const ClientGlobalModals: React.FC = () => {
   const handleSubmitSatisfaction = async (data: SatisfactionData) => {
     if (!satisfactionOrder) return;
 
+    const orderId = satisfactionOrder.id;
+    console.log('[ClientGlobalModals] Submitting satisfaction for order:', orderId);
+
     try {
-      await submitSatisfaction(satisfactionOrder.id, data);
-      setShowSatisfactionModal(false);
-      setSatisfactionOrder(null);
-      dispatch(fetchBookings());
+      await submitSatisfaction(orderId, data);
+
+      // Succès - fermer proprement
+      await closeSatisfactionModalProperly();
 
       // Afficher le message et rediriger vers le dashboard
       Alert.alert(
-        'Merci ! 🎉',
-        'Votre avis a été enregistré avec succès.',
+        t('modals.thankYou'),
+        t('satisfaction.reviewRecorded'),
         [{
-          text: 'Retour à l\'accueil',
+          text: t('satisfaction.backToHome'),
           onPress: () => router.replace('/(client)' as any),
         }]
       );
     } catch (err: any) {
+      console.log('[ClientGlobalModals] Error submitting satisfaction:', err);
+      const errorMsg = err?.response?.data?.message || '';
+
+      // Si erreur 400 "déjà évalué", fermer proprement et rediriger
+      if (err?.response?.status === 400 && errorMsg.toLowerCase().includes('deja')) {
+        console.log('[ClientGlobalModals] Already reviewed - closing modal and redirecting');
+        // Fermer le modal
+        setShowSatisfactionModal(false);
+        setSatisfactionOrder(null);
+        // Marquer comme montré et persister
+        shownSatisfactionModalIds.current.add(orderId);
+        await AsyncStorage.setItem(
+          STORAGE_KEY_SATISFACTION,
+          JSON.stringify(Array.from(shownSatisfactionModalIds.current).slice(-50))
+        );
+        // IMPORTANT: Ajouter au cache satisfiedOrdersCache (double protection)
+        await addSatisfiedOrderId(orderId);
+        dispatch(updateBookingStatus({ id: orderId, status: 'completed' }));
+        dispatch(fetchBookings());
+        // Rediriger immédiatement
+        router.replace('/(client)' as any);
+        return;
+      }
+
+      // Autre erreur 400/422 - fermer aussi pour éviter blocage
+      if (err?.response?.status === 400 || err?.response?.status === 422) {
+        setShowSatisfactionModal(false);
+        setSatisfactionOrder(null);
+        dispatch(fetchBookings());
+        Alert.alert('Erreur', errorMsg || 'Une erreur est survenue', [{ text: 'OK' }]);
+        return;
+      }
+
+      // Autres erreurs - propager pour affichage dans le modal
       throw err;
     }
   };
 
-  // Fermer satisfaction - BLOQUÉ car obligatoire
-  const handleCloseSatisfactionModal = () => {
-    // Ne pas permettre de fermer - l'evaluation est obligatoire
+  // Fermer satisfaction proprement (après soumission ou "déjà évalué")
+  const closeSatisfactionModalProperly = async () => {
+    if (satisfactionOrder) {
+      const orderId = satisfactionOrder.id;
+      // Marquer comme montré dans le Set mémoire
+      shownSatisfactionModalIds.current.add(orderId);
+      // Persister dans AsyncStorage (Set local)
+      await AsyncStorage.setItem(
+        STORAGE_KEY_SATISFACTION,
+        JSON.stringify(Array.from(shownSatisfactionModalIds.current).slice(-50))
+      );
+      // IMPORTANT: Ajouter aussi au cache satisfiedOrdersCache (double protection)
+      await addSatisfiedOrderId(orderId);
+      // Mettre à jour le statut local
+      dispatch(updateBookingStatus({ id: orderId, status: 'completed' }));
+    }
+    setShowSatisfactionModal(false);
+    setSatisfactionOrder(null);
+    dispatch(fetchBookings());
+  };
+
+  // Fermer satisfaction - permet de fermer si déjà évalué ou erreur
+  const handleCloseSatisfactionModal = async () => {
+    if (!satisfactionOrder) return;
+
+    const orderId = satisfactionOrder.id;
+
+    // Vérifier si déjà évalué avant de bloquer
+    try {
+      const statusResponse = await apiClient.get(`/api/orders/${orderId}/satisfaction-status`);
+      const satStatus = statusResponse.data?.data;
+
+      if (satStatus?.survey_submitted === true || satStatus?.order_status === 'completed') {
+        // Déjà évalué - permettre de fermer
+        console.log('[ClientGlobalModals] Already evaluated - allowing close');
+        setShowSatisfactionModal(false);
+        setSatisfactionOrder(null);
+        shownSatisfactionModalIds.current.add(orderId);
+        await AsyncStorage.setItem(
+          STORAGE_KEY_SATISFACTION,
+          JSON.stringify(Array.from(shownSatisfactionModalIds.current).slice(-50))
+        );
+        // IMPORTANT: Ajouter au cache satisfiedOrdersCache
+        await addSatisfiedOrderId(orderId);
+        dispatch(updateBookingStatus({ id: orderId, status: 'completed' }));
+        dispatch(fetchBookings());
+        router.replace('/(client)' as any);
+        return;
+      }
+    } catch (e) {
+      console.log('[ClientGlobalModals] Error checking status:', e);
+    }
+
+    // Pas encore évalué - afficher le message
     Alert.alert(
-      'Évaluation obligatoire',
-      'Vous devez évaluer votre prestation pour que le paiement soit déclenché. Vous ne pourrez pas faire de nouvelle réservation avant d\'avoir évalué.',
-      [{ text: 'Compris', style: 'default' }]
+      t('satisfaction.mandatoryEvaluation'),
+      t('satisfaction.mustEvaluate'),
+      [{ text: t('satisfaction.understood'), style: 'default' }]
     );
   };
 
@@ -473,6 +612,8 @@ export const ClientGlobalModals: React.FC = () => {
   const handleDismissRejectedModal = () => {
     setShowRejectedModal(false);
     setRejectedOrder(null);
+    // Rafraîchir les réservations pour mettre à jour le statut
+    dispatch(fetchBookings());
   };
 
   // Chercher un autre prestataire après refus - rediriger vers nouvelle réservation
@@ -484,6 +625,9 @@ export const ClientGlobalModals: React.FC = () => {
 
     setShowRejectedModal(false);
     setRejectedOrder(null);
+
+    // Rafraîchir les réservations pour supprimer la commande annulée de "À venir"
+    dispatch(fetchBookings());
 
     // Rediriger vers la page de création de réservation avec le même service
     // IMPORTANT: Le paramètre doit être 'service_id' (snake_case) pour booking/create.tsx
@@ -512,14 +656,14 @@ export const ClientGlobalModals: React.FC = () => {
         onRequestClose={handleDismissArrivalModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, isRTL && styles.modalContentRTL]}>
             <Text style={styles.modalIcon}>🚗</Text>
-            <Text style={styles.modalTitle}>Prestataire arrivé !</Text>
-            <Text style={styles.modalMessage}>
-              {arrivedOrder?.provider_name} est arrivé pour {arrivedOrder?.service_name}.
+            <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t('modals.providerArrived')}</Text>
+            <Text style={[styles.modalMessage, isRTL && styles.textRTL]}>
+              {t('modals.arrivedMessage', { providerName: arrivedOrder?.provider_name, serviceName: arrivedOrder?.service_name })}
             </Text>
-            <Text style={styles.modalSubtext}>
-              Confirmez son arrivée pour démarrer la prestation.
+            <Text style={[styles.modalSubtext, isRTL && styles.textRTL]}>
+              {t('modals.confirmArrivalSubtext')}
             </Text>
 
             <TouchableOpacity
@@ -530,7 +674,7 @@ export const ClientGlobalModals: React.FC = () => {
               {confirmingArrival ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <Text style={styles.confirmButtonText}>✓ Confirmer l'arrivée</Text>
+                <Text style={styles.confirmButtonText}>✓ {t('modals.confirmArrival')}</Text>
               )}
             </TouchableOpacity>
 
@@ -539,7 +683,7 @@ export const ClientGlobalModals: React.FC = () => {
               onPress={handleDismissArrivalModal}
               disabled={confirmingArrival}
             >
-              <Text style={styles.laterButtonText}>Plus tard</Text>
+              <Text style={styles.laterButtonText}>{t('modals.later')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -553,15 +697,15 @@ export const ClientGlobalModals: React.FC = () => {
         onRequestClose={handleDismissAcceptedModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, isRTL && styles.modalContentRTL]}>
             <Text style={styles.modalIcon}>🎉</Text>
-            <Text style={styles.modalTitle}>Commande acceptée !</Text>
-            <Text style={styles.modalMessage}>
-              {acceptedOrder?.provider_name} a accepté votre demande pour {acceptedOrder?.service_name}.
+            <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t('modals.orderAccepted')}</Text>
+            <Text style={[styles.modalMessage, isRTL && styles.textRTL]}>
+              {t('modals.acceptedMessage', { providerName: acceptedOrder?.provider_name, serviceName: acceptedOrder?.service_name })}
             </Text>
             {acceptedOrder?.booking_time ? (
-              <Text style={styles.modalSubtext}>
-                Rendez-vous prévu à {acceptedOrder.booking_time.substring(0, 5)}
+              <Text style={[styles.modalSubtext, isRTL && styles.textRTL]}>
+                {t('modals.appointmentAt', { time: acceptedOrder.booking_time.substring(0, 5) })}
               </Text>
             ) : null}
 
@@ -569,14 +713,14 @@ export const ClientGlobalModals: React.FC = () => {
               style={styles.confirmButton}
               onPress={handleViewAcceptedOrder}
             >
-              <Text style={styles.confirmButtonText}>📍 Suivre ma commande</Text>
+              <Text style={styles.confirmButtonText}>📍 {t('modals.trackOrder')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.laterButton}
               onPress={handleDismissAcceptedModal}
             >
-              <Text style={styles.laterButtonText}>Fermer</Text>
+              <Text style={styles.laterButtonText}>{t('modals.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -590,37 +734,36 @@ export const ClientGlobalModals: React.FC = () => {
         onRequestClose={handleDismissEnRouteModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.enRouteModalContent]}>
+          <View style={[styles.modalContent, styles.enRouteModalContent, isRTL && styles.modalContentRTL]}>
             <View style={styles.enRouteIconContainer}>
               <Text style={styles.enRouteIcon}>🚗</Text>
             </View>
-            <Text style={[styles.modalTitle, styles.enRouteTitle]}>En route !</Text>
-            <Text style={styles.modalMessage}>
-              {enRouteOrder?.provider_name} est en chemin pour{'\n'}
-              <Text style={styles.serviceName}>{enRouteOrder?.service_name}</Text>
+            <Text style={[styles.modalTitle, styles.enRouteTitle, isRTL && styles.textRTL]}>{t('modals.enRoute')}</Text>
+            <Text style={[styles.modalMessage, isRTL && styles.textRTL]}>
+              {t('modals.enRouteMessage', { providerName: enRouteOrder?.provider_name, serviceName: enRouteOrder?.service_name })}
             </Text>
             {enRouteOrder?.eta_minutes ? (
               <View style={styles.etaContainer}>
-                <Text style={styles.etaLabel}>Arrivée estimée dans</Text>
-                <Text style={styles.etaValue}>{enRouteOrder.eta_minutes} min</Text>
+                <Text style={[styles.etaLabel, isRTL && styles.textRTL]}>{t('modals.estimatedArrival')}</Text>
+                <Text style={styles.etaValue}>{enRouteOrder.eta_minutes} {t('modals.min')}</Text>
               </View>
             ) : null}
-            <Text style={styles.enRouteSubtext}>
-              Préparez-vous, votre prestataire arrive bientôt !
+            <Text style={[styles.enRouteSubtext, isRTL && styles.textRTL]}>
+              {t('modals.prepareForArrival')}
             </Text>
 
             <TouchableOpacity
               style={styles.trackButton}
               onPress={handleViewEnRouteOrder}
             >
-              <Text style={styles.trackButtonText}>📍 Suivre en temps réel</Text>
+              <Text style={styles.trackButtonText}>📍 {t('modals.trackRealTime')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.laterButton}
               onPress={handleDismissEnRouteModal}
             >
-              <Text style={styles.laterButtonText}>OK, compris</Text>
+              <Text style={styles.laterButtonText}>{t('modals.okUnderstood')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -654,44 +797,42 @@ export const ClientGlobalModals: React.FC = () => {
         onRequestClose={handleDismissRejectedModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.rejectedModalContent]}>
+          <View style={[styles.modalContent, styles.rejectedModalContent, isRTL && styles.modalContentRTL]}>
             <View style={styles.rejectedIconContainer}>
               <Text style={styles.rejectedIcon}>
                 {rejectedOrder?.type === 'cancelled' ? '😔' : '❌'}
               </Text>
             </View>
-            <Text style={[styles.modalTitle, styles.rejectedTitle]}>
+            <Text style={[styles.modalTitle, styles.rejectedTitle, isRTL && styles.textRTL]}>
               {rejectedOrder?.type === 'cancelled'
-                ? 'Prestataire indisponible'
-                : 'Commande refusée'
+                ? t('modals.providerUnavailable')
+                : t('modals.orderRejected')
               }
             </Text>
-            <Text style={styles.modalMessage}>
+            <Text style={[styles.modalMessage, isRTL && styles.textRTL]}>
               {rejectedOrder?.type === 'cancelled' ? (
                 <>
                   {rejectedOrder?.provider_name
-                    ? `${rejectedOrder.provider_name} ne peut plus assurer`
-                    : 'Le prestataire ne peut plus assurer'
-                  }{'\n'}
-                  <Text style={styles.serviceName}>{rejectedOrder?.service_name}</Text>
+                    ? t('modals.providerCannotServe', { providerName: rejectedOrder.provider_name, serviceName: rejectedOrder?.service_name })
+                    : t('modals.serviceUnavailable', { serviceName: rejectedOrder?.service_name })
+                  }
                 </>
               ) : (
                 <>
-                  Désolé, le prestataire n'est pas disponible pour{'\n'}
-                  <Text style={styles.serviceName}>{rejectedOrder?.service_name}</Text>
+                  {t('modals.providerNotAvailable', { serviceName: rejectedOrder?.service_name })}
                 </>
               )}
             </Text>
             {rejectedOrder?.cancellation_reason && (
-              <View style={styles.reasonContainer}>
-                <Text style={styles.reasonLabel}>Raison :</Text>
-                <Text style={styles.reasonText}>{rejectedOrder.cancellation_reason}</Text>
+              <View style={[styles.reasonContainer, isRTL && styles.reasonContainerRTL]}>
+                <Text style={[styles.reasonLabel, isRTL && styles.textRTL]}>{t('modals.reason')}</Text>
+                <Text style={[styles.reasonText, isRTL && styles.textRTL]}>{rejectedOrder.cancellation_reason}</Text>
               </View>
             )}
-            <Text style={styles.encourageText}>
+            <Text style={[styles.encourageText, isRTL && styles.textRTL]}>
               {rejectedOrder?.type === 'cancelled'
-                ? '🔍 Nous recherchons un remplaçant pour vous !'
-                : 'Ne vous inquiétez pas ! D\'autres prestataires sont disponibles.'
+                ? t('modals.searchingReplacement')
+                : t('modals.otherProvidersAvailable')
               }
             </Text>
 
@@ -701,8 +842,8 @@ export const ClientGlobalModals: React.FC = () => {
             >
               <Text style={styles.newBookingButtonText}>
                 {rejectedOrder?.type === 'cancelled'
-                  ? '🔄 Trouver un autre prestataire'
-                  : '🔄 Nouvelle réservation'
+                  ? t('modals.findAnotherProvider')
+                  : t('modals.newBooking')
                 }
               </Text>
             </TouchableOpacity>
@@ -711,7 +852,7 @@ export const ClientGlobalModals: React.FC = () => {
               style={styles.laterButton}
               onPress={handleDismissRejectedModal}
             >
-              <Text style={styles.laterButtonText}>Plus tard</Text>
+              <Text style={styles.laterButtonText}>{t('modals.later')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -909,6 +1050,17 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold as any,
+  },
+  // RTL Styles
+  modalContentRTL: {
+    direction: 'rtl',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  reasonContainerRTL: {
+    alignItems: 'flex-end',
   },
 });
 

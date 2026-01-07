@@ -21,6 +21,8 @@ import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../src/i18n/translations/services';
 
 // Delai avant redirection automatique (en secondes)
 const AUTO_REDIRECT_DELAY = 5;
@@ -28,17 +30,19 @@ const AUTO_REDIRECT_DELAY = 5;
 export default function BookingConfirmationScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
 
   // Countdown pour redirection automatique
   const [countdown, setCountdown] = useState(AUTO_REDIRECT_DELAY);
 
   // Extract params with defaults
   const bookingId = params.booking_id as string || '12345';
-  const serviceName = params.service_name as string || 'Service';
+  const rawServiceName = params.service_name as string || 'Service';
+  const serviceName = getServiceTranslation(rawServiceName, language).title;
   const providerName = params.provider_name as string || '';
   const bookingDate = params.date as string || new Date().toISOString().split('T')[0];
   const bookingTime = params.time as string || '10:00';
-  const bookingAddress = params.address as string || 'Adresse';
+  const bookingAddress = params.address as string || t('common.address');
   const totalPrice = params.total as string || '0';
   const formula = params.formula as string || 'Standard';
 
@@ -110,7 +114,11 @@ export default function BookingConfirmationScreen() {
     hapticFeedback.light();
     try {
       await Share.share({
-        message: `J'ai reserve ${serviceName} avec GlamGo pour le ${bookingDate} a ${bookingTime}. Telechargez GlamGo pour reserver vos services beaute a domicile !`,
+        message: t('bookingConfirmation.shareMessage', {
+          serviceName,
+          date: bookingDate,
+          time: bookingTime
+        }),
       });
     } catch (error) {
       console.error('Share error:', error);
@@ -127,7 +135,8 @@ export default function BookingConfirmationScreen() {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('fr-FR', {
+      const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
+      return date.toLocaleDateString(locale, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -165,58 +174,58 @@ export default function BookingConfirmationScreen() {
               transform: [{ translateY: contentTranslateY }],
             }
           ]}>
-        <Text style={styles.title}>Reservation confirmee !</Text>
-        <Text style={styles.subtitle}>
-          Votre reservation a ete creee avec succes
+        <Text style={[styles.title, isRTL && styles.rtlText]}>{t('bookingConfirmation.title')}</Text>
+        <Text style={[styles.subtitle, isRTL && styles.rtlText]}>
+          {t('bookingConfirmation.subtitle')}
         </Text>
 
         {/* Booking Details Card */}
         <Card style={styles.detailsCard}>
           {/* Booking ID */}
-          <View style={styles.bookingIdRow}>
-            <Text style={styles.bookingIdLabel}>N de reservation</Text>
+          <View style={[styles.bookingIdRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.bookingIdLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.bookingNumber')}</Text>
             <Text style={styles.bookingId}>#{bookingId}</Text>
           </View>
 
           <View style={styles.divider} />
 
           {/* Service */}
-          <View style={styles.detailRow}>
+          <View style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
             <Text style={styles.detailIcon}>💇</Text>
             <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Service</Text>
-              <Text style={styles.detailValue}>{serviceName}</Text>
+              <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.service')}</Text>
+              <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{serviceName}</Text>
             </View>
           </View>
 
           {/* Provider */}
           {providerName && (
-            <View style={styles.detailRow}>
+            <View style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
               <Text style={styles.detailIcon}>👤</Text>
               <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Prestataire</Text>
-                <Text style={styles.detailValue}>{providerName}</Text>
+                <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.provider')}</Text>
+                <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{providerName}</Text>
               </View>
             </View>
           )}
 
           {/* Date & Time */}
-          <View style={styles.detailRow}>
+          <View style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
             <Text style={styles.detailIcon}>📅</Text>
             <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Date et heure</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(bookingDate)} a {bookingTime}
+              <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.dateTime')}</Text>
+              <Text style={[styles.detailValue, isRTL && styles.rtlText]}>
+                {formatDate(bookingDate)} {t('bookingConfirmation.at')} {bookingTime}
               </Text>
             </View>
           </View>
 
           {/* Address */}
-          <View style={styles.detailRow}>
+          <View style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
             <Text style={styles.detailIcon}>📍</Text>
             <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Adresse</Text>
-              <Text style={styles.detailValue} numberOfLines={2}>
+              <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.address')}</Text>
+              <Text style={[styles.detailValue, isRTL && styles.rtlText]} numberOfLines={2}>
                 {bookingAddress}
               </Text>
             </View>
@@ -224,11 +233,11 @@ export default function BookingConfirmationScreen() {
 
           {/* Formula */}
           {formula && (
-            <View style={styles.detailRow}>
+            <View style={[styles.detailRow, isRTL && styles.detailRowRTL]}>
               <Text style={styles.detailIcon}>📋</Text>
               <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Formule</Text>
-                <Text style={styles.detailValue}>{formula}</Text>
+                <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.formula')}</Text>
+                <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{formula}</Text>
               </View>
             </View>
           )}
@@ -236,42 +245,42 @@ export default function BookingConfirmationScreen() {
           <View style={styles.divider} />
 
           {/* Total */}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+          <View style={[styles.totalRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.totalLabel, isRTL && styles.rtlText]}>{t('bookingConfirmation.total')}</Text>
             <Text style={styles.totalValue}>{totalPrice} DH</Text>
           </View>
         </Card>
 
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
+        <View style={[styles.quickActions, isRTL && styles.quickActionsRTL]}>
           <TouchableOpacity style={styles.quickAction} onPress={handleAddToCalendar}>
             <View style={styles.quickActionIcon}>
               <Text style={styles.quickActionEmoji}>📅</Text>
             </View>
-            <Text style={styles.quickActionText}>Ajouter au calendrier</Text>
+            <Text style={[styles.quickActionText, isRTL && styles.rtlText]}>{t('bookingConfirmation.addToCalendar')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickAction} onPress={handleShare}>
             <View style={styles.quickActionIcon}>
               <Text style={styles.quickActionEmoji}>📤</Text>
             </View>
-            <Text style={styles.quickActionText}>Partager</Text>
+            <Text style={[styles.quickActionText, isRTL && styles.rtlText]}>{t('bookingConfirmation.share')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Timer Info - Redirection automatique */}
-        <View style={styles.timerMessage}>
+        <View style={[styles.timerMessage, isRTL && styles.rowRTL]}>
           <Text style={styles.timerIcon}>⏱️</Text>
-          <Text style={styles.timerText}>
-            Redirection vers vos reservations dans <Text style={styles.timerCountdown}>{countdown}s</Text>
+          <Text style={[styles.timerText, isRTL && styles.rtlText]}>
+            {t('bookingConfirmation.redirectTimer', { seconds: countdown })}
           </Text>
         </View>
 
         {/* Info Message */}
-        <View style={styles.infoMessage}>
+        <View style={[styles.infoMessage, isRTL && styles.rowRTL]}>
           <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoText}>
-            Le prestataire a 4 minutes pour repondre. Vous pouvez suivre le statut dans vos reservations.
+          <Text style={[styles.infoText, isRTL && styles.rtlText]}>
+            {t('bookingConfirmation.providerResponseInfo')}
           </Text>
         </View>
 
@@ -283,7 +292,7 @@ export default function BookingConfirmationScreen() {
             fullWidth
             style={styles.primaryButton}
           >
-            Voir mes reservations
+            {t('bookingConfirmation.viewBookings')}
           </Button>
 
           <Button
@@ -291,7 +300,7 @@ export default function BookingConfirmationScreen() {
             onPress={handleGoHome}
             fullWidth
           >
-            Retour a l'accueil
+            {t('bookingConfirmation.backToHome')}
           </Button>
         </View>
           </Animated.View>
@@ -500,5 +509,19 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginBottom: spacing.sm,
+  },
+
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  detailRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  quickActionsRTL: {
+    flexDirection: 'row-reverse',
   },
 });

@@ -19,10 +19,12 @@ import Button from '../../src/components/ui/Button';
 import Card from '../../src/components/ui/Card';
 import { hapticFeedback } from '../../src/lib/utils/haptics';
 import { confirmSubscriptionPayment } from '../../src/lib/api/providerAPI';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 export default function SubscriptionPaymentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t, isRTL } = useLanguage();
 
   const subscriptionId = Number(params.subscription_id);
   const planName = params.plan_name as string;
@@ -52,15 +54,15 @@ export default function SubscriptionPaymentScreen() {
   const handlePayment = async () => {
     // Validation basique
     if (cardNumber.replace(/\s/g, '').length < 16) {
-      Alert.alert('Erreur', 'Numéro de carte invalide');
+      Alert.alert(t('subscriptionPayment.error'), t('subscriptionPayment.invalidCard'));
       return;
     }
     if (expiry.length < 5) {
-      Alert.alert('Erreur', 'Date d\'expiration invalide');
+      Alert.alert(t('subscriptionPayment.error'), t('subscriptionPayment.invalidExpiry'));
       return;
     }
     if (cvv.length < 3) {
-      Alert.alert('Erreur', 'CVV invalide');
+      Alert.alert(t('subscriptionPayment.error'), t('subscriptionPayment.invalidCvv'));
       return;
     }
 
@@ -75,11 +77,11 @@ export default function SubscriptionPaymentScreen() {
 
       hapticFeedback.success();
       Alert.alert(
-        'Paiement réussi !',
-        `Votre abonnement ${planName} est maintenant actif. Profitez de tous vos avantages !`,
+        t('subscriptionPayment.paymentSuccess'),
+        t('subscriptionPayment.subscriptionActive').replace('{plan}', planName),
         [
           {
-            text: 'Commencer',
+            text: t('subscriptionPayment.start'),
             onPress: () => router.replace('/(provider)'),
           },
         ]
@@ -88,8 +90,8 @@ export default function SubscriptionPaymentScreen() {
       console.error('Erreur paiement:', error);
       hapticFeedback.error();
       Alert.alert(
-        'Paiement échoué',
-        error?.response?.data?.message || 'Une erreur est survenue lors du paiement'
+        t('subscriptionPayment.paymentFailed'),
+        error?.response?.data?.message || t('subscriptionPayment.paymentError')
       );
     } finally {
       setIsSubmitting(false);
@@ -98,12 +100,12 @@ export default function SubscriptionPaymentScreen() {
 
   const handlePayLater = () => {
     Alert.alert(
-      'Payer plus tard',
-      'Votre abonnement sera en attente de paiement. Vous ne pourrez pas profiter de tous les avantages tant que le paiement n\'est pas effectué.',
+      t('subscriptionPayment.payLater'),
+      t('subscriptionPayment.payLaterMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('subscriptionPayment.cancel'), style: 'cancel' },
         {
-          text: 'Continuer',
+          text: t('subscriptionPayment.continue'),
           onPress: () => router.replace('/(provider)'),
         },
       ]
@@ -113,11 +115,11 @@ export default function SubscriptionPaymentScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backIcon}>{'←'}</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paiement</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('subscriptionPayment.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -128,56 +130,58 @@ export default function SubscriptionPaymentScreen() {
       >
         {/* Résumé de la commande */}
         <Card style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Résumé de votre abonnement</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Plan</Text>
-            <Text style={styles.summaryValue}>{planName}</Text>
+          <Text style={[styles.summaryTitle, isRTL && styles.textRTL]}>{t('subscriptionPayment.summaryTitle')}</Text>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+            <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.plan')}</Text>
+            <Text style={[styles.summaryValue, isRTL && styles.textRTL]}>{planName}</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Durée</Text>
-            <Text style={styles.summaryValue}>1 mois</Text>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+            <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.duration')}</Text>
+            <Text style={[styles.summaryValue, isRTL && styles.textRTL]}>{t('subscriptionPayment.oneMonth')}</Text>
           </View>
           <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+            <Text style={[styles.totalLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.total')}</Text>
             <Text style={styles.totalValue}>{planPrice} DH</Text>
           </View>
         </Card>
 
         {/* Formulaire de carte */}
         <Card style={styles.paymentCard}>
-          <Text style={styles.cardTitle}>Informations de paiement</Text>
+          <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>{t('subscriptionPayment.paymentInfo')}</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Numéro de carte</Text>
+            <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.cardNumber')}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isRTL && styles.inputRTL]}
               placeholder="1234 5678 9012 3456"
               value={cardNumber}
               onChangeText={(text) => setCardNumber(formatCardNumber(text))}
               keyboardType="numeric"
               maxLength={19}
               placeholderTextColor={colors.gray[400]}
+              textAlign={isRTL ? 'right' : 'left'}
             />
           </View>
 
-          <View style={styles.rowInputs}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.md }]}>
-              <Text style={styles.inputLabel}>Expiration</Text>
+          <View style={[styles.rowInputs, isRTL && styles.rowInputsRTL]}>
+            <View style={[styles.inputGroup, { flex: 1 }, isRTL ? { marginLeft: spacing.md } : { marginRight: spacing.md }]}>
+              <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.expiration')}</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, isRTL && styles.inputRTL]}
                 placeholder="MM/AA"
                 value={expiry}
                 onChangeText={(text) => setExpiry(formatExpiry(text))}
                 keyboardType="numeric"
                 maxLength={5}
                 placeholderTextColor={colors.gray[400]}
+                textAlign={isRTL ? 'right' : 'left'}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>CVV</Text>
+              <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('subscriptionPayment.cvv')}</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, isRTL && styles.inputRTL]}
                 placeholder="123"
                 value={cvv}
                 onChangeText={(text) => setCvv(text.replace(/\D/g, '').substring(0, 4))}
@@ -185,23 +189,24 @@ export default function SubscriptionPaymentScreen() {
                 maxLength={4}
                 secureTextEntry
                 placeholderTextColor={colors.gray[400]}
+                textAlign={isRTL ? 'right' : 'left'}
               />
             </View>
           </View>
 
-          <View style={styles.securityNote}>
-            <Text style={styles.securityIcon}>{'🔒'}</Text>
-            <Text style={styles.securityText}>
-              Vos informations de paiement sont sécurisées et chiffrées
+          <View style={[styles.securityNote, isRTL && styles.securityNoteRTL]}>
+            <Text style={[styles.securityIcon, isRTL && styles.securityIconRTL]}>{'🔒'}</Text>
+            <Text style={[styles.securityText, isRTL && styles.textRTL]}>
+              {t('subscriptionPayment.securityNote')}
             </Text>
           </View>
         </Card>
 
         {/* Mode démo */}
-        <View style={styles.demoNote}>
-          <Text style={styles.demoIcon}>{'ℹ️'}</Text>
-          <Text style={styles.demoText}>
-            Mode démonstration : utilisez n'importe quel numéro de carte valide pour tester
+        <View style={[styles.demoNote, isRTL && styles.demoNoteRTL]}>
+          <Text style={[styles.demoIcon, isRTL && styles.demoIconRTL]}>{'ℹ️'}</Text>
+          <Text style={[styles.demoText, isRTL && styles.textRTL]}>
+            {t('subscriptionPayment.demoNote')}
           </Text>
         </View>
       </ScrollView>
@@ -215,11 +220,11 @@ export default function SubscriptionPaymentScreen() {
           loading={isSubmitting}
           disabled={isSubmitting}
         >
-          {`Payer ${planPrice} DH`}
+          {t('subscriptionPayment.pay').replace('{amount}', planPrice.toString())}
         </Button>
 
         <TouchableOpacity onPress={handlePayLater} style={styles.payLaterButton}>
-          <Text style={styles.payLaterText}>Payer plus tard</Text>
+          <Text style={[styles.payLaterText, isRTL && styles.textRTL]}>{t('subscriptionPayment.payLater')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -400,5 +405,37 @@ const styles = StyleSheet.create({
   payLaterText: {
     fontSize: typography.fontSize.sm,
     color: colors.gray[500],
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  summaryRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  rowInputsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  securityNoteRTL: {
+    flexDirection: 'row-reverse',
+  },
+  securityIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  demoNoteRTL: {
+    flexDirection: 'row-reverse',
+  },
+  demoIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });

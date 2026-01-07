@@ -22,9 +22,11 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  I18nManager,
 } from 'react-native';
 import { colors, spacing, typography, shadows, borderRadius } from '../../lib/constants/theme';
 import { moderateMessage } from '../../lib/utils/contentModeration';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Order {
   id: number;
@@ -56,14 +58,14 @@ interface SatisfactionData {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Labels pour les notes
-const ratingLabels: Record<number, string> = {
-  0: 'Cliquez pour noter',
-  1: 'Très insatisfait',
-  2: 'Insatisfait',
-  3: 'Correct',
-  4: 'Satisfait',
-  5: 'Excellent !',
+// Keys pour les labels de notes
+const RATING_LABEL_KEYS: Record<number, string> = {
+  0: 'satisfaction.clickToRate',
+  1: 'satisfaction.verySatisfied',
+  2: 'satisfaction.unsatisfied',
+  3: 'satisfaction.correct',
+  4: 'satisfaction.satisfied',
+  5: 'satisfaction.excellentRating',
 };
 
 // Composant StarRating
@@ -72,11 +74,12 @@ const StarRating: React.FC<{
   onChange: (value: number) => void;
   size?: 'small' | 'large';
   disabled?: boolean;
-}> = ({ value, onChange, size = 'large', disabled = false }) => {
+  isRTL?: boolean;
+}> = ({ value, onChange, size = 'large', disabled = false, isRTL = false }) => {
   const fontSize = size === 'large' ? 36 : 24;
 
   return (
-    <View style={styles.starRating}>
+    <View style={[styles.starRating, isRTL && styles.starRatingRTL]}>
       {[1, 2, 3, 4, 5].map((star) => (
         <TouchableOpacity
           key={star}
@@ -97,15 +100,18 @@ const StarRating: React.FC<{
 const YesNoButtons: React.FC<{
   value: boolean | null;
   onChange: (value: boolean) => void;
-}> = ({ value, onChange }) => (
-  <View style={styles.yesNoContainer}>
+  yesLabel: string;
+  noLabel: string;
+  isRTL?: boolean;
+}> = ({ value, onChange, yesLabel, noLabel, isRTL = false }) => (
+  <View style={[styles.yesNoContainer, isRTL && styles.yesNoContainerRTL]}>
     <TouchableOpacity
       style={[styles.yesNoButton, value === true && styles.yesNoButtonSelected]}
       onPress={() => onChange(true)}
     >
       <Text style={[styles.yesNoIcon, value === true && styles.yesNoIconSelected]}>✓</Text>
       <Text style={[styles.yesNoText, value === true && styles.yesNoTextSelected]}>
-        Oui
+        {yesLabel}
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -114,7 +120,7 @@ const YesNoButtons: React.FC<{
     >
       <Text style={[styles.yesNoIcon, value === false && styles.yesNoIconSelectedNo]}>✗</Text>
       <Text style={[styles.yesNoText, value === false && styles.yesNoTextSelected]}>
-        Non
+        {noLabel}
       </Text>
     </TouchableOpacity>
   </View>
@@ -129,21 +135,23 @@ const TipSelector: React.FC<{
   onShowCustom: () => void;
   onCustomChange: (value: string) => void;
   paymentMethod?: string;
-}> = ({ value, customTip, showCustom, onSelectAmount, onShowCustom, onCustomChange, paymentMethod }) => {
+  t: (key: string) => string;
+  isRTL?: boolean;
+}> = ({ value, customTip, showCustom, onSelectAmount, onShowCustom, onCustomChange, paymentMethod, t, isRTL = false }) => {
   const tipAmounts = [0, 10, 20, 50];
   const isCard = paymentMethod === 'card';
 
   return (
     <View style={styles.tipSection}>
-      <View style={styles.tipHeader}>
+      <View style={[styles.tipHeader, isRTL && styles.tipHeaderRTL]}>
         <Text style={styles.tipIcon}>💝</Text>
         <View style={styles.tipHeaderText}>
-          <Text style={styles.tipLabel}>Laisser un pourboire ?</Text>
-          <Text style={styles.tipHint}>Pour remercier votre prestataire</Text>
+          <Text style={[styles.tipLabel, isRTL && styles.textRTL]}>{t('satisfaction.leaveTip')}</Text>
+          <Text style={[styles.tipHint, isRTL && styles.textRTL]}>{t('satisfaction.toThankProvider')}</Text>
         </View>
       </View>
 
-      <View style={styles.tipOptions}>
+      <View style={[styles.tipOptions, isRTL && styles.tipOptionsRTL]}>
         {tipAmounts.map((amount) => (
           <TouchableOpacity
             key={amount}
@@ -159,7 +167,7 @@ const TipSelector: React.FC<{
                 value === amount && !showCustom && styles.tipOptionTextSelected,
               ]}
             >
-              {amount === 0 ? 'Non merci' : `${amount} DH`}
+              {amount === 0 ? t('satisfaction.noThanks') : `${amount} DH`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -168,21 +176,22 @@ const TipSelector: React.FC<{
           onPress={onShowCustom}
         >
           <Text style={[styles.tipOptionText, showCustom && styles.tipOptionTextSelected]}>
-            Autre
+            {t('satisfaction.other')}
           </Text>
         </TouchableOpacity>
       </View>
 
       {showCustom && (
-        <View style={styles.customTipContainer}>
+        <View style={[styles.customTipContainer, isRTL && styles.customTipContainerRTL]}>
           <TextInput
-            style={styles.customTipInput}
-            placeholder="Montant..."
+            style={[styles.customTipInput, isRTL && styles.inputRTL]}
+            placeholder={t('satisfaction.amount')}
             placeholderTextColor={colors.gray[400]}
             keyboardType="numeric"
             value={customTip}
             onChangeText={onCustomChange}
             maxLength={3}
+            textAlign={isRTL ? 'right' : 'left'}
           />
           <Text style={styles.customTipCurrency}>DH</Text>
         </View>
@@ -190,11 +199,11 @@ const TipSelector: React.FC<{
 
       {(value > 0 || (showCustom && customTip)) && (
         <View style={styles.tipConfirmation}>
-          <Text style={styles.tipConfirmationText}>
-            Pourboire : <Text style={styles.tipAmount}>{customTip || value} DH</Text>
+          <Text style={[styles.tipConfirmationText, isRTL && styles.textRTL]}>
+            {t('satisfaction.tip')} : <Text style={styles.tipAmount}>{customTip || value} DH</Text>
           </Text>
-          <Text style={styles.tipChargeNote}>
-            {isCard ? 'Sera prélevé avec le paiement par carte' : 'À remettre en espèces au prestataire'}
+          <Text style={[styles.tipChargeNote, isRTL && styles.textRTL]}>
+            {isCard ? t('satisfaction.tipWillBeCharged') : t('satisfaction.tipInCash')}
           </Text>
         </View>
       )}
@@ -208,9 +217,16 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { t, isRTL } = useLanguage();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Get rating label from translation
+  const getRatingLabel = (rating: number): string => {
+    const key = RATING_LABEL_KEYS[rating] || RATING_LABEL_KEYS[0];
+    return t(key);
+  };
 
   const [formData, setFormData] = useState<SatisfactionData & { customTip: string; showCustomTip: boolean }>({
     quality_rating: 0,
@@ -238,7 +254,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
     if (text.trim().length > 0) {
       const moderation = moderateMessage(text);
       if (!moderation.isAllowed) {
-        setCommentWarning(moderation.reason || 'Contenu inapproprié détecté');
+        setCommentWarning(moderation.reason || t('satisfaction.inappropriateContent'));
       } else {
         setCommentWarning('');
       }
@@ -249,7 +265,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
 
   const validateStep1 = () => {
     if (formData.quality_rating === 0) {
-      setError('Veuillez noter la qualité de la prestation');
+      setError(t('satisfaction.rateQuality'));
       return false;
     }
     return true;
@@ -257,11 +273,11 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
 
   const validateStep2 = () => {
     if (formData.punctuality === null) {
-      setError('Veuillez indiquer si le prestataire était ponctuel');
+      setError(t('satisfaction.wasPunctualRequired'));
       return false;
     }
     if (formData.price_respected === null) {
-      setError('Veuillez indiquer si le prix était respecté');
+      setError(t('satisfaction.priceRespectedRequired'));
       return false;
     }
     return true;
@@ -286,7 +302,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
     if (formData.comment.trim().length > 0) {
       const moderation = moderateMessage(formData.comment);
       if (!moderation.isAllowed) {
-        setError(moderation.reason || 'Votre commentaire contient du contenu inapproprié');
+        setError(moderation.reason || t('satisfaction.commentInappropriate'));
         return;
       }
     }
@@ -297,6 +313,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
     const tipAmount = formData.customTip ? parseInt(formData.customTip) || 0 : (formData.tip || 0);
 
     try {
+      console.log('🔴 [SatisfactionModal] Submitting for order:', order.id);
       await onSubmit({
         quality_rating: formData.quality_rating,
         punctuality: formData.punctuality,
@@ -305,9 +322,13 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
         comment: formData.comment.trim() || null,
         tip: tipAmount > 0 ? tipAmount : null,
       });
-      onClose();
+      // onSubmit a réussi - ClientGlobalModals gère la fermeture et les alerts
+      console.log('🟢 [SatisfactionModal] onSubmit completed successfully');
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+      // Seules les erreurs non-gérées arrivent ici (500, réseau, etc.)
+      console.log('🔴 [SatisfactionModal] Unhandled ERROR:', err?.response?.status, err?.message);
+      const errorMsg = err?.response?.data?.message || err.message || t('satisfaction.errorOccurred');
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -331,7 +352,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
 
   const providerName = order.provider_name ||
     `${order.provider_first_name || ''} ${order.provider_last_name || ''}`.trim() ||
-    'le prestataire';
+    t('satisfaction.provider');
 
   return (
     <Modal
@@ -344,30 +365,29 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isRTL && styles.modalContainerRTL]}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, isRTL && styles.headerRTL]}>
             <View>
-              <Text style={styles.title}>Évaluez votre prestation</Text>
-              <Text style={styles.subtitle}>Votre avis compte !</Text>
+              <Text style={[styles.title, isRTL && styles.textRTL]}>{t('satisfaction.evaluateService')}</Text>
+              <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t('satisfaction.yourOpinionMatters')}</Text>
             </View>
             {/* Pas de bouton fermer - evaluation obligatoire */}
           </View>
 
           {/* Bandeau obligatoire */}
-          <View style={styles.mandatoryBanner}>
+          <View style={[styles.mandatoryBanner, isRTL && styles.mandatoryBannerRTL]}>
             <Text style={styles.mandatoryIcon}>⚠️</Text>
             <View style={styles.mandatoryTextContainer}>
-              <Text style={styles.mandatoryTitle}>Évaluation obligatoire</Text>
-              <Text style={styles.mandatoryText}>
-                Le paiement au prestataire sera déclenché après votre évaluation.
-                Vous ne pourrez pas faire de nouvelle réservation avant d'avoir évalué.
+              <Text style={[styles.mandatoryTitle, isRTL && styles.textRTL]}>{t('satisfaction.mandatoryEvaluation')}</Text>
+              <Text style={[styles.mandatoryText, isRTL && styles.textRTL]}>
+                {t('satisfaction.mandatoryText')}
               </Text>
             </View>
           </View>
 
           {/* Stepper */}
-          <View style={styles.stepper}>
+          <View style={[styles.stepper, isRTL && styles.stepperRTL]}>
             {[1, 2, 3].map((s, index) => (
               <React.Fragment key={s}>
                 <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
@@ -381,18 +401,18 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
               </React.Fragment>
             ))}
           </View>
-          <View style={styles.stepLabels}>
-            <Text style={[styles.stepLabel, step >= 1 && styles.stepLabelActive]}>Qualité</Text>
-            <Text style={[styles.stepLabel, step >= 2 && styles.stepLabelActive]}>Détails</Text>
-            <Text style={[styles.stepLabel, step >= 3 && styles.stepLabelActive]}>Avis</Text>
+          <View style={[styles.stepLabels, isRTL && styles.stepLabelsRTL]}>
+            <Text style={[styles.stepLabel, step >= 1 && styles.stepLabelActive]}>{t('satisfaction.quality')}</Text>
+            <Text style={[styles.stepLabel, step >= 2 && styles.stepLabelActive]}>{t('satisfaction.details')}</Text>
+            <Text style={[styles.stepLabel, step >= 3 && styles.stepLabelActive]}>{t('satisfaction.review')}</Text>
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Step 1: Quality Rating */}
             {step === 1 && (
               <View style={styles.stepContent}>
-                <Text style={styles.questionTitle}>
-                  Comment évaluez-vous la qualité de la prestation ?
+                <Text style={[styles.questionTitle, isRTL && styles.textRTL]}>
+                  {t('satisfaction.howDoYouRate')}
                 </Text>
 
                 <View style={styles.ratingContainer}>
@@ -400,9 +420,10 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     value={formData.quality_rating}
                     onChange={(val) => updateField('quality_rating', val)}
                     size="large"
+                    isRTL={isRTL}
                   />
-                  <Text style={styles.ratingLabel}>
-                    {ratingLabels[formData.quality_rating]}
+                  <Text style={[styles.ratingLabel, isRTL && styles.textRTL]}>
+                    {getRatingLabel(formData.quality_rating)}
                   </Text>
                 </View>
 
@@ -411,7 +432,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                   onPress={nextStep}
                   disabled={formData.quality_rating === 0}
                 >
-                  <Text style={styles.buttonText}>Suivant →</Text>
+                  <Text style={styles.buttonText}>{isRTL ? `← ${t('satisfaction.next')}` : `${t('satisfaction.next')} →`}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -420,42 +441,49 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
             {step === 2 && (
               <View style={styles.stepContent}>
                 <View style={styles.question}>
-                  <Text style={styles.questionLabel}>
-                    Le prestataire était-il ponctuel ?
+                  <Text style={[styles.questionLabel, isRTL && styles.textRTL]}>
+                    {t('satisfaction.wasPunctual')}
                   </Text>
                   <YesNoButtons
                     value={formData.punctuality}
                     onChange={(val) => updateField('punctuality', val)}
+                    yesLabel={t('common.yes')}
+                    noLabel={t('common.no')}
+                    isRTL={isRTL}
                   />
                 </View>
 
                 <View style={styles.question}>
-                  <Text style={styles.questionLabel}>
-                    Le prix annoncé a-t-il été respecté ?
+                  <Text style={[styles.questionLabel, isRTL && styles.textRTL]}>
+                    {t('satisfaction.priceRespected')}
                   </Text>
                   <YesNoButtons
                     value={formData.price_respected}
                     onChange={(val) => updateField('price_respected', val)}
+                    yesLabel={t('common.yes')}
+                    noLabel={t('common.no')}
+                    isRTL={isRTL}
                   />
                 </View>
 
                 <View style={styles.question}>
-                  <Text style={styles.questionLabel}>
-                    Professionnalisme (optionnel)
+                  <Text style={[styles.questionLabel, isRTL && styles.textRTL]}>
+                    {t('satisfaction.professionalismOptional')}
                   </Text>
                   <StarRating
                     value={formData.professionalism_rating}
                     onChange={(val) => updateField('professionalism_rating', val)}
                     size="small"
+                    isRTL={isRTL}
                   />
                 </View>
 
-                <View style={styles.stepActions}>
+                <View style={[styles.stepActions, isRTL && styles.stepActionsRTL]}>
                   <TouchableOpacity
                     style={[styles.button, styles.buttonSecondary]}
                     onPress={prevStep}
                   >
-                    <Text style={styles.buttonTextSecondary}>← Retour</Text>
+                    <Text style={styles.buttonTextSecondary}>{isRTL ? `${t('satisfaction.previous')} →` : `← ${t('satisfaction.previous')}`}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -466,7 +494,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     onPress={nextStep}
                     disabled={formData.punctuality === null || formData.price_respected === null}
                   >
-                    <Text style={styles.buttonText}>Suivant →</Text>
+                    <Text style={styles.buttonText}>{isRTL ? `← ${t('satisfaction.next')}` : `${t('satisfaction.next')} →`}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -492,19 +520,22 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     }}
                     onCustomChange={(val) => updateField('customTip', val)}
                     paymentMethod={order.payment_method}
+                    t={t}
+                    isRTL={isRTL}
                   />
                 )}
 
                 <View style={styles.question}>
-                  <Text style={styles.questionLabel}>
-                    Laissez un commentaire (optionnel)
+                  <Text style={[styles.questionLabel, isRTL && styles.textRTL]}>
+                    {t('satisfaction.leaveCommentOptional')}
                   </Text>
                   <TextInput
                     style={[
                       styles.commentInput,
+                      isRTL && styles.inputRTL,
                       commentWarning ? styles.commentInputError : null
                     ]}
-                    placeholder="Partagez votre expérience..."
+                    placeholder={t('satisfaction.shareExperience')}
                     placeholderTextColor={colors.gray[400]}
                     multiline
                     numberOfLines={4}
@@ -512,22 +543,23 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     value={formData.comment}
                     onChangeText={handleCommentChange}
                     textAlignVertical="top"
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                   {commentWarning ? (
-                    <View style={styles.commentWarning}>
+                    <View style={[styles.commentWarning, isRTL && styles.commentWarningRTL]}>
                       <Text style={styles.commentWarningIcon}>⚠️</Text>
-                      <Text style={styles.commentWarningText}>{commentWarning}</Text>
+                      <Text style={[styles.commentWarningText, isRTL && styles.textRTL]}>{commentWarning}</Text>
                     </View>
                   ) : null}
-                  <Text style={styles.charCount}>{formData.comment.length}/1000</Text>
+                  <Text style={[styles.charCount, isRTL && styles.charCountRTL]}>{formData.comment.length}/1000</Text>
                 </View>
 
-                <View style={styles.stepActions}>
+                <View style={[styles.stepActions, isRTL && styles.stepActionsRTL]}>
                   <TouchableOpacity
                     style={[styles.button, styles.buttonSecondary]}
                     onPress={prevStep}
                   >
-                    <Text style={styles.buttonTextSecondary}>← Retour</Text>
+                    <Text style={styles.buttonTextSecondary}>{isRTL ? `${t('satisfaction.previous')} →` : `← ${t('satisfaction.previous')}`}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -541,7 +573,7 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
                     {submitting ? (
                       <ActivityIndicator color={colors.white} size="small" />
                     ) : (
-                      <Text style={styles.buttonText}>✓ Valider</Text>
+                      <Text style={styles.buttonText}>✓ {t('satisfaction.validate')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -550,25 +582,36 @@ export const SatisfactionModal: React.FC<SatisfactionModalProps> = ({
 
             {/* Error Message */}
             {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorIcon}>⚠️</Text>
-                <Text style={styles.errorText}>{error}</Text>
+              <View style={styles.errorSection}>
+                <View style={[styles.errorContainer, isRTL && styles.errorContainerRTL]}>
+                  <Text style={styles.errorIcon}>⚠️</Text>
+                  <Text style={[styles.errorText, isRTL && styles.textRTL]}>{error}</Text>
+                </View>
+                {/* Bouton Fermer visible en cas d'erreur */}
+                <TouchableOpacity
+                  style={styles.closeErrorButton}
+                  onPress={onClose}
+                >
+                  <Text style={styles.closeErrorButtonText}>
+                    {t('common.close') || 'Fermer'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : null}
 
             {/* Order Summary */}
             <View style={styles.orderSummary}>
-              <Text style={styles.summaryTitle}>Récapitulatif</Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Service :</Text>
-                <Text style={styles.summaryValue}>{order.service_name || 'N/A'}</Text>
+              <Text style={[styles.summaryTitle, isRTL && styles.textRTL]}>{t('satisfaction.summary')}</Text>
+              <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+                <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('satisfaction.service')} :</Text>
+                <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{order.service_name || 'N/A'}</Text>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Prestataire :</Text>
-                <Text style={styles.summaryValue}>{providerName}</Text>
+              <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+                <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('satisfaction.provider')} :</Text>
+                <Text style={[styles.summaryValue, isRTL && styles.summaryValueRTL]}>{providerName}</Text>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Montant :</Text>
+              <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
+                <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('satisfaction.amountLabel')} :</Text>
                 <Text style={styles.summaryValueBold}>{order.price || order.total || 0} DH</Text>
               </View>
             </View>
@@ -944,6 +987,9 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: spacing.xs,
   },
+  errorSection: {
+    marginBottom: spacing.md,
+  },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -951,7 +997,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error + '15',
     padding: spacing.md,
     borderRadius: 12,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   errorIcon: {
     fontSize: 18,
@@ -960,6 +1006,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.error,
     flex: 1,
+  },
+  closeErrorButton: {
+    backgroundColor: colors.gray[600],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  closeErrorButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
   },
   orderSummary: {
     backgroundColor: colors.gray[50],
@@ -993,6 +1051,62 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.primary,
     fontWeight: typography.fontWeight.bold,
+  },
+  // RTL Styles
+  modalContainerRTL: {
+    direction: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  mandatoryBannerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepperRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepLabelsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  starRatingRTL: {
+    flexDirection: 'row-reverse',
+  },
+  yesNoContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepActionsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  tipHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  tipOptionsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  customTipContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  commentWarningRTL: {
+    flexDirection: 'row-reverse',
+  },
+  charCountRTL: {
+    textAlign: 'left',
+  },
+  errorContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  summaryRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  summaryValueRTL: {
+    textAlign: 'left',
   },
 });
 

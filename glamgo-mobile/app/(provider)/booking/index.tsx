@@ -19,6 +19,8 @@ import Button from '../../../src/components/ui/Button';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../src/lib/constants/theme';
 import { hapticFeedback } from '../../../src/lib/utils/haptics';
 import { getProviderOrders } from '../../../src/lib/api/providerAPI';
+import { useLanguage } from '../../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../../src/i18n/translations/services';
 
 interface ActiveJourney {
   id: number;
@@ -32,6 +34,7 @@ interface ActiveJourney {
 
 export default function BookingIndexScreen() {
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeJourneys, setActiveJourneys] = useState<ActiveJourney[]>([]);
@@ -112,11 +115,11 @@ export default function BookingIndexScreen() {
   const getStatusInfo = (status: 'on_way' | 'arrived' | 'in_progress') => {
     switch (status) {
       case 'on_way':
-        return { label: 'En route', color: colors.info, icon: '🚗' };
+        return { label: t('journeyTab.onWay'), color: colors.info, icon: '🚗' };
       case 'arrived':
-        return { label: 'Arrive', color: colors.warning, icon: '📍' };
+        return { label: t('journeyTab.arrived'), color: colors.warning, icon: '📍' };
       case 'in_progress':
-        return { label: 'En cours', color: colors.primary, icon: '✂️' };
+        return { label: t('journeyTab.inProgress'), color: colors.primary, icon: '✂️' };
     }
   };
 
@@ -124,7 +127,7 @@ export default function BookingIndexScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement...</Text>
+        <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -144,9 +147,9 @@ export default function BookingIndexScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mode Trajet</Text>
-        <Text style={styles.headerSubtitle}>
-          Suivez vos deplacements en temps reel
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('journeyTab.title')}</Text>
+        <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>
+          {t('journeyTab.subtitle')}
         </Text>
       </View>
 
@@ -156,23 +159,23 @@ export default function BookingIndexScreen() {
           <View style={styles.emptyIconContainer}>
             <Text style={styles.emptyIcon}>🚗</Text>
           </View>
-          <Text style={styles.emptyTitle}>Aucun trajet en cours</Text>
-          <Text style={styles.emptyDescription}>
-            Lorsque vous acceptez une reservation, vous pourrez suivre votre trajet vers le client ici.
+          <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t('journeyTab.noActiveJourney')}</Text>
+          <Text style={[styles.emptyDescription, isRTL && styles.textRTL]}>
+            {t('journeyTab.emptyDescription')}
           </Text>
 
           <View style={styles.emptyFeatures}>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>📍</Text>
-              <Text style={styles.featureText}>Navigation GPS integree</Text>
+            <View style={[styles.featureItem, isRTL && styles.featureItemRTL]}>
+              <Text style={[styles.featureIcon, isRTL && styles.featureIconRTL]}>📍</Text>
+              <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.gpsNavigation')}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>📞</Text>
-              <Text style={styles.featureText}>Contact client rapide</Text>
+            <View style={[styles.featureItem, isRTL && styles.featureItemRTL]}>
+              <Text style={[styles.featureIcon, isRTL && styles.featureIconRTL]}>📞</Text>
+              <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.quickContact')}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>⏱️</Text>
-              <Text style={styles.featureText}>Suivi du temps de prestation</Text>
+            <View style={[styles.featureItem, isRTL && styles.featureItemRTL]}>
+              <Text style={[styles.featureIcon, isRTL && styles.featureIconRTL]}>⏱️</Text>
+              <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.timeTracking')}</Text>
             </View>
           </View>
 
@@ -182,14 +185,14 @@ export default function BookingIndexScreen() {
             onPress={handleGoToBookings}
             style={styles.goToBookingsButton}
           >
-            Voir les demandes
+            {t('journeyTab.viewRequests')}
           </Button>
         </View>
       ) : (
         /* Active Journeys List */
         <View style={styles.journeysContainer}>
-          <Text style={styles.sectionTitle}>
-            {activeJourneys.length === 1 ? 'Trajet actif' : `${activeJourneys.length} trajets actifs`}
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>
+            {activeJourneys.length === 1 ? t('journeyTab.activeJourney') : t('journeyTab.activeJourneys', { count: activeJourneys.length })}
           </Text>
 
           {activeJourneys.map((journey) => {
@@ -213,18 +216,18 @@ export default function BookingIndexScreen() {
 
                   <View style={styles.journeyInfo}>
                     <Text style={styles.clientName}>{journey.clientName}</Text>
-                    <Text style={styles.serviceName}>{journey.serviceName}</Text>
+                    <Text style={styles.serviceName}>{getServiceTranslation(journey.serviceName, language).title}</Text>
                     <Text style={styles.address} numberOfLines={1}>
                       📍 {journey.address}
                     </Text>
                   </View>
 
-                  <View style={styles.journeyFooter}>
-                    <Text style={styles.scheduledTime}>
+                  <View style={[styles.journeyFooter, isRTL && styles.journeyFooterRTL]}>
+                    <Text style={[styles.scheduledTime, isRTL && styles.textRTL]}>
                       🕐 {journey.scheduledTime}
                     </Text>
                     <View style={styles.continueButton}>
-                      <Text style={styles.continueText}>Continuer →</Text>
+                      <Text style={styles.continueText}>{isRTL ? '← ' : ''}{t('journeyTab.continue')}{isRTL ? '' : ' →'}</Text>
                     </View>
                   </View>
                 </Card>
@@ -236,11 +239,11 @@ export default function BookingIndexScreen() {
 
       {/* Tips Card */}
       <Card style={styles.tipsCard}>
-        <Text style={styles.tipsTitle}>💡 Conseils</Text>
-        <Text style={styles.tipsText}>
-          • Activez votre GPS avant de partir{'\n'}
-          • Signalez votre arrivee pour rassurer le client{'\n'}
-          • Demarrez le chrono au debut de la prestation
+        <Text style={[styles.tipsTitle, isRTL && styles.textRTL]}>💡 {t('journeyTab.tips')}</Text>
+        <Text style={[styles.tipsText, isRTL && styles.textRTL]}>
+          {t('journeyTab.tip1')}{'\n'}
+          {t('journeyTab.tip2')}{'\n'}
+          {t('journeyTab.tip3')}
         </Text>
       </Card>
     </ScrollView>
@@ -446,5 +449,19 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[700],
     lineHeight: 22,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+  },
+  featureItemRTL: {
+    flexDirection: 'row-reverse',
+  },
+  featureIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
+  },
+  journeyFooterRTL: {
+    flexDirection: 'row-reverse',
   },
 });

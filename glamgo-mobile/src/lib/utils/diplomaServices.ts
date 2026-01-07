@@ -3,21 +3,25 @@
  * Synchronisé avec la web app - Gestion par catégorie
  */
 
-// Catégories nécessitant un diplôme avec leurs labels
-export const DIPLOMA_CATEGORIES: Record<string, { label: string; description: string; icon: string }> = {
+// Catégories nécessitant un diplôme avec leurs labels (fr et ar)
+export const DIPLOMA_CATEGORIES: Record<string, {
+  label: { fr: string; ar: string };
+  description: { fr: string; ar: string };
+  icon: string
+}> = {
   beaute: {
-    label: 'Diplôme Coiffure/Beauté',
-    description: 'Certificat de coiffure ou esthétique',
+    label: { fr: 'Diplôme Coiffure/Beauté', ar: 'شهادة تصفيف الشعر/التجميل' },
+    description: { fr: 'Certificat de coiffure ou esthétique', ar: 'شهادة تصفيف الشعر او التجميل' },
     icon: '💇',
   },
   'bien-etre': {
-    label: 'Diplôme Bien-être',
-    description: 'Certificat massage, yoga ou coaching',
+    label: { fr: 'Diplôme Bien-être', ar: 'شهادة الرفاهية' },
+    description: { fr: 'Certificat massage, yoga ou coaching', ar: 'شهادة التدليك، اليوغا او التدريب' },
     icon: '💆',
   },
   maison: {
-    label: 'Diplôme Cuisine',
-    description: 'Certificat de cuisine ou restauration',
+    label: { fr: 'Diplôme Cuisine', ar: 'شهادة الطبخ' },
+    description: { fr: 'Certificat de cuisine ou restauration', ar: 'شهادة الطبخ او المطاعم' },
     icon: '👨‍🍳',
   },
 };

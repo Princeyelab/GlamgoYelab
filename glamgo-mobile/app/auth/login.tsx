@@ -6,6 +6,7 @@ import Input from '../../src/components/ui/Input';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { loginUser, clearError, selectAuth } from '../../src/lib/store/slices/authSlice';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 type AccountType = 'client' | 'provider';
 
@@ -13,6 +14,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
+  const { t, isRTL } = useLanguage();
 
   const [accountType, setAccountType] = useState<AccountType>('client');
   const [email, setEmail] = useState('');
@@ -46,18 +48,18 @@ export default function LoginScreen() {
     let hasError = false;
 
     if (!email) {
-      setEmailError('Email requis');
+      setEmailError(t('auth.emailRequired'));
       hasError = true;
     } else if (!validateEmail(email)) {
-      setEmailError("Format d'email invalide");
+      setEmailError(t('auth.invalidEmail'));
       hasError = true;
     }
 
     if (!password) {
-      setPasswordError('Mot de passe requis');
+      setPasswordError(t('auth.passwordRequired'));
       hasError = true;
     } else if (password.length < 6) {
-      setPasswordError('Minimum 6 caracteres');
+      setPasswordError(t('auth.passwordMinLength'));
       hasError = true;
     }
 
@@ -68,8 +70,8 @@ export default function LoginScreen() {
       await dispatch(loginUser({ email, password, accountType })).unwrap();
       // Success - navigation automatique via useEffect
     } catch (err) {
-      const errorMessage = typeof err === 'string' ? err : 'Connexion echouee';
-      Alert.alert('Erreur', errorMessage);
+      const errorMessage = typeof err === 'string' ? err : t('auth.loginFailed');
+      Alert.alert(t('common.error'), errorMessage);
     }
   };
 
@@ -83,17 +85,18 @@ export default function LoginScreen() {
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Connexion</Text>
-          <Text style={styles.subtitle}>Bienvenue sur GlamGo</Text>
+        <View style={[styles.header, isRTL && styles.headerRTL]}>
+          <Text style={[styles.title, isRTL && styles.textRTL]}>{t('auth.login')}</Text>
+          <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t('auth.welcomeBack')}</Text>
         </View>
 
         {/* Selecteur Client / Prestataire */}
-        <View style={styles.accountTypeContainer}>
+        <View style={[styles.accountTypeContainer, isRTL && styles.accountTypeContainerRTL]}>
           <TouchableOpacity
             style={[
               styles.accountTypeButton,
               accountType === 'client' && styles.accountTypeButtonActive,
+              isRTL && styles.accountTypeButtonRTL,
             ]}
             onPress={() => setAccountType('client')}
             disabled={isLoading}
@@ -105,7 +108,7 @@ export default function LoginScreen() {
                 accountType === 'client' && styles.accountTypeTextActive,
               ]}
             >
-              Client
+              {t('auth.client')}
             </Text>
           </TouchableOpacity>
 
@@ -113,6 +116,7 @@ export default function LoginScreen() {
             style={[
               styles.accountTypeButton,
               accountType === 'provider' && styles.accountTypeButtonActive,
+              isRTL && styles.accountTypeButtonRTL,
             ]}
             onPress={() => setAccountType('provider')}
             disabled={isLoading}
@@ -124,16 +128,16 @@ export default function LoginScreen() {
                 accountType === 'provider' && styles.accountTypeTextActive,
               ]}
             >
-              Prestataire
+              {t('auth.provider')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.form}>
+        <View style={[styles.form, isRTL && styles.formRTL]}>
           <Input
-            label="Email"
+            label={t('auth.email')}
             type="email"
-            placeholder="votre@email.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -145,9 +149,9 @@ export default function LoginScreen() {
           />
 
           <Input
-            label="Mot de passe"
+            label={t('auth.password')}
             type="password"
-            placeholder="********"
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -155,7 +159,7 @@ export default function LoginScreen() {
             }}
             errorText={passwordError}
             error={!!passwordError}
-            helperText={!passwordError ? 'Minimum 6 caracteres' : undefined}
+            helperText={!passwordError ? t('auth.passwordMinLength') : undefined}
             editable={!isLoading}
           />
 
@@ -175,7 +179,7 @@ export default function LoginScreen() {
             disabled={isLoading}
             style={styles.loginButton}
           >
-            {isLoading ? 'Connexion...' : 'Se connecter'}
+            {isLoading ? t('auth.loggingIn') : t('auth.loginButton')}
           </Button>
 
           <Button
@@ -184,12 +188,12 @@ export default function LoginScreen() {
             onPress={() => router.push('/auth/forgot-password')}
             disabled={isLoading}
           >
-            Mot de passe oublie ?
+            {t('auth.forgotPassword')}
           </Button>
 
-          <View style={styles.divider}>
+          <View style={[styles.divider, isRTL && styles.dividerRTL]}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OU</Text>
+            <Text style={styles.dividerText}>{t('auth.or')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -199,7 +203,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/')}
             disabled={isLoading}
           >
-            Retour a l'accueil
+            {t('auth.backToHome')}
           </Button>
         </View>
       </ScrollView>
@@ -305,5 +309,25 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: spacing.xl,
+  },
+  // RTL Styles
+  headerRTL: {
+    alignItems: 'flex-end',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  accountTypeContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  accountTypeButtonRTL: {
+    flexDirection: 'row-reverse',
+  },
+  formRTL: {
+    alignItems: 'stretch',
+  },
+  dividerRTL: {
+    flexDirection: 'row-reverse',
   },
 });

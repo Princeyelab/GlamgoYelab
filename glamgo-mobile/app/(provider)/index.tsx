@@ -23,6 +23,8 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../src/i18n/translations/services';
 import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
@@ -49,19 +51,26 @@ import {
 import * as Location from 'expo-location';
 import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { isOrderInRange } from '../../src/lib/utils/geoUtils';
+import { addCancelledOrderId } from '../../src/lib/utils/cancelledOrdersCache';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DEFAULT_RADIUS_KM = 50;
 
-// French day and month names for date formatting
-const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+// Day and month names for date formatting
+const dayNamesFr = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const monthNamesFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+const dayNamesAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const monthNamesAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي', 'يونيو', 'يوليوز', 'غشت', 'شتنبر', 'أكتوبر', 'نونبر', 'دجنبر'];
+const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
- * Format date to French format: "Lun 6 Jan - 14:30"
+ * Format date based on language: "Lun 6 Jan - 14:30" (fr), "الإثنين 6 يناير - 14:30" (ar), "Mon 6 Jan - 14:30" (en)
  */
-const formatDateTimeFrench = (dateStr: string, timeStr: string): string => {
+const formatDateTime = (dateStr: string, timeStr: string, lang: 'fr' | 'ar' | 'en' = 'fr'): string => {
   const date = new Date(dateStr);
+  const dayNames = lang === 'ar' ? dayNamesAr : lang === 'en' ? dayNamesEn : dayNamesFr;
+  const monthNames = lang === 'ar' ? monthNamesAr : lang === 'en' ? monthNamesEn : monthNamesFr;
   const dayName = dayNames[date.getDay()];
   const day = date.getDate();
   const month = monthNames[date.getMonth()];
@@ -110,6 +119,7 @@ export default function ProviderDashboard() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
+  const { t, isRTL, language } = useLanguage();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -142,7 +152,7 @@ export default function ProviderDashboard() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission refusee', 'Activez la localisation pour mettre a jour votre position');
+        Alert.alert(t('provider.permissionDenied'), t('provider.enableLocation'));
         setIsUpdatingLocation(false);
         return;
       }
@@ -157,12 +167,12 @@ export default function ProviderDashboard() {
       const reverseGeo = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (reverseGeo.length > 0) {
         const place = reverseGeo[0];
-        const locationName = place.city || place.district || place.region || 'Position mise a jour';
+        const locationName = place.city || place.district || place.region || t('provider.locationUpdated');
         setCurrentLocation(locationName);
       }
       hapticFeedback.success();
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre a jour la position');
+      Alert.alert(t('common.error'), t('provider.locationError'));
       hapticFeedback.warning();
     } finally {
       setIsUpdatingLocation(false);
@@ -433,7 +443,7 @@ export default function ProviderDashboard() {
       hapticFeedback.success();
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Erreur', 'Impossible de modifier votre disponibilite.');
+      Alert.alert(t('common.error'), t('provider.availabilityError'));
     } finally {
       setIsTogglingAvailability(false);
     }
@@ -483,9 +493,9 @@ export default function ProviderDashboard() {
 
   const handleSwitchToClient = () => {
     hapticFeedback.medium();
-    Alert.alert('Mode Client', 'Basculer vers l\'espace client ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Confirmer', onPress: () => { dispatch(switchRole('user')); router.replace('/(client)'); } },
+    Alert.alert(t('providerProfile.clientSpace'), t('providerProfile.switchToClientMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.confirm'), onPress: () => { dispatch(switchRole('user')); router.replace('/(client)'); } },
     ]);
   };
 
@@ -511,13 +521,13 @@ export default function ProviderDashboard() {
 
   const getStatusLabel = (status: BookingStatus): string => {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'accepted': return 'Accepte';
-      case 'on_way': return 'En route';
-      case 'arrived': return 'Arrive';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Termine';
-      case 'cancelled': return 'Annule';
+      case 'pending': return t('provider.statusPending');
+      case 'accepted': return t('provider.statusAccepted');
+      case 'on_way': return t('provider.statusOnWay');
+      case 'arrived': return t('provider.statusArrived');
+      case 'in_progress': return t('provider.statusInProgress');
+      case 'completed': return t('provider.statusCompleted');
+      case 'cancelled': return t('provider.statusCancelled');
       default: return status;
     }
   };
@@ -525,8 +535,8 @@ export default function ProviderDashboard() {
   const handleAcceptBooking = async (id: number) => {
     if (hasActiveOrder && activeOrder) {
       hapticFeedback.warning();
-      Alert.alert('Commande en cours',
-        `Vous avez deja une commande active (#${activeOrder.order_number}).\nTerminez-la avant d'en accepter une nouvelle.`
+      Alert.alert(t('providerBookings.waitingForAction'),
+        `${t('provider.activeBookings')} (#${activeOrder.order_number}).`
       );
       return;
     }
@@ -536,26 +546,28 @@ export default function ProviderDashboard() {
       await acceptOrder(id);
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'accepted' as BookingStatus } : b));
       hapticFeedback.success();
-      Alert.alert('Commande acceptee', 'Vous pouvez maintenant demarrer le trajet.');
+      Alert.alert(t('bookingStatus.accepted'), t('providerBookings.startJourneyQuestion'));
     } catch (error: any) {
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible d\'accepter cette commande.');
+      Alert.alert(t('common.error'), error?.response?.data?.message || t('errors.generic'));
     }
   };
 
   const handleRejectBooking = (id: number) => {
     hapticFeedback.warning();
-    Alert.alert('Refuser la reservation', 'Etes-vous sur de vouloir refuser ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('confirm.rejectOrder'), t('providerBookings.cancelQuestion'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Refuser', style: 'destructive',
+        text: t('provider.reject'), style: 'destructive',
         onPress: async () => {
           try {
             await cancelOrder(id, 'Refuse par le prestataire');
+            // Ajouter au cache pour éviter réapparition
+            await addCancelledOrderId(id);
             setBookings(prev => prev.filter(b => b.id !== id));
             hapticFeedback.success();
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de refuser cette commande');
+            Alert.alert(t('common.error'), t('errors.generic'));
           }
         },
       },
@@ -564,20 +576,22 @@ export default function ProviderDashboard() {
 
   const handleCancelAccepted = (id: number) => {
     hapticFeedback.warning();
-    Alert.alert('Annuler la commande',
-      'Etes-vous sur de vouloir annuler cette commande acceptee ?\nLe client sera notifie.',
+    Alert.alert(t('bookings.cancelBookingTitle'),
+      t('providerBookings.cancelQuestion'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Oui, annuler', style: 'destructive',
+          text: t('bookings.yesCancel'), style: 'destructive',
           onPress: async () => {
             try {
               await cancelOrder(id, 'Annulee par le prestataire');
+              // Ajouter au cache pour éviter réapparition
+              await addCancelledOrderId(id);
               setBookings(prev => prev.filter(b => b.id !== id));
               hapticFeedback.success();
             } catch (error: any) {
               hapticFeedback.error();
-              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible d\'annuler.');
+              Alert.alert(t('common.error'), error?.response?.data?.message || t('errors.generic'));
             }
           },
         },
@@ -591,8 +605,12 @@ export default function ProviderDashboard() {
     setShowCancellationModal(true);
   };
 
-  const handleCancellationSuccess = () => {
-    if (cancellationBooking) setBookings(prev => prev.filter(b => b.id !== cancellationBooking.id));
+  const handleCancellationSuccess = async () => {
+    if (cancellationBooking) {
+      // Ajouter au cache pour éviter réapparition
+      await addCancelledOrderId(cancellationBooking.id);
+      setBookings(prev => prev.filter(b => b.id !== cancellationBooking.id));
+    }
     setShowCancellationModal(false);
     setCancellationBooking(null);
     loadDashboardData(false);
@@ -616,10 +634,10 @@ export default function ProviderDashboard() {
       await arriveAtClient(id);
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'arrived' as BookingStatus } : b));
       hapticFeedback.success();
-      Alert.alert('Arrivee signalee', 'Le client a ete notifie.');
+      Alert.alert(t('provider.statusArrived'), t('notifications.providerArrived'));
     } catch (error: any) {
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivee');
+      Alert.alert(t('common.error'), error?.response?.data?.message || t('errors.generic'));
     }
   };
 
@@ -642,7 +660,7 @@ export default function ProviderDashboard() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -668,9 +686,9 @@ export default function ProviderDashboard() {
               </View>
             )}
           </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.greeting}>Bonjour,</Text>
-            <Text style={styles.userName}>{user?.first_name || user?.name || 'Prestataire'}</Text>
+          <View style={[styles.headerInfo, isRTL && styles.headerInfoRTL]}>
+            <Text style={[styles.greeting, isRTL && styles.textRTL]}>{t('provider.hello')},</Text>
+            <Text style={[styles.userName, isRTL && styles.textRTL]}>{user?.first_name || user?.name || t('auth.provider')}</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerBtn} onPress={handleMessagesPress}>
@@ -710,10 +728,10 @@ export default function ProviderDashboard() {
             ) : (
               <>
                 <View style={[styles.statusDot, isAvailable ? styles.dotOnline : styles.dotOffline]} />
-                <View style={styles.availabilityInfo}>
-                  <Text style={styles.availabilityStatus}>{isAvailable ? 'EN LIGNE' : 'HORS LIGNE'}</Text>
-                  <Text style={styles.availabilityHint}>
-                    {isAvailable ? 'Vous recevez des demandes' : 'Appuyez pour passer en ligne'}
+                <View style={[styles.availabilityInfo, isRTL && styles.availabilityInfoRTL]}>
+                  <Text style={[styles.availabilityStatus, isRTL && styles.textRTL]}>{isAvailable ? t('provider.online') : t('provider.offline')}</Text>
+                  <Text style={[styles.availabilityHint, isRTL && styles.textRTL]}>
+                    {isAvailable ? t('provider.receivingRequests') : t('provider.tapToGoOnline')}
                   </Text>
                 </View>
                 <Text style={styles.availabilityEmoji}>{isAvailable ? '🟢' : '⚫'}</Text>
@@ -723,12 +741,12 @@ export default function ProviderDashboard() {
         </Animated.View>
 
         {/* Floating Stats */}
-        <View style={styles.floatingStats}>
+        <View style={[styles.floatingStats, isRTL && styles.rowRTL]}>
           <View style={styles.statItem}>
             <LinearGradient colors={['#3B82F6', '#1D4ED8']} style={styles.statGradient}>
               <Text style={styles.statEmoji}>📋</Text>
               <Text style={styles.statValue}>{activeBookings.length}</Text>
-              <Text style={styles.statLabel}>Actives</Text>
+              <Text style={styles.statLabel}>{t('provider.activeBookings')}</Text>
             </LinearGradient>
           </View>
           <View style={styles.statItem}>
@@ -742,13 +760,13 @@ export default function ProviderDashboard() {
             <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.statGradient}>
               <Text style={styles.statEmoji}>⭐</Text>
               <Text style={styles.statValue}>{stats.rating.toFixed(1)}</Text>
-              <Text style={styles.statLabel}>{stats.reviews_count} avis</Text>
+              <Text style={styles.statLabel}>{stats.reviews_count} {t('provider.reviews')}</Text>
             </LinearGradient>
           </View>
         </View>
 
         {/* Period Selector */}
-        <View style={styles.periodSelector}>
+        <View style={[styles.periodSelector, isRTL && styles.rowRTL]}>
           {(['today', 'week', 'month'] as PeriodType[]).map((period) => (
             <TouchableOpacity
               key={period}
@@ -756,7 +774,7 @@ export default function ProviderDashboard() {
               onPress={() => { hapticFeedback.selection(); setSelectedPeriod(period); }}
             >
               <Text style={[styles.periodBtnText, selectedPeriod === period && styles.periodBtnTextActive]}>
-                {period === 'today' ? "Aujourd'hui" : period === 'week' ? 'Semaine' : 'Mois'}
+                {period === 'today' ? t('time.today') : period === 'week' ? t('providerEarnings.week') : t('providerEarnings.month')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -764,7 +782,7 @@ export default function ProviderDashboard() {
 
         {/* Location Update */}
         <TouchableOpacity
-          style={styles.locationBtn}
+          style={[styles.locationBtn, isRTL && styles.rowRTL]}
           onPress={handleUpdateLocation}
           disabled={isUpdatingLocation}
         >
@@ -775,59 +793,59 @@ export default function ProviderDashboard() {
               <View style={styles.locationIconBg}>
                 <Text style={styles.locationIcon}>📍</Text>
               </View>
-              <Text style={styles.locationText}>{currentLocation || 'Mettre a jour ma position'}</Text>
-              <Text style={styles.locationArrow}>→</Text>
+              <Text style={[styles.locationText, isRTL && styles.textRTL]}>{currentLocation || t('provider.updateLocation')}</Text>
+              <Text style={styles.locationArrow}>{isRTL ? '←' : '→'}</Text>
             </>
           )}
         </TouchableOpacity>
 
         {/* Performance Card */}
         <View style={styles.performanceCard}>
-          <Text style={styles.sectionTitle}>Performance</Text>
-          <View style={styles.performanceGrid}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('provider.performance')}</Text>
+          <View style={[styles.performanceGrid, isRTL && styles.rowRTL]}>
             <View style={styles.performanceItem}>
               <Text style={styles.performanceValue}>{stats.completion_rate}%</Text>
-              <Text style={styles.performanceLabel}>Completion</Text>
+              <Text style={styles.performanceLabel}>{t('provider.completion')}</Text>
             </View>
             <View style={styles.performanceDivider} />
             <View style={styles.performanceItem}>
               <Text style={styles.performanceValue}>{currentStats.completed}</Text>
-              <Text style={styles.performanceLabel}>Terminees</Text>
+              <Text style={styles.performanceLabel}>{t('provider.completed')}</Text>
             </View>
             <View style={styles.performanceDivider} />
             <View style={styles.performanceItem}>
               <Text style={styles.performanceValue}>{stats.reviews_count}</Text>
-              <Text style={styles.performanceLabel}>Avis</Text>
+              <Text style={styles.performanceLabel}>{t('provider.reviews')}</Text>
             </View>
           </View>
         </View>
 
         {/* Active Bookings */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Reservations actives</Text>
+          <View style={[styles.sectionHeader, isRTL && styles.rowRTL]}>
+            <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('provider.activeBookings')}</Text>
             {pendingCount > 0 && (
               <View style={styles.pendingBadge}>
-                <Text style={styles.pendingBadgeText}>{pendingCount} nouvelle(s)</Text>
+                <Text style={styles.pendingBadgeText}>{pendingCount} {t('providerBookings.new')}</Text>
               </View>
             )}
             <TouchableOpacity onPress={() => router.push('/(provider)/bookings')}>
-              <Text style={styles.sectionLink}>Voir tout</Text>
+              <Text style={styles.sectionLink}>{t('common.seeAll')}</Text>
             </TouchableOpacity>
           </View>
 
           {activeBookings.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyIcon}>📅</Text>
-              <Text style={styles.emptyTitle}>Aucune reservation active</Text>
-              <Text style={styles.emptySubtext}>Passez en ligne pour recevoir des demandes</Text>
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t('provider.noActiveBooking')}</Text>
+              <Text style={[styles.emptySubtext, isRTL && styles.textRTL]}>{t('provider.goOnlineToReceive')}</Text>
             </View>
           ) : (
             activeBookings.map((booking) => (
               <View key={booking.id} style={[styles.bookingCard, styles[`card_${booking.status}`] || {}]}>
                 <View style={styles.bookingHeader}>
                   <View style={styles.bookingTitleRow}>
-                    <Text style={styles.bookingService}>{booking.service.title}</Text>
+                    <Text style={styles.bookingService}>{getServiceTranslation(booking.service.title, language).title || booking.service.title}</Text>
                     <Badge color={getStatusColor(booking.status)} size="sm" variant="soft">
                       {getStatusLabel(booking.status)}
                     </Badge>
@@ -839,7 +857,7 @@ export default function ProviderDashboard() {
                 <View style={styles.dateTimeRow}>
                   <Text style={styles.dateTimeIcon}>📅</Text>
                   <Text style={styles.dateTimeText}>
-                    {formatDateTimeFrench(booking.booking_date, booking.booking_time)}
+                    {formatDateTime(booking.booking_date, booking.booking_time, language)}
                   </Text>
                 </View>
 
@@ -866,18 +884,18 @@ export default function ProviderDashboard() {
                   <Text style={styles.bookingPrice}>💰 {booking.service.price} DH</Text>
                 </View>
 
-                <View style={styles.bookingActions}>
+                <View style={[styles.bookingActions, isRTL && styles.rowRTL]}>
                   {booking.status === 'pending' && (
                     <>
                       <TouchableOpacity style={styles.rejectBtn} onPress={() => handleRejectBooking(booking.id)}>
-                        <Text style={styles.rejectBtnText}>Refuser</Text>
+                        <Text style={styles.rejectBtnText}>{t('provider.reject')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.acceptBtn, hasActiveOrder && styles.btnDisabled]}
                         onPress={() => handleAcceptBooking(booking.id)}
                       >
                         <LinearGradient colors={[colors.success, '#059669']} style={styles.acceptBtnGradient}>
-                          <Text style={styles.acceptBtnText}>{hasActiveOrder ? 'Terminez d\'abord' : 'Accepter'}</Text>
+                          <Text style={styles.acceptBtnText}>{hasActiveOrder ? t('providerBookings.waitingForAction') : t('provider.accept')}</Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     </>
@@ -885,22 +903,22 @@ export default function ProviderDashboard() {
 
                   {booking.status === 'accepted' && (
                     <View style={styles.acceptedActions}>
-                      <View style={styles.acceptedBtns}>
+                      <View style={[styles.acceptedBtns, isRTL && styles.rowRTL]}>
                         <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancelAccepted(booking.id)}>
-                          <Text style={styles.cancelBtnText}>Annuler</Text>
+                          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                         </TouchableOpacity>
                         {booking.user.phone && (
                           <TouchableOpacity
                             style={styles.callBtn}
                             onPress={() => Linking.openURL(`tel:${booking.user.phone}`)}
                           >
-                            <Text style={styles.callBtnText}>📞 Appeler</Text>
+                            <Text style={styles.callBtnText}>📞 {t('chat.call') || 'Appeler'}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
                       <TouchableOpacity style={styles.startBtn} onPress={() => handleStartRoute(booking.id)}>
                         <LinearGradient colors={[colors.primary, '#8B5CF6']} style={styles.startBtnGradient}>
-                          <Text style={styles.startBtnText}>🚗 Demarrer (En route)</Text>
+                          <Text style={styles.startBtnText}>🚗 {t('provider.startJourney')}</Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
@@ -909,27 +927,27 @@ export default function ProviderDashboard() {
                   {booking.status === 'on_way' && (
                     <>
                       <TouchableOpacity style={styles.cancelOnWayBtn} onPress={() => handleOpenCancellationModal(booking)}>
-                        <Text style={styles.cancelOnWayBtnText}>Annuler</Text>
+                        <Text style={styles.cancelOnWayBtnText}>{t('common.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.arrivedBtn} onPress={() => handleArrived(booking.id)}>
                         <LinearGradient colors={['#8B5CF6', '#6D28D9']} style={styles.arrivedBtnGradient}>
-                          <Text style={styles.arrivedBtnText}>📍 Je suis arrive</Text>
+                          <Text style={styles.arrivedBtnText}>📍 {t('provider.arrived')}</Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     </>
                   )}
 
                   {booking.status === 'arrived' && (
-                    <View style={styles.waitingCard}>
+                    <View style={[styles.waitingCard, isRTL && styles.rowRTL]}>
                       <Text style={styles.waitingIcon}>⏳</Text>
-                      <Text style={styles.waitingText}>En attente de confirmation du client</Text>
+                      <Text style={[styles.waitingText, isRTL && styles.textRTL]}>{t('providerBookings.waitingForAction')}</Text>
                     </View>
                   )}
 
                   {booking.status === 'in_progress' && (
                     <TouchableOpacity style={styles.completeBtn} onPress={() => handleCompleteService(booking.id)}>
                       <LinearGradient colors={[colors.success, '#059669']} style={styles.completeBtnGradient}>
-                        <Text style={styles.completeBtnText}>✅ Terminer le service</Text>
+                        <Text style={styles.completeBtnText}>✅ {t('provider.completeService')}</Text>
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
@@ -941,31 +959,31 @@ export default function ProviderDashboard() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
-          <View style={styles.quickGrid}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('provider.quickActions')}</Text>
+          <View style={[styles.quickGrid, isRTL && styles.rowRTL]}>
             <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/(provider)/bookings')}>
               <View style={[styles.quickIconBg, { backgroundColor: '#3B82F6' + '20' }]}>
                 <Text style={styles.quickIcon}>📋</Text>
               </View>
-              <Text style={styles.quickLabel}>Commandes</Text>
+              <Text style={styles.quickLabel}>{t('provider.orders')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/(provider)/earnings')}>
               <View style={[styles.quickIconBg, { backgroundColor: colors.success + '20' }]}>
                 <Text style={styles.quickIcon}>💰</Text>
               </View>
-              <Text style={styles.quickLabel}>Revenus</Text>
+              <Text style={styles.quickLabel}>{t('provider.revenues')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/settings')}>
               <View style={[styles.quickIconBg, { backgroundColor: '#8B5CF6' + '20' }]}>
                 <Text style={styles.quickIcon}>⚙️</Text>
               </View>
-              <Text style={styles.quickLabel}>Parametres</Text>
+              <Text style={styles.quickLabel}>{t('provider.settings')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickCard} onPress={() => Alert.alert('Aide', 'support@glamgo.ma')}>
+            <TouchableOpacity style={styles.quickCard} onPress={() => Alert.alert(t('provider.help'), 'support@glamgo.ma')}>
               <View style={[styles.quickIconBg, { backgroundColor: '#F59E0B' + '20' }]}>
                 <Text style={styles.quickIcon}>❓</Text>
               </View>
-              <Text style={styles.quickLabel}>Aide</Text>
+              <Text style={styles.quickLabel}>{t('provider.help')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1622,5 +1640,21 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.gray[700],
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  headerInfoRTL: {
+    marginLeft: 0,
+    marginRight: spacing.md,
+    alignItems: 'flex-end',
+  },
+  availabilityInfoRTL: {
+    alignItems: 'flex-end',
   },
 });

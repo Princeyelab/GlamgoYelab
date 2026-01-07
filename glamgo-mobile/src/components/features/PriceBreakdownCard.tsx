@@ -13,6 +13,7 @@ import Card from '../ui/Card';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import { PriceBreakdown, formatPriceBreakdown } from '../../lib/hooks/usePriceCalculation';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PriceBreakdownCardProps {
   breakdown: PriceBreakdown;
@@ -24,13 +25,14 @@ export default function PriceBreakdownCard({
   showDetails = true,
 }: PriceBreakdownCardProps) {
   const { formatPrice, isLoaded } = useCurrency();
+  const { t, isRTL } = useLanguage();
 
   // Format breakdown items with currency
   const formatBreakdownItems = () => {
     const items: { label: string; value: string; type: 'normal' | 'discount' | 'surcharge' }[] = [];
 
     items.push({
-      label: 'Prix de base',
+      label: t('priceBreakdown.basePrice'),
       value: formatPrice(breakdown.basePrice),
       type: 'normal',
     });
@@ -40,7 +42,7 @@ export default function PriceBreakdownCard({
       const sign = breakdown.formulaModifier > 1 ? '+' : '';
       const diff = breakdown.formulaPrice - breakdown.basePrice;
       items.push({
-        label: `Formule (${sign}${Math.round((breakdown.formulaModifier - 1) * 100)}%)`,
+        label: `${t('priceBreakdown.formula')} (${sign}${Math.round((breakdown.formulaModifier - 1) * 100)}%)`,
         value: `${diff > 0 ? '+' : ''}${formatPrice(Math.abs(diff))}`,
         type: modifier,
       });
@@ -48,7 +50,7 @@ export default function PriceBreakdownCard({
 
     if (breakdown.nightSurcharge > 0) {
       items.push({
-        label: 'Majoration nuit (+25%)',
+        label: t('priceBreakdown.nightSurcharge'),
         value: `+${formatPrice(breakdown.nightSurcharge)}`,
         type: 'surcharge',
       });
@@ -56,7 +58,7 @@ export default function PriceBreakdownCard({
 
     if (breakdown.distanceFee > 0) {
       items.push({
-        label: 'Frais de deplacement (CGU)',
+        label: t('priceBreakdown.distanceFee'),
         value: `+${formatPrice(breakdown.distanceFee)}`,
         type: 'surcharge',
       });
@@ -64,7 +66,7 @@ export default function PriceBreakdownCard({
 
     if (breakdown.serviceFee > 0) {
       items.push({
-        label: 'Dont commission GlamGo (20%)',
+        label: t('priceBreakdown.commission'),
         value: formatPrice(breakdown.serviceFee),
         type: 'normal',
       });
@@ -77,13 +79,13 @@ export default function PriceBreakdownCard({
 
   return (
     <Card style={styles.container}>
-      <Text style={styles.title}>Recapitulatif du prix</Text>
+      <Text style={[styles.title, isRTL && styles.rtlText]}>{t('priceBreakdown.title')}</Text>
 
       {showDetails && (
         <View style={styles.items}>
           {items.map((item, index) => (
-            <View key={index} style={styles.row}>
-              <Text style={styles.label}>{item.label}</Text>
+            <View key={index} style={[styles.row, isRTL && styles.rowRTL]}>
+              <Text style={[styles.label, isRTL && styles.rtlText]}>{item.label}</Text>
               <Text style={[
                 styles.value,
                 item.type === 'surcharge' && styles.valueSurcharge,
@@ -100,37 +102,37 @@ export default function PriceBreakdownCard({
       <View style={styles.divider} />
 
       {/* Total */}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total</Text>
+      <View style={[styles.totalRow, isRTL && styles.rowRTL]}>
+        <Text style={[styles.totalLabel, isRTL && styles.rtlText]}>{t('priceBreakdown.total')}</Text>
         <Text style={styles.totalValue}>{formatPrice(breakdown.total)}</Text>
       </View>
 
       {/* Savings */}
       {breakdown.savings > 0 && (
-        <View style={styles.savingsRow}>
+        <View style={[styles.savingsRow, isRTL && styles.rowRTL]}>
           <Text style={styles.savingsIcon}>🎉</Text>
-          <Text style={styles.savingsText}>
-            Vous economisez {formatPrice(breakdown.savings)} avec la formule Recurrent !
+          <Text style={[styles.savingsText, isRTL && styles.rtlText]}>
+            {t('priceBreakdown.savings', { amount: formatPrice(breakdown.savings) })}
           </Text>
         </View>
       )}
 
       {/* Night warning */}
       {breakdown.nightSurcharge > 0 && (
-        <View style={styles.warningRow}>
+        <View style={[styles.warningRow, isRTL && styles.rowRTL]}>
           <Text style={styles.warningIcon}>🌙</Text>
-          <Text style={styles.warningText}>
-            Majoration nuit appliquee (20h - 8h)
+          <Text style={[styles.warningText, isRTL && styles.rtlText]}>
+            {t('priceBreakdown.nightWarning')}
           </Text>
         </View>
       )}
 
       {/* Distance fee warning (CGU) */}
       {breakdown.distanceFee > 0 && (
-        <View style={styles.distanceFeeRow}>
+        <View style={[styles.distanceFeeRow, isRTL && styles.rowRTL]}>
           <Text style={styles.distanceFeeIcon}>📍</Text>
-          <Text style={styles.distanceFeeText}>
-            Frais de deplacement appliques (au-dela de 15 km - CGU)
+          <Text style={[styles.distanceFeeText, isRTL && styles.rtlText]}>
+            {t('priceBreakdown.distanceWarning')}
           </Text>
         </View>
       )}
@@ -260,5 +262,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.error,
     fontWeight: '500',
+  },
+  // RTL Styles
+  rtlText: {
+    textAlign: 'right',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

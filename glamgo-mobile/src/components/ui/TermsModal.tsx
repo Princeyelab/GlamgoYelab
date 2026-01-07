@@ -10,6 +10,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface TermsModalProps {
   isOpen: boolean;
@@ -20,201 +21,17 @@ interface TermsModalProps {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function TermsModal({ isOpen, onClose, userType = 'client' }: TermsModalProps) {
-  const currentDate = new Date().toLocaleDateString('fr-FR');
+  const { t, isRTL, language } = useLanguage();
+  const currentDate = new Date().toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR');
 
-  const clientTerms = `
-CONDITIONS GENERALES D'UTILISATION - GLAMGO MARRAKECH
-Plateforme de Services a Domicile - Espace Client
+  // Get translated terms content
+  const termsContent = userType === 'client'
+    ? `${t('terms.lastUpdated')} : ${currentDate}\n\n${t('terms.clientTerms')}`
+    : `${t('terms.lastUpdated')} : ${currentDate}\n\n${t('terms.providerTerms')}`;
 
-Derniere mise a jour : ${currentDate}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-INSCRIPTION ET ACCES
-• Creation de compte obligatoire avec informations exactes : prenom, nom, email, telephone.
-• Date de naissance obligatoire - Vous devez etre majeur (18 ans minimum).
-• Adresse complete avec ville obligatoire pour la localisation des services.
-• Les informations doivent etre tenues a jour.
-
-IDENTITE ET UTILISATION PERSONNELLE
-• Le Client inscrit est le beneficiaire direct du service.
-• Interdiction de reserver pour autrui sans l'indiquer clairement.
-• Suspension immediate en cas d'utilisation frauduleuse.
-
-OBLIGATIONS
-• Respect des horaires, avis honnetes, comportement respectueux.
-
-POLITIQUE D'ANNULATION ET REMBOURSEMENT
-• Annulation sans frais jusqu'a 2h avant.
-• Moins de 2h → frais possibles.
-• Absence sans annulation → prestation due integralement.
-• Annulation par le Prestataire → remboursement integral.
-• Cas de force majeure → conditions adaptees.
-• Remboursement sous 7 a 14 jours ouvrables.
-
-PROTECTION ET SECURITE
-• Droit de refuser une prestation en cas de danger ou comportement inapproprie.
-• Signalement rapide via l'application.
-• Suspension immediate des Prestataires en cas de comportements violents ou irrespectueux.
-• Confidentialite renforcee des donnees personnelles.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-DISPOSITIONS COMMUNES (Prestataires & Clients)
-
-• Authenticite obligatoire : chaque compte doit etre utilise uniquement par la personne inscrite.
-
-• Responsabilite : GlamGo Marrakech est un intermediaire et n'est pas responsable de la qualite des services, des litiges ou des dommages.
-
-• Donnees personnelles : collectees et traitees selon la loi marocaine 09-08, jamais vendues a des tiers.
-
-• Modification des CGU : GlamGo peut modifier les conditions a tout moment, notification via l'application ou email.
-
-• Tolerance zero : suspension immediate en cas de comportement violent, discriminatoire ou menacant.
-
-• Systeme de signalement : outil integre pour danger ou abus.
-
-• Communication : via WhatsApp ou telephone, GlamGo peut contacter pour service ou support.
-
-• Resiliation : suppression du compte possible a tout moment ; suspension en cas de violation.
-
-• Loi applicable : droit marocain, tribunaux competents de Marrakech.
-
-• Zone de couverture : engagement a servir les zones selectionnees, frais de deplacement negociables.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-NOTE FINALE
-
-Chez GlamGo Marrakech, Clients et Prestataires avancent ensemble vers un objectif commun : creer une communaute fondee sur la confiance, la qualite et le respect. Chaque prestation est une rencontre, chaque avis est une contribution, et chaque effort est une pierre ajoutee a l'edifice de l'excellence.
-
-"Les batailles de la vie ne sont pas gagnees par les plus forts, ni par les plus rapides, mais par ceux qui n'abandonnent jamais." – Roi Hassan II
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTE L'INTEGRALITE DES PRESENTES CONDITIONS GENERALES D'UTILISATION.
-  `.trim();
-
-  const providerTerms = `
-CONDITIONS GENERALES DE PRESTATION - GLAMGO MARRAKECH
-Espace Prestataire
-
-Derniere mise a jour : ${currentDate}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-INSCRIPTION ET ACCES
-• Informations personnelles exactes obligatoires : prenom, nom, email, telephone, WhatsApp.
-• Date de naissance obligatoire - Vous devez etre majeur (18 ans minimum).
-• Numero de CIN (Carte d'Identite Nationale) obligatoire pour la verification d'identite.
-• Suspension possible en cas de non-respect ou d'informations frauduleuses.
-
-PROFIL PROFESSIONNEL
-• Description detaillee de vos services obligatoire (minimum 50 caracteres).
-• Annees d'experience a renseigner obligatoirement.
-• Engagement moral a exercer avec serieux, honnetete et respect.
-• Selection d'au moins une specialite parmi : coiffure, esthetique, massage, maquillage, manucure/pedicure, epilation, henne, preparation mariee, barbier, soins du visage, coaching sportif, menage, chef a domicile, reparations, jardinage.
-
-DOCUMENTS JUSTIFICATIFS
-• Preuve d'experience OBLIGATOIRE : attestation de travail, contrats, portfolio de realisations, etc.
-• Diplome ou certificat OBLIGATOIRE pour les specialites : coiffure, esthetique, massage, maquillage, soins du visage, coaching sportif.
-• Attestation d'assurance professionnelle FORTEMENT RECOMMANDEE pour votre protection et celle de vos clients.
-• Documents acceptes : PDF, JPG, PNG (maximum 5MB par fichier).
-
-TARIFICATION
-• Les tarifs sont negocies directement avec chaque client selon le service demande.
-• Transparence totale exigee sur les prix et supplements eventuels.
-• Vous etes libre de fixer vos propres tarifs.
-
-ZONE DE SERVICE
-• Adresse professionnelle principale obligatoire avec coordonnees GPS.
-• Ville principale de service obligatoire.
-• Zones de couverture : selection d'au moins une ville ou vous acceptez d'intervenir.
-• Frais de deplacement negociables avec le client selon la distance.
-
-IDENTITE ET EXECUTION PERSONNELLE
-• Le Prestataire inscrit est le seul autorise a realiser la prestation.
-• Interdiction de deleguer a un ami, cousin ou tiers non inscrit.
-• Suspension immediate en cas de substitution non declaree.
-
-OBLIGATIONS
-• Ponctualite, qualite, respect, confidentialite, conformite legale.
-• Respect des horaires convenus avec le client.
-• Interdiction de fraude ou manipulation des avis.
-• Comportement professionnel et respectueux en toutes circonstances.
-
-BENEFICES ET AVANTAGES
-• Visibilite accrue sur la plateforme GlamGo.
-• Reduction de commission pour les prestataires performants.
-• Badges de reconnaissance et notations visibles.
-• Acces prioritaire aux demandes et mise en avant marketing.
-
-POLITIQUE D'ANNULATION
-• Annulation par le Prestataire → remboursement integral au Client.
-• Annulations repetees → impact negatif sur votre profil et suspension possible.
-• Cas de force majeure → conditions adaptees au cas par cas.
-
-PROTECTION ET SECURITE
-• Droit de refuser une prestation si conditions dangereuses ou comportement inapproprie.
-• Indemnite de deplacement en cas de refus justifie apres deplacement.
-• Localisation securisee visible par le Client (quartier/ville).
-• Systeme de signalement rapide via l'application en cas de probleme.
-• Suspension immediate des Clients en cas de comportements violents, irrespectueux ou discriminatoires.
-• Protection de vos donnees personnelles conformement a la loi marocaine 09-08.
-
-ASSURANCE ET RESPONSABILITE
-• Vous etes responsable des dommages causes pendant vos prestations.
-• Assurance professionnelle fortement recommandee.
-• GlamGo Marrakech decline toute responsabilite pour les dommages causes par le Prestataire.
-• GlamGo agit comme intermediaire et n'est pas responsable de la qualite des services fournis.
-
-PROPRIETE INTELLECTUELLE ET USAGE DE LA MARQUE
-• Licence d'utilisation accordee a GlamGo pour promotion de votre profil.
-• Usage de la marque GlamGo limite a la plateforme et a votre activite professionnelle.
-• Interdiction d'utiliser le logo GlamGo a des fins personnelles ou commerciales externes.
-
-COMMUNICATION
-• Communication avec les clients via WhatsApp ou telephone.
-• GlamGo peut vous contacter pour support, assistance ou amelioration du service.
-• Notifications importantes via email et application.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-DISPOSITIONS COMMUNES (Prestataires & Clients)
-
-• Authenticite obligatoire : chaque compte doit etre utilise uniquement par la personne inscrite.
-
-• Responsabilite : GlamGo Marrakech est un intermediaire et n'est pas responsable de la qualite des services, des litiges ou des dommages.
-
-• Donnees personnelles : collectees et traitees selon la loi marocaine 09-08, jamais vendues a des tiers.
-
-• Modification des CGU : GlamGo peut modifier les conditions a tout moment, notification via l'application ou email.
-
-• Tolerance zero : suspension immediate en cas de comportement violent, discriminatoire ou menacant.
-
-• Systeme de signalement : outil integre pour danger ou abus.
-
-• Resiliation : suppression du compte possible a tout moment ; suspension en cas de violation.
-
-• Loi applicable : droit marocain, tribunaux competents de Marrakech.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-NOTE FINALE
-
-Chez GlamGo Marrakech, Clients et Prestataires avancent ensemble vers un objectif commun : creer une communaute fondee sur la confiance, la qualite et le respect. Chaque prestation est une rencontre, chaque avis est une contribution, et chaque effort est une pierre ajoutee a l'edifice de l'excellence.
-
-"Les batailles de la vie ne sont pas gagnees par les plus forts, ni par les plus rapides, mais par ceux qui n'abandonnent jamais." – Roi Hassan II
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTE L'INTEGRALITE DES PRESENTES CONDITIONS GENERALES DE PRESTATION.
-  `.trim();
-
-  const termsContent = userType === 'client' ? clientTerms : providerTerms;
   const title = userType === 'client'
-    ? "Conditions Generales d'Utilisation"
-    : "Conditions Generales de Prestation";
+    ? t('terms.clientTitle')
+    : t('terms.providerTitle');
 
   return (
     <Modal
@@ -227,12 +44,12 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTE L'INTEGRALITE DE
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.modalContent}>
             {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
+            <View style={[styles.header, isRTL && styles.headerRTL]}>
+              <Text style={[styles.title, isRTL && styles.titleRTL]}>{title}</Text>
               <TouchableOpacity
-                style={styles.closeButton}
+                style={[styles.closeButton, isRTL && styles.closeButtonRTL]}
                 onPress={onClose}
-                accessibilityLabel="Fermer"
+                accessibilityLabel={t('terms.close')}
               >
                 <Text style={styles.closeIcon}>✕</Text>
               </TouchableOpacity>
@@ -243,7 +60,7 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTE L'INTEGRALITE DE
               style={styles.body}
               showsVerticalScrollIndicator={true}
             >
-              <Text style={styles.termsText}>{termsContent}</Text>
+              <Text style={[styles.termsText, isRTL && styles.termsTextRTL]}>{termsContent}</Text>
             </ScrollView>
 
             {/* Footer */}
@@ -252,7 +69,7 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTE L'INTEGRALITE DE
                 style={styles.acceptButton}
                 onPress={onClose}
               >
-                <Text style={styles.acceptButtonText}>J'ai lu et compris</Text>
+                <Text style={[styles.acceptButtonText, isRTL && styles.acceptButtonTextRTL]}>{t('terms.accept')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -342,5 +159,24 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.fontSize.base,
     fontWeight: '600',
+  },
+
+  // RTL Styles
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  titleRTL: {
+    textAlign: 'right',
+  },
+  closeButtonRTL: {
+    marginLeft: 0,
+    marginRight: spacing.sm,
+  },
+  termsTextRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  acceptButtonTextRTL: {
+    textAlign: 'center',
   },
 });

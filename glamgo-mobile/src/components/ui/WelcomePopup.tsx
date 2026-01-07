@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface WelcomePopupProps {
   visible: boolean;
@@ -29,10 +30,18 @@ export default function WelcomePopup({
   userName,
 }: WelcomePopupProps) {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   const handleExploreServices = () => {
     onClose();
     router.push('/(client)' as any);
+  };
+
+  const getTitle = () => {
+    if (userName) {
+      return t('welcomePopup.titleWithName').replace('{name}', userName);
+    }
+    return t('welcomePopup.title');
   };
 
   return (
@@ -45,7 +54,7 @@ export default function WelcomePopup({
       <View style={styles.overlay}>
         <View style={styles.popup}>
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity style={[styles.closeBtn, isRTL && styles.closeBtnRTL]} onPress={onClose}>
             <Text style={styles.closeBtnText}>×</Text>
           </TouchableOpacity>
 
@@ -53,15 +62,12 @@ export default function WelcomePopup({
           <View style={styles.content}>
             <Text style={styles.emoji}>🎉</Text>
 
-            <Text style={styles.title}>
-              Bienvenue sur GlamGo{userName ? `, ${userName}` : ''} !
+            <Text style={[styles.title, isRTL && styles.textRTL]}>
+              {getTitle()}
             </Text>
 
-            <Text style={styles.message}>
-              En tant que Client, vous etes au coeur de notre communaute.
-              Votre confiance soutient les talents locaux et vos choix
-              permettent de valoriser leur metier.{'\n\n'}
-              Vous profitez d'une experience personnalisee, securisee et transparente.
+            <Text style={[styles.message, isRTL && styles.textRTL]}>
+              {t('welcomePopup.message')}
             </Text>
 
             {/* Buttons */}
@@ -71,7 +77,7 @@ export default function WelcomePopup({
                 onPress={onClose}
                 activeOpacity={0.8}
               >
-                <Text style={styles.okBtnText}>C'est parti !</Text>
+                <Text style={[styles.okBtnText, isRTL && styles.textRTL]}>{t('welcomePopup.letsGo')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -79,7 +85,7 @@ export default function WelcomePopup({
                 onPress={handleExploreServices}
                 activeOpacity={0.8}
               >
-                <Text style={styles.exploreBtnText}>Decouvrir les services</Text>
+                <Text style={[styles.exploreBtnText, isRTL && styles.textRTL]}>{t('welcomePopup.exploreServices')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -170,5 +176,15 @@ const styles = StyleSheet.create({
     color: colors.gray[700],
     fontSize: typography.fontSize.base,
     fontWeight: '500',
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  closeBtnRTL: {
+    right: undefined,
+    left: spacing.sm,
   },
 });

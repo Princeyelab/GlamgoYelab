@@ -22,6 +22,8 @@ import { hapticFeedback } from '../../../src/lib/utils/haptics';
 import { getBookingById, Booking } from '../../../src/lib/api/bookingsAPI';
 import { ENDPOINTS } from '../../../src/lib/api/endpoints';
 import apiClient from '../../../src/lib/api/client';
+import { useLanguage } from '../../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../../src/i18n/translations/services';
 
 type PaymentMethod = 'cash' | 'card' | 'saved_card';
 
@@ -41,6 +43,7 @@ const DEMO_SAVED_CARDS: SavedCard[] = [
 export default function PaymentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +113,7 @@ export default function PaymentScreen() {
 
   const handlePayment = async () => {
     if (selectedMethod === 'saved_card' && !selectedCardId) {
-      Alert.alert('Erreur', 'Veuillez selectionner une carte');
+      Alert.alert(t('paymentScreen.error'), t('paymentScreen.selectCard'));
       return;
     }
 
@@ -131,17 +134,17 @@ export default function PaymentScreen() {
       hapticFeedback.success();
 
       Alert.alert(
-        'Paiement reussi !',
+        t('paymentScreen.paymentSuccess'),
         selectedMethod === 'cash'
-          ? 'Vous pouvez payer en especes au prestataire.'
-          : 'Votre paiement a ete traite avec succes.',
+          ? t('paymentScreen.cashPaymentMessage')
+          : t('paymentScreen.cardPaymentMessage'),
         [
           {
-            text: 'Noter le prestataire',
+            text: t('paymentScreen.rateProvider'),
             onPress: () => router.replace(`/booking/review/${booking?.id}` as any),
           },
           {
-            text: 'Plus tard',
+            text: t('paymentScreen.later'),
             onPress: () => router.replace('/(client)/bookings'),
             style: 'cancel',
           },
@@ -153,17 +156,17 @@ export default function PaymentScreen() {
 
       // Demo mode - simulate success
       Alert.alert(
-        'Paiement reussi !',
+        t('paymentScreen.paymentSuccess'),
         selectedMethod === 'cash'
-          ? 'Vous pouvez payer en especes au prestataire.'
-          : 'Votre paiement a ete traite avec succes.',
+          ? t('paymentScreen.cashPaymentMessage')
+          : t('paymentScreen.cardPaymentMessage'),
         [
           {
-            text: 'Noter le prestataire',
+            text: t('paymentScreen.rateProvider'),
             onPress: () => router.replace(`/booking/review/${booking?.id}` as any),
           },
           {
-            text: 'Plus tard',
+            text: t('paymentScreen.later'),
             onPress: () => router.replace('/(client)/bookings'),
             style: 'cancel',
           },
@@ -177,7 +180,7 @@ export default function PaymentScreen() {
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('fr-FR', {
+      return date.toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -192,7 +195,7 @@ export default function PaymentScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('paymentScreen.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -203,9 +206,9 @@ export default function PaymentScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorText}>Reservation non trouvee</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{t('paymentScreen.bookingNotFound')}</Text>
           <Button variant="outline" onPress={() => router.back()}>
-            Retour
+            {t('paymentScreen.back')}
           </Button>
         </View>
       </SafeAreaView>
@@ -215,11 +218,11 @@ export default function PaymentScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paiement</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('paymentScreen.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -230,59 +233,60 @@ export default function PaymentScreen() {
       >
         {/* Booking Summary */}
         <Card style={styles.summaryCard}>
-          <Text style={styles.sectionTitle}>Resume de la prestation</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('paymentScreen.summaryTitle')}</Text>
 
-          <View style={styles.summaryRow}>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
             <Text style={styles.summaryIcon}>💇</Text>
             <View style={styles.summaryContent}>
-              <Text style={styles.summaryLabel}>Service</Text>
-              <Text style={styles.summaryValue}>{booking.service?.title}</Text>
+              <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('paymentScreen.service')}</Text>
+              <Text style={[styles.summaryValue, isRTL && styles.textRTL]}>{getServiceTranslation(booking.service?.title || '', language).title}</Text>
             </View>
           </View>
 
-          <View style={styles.summaryRow}>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
             <Text style={styles.summaryIcon}>👤</Text>
             <View style={styles.summaryContent}>
-              <Text style={styles.summaryLabel}>Prestataire</Text>
-              <Text style={styles.summaryValue}>{booking.provider?.name}</Text>
+              <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('paymentScreen.provider')}</Text>
+              <Text style={[styles.summaryValue, isRTL && styles.textRTL]}>{booking.provider?.name}</Text>
             </View>
           </View>
 
-          <View style={styles.summaryRow}>
+          <View style={[styles.summaryRow, isRTL && styles.summaryRowRTL]}>
             <Text style={styles.summaryIcon}>📅</Text>
             <View style={styles.summaryContent}>
-              <Text style={styles.summaryLabel}>Date</Text>
-              <Text style={styles.summaryValue}>
-                {formatDate(booking.date)} a {booking.start_time}
+              <Text style={[styles.summaryLabel, isRTL && styles.textRTL]}>{t('paymentScreen.date')}</Text>
+              <Text style={[styles.summaryValue, isRTL && styles.textRTL]}>
+                {formatDate(booking.date)} {t('paymentScreen.at')} {booking.start_time}
               </Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total a payer</Text>
+          <View style={[styles.totalRow, isRTL && styles.totalRowRTL]}>
+            <Text style={[styles.totalLabel, isRTL && styles.textRTL]}>{t('paymentScreen.totalToPay')}</Text>
             <Text style={styles.totalValue}>{booking.total} DH</Text>
           </View>
         </Card>
 
         {/* Payment Methods */}
-        <Text style={styles.sectionHeader}>Mode de paiement</Text>
+        <Text style={[styles.sectionHeader, isRTL && styles.textRTL]}>{t('paymentScreen.paymentMethod')}</Text>
 
         {/* Cash Option */}
         <TouchableOpacity
           style={[
             styles.paymentOption,
             selectedMethod === 'cash' && styles.paymentOptionSelected,
+            isRTL && styles.paymentOptionRTL,
           ]}
           onPress={() => handleSelectMethod('cash')}
           activeOpacity={0.7}
         >
-          <View style={styles.paymentOptionLeft}>
+          <View style={[styles.paymentOptionLeft, isRTL && styles.paymentOptionLeftRTL]}>
             <Text style={styles.paymentOptionIcon}>💵</Text>
             <View>
-              <Text style={styles.paymentOptionTitle}>Especes</Text>
-              <Text style={styles.paymentOptionSubtitle}>Payer au prestataire</Text>
+              <Text style={[styles.paymentOptionTitle, isRTL && styles.textRTL]}>{t('paymentScreen.cash')}</Text>
+              <Text style={[styles.paymentOptionSubtitle, isRTL && styles.textRTL]}>{t('paymentScreen.cashDesc')}</Text>
             </View>
           </View>
           <View
@@ -300,15 +304,16 @@ export default function PaymentScreen() {
           style={[
             styles.paymentOption,
             selectedMethod === 'card' && styles.paymentOptionSelected,
+            isRTL && styles.paymentOptionRTL,
           ]}
           onPress={() => handleSelectMethod('card')}
           activeOpacity={0.7}
         >
-          <View style={styles.paymentOptionLeft}>
+          <View style={[styles.paymentOptionLeft, isRTL && styles.paymentOptionLeftRTL]}>
             <Text style={styles.paymentOptionIcon}>💳</Text>
             <View>
-              <Text style={styles.paymentOptionTitle}>Carte bancaire</Text>
-              <Text style={styles.paymentOptionSubtitle}>Visa, Mastercard</Text>
+              <Text style={[styles.paymentOptionTitle, isRTL && styles.textRTL]}>{t('paymentScreen.card')}</Text>
+              <Text style={[styles.paymentOptionSubtitle, isRTL && styles.textRTL]}>{t('paymentScreen.cardDesc')}</Text>
             </View>
           </View>
           <View
@@ -324,7 +329,7 @@ export default function PaymentScreen() {
         {/* Saved Cards */}
         {savedCards.length > 0 && (
           <>
-            <Text style={styles.savedCardsTitle}>Cartes enregistrees</Text>
+            <Text style={[styles.savedCardsTitle, isRTL && styles.textRTL]}>{t('paymentScreen.savedCards')}</Text>
             {savedCards.map((card) => (
               <TouchableOpacity
                 key={card.id}
@@ -333,20 +338,21 @@ export default function PaymentScreen() {
                   selectedMethod === 'saved_card' &&
                     selectedCardId === card.id &&
                     styles.paymentOptionSelected,
+                  isRTL && styles.paymentOptionRTL,
                 ]}
                 onPress={() => handleSelectCard(card.id)}
                 activeOpacity={0.7}
               >
-                <View style={styles.paymentOptionLeft}>
+                <View style={[styles.paymentOptionLeft, isRTL && styles.paymentOptionLeftRTL]}>
                   <Text style={styles.paymentOptionIcon}>
                     {card.brand === 'Visa' ? '💳' : '💳'}
                   </Text>
                   <View>
-                    <Text style={styles.paymentOptionTitle}>
+                    <Text style={[styles.paymentOptionTitle, isRTL && styles.textRTL]}>
                       {card.brand} •••• {card.last4}
                     </Text>
-                    <Text style={styles.paymentOptionSubtitle}>
-                      Expire {card.exp_month}/{card.exp_year}
+                    <Text style={[styles.paymentOptionSubtitle, isRTL && styles.textRTL]}>
+                      {t('paymentScreen.expires')} {card.exp_month}/{card.exp_year}
                     </Text>
                   </View>
                 </View>
@@ -368,10 +374,10 @@ export default function PaymentScreen() {
         )}
 
         {/* Security Info */}
-        <View style={styles.securityInfo}>
+        <View style={[styles.securityInfo, isRTL && styles.securityInfoRTL]}>
           <Text style={styles.securityIcon}>🔒</Text>
-          <Text style={styles.securityText}>
-            Paiement securise. Vos informations sont protegees.
+          <Text style={[styles.securityText, isRTL && styles.textRTL]}>
+            {t('paymentScreen.securityInfo')}
           </Text>
         </View>
       </ScrollView>
@@ -387,10 +393,10 @@ export default function PaymentScreen() {
           onPress={handlePayment}
         >
           {isProcessing
-            ? 'Traitement...'
+            ? t('paymentScreen.processing')
             : selectedMethod === 'cash'
-            ? 'Confirmer paiement especes'
-            : `Payer ${booking.total} DH`}
+            ? t('paymentScreen.confirmCash')
+            : t('paymentScreen.pay').replace('{amount}', String(booking.total))}
         </Button>
       </View>
     </SafeAreaView>
@@ -624,5 +630,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.gray[200],
     ...shadows.lg,
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  summaryRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  totalRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  paymentOptionRTL: {
+    flexDirection: 'row-reverse',
+  },
+  paymentOptionLeftRTL: {
+    flexDirection: 'row-reverse',
+  },
+  securityInfoRTL: {
+    flexDirection: 'row-reverse',
   },
 });

@@ -23,7 +23,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
+import LanguageSelector from '../../src/components/features/LanguageSelector';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation, getFormulaTranslation } from '../../src/i18n/translations/services';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser, logoutUser, resetAuth } from '../../src/lib/store/slices/authSlice';
 import { persistor } from '../../src/lib/store';
@@ -68,6 +71,7 @@ export default function ProviderProfileScreen() {
   const isFocused = useIsFocused();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
+  const { t, isRTL, language } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -187,12 +191,12 @@ export default function ProviderProfileScreen() {
     hapticFeedback.warning();
     console.log('[Provider Profile] handleLogout called');
     Alert.alert(
-      'Deconnexion',
-      'Etes-vous sur de vouloir vous deconnecter ?',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Deconnexion',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             console.log('[Provider Profile] Logout confirmed, calling logoutUser...');
@@ -228,10 +232,10 @@ export default function ProviderProfileScreen() {
   const handleHelp = () => {
     hapticFeedback.light();
     Alert.alert(
-      'Aide & Support',
-      'Comment pouvons-nous vous aider ?',
+      t('provider.help'),
+      t('provider.help'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Email',
           onPress: () => {
@@ -241,7 +245,7 @@ export default function ProviderProfileScreen() {
           },
         },
         {
-          text: 'Appeler',
+          text: t('chat.call'),
           onPress: () => router.push('tel:+212600000000' as any),
         },
       ]
@@ -252,14 +256,14 @@ export default function ProviderProfileScreen() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement du profil...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   const displayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`
-    : user?.name || 'Prestataire';
+    : user?.name || t('auth.provider');
 
   return (
     <ScrollView
@@ -283,8 +287,8 @@ export default function ProviderProfileScreen() {
         style={styles.headerGradient}
       >
         {/* Edit button */}
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Text style={styles.editButtonText}>Modifier</Text>
+        <TouchableOpacity style={[styles.editButton, isRTL && { right: 'auto', left: spacing.lg }]} onPress={handleEditProfile}>
+          <Text style={styles.editButtonText}>{t('providerProfile.edit')}</Text>
         </TouchableOpacity>
 
         {/* Avatar */}
@@ -316,21 +320,21 @@ export default function ProviderProfileScreen() {
       </LinearGradient>
 
       {/* Stats Cards - Floating */}
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, isRTL && styles.rowRTL]}>
         <View style={styles.statCard}>
           <Text style={styles.statEmoji}>⭐</Text>
           <Text style={styles.statValue}>{Number(stats.rating || 0).toFixed(1)}</Text>
-          <Text style={styles.statLabel}>{stats.reviews_count} avis</Text>
+          <Text style={styles.statLabel}>{stats.reviews_count} {t('provider.reviews')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statEmoji}>📅</Text>
           <Text style={styles.statValue}>{stats.completed_bookings}</Text>
-          <Text style={styles.statLabel}>Reservations</Text>
+          <Text style={styles.statLabel}>{t('providerEarnings.reservations')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statEmoji}>⚡</Text>
           <Text style={styles.statValueSmall}>{'< 4 min'}</Text>
-          <Text style={styles.statLabel}>Reponse</Text>
+          <Text style={styles.statLabel}>{t('provider.responseTime')}</Text>
         </View>
       </View>
 
@@ -343,35 +347,35 @@ export default function ProviderProfileScreen() {
           colors={['#10B981', '#059669']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.earningsCard}
+          style={[styles.earningsCard, isRTL && styles.rowRTL]}
         >
-          <View style={styles.earningsLeft}>
-            <Text style={styles.earningsLabel}>Revenus totaux</Text>
+          <View style={[styles.earningsLeft, isRTL && { alignItems: 'flex-end' }]}>
+            <Text style={[styles.earningsLabel, isRTL && styles.textRTL]}>{t('providerProfile.totalEarnings')}</Text>
             <Text style={styles.earningsTotal}>
               {(stats.earnings_total || 0).toLocaleString()} DH
             </Text>
           </View>
           <View style={styles.earningsRight}>
-            <Text style={styles.earningsArrow}>→</Text>
+            <Text style={styles.earningsArrow}>{isRTL ? '←' : '→'}</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
 
       {/* Mes Services */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes Services</Text>
+        <View style={[styles.sectionHeader, isRTL && styles.rowRTL]}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('providerProfile.myServices')}</Text>
           <TouchableOpacity onPress={handleManageServices}>
-            <Text style={styles.sectionLink}>Gerer</Text>
+            <Text style={styles.sectionLink}>{t('providerProfile.manage')}</Text>
           </TouchableOpacity>
         </View>
 
         {services.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>💼</Text>
-            <Text style={styles.emptyTitle}>Aucun service configure</Text>
-            <Text style={styles.emptySubtext}>
-              Ajoutez vos services pour recevoir des reservations
+            <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t('providerProfile.noServicesConfigured')}</Text>
+            <Text style={[styles.emptySubtext, isRTL && styles.textRTL]}>
+              {t('providerProfile.addServicesToReceive')}
             </Text>
             <Button
               variant="primary"
@@ -379,7 +383,7 @@ export default function ProviderProfileScreen() {
               onPress={handleManageServices}
               style={styles.emptyButton}
             >
-              Ajouter des services
+              {t('providerProfile.addServices')}
             </Button>
           </View>
         ) : (
@@ -406,9 +410,9 @@ export default function ProviderProfileScreen() {
                   )}
                 </View>
                 <View style={styles.serviceInfo}>
-                  <Text style={styles.serviceName} numberOfLines={1}>{service.title}</Text>
+                  <Text style={styles.serviceName} numberOfLines={1}>{getServiceTranslation(service.title, language).title || service.title}</Text>
                   {service.duration > 0 && (
-                    <Text style={styles.serviceDuration}>{service.duration} min</Text>
+                    <Text style={styles.serviceDuration}>{service.duration} {t('common.min')}</Text>
                   )}
                 </View>
                 <Text style={styles.servicePrice}>{service.price} DH</Text>
@@ -425,7 +429,7 @@ export default function ProviderProfileScreen() {
             ))}
             {services.length > 4 && (
               <TouchableOpacity style={styles.seeMoreButton} onPress={handleManageServices}>
-                <Text style={styles.seeMoreText}>Voir les {services.length - 4} autres services →</Text>
+                <Text style={styles.seeMoreText}>{t('providerProfile.seeOtherServices', { count: services.length - 4 })} {isRTL ? '←' : '→'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -434,22 +438,22 @@ export default function ProviderProfileScreen() {
 
       {/* Mes Formules */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes Formules</Text>
+        <View style={[styles.sectionHeader, isRTL && styles.rowRTL]}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('providerProfile.myFormulas')}</Text>
           <TouchableOpacity onPress={() => {
             hapticFeedback.light();
             router.push('/(provider)/formulas' as any);
           }}>
-            <Text style={styles.sectionLink}>Gerer</Text>
+            <Text style={styles.sectionLink}>{t('providerProfile.manage')}</Text>
           </TouchableOpacity>
         </View>
 
         {formulas.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>Aucune formule selectionnee</Text>
-            <Text style={styles.emptySubtext}>
-              Ajoutez des formules pour apparaitre dans les recherches clients
+            <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t('providerProfile.noFormulasSelected')}</Text>
+            <Text style={[styles.emptySubtext, isRTL && styles.textRTL]}>
+              {t('providerProfile.addServicesToReceive')}
             </Text>
             <Button
               variant="primary"
@@ -460,7 +464,7 @@ export default function ProviderProfileScreen() {
               }}
               style={styles.emptyButton}
             >
-              Ajouter des formules
+              {t('providerProfile.addFormulas')}
             </Button>
           </View>
         ) : (
@@ -468,7 +472,7 @@ export default function ProviderProfileScreen() {
             {formulas.slice(0, 5).map((formula) => (
               <View key={formula.id} style={styles.formulaChip}>
                 <Text style={styles.formulaChipIcon}>{formula.icon}</Text>
-                <Text style={styles.formulaChipText}>{formula.name}</Text>
+                <Text style={styles.formulaChipText}>{getFormulaTranslation(formula.name, language)}</Text>
                 {formula.badge_text && (
                   <View style={[styles.formulaChipBadge, { backgroundColor: formula.badge_color || colors.primary }]}>
                     <Text style={styles.formulaChipBadgeText}>{formula.badge_text}</Text>
@@ -493,18 +497,18 @@ export default function ProviderProfileScreen() {
 
       {/* Services Personnalisés */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Services Personnalises</Text>
+        <View style={[styles.sectionHeader, isRTL && styles.rowRTL]}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('providerProfile.customServices')}</Text>
           <TouchableOpacity onPress={() => {
             hapticFeedback.light();
             router.push('/(provider)/custom-services' as any);
           }}>
-            <Text style={styles.sectionLink}>Gerer</Text>
+            <Text style={styles.sectionLink}>{t('providerProfile.manage')}</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={styles.customServicesCard}
+          style={[styles.customServicesCard, isRTL && styles.rowRTL]}
           onPress={() => {
             hapticFeedback.light();
             router.push('/(provider)/custom-services' as any);
@@ -514,26 +518,26 @@ export default function ProviderProfileScreen() {
           <View style={styles.customServicesIcon}>
             <Text style={styles.customServicesEmoji}>✨</Text>
           </View>
-          <View style={styles.customServicesInfo}>
-            <Text style={styles.customServicesTitle}>Creez vos propres services</Text>
-            <Text style={styles.customServicesSubtext}>
-              Proposez des prestations uniques a vos clients
+          <View style={[styles.customServicesInfo, isRTL && { marginLeft: 0, marginRight: spacing.md, alignItems: 'flex-end' }]}>
+            <Text style={[styles.customServicesTitle, isRTL && styles.textRTL]}>{t('providerProfile.createOwnServices')}</Text>
+            <Text style={[styles.customServicesSubtext, isRTL && styles.textRTL]}>
+              {t('providerProfile.createOwnServices')}
             </Text>
           </View>
-          <Text style={styles.customServicesArrow}>→</Text>
+          <Text style={styles.customServicesArrow}>{isRTL ? '←' : '→'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Performance */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Performance</Text>
+        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('provider.performance')}</Text>
         <View style={styles.performanceCard}>
-          <View style={styles.performanceItem}>
-            <View style={styles.performanceLeft}>
+          <View style={[styles.performanceItem, isRTL && styles.rowRTL]}>
+            <View style={[styles.performanceLeft, isRTL && styles.rowRTL]}>
               <Text style={styles.performanceIcon}>📊</Text>
-              <Text style={styles.performanceLabel}>Taux de completion</Text>
+              <Text style={[styles.performanceLabel, isRTL && styles.textRTL]}>{t('providerProfile.completionRate')}</Text>
             </View>
-            <View style={styles.performanceRight}>
+            <View style={[styles.performanceRight, isRTL && { alignItems: 'flex-start' }]}>
               <Text style={styles.performanceValue}>{stats.completion_rate}%</Text>
               <View style={styles.progressBarContainer}>
                 <View style={[styles.progressBar, { width: `${stats.completion_rate}%` }]} />
@@ -541,32 +545,32 @@ export default function ProviderProfileScreen() {
             </View>
           </View>
 
-          <View style={styles.performanceItem}>
-            <View style={styles.performanceLeft}>
+          <View style={[styles.performanceItem, isRTL && styles.rowRTL]}>
+            <View style={[styles.performanceLeft, isRTL && styles.rowRTL]}>
               <Text style={styles.performanceIcon}>⏱️</Text>
-              <Text style={styles.performanceLabel}>Temps de reponse</Text>
+              <Text style={[styles.performanceLabel, isRTL && styles.textRTL]}>{t('provider.responseTime')}</Text>
             </View>
             <Text style={styles.performanceValueHighlight}>{stats.response_time}</Text>
           </View>
 
-          <View style={styles.performanceItem}>
-            <View style={styles.performanceLeft}>
+          <View style={[styles.performanceItem, isRTL && styles.rowRTL]}>
+            <View style={[styles.performanceLeft, isRTL && styles.rowRTL]}>
               <Text style={styles.performanceIcon}>✅</Text>
-              <Text style={styles.performanceLabel}>Services actifs</Text>
+              <Text style={[styles.performanceLabel, isRTL && styles.textRTL]}>{t('providerProfile.myServices')}</Text>
             </View>
             <Text style={styles.performanceValue}>
               {services.filter(s => s.active).length}/{services.length}
             </Text>
           </View>
 
-          <View style={[styles.performanceItem, { borderBottomWidth: 0 }]}>
-            <View style={styles.performanceLeft}>
+          <View style={[styles.performanceItem, { borderBottomWidth: 0 }, isRTL && styles.rowRTL]}>
+            <View style={[styles.performanceLeft, isRTL && styles.rowRTL]}>
               <Text style={styles.performanceIcon}>📅</Text>
-              <Text style={styles.performanceLabel}>Membre depuis</Text>
+              <Text style={[styles.performanceLabel, isRTL && styles.textRTL]}>{t('profile.memberSince')}</Text>
             </View>
             <Text style={styles.performanceValue}>
               {stats.joined_date
-                ? new Date(stats.joined_date).toLocaleDateString('fr-FR', {
+                ? new Date(stats.joined_date).toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
                     year: 'numeric',
                     month: 'short',
                   })
@@ -578,13 +582,13 @@ export default function ProviderProfileScreen() {
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actions rapides</Text>
-        <View style={styles.quickActionsGrid}>
+        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('provider.quickActions')}</Text>
+        <View style={[styles.quickActionsGrid, isRTL && styles.rowRTL]}>
           <TouchableOpacity style={styles.quickActionCard} onPress={handleEditProfile}>
             <View style={[styles.quickActionIconBg, { backgroundColor: colors.primary + '15' }]}>
               <Text style={styles.quickActionIcon}>✏️</Text>
             </View>
-            <Text style={styles.quickActionLabel}>Modifier profil</Text>
+            <Text style={styles.quickActionLabel}>{t('profile.editProfile')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -597,29 +601,39 @@ export default function ProviderProfileScreen() {
             <View style={[styles.quickActionIconBg, { backgroundColor: '#8B5CF6' + '15' }]}>
               <Text style={styles.quickActionIcon}>⚙️</Text>
             </View>
-            <Text style={styles.quickActionLabel}>Parametres</Text>
+            <Text style={styles.quickActionLabel}>{t('provider.settings')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickActionCard} onPress={handleHelp}>
             <View style={[styles.quickActionIconBg, { backgroundColor: colors.success + '15' }]}>
               <Text style={styles.quickActionIcon}>💬</Text>
             </View>
-            <Text style={styles.quickActionLabel}>Aide</Text>
+            <Text style={styles.quickActionLabel}>{t('provider.help')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickActionCard} onPress={handleLogout}>
             <View style={[styles.quickActionIconBg, { backgroundColor: colors.error + '15' }]}>
               <Text style={styles.quickActionIcon}>🚪</Text>
             </View>
-            <Text style={[styles.quickActionLabel, { color: colors.error }]}>Deconnexion</Text>
+            <Text style={[styles.quickActionLabel, { color: colors.error }]}>{t('auth.logout')}</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Preferences / Language */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
+          {t('profile.settings')}
+        </Text>
+        <View style={styles.preferencesCard}>
+          <LanguageSelector />
         </View>
       </View>
 
       {/* App Info */}
       <View style={styles.appInfo}>
         <Text style={styles.appVersion}>GlamGo Pro v1.0.0</Text>
-        <Text style={styles.appMode}>Mode Prestataire</Text>
+        <Text style={styles.appMode}>{t('auth.provider')}</Text>
       </View>
     </ScrollView>
   );
@@ -1104,5 +1118,19 @@ const styles = StyleSheet.create({
   customServicesArrow: {
     fontSize: 20,
     color: colors.gray[400],
+  },
+  preferencesCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.sm,
+    ...shadows.sm,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

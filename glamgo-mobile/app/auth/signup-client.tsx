@@ -28,14 +28,17 @@ import { registerUser, clearError, selectAuth } from '../../src/lib/store/slices
 import { toggleFavorite } from '../../src/lib/store/slices/servicesSlice';
 import { getCategories, getCategoriesWithServices } from '../../src/lib/api/servicesAPI';
 import { Category, Service } from '../../src/types/service';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getCategoryTranslation, getServiceTranslation } from '../../src/i18n/translations/services';
 
 type Step = 1 | 2 | 3 | 4;
 
-const STEPS = [
-  { number: 1, label: 'Infos' },
-  { number: 2, label: 'Adresse' },
-  { number: 3, label: 'Paiement' },
-  { number: 4, label: 'Preferences' },
+// Steps labels will be translated in component
+const STEP_KEYS = [
+  { number: 1, key: 'signup.stepInfo' },
+  { number: 2, key: 'signup.stepAddress' },
+  { number: 3, key: 'signup.stepPayment' },
+  { number: 4, key: 'signup.stepPreferences' },
 ];
 
 const CITIES = [
@@ -62,6 +65,7 @@ export default function SignupClientScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading, error } = useAppSelector(selectAuth);
+  const { t, isRTL, language } = useLanguage();
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -246,34 +250,34 @@ export default function SignupClientScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!firstName.trim() || firstName.length < 2) {
-      newErrors.firstName = 'Prenom requis (min 2 caracteres)';
+      newErrors.firstName = t('signup.firstNameRequired');
     }
     if (!lastName.trim() || lastName.length < 2) {
-      newErrors.lastName = 'Nom requis (min 2 caracteres)';
+      newErrors.lastName = t('signup.lastNameRequired');
     }
     if (!email.trim()) {
-      newErrors.email = 'Email requis';
+      newErrors.email = t('auth.emailRequired');
     } else if (!validateEmail(email)) {
-      newErrors.email = 'Email invalide';
+      newErrors.email = t('auth.invalidEmail');
     }
     if (!phone.trim()) {
-      newErrors.phone = 'Telephone requis';
+      newErrors.phone = t('signup.phoneRequired');
     } else if (!validatePhone(phone)) {
-      newErrors.phone = 'Format: 06/07 suivi de 8 chiffres';
+      newErrors.phone = t('signup.phoneFormat');
     }
     if (!birthDate) {
-      newErrors.birthDate = 'Date de naissance requise';
+      newErrors.birthDate = t('signup.birthDateRequired');
     } else if (!validateAge(birthDate)) {
-      newErrors.birthDate = 'Vous devez avoir au moins 18 ans';
+      newErrors.birthDate = t('signup.mustBe18');
     }
     if (!password || password.length < 6) {
-      newErrors.password = 'Mot de passe requis (min 6 caracteres)';
+      newErrors.password = t('auth.passwordRequired');
     }
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      newErrors.confirmPassword = t('errors.passwordMismatch');
     }
     if (!acceptTerms) {
-      newErrors.acceptTerms = 'Vous devez accepter les conditions';
+      newErrors.acceptTerms = t('signup.mustAcceptTerms');
     }
 
     setErrors(newErrors);
@@ -284,7 +288,7 @@ export default function SignupClientScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!address.trim()) {
-      newErrors.address = 'Adresse requise';
+      newErrors.address = t('signup.addressRequired');
     }
     // Si pas de geolocalisation, utiliser position Marrakech par defaut (mode dev)
     if (!latitude || !longitude) {
@@ -293,7 +297,7 @@ export default function SignupClientScreen() {
       setLongitude(-7.9811);
     }
     if (!city) {
-      newErrors.city = 'Ville requise';
+      newErrors.city = t('signup.cityRequired');
     }
 
     setErrors(newErrors);
@@ -347,7 +351,7 @@ export default function SignupClientScreen() {
   const handleFinalizeRegistration = async () => {
     // Validate at least one service is selected
     if (selectedServices.length === 0) {
-      setErrors(prev => ({ ...prev, services: 'Veuillez selectionner au moins un service' }));
+      setErrors(prev => ({ ...prev, services: t('signup.selectAtLeastOneService') }));
       return;
     }
 
@@ -392,8 +396,8 @@ export default function SignupClientScreen() {
     } catch (err: any) {
       console.error('Registration API error:', err);
       Alert.alert(
-        'Erreur d\'inscription',
-        err?.message || 'Une erreur est survenue lors de l\'inscription. Veuillez reessayer.'
+        t('signup.registrationError'),
+        err?.message || t('signup.registrationErrorMessage')
       );
     }
   };
@@ -409,8 +413,8 @@ export default function SignupClientScreen() {
   };
 
   const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
-      {STEPS.map((step, index) => (
+    <View style={[styles.stepIndicator, isRTL && styles.stepIndicatorRTL]}>
+      {STEP_KEYS.map((step, index) => (
         <View key={step.number} style={styles.stepItem}>
           <View style={[
             styles.stepCircle,
@@ -427,10 +431,11 @@ export default function SignupClientScreen() {
           <Text style={[
             styles.stepLabel,
             currentStep >= step.number && styles.stepLabelActive,
+            isRTL && styles.textRTL,
           ]}>
-            {step.label}
+            {t(step.key)}
           </Text>
-          {index < STEPS.length - 1 && (
+          {index < STEP_KEYS.length - 1 && (
             <View style={[
               styles.stepLine,
               currentStep > step.number && styles.stepLineActive,
@@ -444,11 +449,11 @@ export default function SignupClientScreen() {
   const renderStep1 = () => (
     <View style={styles.stepContent}>
       {/* Row: First Name + Last Name */}
-      <View style={styles.formRow}>
+      <View style={[styles.formRow, isRTL && styles.formRowRTL]}>
         <View style={styles.formRowItem}>
           <Input
-            label="Prenom *"
-            placeholder="Votre prenom"
+            label={`${t('auth.firstName')} *`}
+            placeholder={t('signup.firstNamePlaceholder')}
             value={firstName}
             onChangeText={setFirstName}
             errorText={errors.firstName}
@@ -458,8 +463,8 @@ export default function SignupClientScreen() {
         </View>
         <View style={styles.formRowItem}>
           <Input
-            label="Nom *"
-            placeholder="Votre nom"
+            label={`${t('auth.lastName')} *`}
+            placeholder={t('signup.lastNamePlaceholder')}
             value={lastName}
             onChangeText={setLastName}
             errorText={errors.lastName}
@@ -470,9 +475,9 @@ export default function SignupClientScreen() {
       </View>
 
       <Input
-        label="Email *"
+        label={`${t('auth.email')} *`}
         type="email"
-        placeholder="votre.email@exemple.com"
+        placeholder={t('auth.emailPlaceholder')}
         value={email}
         onChangeText={setEmail}
         errorText={errors.email}
@@ -481,9 +486,9 @@ export default function SignupClientScreen() {
       />
 
       <Input
-        label="Telephone *"
+        label={`${t('auth.phone')} *`}
         type="phone"
-        placeholder="0612345678"
+        placeholder={t('signup.phonePlaceholder')}
         value={phone}
         onChangeText={setPhone}
         errorText={errors.phone}
@@ -493,7 +498,7 @@ export default function SignupClientScreen() {
 
       {/* Birth Date Picker */}
       <BirthDatePicker
-        label="Date de naissance *"
+        label={`${t('signup.birthDate')} *`}
         value={birthDate}
         onChange={(date) => {
           setBirthDate(date);
@@ -501,7 +506,7 @@ export default function SignupClientScreen() {
             setErrors(prev => ({ ...prev, birthDate: '' }));
           }
         }}
-        placeholder="Selectionnez votre date"
+        placeholder={t('signup.selectDate')}
         error={errors.birthDate}
         minAge={18}
         disabled={isLoading}
@@ -509,16 +514,17 @@ export default function SignupClientScreen() {
 
       {/* Password with toggle */}
       <View style={styles.formGroup}>
-        <Text style={styles.inputLabel}>Mot de passe *</Text>
-        <View style={[styles.passwordWrapper, errors.password && styles.inputError]}>
+        <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('auth.password')} *</Text>
+        <View style={[styles.passwordWrapper, errors.password && styles.inputError, isRTL && styles.passwordWrapperRTL]}>
           <TextInput
-            style={styles.passwordInput}
-            placeholder="Minimum 6 caracteres"
+            style={[styles.passwordInput, isRTL && styles.textInputRTL]}
+            placeholder={t('auth.passwordMinLength')}
             placeholderTextColor={colors.gray[400]}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
             editable={!isLoading}
+            textAlign={isRTL ? 'right' : 'left'}
           />
           <TouchableOpacity
             style={styles.passwordToggle}
@@ -527,21 +533,22 @@ export default function SignupClientScreen() {
             <Text style={styles.passwordToggleIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
           </TouchableOpacity>
         </View>
-        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+        {errors.password && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.password}</Text>}
       </View>
 
       {/* Confirm Password with toggle */}
       <View style={styles.formGroup}>
-        <Text style={styles.inputLabel}>Confirmer le mot de passe *</Text>
-        <View style={[styles.passwordWrapper, errors.confirmPassword && styles.inputError]}>
+        <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('auth.confirmPassword')} *</Text>
+        <View style={[styles.passwordWrapper, errors.confirmPassword && styles.inputError, isRTL && styles.passwordWrapperRTL]}>
           <TextInput
-            style={styles.passwordInput}
-            placeholder="Retapez votre mot de passe"
+            style={[styles.passwordInput, isRTL && styles.textInputRTL]}
+            placeholder={t('signup.confirmPasswordPlaceholder')}
             placeholderTextColor={colors.gray[400]}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
             editable={!isLoading}
+            textAlign={isRTL ? 'right' : 'left'}
           />
           <TouchableOpacity
             style={styles.passwordToggle}
@@ -550,34 +557,34 @@ export default function SignupClientScreen() {
             <Text style={styles.passwordToggleIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
           </TouchableOpacity>
         </View>
-        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+        {errors.confirmPassword && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.confirmPassword}</Text>}
       </View>
 
       {/* Terms Section */}
       <View style={styles.termsSection}>
         <TouchableOpacity
-          style={styles.checkboxRow}
+          style={[styles.checkboxRow, isRTL && styles.checkboxRowRTL]}
           onPress={() => handleTermsChange(!acceptTerms)}
           disabled={isLoading}
         >
           <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
             {acceptTerms && <Text style={styles.checkmark}>✓</Text>}
           </View>
-          <Text style={styles.termsText}>J'accepte les </Text>
+          <Text style={[styles.termsText, isRTL && styles.textRTL]}>{t('signup.iAccept')} </Text>
         </TouchableOpacity>
-        <View style={styles.termsLinks}>
+        <View style={[styles.termsLinks, isRTL && styles.termsLinksRTL]}>
           <TouchableOpacity onPress={() => setShowTermsModal(true)} disabled={isLoading}>
-            <Text style={styles.termsLink}>conditions generales</Text>
+            <Text style={styles.termsLink}>{t('signup.termsAndConditions')}</Text>
           </TouchableOpacity>
-          <Text style={styles.termsText}> et la </Text>
+          <Text style={styles.termsText}> {t('signup.and')} </Text>
           <TouchableOpacity onPress={() => setShowTermsModal(true)} disabled={isLoading}>
-            <Text style={styles.termsLink}>politique de confidentialite</Text>
+            <Text style={styles.termsLink}>{t('signup.privacyPolicy')}</Text>
           </TouchableOpacity>
           <Text style={styles.required}> *</Text>
         </View>
       </View>
       {errors.acceptTerms && (
-        <Text style={styles.errorText}>{errors.acceptTerms}</Text>
+        <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.acceptTerms}</Text>
       )}
     </View>
   );
@@ -586,20 +593,20 @@ export default function SignupClientScreen() {
     <View style={styles.stepContent}>
       {/* Address Autocomplete */}
       <AddressAutocomplete
-        label="Adresse complete *"
+        label={`${t('signup.fullAddress')} *`}
         value={address}
         onChangeText={setAddress}
         onAddressSelect={handleAddressSelect}
-        placeholder="Commencez a taper votre adresse..."
+        placeholder={t('signup.addressPlaceholder')}
         error={errors.address}
         disabled={isLoading}
       />
 
       {/* City Dropdown */}
       <View style={styles.formGroup}>
-        <Text style={styles.inputLabel}>Ville *</Text>
+        <Text style={[styles.inputLabel, isRTL && styles.textRTL]}>{t('signup.city')} *</Text>
         <TouchableOpacity
-          style={[styles.cityDropdown, errors.city && styles.inputError]}
+          style={[styles.cityDropdown, errors.city && styles.inputError, isRTL && styles.cityDropdownRTL]}
           onPress={() => {
             Keyboard.dismiss();
             setShowCityPicker(true);
@@ -607,12 +614,12 @@ export default function SignupClientScreen() {
           disabled={isLoading}
           activeOpacity={0.7}
         >
-          <Text style={[styles.cityDropdownText, !city && styles.cityDropdownPlaceholder]}>
-            {city || 'Selectionnez une ville'}
+          <Text style={[styles.cityDropdownText, !city && styles.cityDropdownPlaceholder, isRTL && styles.textRTL]}>
+            {city || t('signup.selectCity')}
           </Text>
-          <Text style={styles.cityDropdownIcon}>▼</Text>
+          <Text style={styles.cityDropdownIcon}>{isRTL ? '◀' : '▼'}</Text>
         </TouchableOpacity>
-        {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
+        {errors.city && <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errors.city}</Text>}
       </View>
 
       {/* City Picker Modal */}
@@ -628,18 +635,18 @@ export default function SignupClientScreen() {
           onPress={() => setShowCityPicker(false)}
         >
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, isRTL && styles.modalHeaderRTL]}>
               <TouchableOpacity onPress={() => setShowCityPicker(false)}>
-                <Text style={styles.modalCancel}>Annuler</Text>
+                <Text style={styles.modalCancel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Choisir une ville</Text>
+              <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t('signup.chooseCity')}</Text>
               <View style={{ width: 60 }} />
             </View>
             <ScrollView style={styles.cityList}>
               {CITIES.filter(c => c.value !== '').map((c) => (
                 <TouchableOpacity
                   key={c.value}
-                  style={[styles.cityOption, city === c.value && styles.cityOptionSelected]}
+                  style={[styles.cityOption, city === c.value && styles.cityOptionSelected, isRTL && styles.cityOptionRTL]}
                   onPress={() => {
                     setCity(c.value);
                     setShowCityPicker(false);
@@ -648,7 +655,7 @@ export default function SignupClientScreen() {
                     }
                   }}
                 >
-                  <Text style={[styles.cityOptionText, city === c.value && styles.cityOptionTextSelected]}>
+                  <Text style={[styles.cityOptionText, city === c.value && styles.cityOptionTextSelected, isRTL && styles.textRTL]}>
                     {c.label}
                   </Text>
                   {city === c.value && <Text style={styles.cityOptionCheck}>✓</Text>}
@@ -667,24 +674,24 @@ export default function SignupClientScreen() {
     if (paymentMethod === 'card') {
       const cardNum = cardData.cardNumber.replace(/\s/g, '');
       if (!cardNum || cardNum.length !== 16) {
-        newErrors.cardNumber = 'Numero de carte invalide (16 chiffres)';
+        newErrors.cardNumber = t('signup.invalidCardNumber');
       }
       if (!cardData.expMonth) {
-        newErrors.expMonth = 'Requis';
+        newErrors.expMonth = t('errors.requiredField');
       }
       if (!cardData.expYear) {
-        newErrors.expYear = 'Requis';
+        newErrors.expYear = t('errors.requiredField');
       } else {
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth() + 1;
         const expYear = parseInt(cardData.expYear);
         const expMonth = parseInt(cardData.expMonth);
         if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-          newErrors.expYear = 'Carte expiree';
+          newErrors.expYear = t('signup.cardExpired');
         }
       }
       if (!cardData.cvv || cardData.cvv.length !== 3) {
-        newErrors.cvv = 'CVV invalide';
+        newErrors.cvv = t('signup.invalidCVV');
       }
     }
 
@@ -700,10 +707,10 @@ export default function SignupClientScreen() {
 
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <View style={styles.paymentInfo}>
+      <View style={[styles.paymentInfo, isRTL && styles.paymentInfoRTL]}>
         <Text style={styles.paymentInfoIcon}>💳</Text>
-        <Text style={styles.paymentInfoText}>
-          Configurez votre mode de paiement. La carte bancaire permet un paiement securise.
+        <Text style={[styles.paymentInfoText, isRTL && styles.textRTL]}>
+          {t('signup.paymentInfoText')}
         </Text>
       </View>
 
@@ -735,7 +742,7 @@ export default function SignupClientScreen() {
         />
       )}
 
-      <View style={styles.buttonRow}>
+      <View style={[styles.buttonRow, isRTL && styles.buttonRowRTL]}>
         <Button
           variant="outline"
           size="sm"
@@ -743,7 +750,7 @@ export default function SignupClientScreen() {
           disabled={isLoading}
           style={styles.backButton}
         >
-          Precedent
+          {t('signup.previous')}
         </Button>
         <Button
           variant="primary"
@@ -752,7 +759,7 @@ export default function SignupClientScreen() {
           disabled={isLoading}
           style={styles.nextButton}
         >
-          Continuer
+          {t('common.next')}
         </Button>
       </View>
     </View>
@@ -760,20 +767,20 @@ export default function SignupClientScreen() {
 
   const renderStep4 = () => (
     <View style={styles.stepContent}>
-      <View style={styles.preferencesIntro}>
-        <Text style={styles.preferencesIntroText}>
-          Selectionnez les services qui vous interessent pour des recommandations personnalisees.
+      <View style={[styles.preferencesIntro, isRTL && styles.preferencesIntroRTL]}>
+        <Text style={[styles.preferencesIntroText, isRTL && styles.textRTL]}>
+          {t('signup.preferencesIntro')}
         </Text>
       </View>
 
       {loadingServices ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement des services...</Text>
+          <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('signup.loadingServices')}</Text>
         </View>
       ) : categoriesWithServices.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Aucun service disponible pour le moment.</Text>
+          <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t('signup.noServicesAvailable')}</Text>
         </View>
       ) : (
         categoriesWithServices.map((category) => {
@@ -781,20 +788,22 @@ export default function SignupClientScreen() {
 
           return (
             <View key={category.id} style={styles.categorySection}>
-              <Text style={[styles.categoryTitle, { color: category.color || colors.primary }]}>
-                {category.name}
+              <Text style={[styles.categoryTitle, { color: category.color || colors.primary }, isRTL && styles.textRTL]}>
+                {getCategoryTranslation(category.name, language)}
               </Text>
-              <View style={styles.servicesGrid}>
+              <View style={[styles.servicesGrid, isRTL && styles.servicesGridRTL]}>
                 {category.services.map((service) => {
                   const serviceId = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id;
                   const isSelected = selectedServices.includes(serviceId);
-                  const serviceName = service.title || service.name || 'Service';
+                  const rawServiceName = service.title || service.name || 'Service';
+                  const serviceName = getServiceTranslation(rawServiceName, language).title;
                   return (
                     <TouchableOpacity
                       key={service.id}
                       style={[
                         styles.serviceChip,
                         isSelected && styles.serviceChipSelected,
+                        isRTL && styles.serviceChipRTL,
                       ]}
                       onPress={() => toggleServiceSelection(serviceId)}
                       disabled={isLoading}
@@ -817,10 +826,10 @@ export default function SignupClientScreen() {
 
       {/* Validation message */}
       {errors.services && (
-        <Text style={[styles.errorText, { marginBottom: spacing.md }]}>{errors.services}</Text>
+        <Text style={[styles.errorText, { marginBottom: spacing.md }, isRTL && styles.textRTL]}>{errors.services}</Text>
       )}
 
-      <View style={styles.buttonRow}>
+      <View style={[styles.buttonRow, isRTL && styles.buttonRowRTL]}>
         <Button
           variant="outline"
           size="sm"
@@ -828,7 +837,7 @@ export default function SignupClientScreen() {
           disabled={isLoading}
           style={styles.backButton}
         >
-          Precedent
+          {t('signup.previous')}
         </Button>
         <Button
           variant="primary"
@@ -838,13 +847,13 @@ export default function SignupClientScreen() {
           disabled={isLoading || selectedServices.length === 0}
           style={styles.finishButton}
         >
-          Terminer l'inscription
+          {t('signup.finishRegistration')}
         </Button>
       </View>
 
       {selectedServices.length === 0 && (
-        <Text style={styles.hintText}>
-          Selectionnez au moins un service pour continuer
+        <Text style={[styles.hintText, isRTL && styles.textRTL]}>
+          {t('signup.selectAtLeastOneServiceHint')}
         </Text>
       )}
     </View>
@@ -862,27 +871,27 @@ export default function SignupClientScreen() {
       >
         {/* Back Link */}
         <TouchableOpacity
-          style={styles.backLink}
+          style={[styles.backLink, isRTL && styles.backLinkRTL]}
           onPress={() => router.push('/')}
           disabled={isLoading}
         >
-          <Text style={styles.backLinkIcon}>←</Text>
-          <Text style={styles.backLinkText}>Retour a l'accueil</Text>
+          <Text style={styles.backLinkIcon}>{isRTL ? '→' : '←'}</Text>
+          <Text style={[styles.backLinkText, isRTL && styles.textRTL]}>{t('auth.backToHome')}</Text>
         </TouchableOpacity>
 
         {renderStepIndicator()}
 
-        <Text style={styles.title}>
-          {currentStep === 1 && 'Informations personnelles'}
-          {currentStep === 2 && 'Votre adresse'}
-          {currentStep === 3 && 'Mode de paiement'}
-          {currentStep === 4 && 'Vos preferences'}
+        <Text style={[styles.title, isRTL && styles.textRTL]}>
+          {currentStep === 1 && t('signup.personalInfo')}
+          {currentStep === 2 && t('signup.yourAddress')}
+          {currentStep === 3 && t('signup.paymentMethod')}
+          {currentStep === 4 && t('signup.yourPreferences')}
         </Text>
-        <Text style={styles.subtitle}>
-          {currentStep === 1 && 'Creez votre compte GlamGo'}
-          {currentStep === 2 && 'Ou souhaitez-vous recevoir vos prestations ?'}
-          {currentStep === 3 && 'Selectionnez votre mode de paiement'}
-          {currentStep === 4 && 'Personnalisez votre experience'}
+        <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+          {currentStep === 1 && t('signup.createYourAccount')}
+          {currentStep === 2 && t('signup.whereToReceiveServices')}
+          {currentStep === 3 && t('signup.selectPaymentMethod')}
+          {currentStep === 4 && t('signup.personalizeExperience')}
         </Text>
 
         {currentStep === 1 && renderStep1()}
@@ -898,7 +907,7 @@ export default function SignupClientScreen() {
 
         {/* Navigation Buttons (Steps 1-2 only) */}
         {(currentStep === 1 || currentStep === 2) && (
-          <View style={styles.buttons}>
+          <View style={[styles.buttons, isRTL && styles.buttonsRTL]}>
             <Button
               variant="outline"
               size="sm"
@@ -906,7 +915,7 @@ export default function SignupClientScreen() {
               disabled={isLoading}
               style={styles.backButton}
             >
-              {currentStep === 1 ? 'Retour' : 'Precedent'}
+              {currentStep === 1 ? t('common.back') : t('signup.previous')}
             </Button>
 
             <Button
@@ -917,7 +926,7 @@ export default function SignupClientScreen() {
               disabled={isLoading}
               style={styles.nextButton}
             >
-              Continuer
+              {t('common.next')}
             </Button>
           </View>
         )}
@@ -929,8 +938,8 @@ export default function SignupClientScreen() {
             onPress={() => router.push('/auth/login')}
             disabled={isLoading}
           >
-            <Text style={styles.loginLinkText}>
-              Vous avez deja un compte ? <Text style={styles.loginLinkBold}>Connectez-vous</Text>
+            <Text style={[styles.loginLinkText, isRTL && styles.textRTL]}>
+              {t('auth.hasAccount')} <Text style={styles.loginLinkBold}>{t('auth.loginHere')}</Text>
             </Text>
           </TouchableOpacity>
         )}
@@ -1402,5 +1411,61 @@ const styles = StyleSheet.create({
   loginLinkBold: {
     color: colors.primary,
     fontWeight: '600',
+  },
+
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  textInputRTL: {
+    textAlign: 'right',
+  },
+  stepIndicatorRTL: {
+    flexDirection: 'row-reverse',
+  },
+  formRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  passwordWrapperRTL: {
+    flexDirection: 'row-reverse',
+  },
+  checkboxRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  termsLinksRTL: {
+    flexDirection: 'row-reverse',
+    marginLeft: 0,
+    marginRight: 30,
+  },
+  cityDropdownRTL: {
+    flexDirection: 'row-reverse',
+  },
+  modalHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  cityOptionRTL: {
+    flexDirection: 'row-reverse',
+  },
+  paymentInfoRTL: {
+    flexDirection: 'row-reverse',
+  },
+  buttonRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  buttonsRTL: {
+    flexDirection: 'row-reverse',
+  },
+  preferencesIntroRTL: {
+    alignItems: 'flex-end',
+  },
+  servicesGridRTL: {
+    flexDirection: 'row-reverse',
+  },
+  serviceChipRTL: {
+    flexDirection: 'row-reverse',
+  },
+  backLinkRTL: {
+    flexDirection: 'row-reverse',
   },
 });

@@ -18,6 +18,7 @@ import * as Location from 'expo-location';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
 import { useLocation, LocationCoords } from '../../lib/hooks/useLocation';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface AddressData {
   formatted: string;
@@ -72,17 +73,21 @@ export default function AddressAutocomplete({
   value,
   onChangeText,
   onAddressSelect,
-  placeholder = 'Entrez votre adresse',
+  placeholder,
   label,
   error,
   disabled = false,
 }: AddressAutocompleteProps) {
+  const { t, isRTL } = useLanguage();
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<AddressData[]>([]);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const { getCurrentLocation, hasPermission, requestPermission, loading: locationLoading } = useLocation();
+
+  // Use translated placeholder if not provided
+  const displayPlaceholder = placeholder || t('address.enterAddress');
 
   // Generate suggestions based on input
   const generateSuggestions = useCallback((text: string): AddressData[] => {
@@ -98,10 +103,11 @@ export default function AddressAutocomplete({
     CITIES.forEach(cityData => {
       if (cityData.name.toLowerCase().includes(lowerText)) {
         const isFrance = frenchCities.includes(cityData.name);
+        const countryName = isFrance ? t('address.france') : t('address.morocco');
         results.push({
-          formatted: `${cityData.name}, ${isFrance ? 'France' : 'Maroc'}`,
+          formatted: `${cityData.name}, ${countryName}`,
           city: cityData.name,
-          country: isFrance ? 'France' : 'Maroc',
+          country: countryName,
           coords: { latitude: cityData.lat, longitude: cityData.lng },
         });
       }
@@ -115,7 +121,7 @@ export default function AddressAutocomplete({
             formatted: `${type} ${text.charAt(0).toUpperCase() + text.slice(1)}, ${cityData.name}`,
             street: `${type} ${text}`,
             city: cityData.name,
-            country: 'Maroc',
+            country: t('address.morocco'),
             coords: { latitude: cityData.lat, longitude: cityData.lng },
           });
         }
@@ -123,7 +129,7 @@ export default function AddressAutocomplete({
     });
 
     return results.slice(0, 6);
-  }, []);
+  }, [t]);
 
   // Update suggestions when text changes
   useEffect(() => {
@@ -230,27 +236,29 @@ export default function AddressAutocomplete({
         </Text>
       )}
 
-      <View style={styles.inputWrapper}>
+      <View style={[styles.inputWrapper, isRTL && styles.inputWrapperRTL]}>
         {/* Input Container */}
         <View style={[
           styles.inputContainer,
           isFocused && styles.inputContainerFocused,
           error && styles.inputContainerError,
           disabled && styles.inputContainerDisabled,
+          isRTL && styles.inputContainerRTL,
         ]}>
           <Text style={styles.inputIcon}>📍</Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, isRTL && styles.inputRTL]}
             value={value}
             onChangeText={onChangeText}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            placeholder={placeholder}
+            placeholder={displayPlaceholder}
             placeholderTextColor={colors.gray[400]}
             editable={!disabled && !isLoading}
             multiline
             numberOfLines={2}
+            textAlign={isRTL ? 'right' : 'left'}
           />
 
           {isLoading && (
@@ -280,10 +288,10 @@ export default function AddressAutocomplete({
       <TouchableOpacity
         onPress={handleUseCurrentLocation}
         disabled={disabled || isLoading}
-        style={styles.helperButton}
+        style={[styles.helperButton, isRTL && styles.helperButtonRTL]}
       >
-        <Text style={styles.helperText}>
-          {isLoading ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
+        <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+          {isLoading ? t('address.locating') : t('address.useCurrentLocation')}
         </Text>
       </TouchableOpacity>
 
@@ -298,18 +306,18 @@ export default function AddressAutocomplete({
             {suggestions.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.suggestionItem}
+                style={[styles.suggestionItem, isRTL && styles.suggestionItemRTL]}
                 onPress={() => handleSuggestionSelect(item)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.suggestionIcon}>📍</Text>
+                <Text style={[styles.suggestionIcon, isRTL && styles.suggestionIconRTL]}>📍</Text>
                 <View style={styles.suggestionTextContainer}>
-                  <Text style={styles.suggestionText} numberOfLines={1}>
+                  <Text style={[styles.suggestionText, isRTL && styles.textRTL]} numberOfLines={1}>
                     {item.formatted}
                   </Text>
                   {item.city && (
-                    <Text style={styles.suggestionSubtext}>
-                      {item.city}, Maroc
+                    <Text style={[styles.suggestionSubtext, isRTL && styles.textRTL]}>
+                      {item.city}, {item.country || t('address.morocco')}
                     </Text>
                   )}
                 </View>
@@ -456,5 +464,31 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: colors.error,
     marginTop: spacing.xs,
+  },
+
+  // RTL Styles
+  inputWrapperRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  helperButtonRTL: {
+    alignItems: 'flex-end',
+  },
+  suggestionItemRTL: {
+    flexDirection: 'row-reverse',
+  },
+  suggestionIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });

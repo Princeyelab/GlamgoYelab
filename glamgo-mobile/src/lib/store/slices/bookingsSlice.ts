@@ -18,6 +18,8 @@ import {
 import { handleAPIError, logError } from '../../utils/errorHandler';
 import { DEMO_MODE } from '../../config/appConfig';
 import { SERVICES } from '../../constants/services';
+import { isOrderCancelled, getCancelledOrderIds } from '../../utils/cancelledOrdersCache';
+import { isOrderSatisfied, getSatisfiedOrderIds } from '../../utils/satisfiedOrdersCache';
 
 // Demo bookings data
 const DEMO_BOOKINGS: Booking[] = [
@@ -100,6 +102,10 @@ interface BookingsState {
   isLoading: boolean;
   error: string | null;
   filter: BookingStatus | 'all';
+  // IDs des commandes annulées localement (pour éviter qu'elles réapparaissent après refresh)
+  locallyCancelledIds: number[];
+  // Statuts mis à jour localement (pour éviter l'écrasement par l'API)
+  localStatusOverrides: Record<number, BookingStatus>;
 }
 
 // === INITIAL STATE ===
@@ -110,6 +116,8 @@ const initialState: BookingsState = {
   isLoading: false,
   error: null,
   filter: 'all',
+  locallyCancelledIds: [],
+  localStatusOverrides: {},
 };
 
 // === ASYNC THUNKS ===
@@ -296,12 +304,35 @@ const bookingsSlice = createSlice({
   initialState,
   reducers: {
     setBookings: (state, action: PayloadAction<Booking[]>) => {
-      state.items = action.payload;
+      // Safety check
+      if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+      // Filtrer les bookings annulés localement
+      state.items = action.payload.filter(booking => {
+        if (state.locallyCancelledIds.includes(booking.id)) {
+          console.log('[BookingsSlice] setBookings: Filtering cancelled booking:', booking.id);
+          return false;
+        }
+        return true;
+      });
     },
     addBooking: (state, action: PayloadAction<Booking>) => {
+      // Safety check
+      if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+      // Ne JAMAIS réajouter un booking annulé localement
+      if (state.locallyCancelledIds.includes(action.payload.id)) {
+        console.log('[BookingsSlice] addBooking: Ignoring cancelled booking:', action.payload.id);
+        return;
+      }
       state.items.unshift(action.payload);
     },
     updateBooking: (state, action: PayloadAction<Booking>) => {
+      // Safety check
+      if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+      // Ne JAMAIS mettre à jour un booking annulé localement
+      if (state.locallyCancelledIds.includes(action.payload.id)) {
+        console.log('[BookingsSlice] updateBooking: Ignoring cancelled booking:', action.payload.id);
+        return;
+      }
       const index = state.items.findIndex(b => b.id === action.payload.id);
       if (index > -1) {
         state.items[index] = action.payload;
@@ -317,9 +348,45 @@ const bookingsSlice = createSlice({
       state.error = null;
     },
     updateBookingStatus: (state, action: PayloadAction<{ id: number; status: BookingStatus }>) => {
-      const booking = state.items.find(b => b.id === action.payload.id);
+      const { id, status } = action.payload;
+
+      // Safety checks pour état persisté avant migration
+      if (!state.localStatusOverrides) state.localStatusOverrides = {};
+      if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+
+      // IMPORTANT: Ne JAMAIS écraser un statut 'cancelled' avec un autre statut
+      // (évite que le polling réactive une commande annulée)
+      if (state.locallyCancelledIds.includes(id) && status !== 'cancelled') {
+        console.log('[BookingsSlice] Ignoring status update for cancelled booking:', id, status);
+        return;
+      }
+
+      // Si annulé, SUPPRIMER le booking de la liste ET l'ajouter aux annulations locales
+      if (status === 'cancelled') {
+        console.log('[BookingsSlice] Removing cancelled booking from items:', id);
+        state.items = state.items.filter(b => b.id !== id);
+        if (!state.locallyCancelledIds.includes(id)) {
+          state.locallyCancelledIds.push(id);
+        }
+        state.localStatusOverrides[id] = status;
+        return;
+      }
+
+      // Pour les autres statuts, mettre à jour normalement
+      const booking = state.items.find(b => b.id === id);
       if (booking) {
-        booking.status = action.payload.status;
+        booking.status = status;
+      }
+      // Sauvegarder le statut local pour éviter l'écrasement par l'API
+      state.localStatusOverrides[id] = status;
+    },
+    // Nettoyer les overrides quand l'API confirme le statut
+    clearLocalOverride: (state, action: PayloadAction<number>) => {
+      if (state.localStatusOverrides) {
+        delete state.localStatusOverrides[action.payload];
+      }
+      if (state.locallyCancelledIds) {
+        state.locallyCancelledIds = state.locallyCancelledIds.filter(id => id !== action.payload);
       }
     },
     removeBooking: (state, action: PayloadAction<number>) => {
@@ -336,7 +403,45 @@ const bookingsSlice = createSlice({
       })
       .addCase(fetchBookings.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload;
+        // Appliquer les données de l'API
+        let items = action.payload;
+
+        // Safety checks pour état persisté avant migration
+        if (!state.localStatusOverrides) state.localStatusOverrides = {};
+        if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+
+        // Récupérer les IDs annulés du cache AsyncStorage (plus fiable)
+        const asyncCancelledIds = getCancelledOrderIds();
+
+        // IMPORTANT: Supprimer COMPLÈTEMENT les bookings annulés (Redux OU AsyncStorage)
+        items = items.filter(booking => {
+          // Vérifier Redux state
+          if (state.locallyCancelledIds.includes(booking.id)) {
+            console.log('[BookingsSlice] Filtering out cancelled booking (Redux):', booking.id);
+            return false;
+          }
+          // Vérifier AsyncStorage cache
+          if (asyncCancelledIds.includes(booking.id)) {
+            console.log('[BookingsSlice] Filtering out cancelled booking (AsyncStorage):', booking.id);
+            return false;
+          }
+          return true;
+        });
+
+        // Appliquer les statuts locaux (pour éviter que l'API écrase les changements récents)
+        items = items.map(booking => {
+          const localStatus = state.localStatusOverrides[booking.id];
+          if (localStatus) {
+            // Si l'API confirme le même statut, nettoyer l'override
+            if (booking.status === localStatus) {
+              delete state.localStatusOverrides[booking.id];
+            }
+            return { ...booking, status: localStatus };
+          }
+          return booking;
+        });
+
+        state.items = items;
       })
       .addCase(fetchBookings.rejected, (state, action) => {
         state.isLoading = false;
@@ -351,6 +456,13 @@ const bookingsSlice = createSlice({
       })
       .addCase(fetchBookingById.fulfilled, (state, action) => {
         state.isLoading = false;
+        // Safety check
+        if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+        // Ne JAMAIS réajouter un booking annulé localement
+        if (state.locallyCancelledIds.includes(action.payload.id)) {
+          console.log('[BookingsSlice] fetchBookingById: Ignoring cancelled booking:', action.payload.id);
+          return;
+        }
         state.currentBooking = action.payload;
         const index = state.items.findIndex(b => b.id === action.payload.id);
         if (index > -1) {
@@ -370,7 +482,14 @@ const bookingsSlice = createSlice({
       })
       .addCase(fetchUpcomingBookings.fulfilled, (state, action) => {
         state.isLoading = false;
+        // Safety check
+        if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
         action.payload.forEach(booking => {
+          // Ne JAMAIS réajouter un booking annulé localement
+          if (state.locallyCancelledIds.includes(booking.id)) {
+            console.log('[BookingsSlice] fetchUpcomingBookings: Ignoring cancelled booking:', booking.id);
+            return;
+          }
           const index = state.items.findIndex(b => b.id === booking.id);
           if (index > -1) {
             state.items[index] = booking;
@@ -392,7 +511,14 @@ const bookingsSlice = createSlice({
       })
       .addCase(fetchBookingHistory.fulfilled, (state, action) => {
         state.isLoading = false;
+        // Safety check
+        if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
         action.payload.forEach(booking => {
+          // Ne JAMAIS réajouter un booking annulé localement
+          if (state.locallyCancelledIds.includes(booking.id)) {
+            console.log('[BookingsSlice] fetchBookingHistory: Ignoring cancelled booking:', booking.id);
+            return;
+          }
           const index = state.items.findIndex(b => b.id === booking.id);
           if (index > -1) {
             state.items[index] = booking;
@@ -437,6 +563,14 @@ const bookingsSlice = createSlice({
         if (state.currentBooking?.id === action.payload.id) {
           state.currentBooking = action.payload;
         }
+        // Safety checks pour état persisté avant migration
+        if (!state.localStatusOverrides) state.localStatusOverrides = {};
+        if (!state.locallyCancelledIds) state.locallyCancelledIds = [];
+        // Ajouter aux annulations locales pour éviter réapparition
+        if (!state.locallyCancelledIds.includes(action.payload.id)) {
+          state.locallyCancelledIds.push(action.payload.id);
+        }
+        state.localStatusOverrides[action.payload.id] = 'cancelled';
       })
       .addCase(cancelBooking.rejected, (state, action) => {
         state.isLoading = false;
@@ -455,6 +589,7 @@ export const {
   setFilter,
   clearError,
   updateBookingStatus,
+  clearLocalOverride,
   removeBooking,
   clearBookings,
 } = bookingsSlice.actions;
@@ -481,7 +616,28 @@ export const selectUpcomingBookings = (state: { bookings: BookingsState }) => {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+  // Safety check pour locallyCancelledIds (peut être undefined si state persisté avant migration)
+  const cancelledIds = state.bookings.locallyCancelledIds || [];
+  // AUSSI vérifier le cache AsyncStorage (plus fiable, survit au reload)
+  const asyncCancelledIds = getCancelledOrderIds();
+  // Récupérer les IDs des commandes déjà évaluées (pour les masquer de "À venir")
+  const satisfiedIds = getSatisfiedOrderIds();
+
   return state.bookings.items.filter(b => {
+    // IMPORTANT: Exclure les commandes annulées localement (Redux OU AsyncStorage)
+    if (cancelledIds.includes(b.id)) {
+      return false;
+    }
+    // Vérifier aussi le cache AsyncStorage
+    if (asyncCancelledIds.includes(b.id)) {
+      console.log('[selectUpcomingBookings] Filtering order from AsyncStorage cache:', b.id);
+      return false;
+    }
+    // Exclure les commandes déjà évaluées (satisfaction soumise)
+    if (satisfiedIds.includes(b.id)) {
+      console.log('[selectUpcomingBookings] Filtering satisfied order:', b.id);
+      return false;
+    }
     if (!['pending', 'confirmed', 'accepted', 'on_way', 'arrived', 'in_progress', 'completed_pending_review'].includes(b.status)) {
       return false;
     }

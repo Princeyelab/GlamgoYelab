@@ -14,11 +14,15 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  I18nManager,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import apiClient from '../../lib/api/client';
 import { ENDPOINTS } from '../../lib/api/endpoints';
 import { hapticFeedback } from '../../lib/utils/haptics';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { appEvents, EVENTS } from '../../lib/utils/eventEmitter';
+import { addCancelledOrderId, initCancelledOrdersCache } from '../../lib/utils/cancelledOrdersCache';
 
 interface CancellationModalProps {
   visible: boolean;
@@ -39,24 +43,24 @@ interface CancellationFeeInfo {
   hours_until_appointment?: number;
 }
 
-// Motifs d'annulation
-const CANCELLATION_REASONS_CLIENT = [
-  { key: 'changed_mind', label: 'J\'ai change d\'avis' },
-  { key: 'found_another', label: 'J\'ai trouve un autre prestataire' },
-  { key: 'schedule_conflict', label: 'Conflit d\'horaire' },
-  { key: 'financial', label: 'Raisons financieres' },
-  { key: 'emergency', label: 'Urgence personnelle' },
-  { key: 'other', label: 'Autre raison' },
+// Motifs d'annulation - Keys pour traduction
+const CANCELLATION_REASON_KEYS_CLIENT = [
+  'changed_mind',
+  'found_another',
+  'schedule_conflict',
+  'financial',
+  'emergency',
+  'other',
 ];
 
-const CANCELLATION_REASONS_PROVIDER = [
-  { key: 'emergency', label: 'Urgence personnelle' },
-  { key: 'health', label: 'Probleme de sante' },
-  { key: 'vehicle', label: 'Probleme de vehicule' },
-  { key: 'schedule_conflict', label: 'Conflit d\'horaire' },
-  { key: 'cannot_reach', label: 'Client injoignable' },
-  { key: 'unsafe_location', label: 'Lieu non securise' },
-  { key: 'other', label: 'Autre raison' },
+const CANCELLATION_REASON_KEYS_PROVIDER = [
+  'emergency',
+  'health',
+  'vehicle',
+  'schedule_conflict',
+  'cannot_reach',
+  'unsafe_location',
+  'other',
 ];
 
 export default function CancellationModal({
@@ -68,13 +72,20 @@ export default function CancellationModal({
   orderStatus,
   providerLocation,
 }: CancellationModalProps) {
+  const { t, isRTL } = useLanguage();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [customReason, setCustomReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingFee, setIsFetchingFee] = useState(false);
   const [feeInfo, setFeeInfo] = useState<CancellationFeeInfo | null>(null);
 
-  const reasons = userType === 'client' ? CANCELLATION_REASONS_CLIENT : CANCELLATION_REASONS_PROVIDER;
+  const reasonKeys = userType === 'client' ? CANCELLATION_REASON_KEYS_CLIENT : CANCELLATION_REASON_KEYS_PROVIDER;
+
+  // Get translated reasons
+  const getReasonLabel = (key: string) => {
+    const prefix = userType === 'client' ? 'cancellation.clientReasons' : 'cancellation.providerReasons';
+    return t(`${prefix}.${key}`);
+  };
 
   // Charger les infos de frais d'annulation
   useEffect(() => {
@@ -101,27 +112,27 @@ export default function CancellationModal({
 
   const handleCancel = async () => {
     if (!selectedReason) {
-      Alert.alert('Motif requis', 'Veuillez selectionner un motif d\'annulation');
+      Alert.alert(t('cancellation.reasonRequired'), t('cancellation.pleaseSelectReason'));
       return;
     }
 
     const reasonText = selectedReason === 'other'
-      ? customReason.trim() || 'Autre raison'
-      : reasons.find(r => r.key === selectedReason)?.label || selectedReason;
+      ? customReason.trim() || t('cancellation.clientReasons.other')
+      : getReasonLabel(selectedReason);
 
     if (selectedReason === 'other' && !customReason.trim()) {
-      Alert.alert('Motif requis', 'Veuillez preciser le motif d\'annulation');
+      Alert.alert(t('cancellation.reasonRequired'), t('cancellation.pleaseSpecifyReason'));
       return;
     }
 
     // Confirmer l'annulation si des frais s'appliquent
     if (feeInfo && feeInfo.fee > 0) {
       Alert.alert(
-        'Confirmer l\'annulation',
-        `Des frais de ${feeInfo.fee.toFixed(2)} MAD (${feeInfo.percentage}%) seront appliques.\n\nVoulez-vous continuer ?`,
+        t('cancellation.confirmCancellation'),
+        t('cancellation.confirmCancellationMessage', { fee: feeInfo.fee.toFixed(2), percentage: feeInfo.percentage.toString() }),
         [
-          { text: 'Non', style: 'cancel' },
-          { text: 'Oui, annuler', style: 'destructive', onPress: () => submitCancellation(reasonText) },
+          { text: t('common.no'), style: 'cancel' },
+          { text: t('cancellation.confirmCancellationButton'), style: 'destructive', onPress: () => submitCancellation(reasonText) },
         ]
       );
     } else {
@@ -153,15 +164,22 @@ export default function CancellationModal({
 
       if (response.data?.success) {
         hapticFeedback.success();
+        // Ajouter au cache AsyncStorage pour éviter réapparition
+        await addCancelledOrderId(orderId);
+        // Recharger le cache mémoire immédiatement pour que isOrderCancelled() fonctionne
+        await initCancelledOrdersCache();
+        console.log('[CancellationModal] Order added to cache and cache reloaded:', orderId);
+        // Émettre l'événement pour notifier les autres écrans
+        appEvents.emit(EVENTS.ORDER_CANCELLED, { orderId, userType });
         Alert.alert(
-          'Annulation confirmee',
+          t('cancellation.cancellationConfirmed'),
           userType === 'client' && feeInfo && feeInfo.fee > 0
-            ? `Votre reservation a ete annulee.\nFrais d'annulation: ${feeInfo.fee.toFixed(2)} MAD`
-            : 'Votre reservation a ete annulee.',
-          [{ text: 'OK', onPress: onSuccess }]
+            ? t('cancellation.bookingCancelledWithFee', { fee: feeInfo.fee.toFixed(2) })
+            : t('cancellation.bookingCancelled'),
+          [{ text: t('common.ok'), onPress: onSuccess }]
         );
       } else {
-        throw new Error(response.data?.message || 'Erreur lors de l\'annulation');
+        throw new Error(response.data?.message || t('common.error'));
       }
     } catch (error: any) {
       console.log('[CancellationModal] Error:', error);
@@ -169,19 +187,19 @@ export default function CancellationModal({
       hapticFeedback.error();
 
       // Message d'erreur plus clair
-      let errorMessage = 'Impossible d\'annuler la reservation';
+      let errorMessage = t('cancellation.cancellationError');
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         // Traduire certaines erreurs techniques
         if (error.message.includes('Date value')) {
-          errorMessage = 'Erreur technique lors de l\'annulation. Veuillez reessayer.';
+          errorMessage = t('cancellation.technicalError');
         } else {
           errorMessage = error.message;
         }
       }
 
-      Alert.alert('Erreur', errorMessage);
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -191,18 +209,12 @@ export default function CancellationModal({
     if (userType === 'provider') {
       switch (orderStatus) {
         case 'on_way':
-          return '⚠️ ATTENTION - Vous etes en route vers le client.\n\n' +
-            '• Des points de penalite seront appliques a votre compte\n' +
-            '• Votre score prestataire sera impacte\n' +
-            '• Plusieurs annulations peuvent entrainer une suspension temporaire\n\n' +
-            'Selon les CGU GlamGo, l\'annulation en cours de trajet est reservee aux cas d\'urgence.';
+          return t('cancellation.warningOnWayProvider');
         case 'accepted':
-          return '⚠️ Cette commande est deja acceptee.\n\n' +
-            '• Des points de penalite peuvent etre appliques\n' +
-            '• Le client sera notifie de l\'annulation';
+          return t('cancellation.warningAcceptedProvider');
         case 'arrived':
         case 'in_progress':
-          return '🚫 L\'annulation n\'est plus possible une fois arrive chez le client ou en cours de prestation.';
+          return t('cancellation.warningArrivedProvider');
         default:
           return null;
       }
@@ -210,11 +222,11 @@ export default function CancellationModal({
       // Client
       switch (orderStatus) {
         case 'on_way':
-          return '⚠️ Le prestataire est en route. Des frais d\'annulation peuvent s\'appliquer selon la distance parcourue.';
+          return t('cancellation.warningOnWayClient');
         case 'arrived':
-          return '🚫 Le prestataire est arrive. L\'annulation n\'est plus possible.';
+          return t('cancellation.warningArrivedClient');
         case 'in_progress':
-          return '🚫 La prestation est en cours. L\'annulation n\'est plus possible.';
+          return t('cancellation.warningInProgressClient');
         default:
           return null;
       }
@@ -231,10 +243,10 @@ export default function CancellationModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, isRTL && styles.containerRTL]}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Annuler la reservation</Text>
+          <View style={[styles.header, isRTL && styles.headerRTL]}>
+            <Text style={[styles.title, isRTL && styles.textRTL]}>{t('cancellation.cancelBooking')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeIcon}>✕</Text>
             </TouchableOpacity>
@@ -245,10 +257,12 @@ export default function CancellationModal({
             {getStatusWarning() && (
               <View style={[
                 styles.warningBox,
+                isRTL && styles.warningBoxRTL,
                 orderStatus === 'on_way' && userType === 'provider' && styles.warningBoxDanger
               ]}>
                 <Text style={[
                   styles.warningText,
+                  isRTL && styles.textRTL,
                   orderStatus === 'on_way' && userType === 'provider' && styles.warningTextDanger
                 ]}>
                   {getStatusWarning()}
@@ -256,22 +270,52 @@ export default function CancellationModal({
               </View>
             )}
 
-            {/* Frais d'annulation */}
+            {/* Barème des frais d'annulation CGU - Client uniquement */}
+            {userType === 'client' && (
+              <View style={[styles.policyBox, isRTL && styles.policyBoxRTL]}>
+                <Text style={[styles.policyTitle, isRTL && styles.textRTL]}>
+                  ⚠️ {t('cancellation.policyTitle')}
+                </Text>
+                <View style={styles.policyRow}>
+                  <Text style={styles.policyDot}>•</Text>
+                  <Text style={[styles.policyText, isRTL && styles.textRTL]}>{t('cancellation.policyMoreThan2h')}</Text>
+                </View>
+                <View style={styles.policyRow}>
+                  <Text style={styles.policyDot}>•</Text>
+                  <Text style={[styles.policyText, isRTL && styles.textRTL]}>{t('cancellation.policy1to2h')}</Text>
+                </View>
+                <View style={styles.policyRow}>
+                  <Text style={styles.policyDot}>•</Text>
+                  <Text style={[styles.policyText, isRTL && styles.textRTL]}>{t('cancellation.policyLessThan1h')}</Text>
+                </View>
+                <View style={styles.policyRow}>
+                  <Text style={styles.policyDot}>•</Text>
+                  <Text style={[styles.policyText, isRTL && styles.textRTL]}>{t('cancellation.policyNoShow')}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Frais d'annulation calculés */}
             {userType === 'client' && (
               <View style={styles.feeSection}>
                 {isFetchingFee ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : feeInfo ? (
                   <>
-                    <Text style={styles.feeLabel}>Frais d'annulation</Text>
+                    <Text style={[styles.feeLabel, isRTL && styles.textRTL]}>{t('cancellation.yourFee')}</Text>
                     <Text style={[
                       styles.feeAmount,
                       feeInfo.fee > 0 ? styles.feeAmountWarning : styles.feeAmountFree
                     ]}>
-                      {feeInfo.fee > 0 ? `${feeInfo.fee.toFixed(2)} MAD (${feeInfo.percentage}%)` : 'Gratuit'}
+                      {feeInfo.fee > 0 ? `${feeInfo.fee.toFixed(2)} MAD` : t('cancellation.free')}
                     </Text>
+                    {feeInfo.hours_until_appointment !== undefined && (
+                      <Text style={[styles.feeDescription, isRTL && styles.textRTL]}>
+                        {t('cancellation.hoursUntilAppointment', { hours: feeInfo.hours_until_appointment.toFixed(1) })}
+                      </Text>
+                    )}
                     {feeInfo.rule_description && (
-                      <Text style={styles.feeDescription}>{feeInfo.rule_description}</Text>
+                      <Text style={[styles.feeDescription, isRTL && styles.textRTL]}>{feeInfo.rule_description}</Text>
                     )}
                   </>
                 ) : null}
@@ -281,25 +325,26 @@ export default function CancellationModal({
             {/* Liste des motifs */}
             {canCancel && (
               <>
-                <Text style={styles.sectionTitle}>Motif d'annulation *</Text>
+                <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('cancellation.reason')} *</Text>
                 <View style={styles.reasonsContainer}>
-                  {reasons.map((reason) => (
+                  {reasonKeys.map((reasonKey) => (
                     <TouchableOpacity
-                      key={reason.key}
+                      key={reasonKey}
                       style={[
                         styles.reasonButton,
-                        selectedReason === reason.key && styles.reasonButtonSelected,
+                        selectedReason === reasonKey && styles.reasonButtonSelected,
                       ]}
                       onPress={() => {
-                        setSelectedReason(reason.key);
+                        setSelectedReason(reasonKey);
                         hapticFeedback.light();
                       }}
                     >
                       <Text style={[
                         styles.reasonText,
-                        selectedReason === reason.key && styles.reasonTextSelected,
+                        isRTL && styles.textRTL,
+                        selectedReason === reasonKey && styles.reasonTextSelected,
                       ]}>
-                        {reason.label}
+                        {getReasonLabel(reasonKey)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -308,13 +353,14 @@ export default function CancellationModal({
                 {/* Champ personnalise si "Autre" */}
                 {selectedReason === 'other' && (
                   <TextInput
-                    style={styles.customReasonInput}
-                    placeholder="Precisez le motif..."
+                    style={[styles.customReasonInput, isRTL && styles.inputRTL]}
+                    placeholder={t('cancellation.specifyReason')}
                     placeholderTextColor={colors.gray[400]}
                     value={customReason}
                     onChangeText={setCustomReason}
                     multiline
                     maxLength={200}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                 )}
               </>
@@ -324,21 +370,21 @@ export default function CancellationModal({
             {!canCancel && (
               <View style={styles.cannotCancelBox}>
                 <Text style={styles.cannotCancelIcon}>🚫</Text>
-                <Text style={styles.cannotCancelText}>
-                  L'annulation n'est plus possible a ce stade de la prestation.
+                <Text style={[styles.cannotCancelText, isRTL && styles.textRTL]}>
+                  {t('cancellation.cannotCancelNow')}
                 </Text>
               </View>
             )}
           </ScrollView>
 
           {/* Actions */}
-          <View style={styles.actions}>
+          <View style={[styles.actions, isRTL && styles.actionsRTL]}>
             <TouchableOpacity
               style={styles.cancelActionButton}
               onPress={onClose}
               disabled={isLoading}
             >
-              <Text style={styles.cancelActionText}>Retour</Text>
+              <Text style={[styles.cancelActionText, isRTL && styles.textRTL]}>{t('cancellation.back')}</Text>
             </TouchableOpacity>
 
             {canCancel && (
@@ -353,7 +399,7 @@ export default function CancellationModal({
                 {isLoading ? (
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Confirmer l'annulation</Text>
+                  <Text style={[styles.confirmButtonText, isRTL && styles.textRTL]}>{t('cancellation.confirmCancellation')}</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -453,6 +499,41 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
   },
+  policyBox: {
+    backgroundColor: colors.warning + '15',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+  },
+  policyBoxRTL: {
+    borderLeftWidth: 0,
+    borderRightWidth: 4,
+    borderRightColor: colors.warning,
+  },
+  policyTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600' as const,
+    color: colors.gray[800],
+    marginBottom: spacing.sm,
+  },
+  policyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  policyDot: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray[600],
+    marginRight: spacing.xs,
+    width: 12,
+  },
+  policyText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray[600],
+    flex: 1,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.base,
     fontWeight: '600',
@@ -540,5 +621,27 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: '600',
     color: colors.white,
+  },
+  // RTL Styles
+  containerRTL: {
+    direction: 'rtl',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  warningBoxRTL: {
+    borderLeftWidth: 0,
+    borderRightWidth: 4,
+    borderRightColor: colors.warning,
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  actionsRTL: {
+    flexDirection: 'row-reverse',
   },
 });

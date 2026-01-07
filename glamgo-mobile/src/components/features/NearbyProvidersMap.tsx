@@ -20,6 +20,7 @@ import MapView, { Marker, Circle, Callout, PROVIDER_GOOGLE, Region } from 'react
 import Card from '../ui/Card';
 import { colors, spacing, typography, borderRadius, shadows } from '../../lib/constants/theme';
 import { hapticFeedback } from '../../lib/utils/haptics';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -77,6 +78,7 @@ export default function NearbyProvidersMap({
   radius = 15,
   compact = false,
 }: NearbyProvidersMapProps) {
+  const { t, isRTL } = useLanguage();
   const [showFullMap, setShowFullMap] = useState(false);
   const mapRef = useRef<MapView>(null);
   const fullMapRef = useRef<MapView>(null);
@@ -160,7 +162,7 @@ export default function NearbyProvidersMap({
       <Card style={[styles.container, compact && styles.containerCompact]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Recherche des prestataires...</Text>
+          <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('nearbyMap.searchingProviders')}</Text>
         </View>
       </Card>
     );
@@ -194,7 +196,7 @@ export default function NearbyProvidersMap({
         ]}>
           {isNearest && !isSelected && (
             <View style={styles.nearestBadgeMarker}>
-              <Text style={styles.nearestBadgeMarkerText}>Plus proche</Text>
+              <Text style={styles.nearestBadgeMarkerText}>{t('nearbyMap.nearest')}</Text>
             </View>
           )}
           {avatarUrl ? (
@@ -227,33 +229,33 @@ export default function NearbyProvidersMap({
               {/* Badge plus proche */}
               {isNearest && (
                 <View style={styles.calloutNearestBadge}>
-                  <Text style={styles.calloutNearestText}>Plus proche</Text>
+                  <Text style={styles.calloutNearestText}>{t('nearbyMap.nearest')}</Text>
                 </View>
               )}
 
               {/* Nom */}
-              <Text style={styles.calloutName}>{provider.name}</Text>
+              <Text style={[styles.calloutName, isRTL && styles.textRTL]}>{provider.name}</Text>
 
               {/* Rating */}
               {Number(provider.rating) > 0 && (
-                <Text style={styles.calloutRating}>
+                <Text style={[styles.calloutRating, isRTL && styles.textRTL]}>
                   ⭐ {Number(provider.rating).toFixed(1)} ({provider.reviewsCount || 0})
                 </Text>
               )}
 
               {/* Distance & ETA */}
-              <Text style={styles.calloutDistance}>
-                📍 {Number(provider.distance || 0).toFixed(1)} km • ~{provider.eta || Math.round((provider.distance || 0) * 5)} min
+              <Text style={[styles.calloutDistance, isRTL && styles.textRTL]}>
+                📍 {Number(provider.distance || 0).toFixed(1)} {t('radius.km')} • ~{provider.eta || Math.round((provider.distance || 0) * 5)} min
               </Text>
 
               {/* Disponibilité */}
-              <Text style={styles.calloutAvailability}>
-                {provider.isOnline ? '🟢 Disponible' : '📅 Sur RDV'}
+              <Text style={[styles.calloutAvailability, isRTL && styles.textRTL]}>
+                {provider.isOnline ? `🟢 ${t('nearbyMap.available')}` : `📅 ${t('nearbyMap.byAppointment')}`}
               </Text>
 
               {/* Bouton */}
               <View style={styles.calloutButton}>
-                <Text style={styles.calloutButtonText}>Sélectionner</Text>
+                <Text style={styles.calloutButtonText}>{t('nearbyMap.select')}</Text>
               </View>
             </View>
           </Callout>
@@ -265,10 +267,13 @@ export default function NearbyProvidersMap({
   return (
     <>
       <Card style={[styles.container, compact && styles.containerCompact]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Prestataires a proximite</Text>
-          <Text style={styles.subtitle}>
-            {onlineProviders.length} disponible{onlineProviders.length > 1 ? 's' : ''} - Appuyez pour agrandir
+        <View style={[styles.header, isRTL && styles.headerRTL]}>
+          <Text style={[styles.title, isRTL && styles.textRTL]}>{t('nearbyMap.nearbyProviders')}</Text>
+          <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+            {onlineProviders.length > 1
+              ? t('nearbyMap.availableCountPlural').replace('{count}', String(onlineProviders.length))
+              : t('nearbyMap.availableCount').replace('{count}', String(onlineProviders.length))
+            } - {t('nearbyMap.tapToExpand')}
           </Text>
         </View>
 
@@ -319,7 +324,7 @@ export default function NearbyProvidersMap({
           {/* Overlay button */}
           <View style={styles.mapOverlay}>
             <View style={styles.expandButton}>
-              <Text style={styles.expandButtonText}>Voir la carte</Text>
+              <Text style={styles.expandButtonText}>{t('nearbyMap.viewMap')}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -333,7 +338,7 @@ export default function NearbyProvidersMap({
       >
         <View style={styles.fullscreenContainer}>
           {/* Header */}
-          <View style={styles.fullscreenHeader}>
+          <View style={[styles.fullscreenHeader, isRTL && styles.fullscreenHeaderRTL]}>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => {
@@ -343,7 +348,7 @@ export default function NearbyProvidersMap({
             >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.fullscreenTitle}>Choisir un prestataire</Text>
+            <Text style={[styles.fullscreenTitle, isRTL && styles.textRTL]}>{t('nearbyMap.chooseProvider')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
@@ -738,5 +743,17 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.white,
+  },
+
+  // RTL Styles
+  headerRTL: {
+    alignItems: 'flex-end',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  fullscreenHeaderRTL: {
+    flexDirection: 'row-reverse',
   },
 });

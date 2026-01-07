@@ -36,6 +36,8 @@ import { usePriceCalculation } from '../../src/lib/hooks/usePriceCalculation';
 import { getNearbyProviders } from '../../src/lib/api/servicesAPI';
 import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation, getCategoryTranslation } from '../../src/i18n/translations/services';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { createBooking } from '../../src/lib/store/slices/bookingsSlice';
 import {
@@ -66,6 +68,7 @@ export default function CreateBookingScreen() {
   }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, language, isRTL } = useLanguage();
 
   const services = useAppSelector(selectServices);
   const currentService = useAppSelector(selectCurrentService);
@@ -407,12 +410,12 @@ export default function CreateBookingScreen() {
   useEffect(() => {
     if (isNightHours && selectedFormula !== 'night' && selectedFormula !== 'urgent') {
       Alert.alert(
-        'Horaire de nuit detecte',
-        'Vous avez selectionne un horaire de nuit (20h-8h). Voulez-vous appliquer la formule Nuit (+25%) ?',
+        t('createBooking.nightHoursDetected'),
+        t('createBooking.nightHoursMessage'),
         [
-          { text: 'Non, garder Standard', style: 'cancel' },
+          { text: t('createBooking.keepStandard'), style: 'cancel' },
           {
-            text: 'Oui, appliquer Nuit',
+            text: t('createBooking.applyNight'),
             onPress: () => setSelectedFormula('night'),
           },
         ]
@@ -463,16 +466,16 @@ export default function CreateBookingScreen() {
     const now = new Date();
     // Minimum 30 minutes dans le futur
     const minTime = new Date(now.getTime() + 30 * 60 * 1000);
-    if (date <= minTime) return 'Reservation minimum 30 min a l\'avance';
+    if (date <= minTime) return t('createBooking.minAdvance');
     // Verifier les heures de service (8h-23h30)
     const hour = date.getHours();
-    if (hour < 8) return 'Horaire disponible a partir de 8h';
+    if (hour < 8) return t('createBooking.availableFrom8');
     return '';
   };
 
   const validateAddress = (value: string): string => {
-    if (!value) return 'Adresse requise';
-    if (value.length < 10) return 'Adresse trop courte (min 10 caracteres)';
+    if (!value) return t('createBooking.addressRequired');
+    if (value.length < 10) return t('createBooking.addressTooShort');
     return '';
   };
 
@@ -484,12 +487,12 @@ export default function CreateBookingScreen() {
       month: 'long',
       year: 'numeric',
     };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', options);
   };
 
   // Format time for display
   const formatTimeForDisplay = (date: Date): string => {
-    return date.toLocaleTimeString('fr-FR', {
+    return date.toLocaleTimeString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -525,7 +528,7 @@ export default function CreateBookingScreen() {
     }
 
     if (!service && !customServiceData) {
-      Alert.alert('Erreur', 'Service non trouve');
+      Alert.alert(t('common.error'), t('createBooking.serviceNotFound'));
       return;
     }
 
@@ -535,8 +538,8 @@ export default function CreateBookingScreen() {
     if (!selectedProvider) {
       console.log('[Booking] No provider selected, showing alert');
       Alert.alert(
-        'Prestataire requis',
-        'Veuillez selectionner un prestataire pour continuer.'
+        t('createBooking.providerRequired'),
+        t('createBooking.selectProvider')
       );
       hapticFeedback.warning();
       return;
@@ -545,7 +548,7 @@ export default function CreateBookingScreen() {
     if (!user) {
       console.log('[Booking] No user, redirecting to login');
       dispatch(showToast({
-        message: 'Veuillez vous connecter pour reserver',
+        message: t('createBooking.loginRequired'),
         type: 'error',
       }));
       router.push('/auth/login');
@@ -560,17 +563,17 @@ export default function CreateBookingScreen() {
 
     console.log('[Booking] Showing confirmation dialog');
     // Confirmation dialog
-    const providerInfo = selectedProvider ? `\nPrestataire: ${selectedProvider.name}` : '';
-    const serviceTypeLabel = isCustomService ? ' (Service exclusif)' : '';
-    const guestsInfo = isChefService ? `\nNombre de personnes: ${numberOfGuests}` : '';
-    const packInfo = isCoachService ? `\nProgramme: Pack ${selectedPack?.name} (${selectedPack?.sessions} seances)` : '';
+    const providerInfo = selectedProvider ? `\n${t('createBooking.provider')}: ${selectedProvider.name}` : '';
+    const serviceTypeLabel = isCustomService ? ` (${t('createBooking.exclusiveService')})` : '';
+    const guestsInfo = isChefService ? `\n${t('createBooking.numberOfPeople')}: ${numberOfGuests}` : '';
+    const packInfo = isCoachService ? `\n${t('createBooking.program')}: Pack ${selectedPack?.name} (${selectedPack?.sessions} ${t('createBooking.sessions')})` : '';
     Alert.alert(
-      'Confirmer la reservation',
-      `Service: ${serviceName}${serviceTypeLabel}${guestsInfo}${packInfo}\nFormule: ${getFormulaById(selectedFormula).name}${providerInfo}\nTotal: ${priceBreakdown.total} DH\n\nConfirmer ?`,
+      t('createBooking.confirmBooking'),
+      `${t('services.service')}: ${serviceName}${serviceTypeLabel}${guestsInfo}${packInfo}\n${t('createBooking.formula')}: ${getFormulaById(selectedFormula).name}${providerInfo}\n${t('common.total')}: ${priceBreakdown.total} DH\n\n${t('createBooking.confirmQuestion')}`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('common.confirm'),
           onPress: async () => {
             // VERROU SYNCHRONE: empêche double-tap immédiatement
             if (submissionLockRef.current) {
@@ -649,7 +652,7 @@ export default function CreateBookingScreen() {
               setIsSubmitting(false);
               hapticFeedback.warning();
               dispatch(showToast({
-                message: error?.message || error || 'Erreur lors de la reservation',
+                message: error?.message || error || t('createBooking.bookingError'),
                 type: 'error',
               }));
               console.error('Booking error:', error);
@@ -665,7 +668,7 @@ export default function CreateBookingScreen() {
   };
 
   if (isLoading || checkingPendingReview) {
-    return <Loading fullScreen message="Chargement..." />;
+    return <Loading fullScreen message={t('common.loading')} />;
   }
 
   // Bloquer si évaluation en attente
@@ -675,23 +678,23 @@ export default function CreateBookingScreen() {
         <StatusBar barStyle="dark-content" />
         <View style={styles.blockedContent}>
           <Text style={styles.blockedIcon}>⚠️</Text>
-          <Text style={styles.blockedTitle}>Évaluation en attente</Text>
-          <Text style={styles.blockedMessage}>
-            Vous devez d'abord évaluer votre dernière prestation avant de pouvoir faire une nouvelle réservation.
+          <Text style={[styles.blockedTitle, isRTL && styles.rtlText]}>{t('createBooking.pendingReview')}</Text>
+          <Text style={[styles.blockedMessage, isRTL && styles.rtlText]}>
+            {t('createBooking.mustReviewFirst')}
           </Text>
           <View style={styles.blockedOrderInfo}>
-            <Text style={styles.blockedOrderLabel}>Prestation à évaluer :</Text>
-            <Text style={styles.blockedOrderService}>
-              {pendingReviewOrder.service_name || 'Service'}
+            <Text style={[styles.blockedOrderLabel, isRTL && styles.rtlText]}>{t('createBooking.serviceToReview')}:</Text>
+            <Text style={[styles.blockedOrderService, isRTL && styles.rtlText]}>
+              {pendingReviewOrder.service_name || t('services.service')}
             </Text>
-            <Text style={styles.blockedOrderProvider}>
-              avec {pendingReviewOrder.provider_name ||
+            <Text style={[styles.blockedOrderProvider, isRTL && styles.rtlText]}>
+              {t('createBooking.with')} {pendingReviewOrder.provider_name ||
                 `${pendingReviewOrder.provider_first_name || ''} ${pendingReviewOrder.provider_last_name || ''}`.trim() ||
-                'le prestataire'}
+                t('createBooking.theProvider')}
             </Text>
           </View>
-          <Text style={styles.blockedNote}>
-            💳 Le paiement sera déclenché après votre évaluation.
+          <Text style={[styles.blockedNote, isRTL && styles.rtlText]}>
+            💳 {t('createBooking.paymentAfterReview')}
           </Text>
           <Button
             variant="primary"
@@ -699,10 +702,10 @@ export default function CreateBookingScreen() {
             fullWidth
             style={styles.blockedButton}
           >
-            Retour à l'accueil pour évaluer
+            {t('createBooking.returnToReview')}
           </Button>
           <TouchableOpacity onPress={handleBack} style={styles.cancelLink}>
-            <Text style={styles.cancelLinkText}>Annuler</Text>
+            <Text style={styles.cancelLinkText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -711,7 +714,7 @@ export default function CreateBookingScreen() {
 
   // Pour services personnalisés, on attend que customServiceData soit chargé
   if (isCustomService && !customServiceData) {
-    return <Loading fullScreen message="Chargement du service..." />;
+    return <Loading fullScreen message={t('createBooking.loadingService')} />;
   }
 
   // Pour services standards, vérifier que service existe
@@ -720,9 +723,9 @@ export default function CreateBookingScreen() {
       <View style={styles.errorContainer}>
         <StatusBar barStyle="dark-content" />
         <Text style={styles.errorIcon}>😕</Text>
-        <Text style={styles.errorText}>Service non trouve</Text>
+        <Text style={[styles.errorText, isRTL && styles.rtlText]}>{t('createBooking.serviceNotFound')}</Text>
         <Button variant="outline" onPress={handleBack}>
-          Retour
+          {t('common.back')}
         </Button>
       </View>
     );
@@ -736,11 +739,11 @@ export default function CreateBookingScreen() {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nouvelle reservation</Text>
+        <Text style={styles.headerTitle}>{t('createBooking.newBooking')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -770,21 +773,21 @@ export default function CreateBookingScreen() {
             <View style={styles.serviceContent}>
               {/* Badge Service Exclusif */}
               <View style={[styles.categoryBadge, { backgroundColor: colors.warning }]}>
-                <Text style={styles.categoryBadgeText}>Service exclusif</Text>
+                <Text style={styles.categoryBadgeText}>{t('createBooking.exclusiveService')}</Text>
               </View>
 
               {/* Title */}
-              <Text style={styles.serviceName}>{customServiceData.name}</Text>
+              <Text style={[styles.serviceName, isRTL && styles.rtlText]}>{customServiceData.name}</Text>
 
               {/* Price & Duration */}
-              <View style={styles.detailsRow}>
+              <View style={[styles.detailsRow, isRTL && styles.detailsRowRTL]}>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Prix</Text>
-                  <Text style={styles.detailValue}>{customServiceData.price} DH</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('createBooking.price')}</Text>
+                  <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{customServiceData.price} DH</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Duree estimee</Text>
-                  <Text style={styles.detailValue}>⏱ {customServiceData.duration_minutes} min</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('createBooking.estimatedDuration')}</Text>
+                  <Text style={[styles.detailValue, isRTL && styles.rtlText]}>⏱ {customServiceData.duration_minutes} {t('common.min')}</Text>
                 </View>
               </View>
             </View>
@@ -810,34 +813,36 @@ export default function CreateBookingScreen() {
               {service.category && (
                 <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
                   <Text style={styles.categoryBadgeText}>
-                    {(service.category as any).name || 'Service'}
+                    {getCategoryTranslation((service.category as any).name || 'Service', language)}
                   </Text>
                 </View>
               )}
 
               {/* Title */}
-              <Text style={styles.serviceName}>{service.title || service.name}</Text>
+              <Text style={[styles.serviceName, isRTL && styles.rtlText]}>
+                {getServiceTranslation(service.title || service.name || '', language).title || service.title || service.name}
+              </Text>
 
               {/* Rating */}
               {service.rating > 0 && (
-                <View style={styles.ratingRow}>
+                <View style={[styles.ratingRow, isRTL && styles.ratingRowRTL]}>
                   <Text style={styles.ratingStar}>★</Text>
                   <Text style={styles.ratingValue}>{service.rating.toFixed(1)}</Text>
                   <Text style={styles.reviewsCount}>
-                    ({service.reviews_count || service.reviewsCount || 0} avis)
+                    ({service.reviews_count || service.reviewsCount || 0} {t('createBooking.reviews')})
                   </Text>
                 </View>
               )}
 
               {/* Price & Duration */}
-              <View style={styles.detailsRow}>
+              <View style={[styles.detailsRow, isRTL && styles.detailsRowRTL]}>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Prix de base</Text>
-                  <Text style={styles.detailValue}>{service.price} DH</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('createBooking.basePrice')}</Text>
+                  <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{service.price} DH</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Duree estimee</Text>
-                  <Text style={styles.detailValue}>⏱ {service.duration_minutes} min</Text>
+                  <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('createBooking.estimatedDuration')}</Text>
+                  <Text style={[styles.detailValue, isRTL && styles.rtlText]}>⏱ {service.duration_minutes} {t('common.min')}</Text>
                 </View>
               </View>
             </View>
@@ -849,7 +854,7 @@ export default function CreateBookingScreen() {
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
             <View style={styles.serviceContent}>
-              <Text style={styles.serviceName}>Chargement du service...</Text>
+              <Text style={[styles.serviceName, isRTL && styles.rtlText]}>{t('createBooking.loadingService')}</Text>
             </View>
           </Card>
         )}
@@ -857,9 +862,9 @@ export default function CreateBookingScreen() {
         {/* ETAPE CHEF: Nombre de personnes (uniquement pour service chef) */}
         {isChefService && !isCustomService && (
           <Card style={styles.formCard}>
-            <View style={styles.stepHeader}>
+            <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
               <Text style={styles.stepNumber}>1</Text>
-              <Text style={styles.sectionTitle}>Combien de personnes ?</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.howManyPeople')}</Text>
             </View>
             <GuestSelector
               value={numberOfGuests}
@@ -875,9 +880,9 @@ export default function CreateBookingScreen() {
         {/* ETAPE COACH: Selection du pack (uniquement pour service coach) */}
         {isCoachService && !isCustomService && (
           <Card style={styles.formCard}>
-            <View style={styles.stepHeader}>
+            <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
               <Text style={styles.stepNumber}>1</Text>
-              <Text style={styles.sectionTitle}>Votre programme</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.yourProgram')}</Text>
             </View>
             <PackSelector
               packs={servicePacks}
@@ -890,9 +895,9 @@ export default function CreateBookingScreen() {
 
         {/* ETAPE 1/2: Date & Time */}
         <Card style={styles.formCard}>
-          <View style={styles.stepHeader}>
+          <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
             <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '2' : '1'}</Text>
-            <Text style={styles.sectionTitle}>Quand ?</Text>
+            <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.when')}</Text>
           </View>
           <DateTimePicker
             mode="datetime"
@@ -900,16 +905,16 @@ export default function CreateBookingScreen() {
             onChange={handleDateTimeChange}
             minDate={getMinDate()}
             maxDate={getMaxDate()}
-            placeholder="Choisir une date et heure"
+            placeholder={t('createBooking.chooseDateAndTime')}
             error={dateTimeError}
           />
 
           {/* Night hours warning */}
           {isNightHours && (
-            <View style={styles.nightWarning}>
+            <View style={[styles.nightWarning, isRTL && styles.nightWarningRTL]}>
               <Text style={styles.nightWarningIcon}>🌙</Text>
-              <Text style={styles.nightWarningText}>
-                Horaire de nuit (20h-8h) - Majoration +25%
+              <Text style={[styles.nightWarningText, isRTL && styles.rtlText]}>
+                {t('createBooking.nightHoursWarning')}
               </Text>
             </View>
           )}
@@ -917,9 +922,9 @@ export default function CreateBookingScreen() {
 
         {/* ETAPE 2/3: Address */}
         <Card style={[styles.formCard, { zIndex: 100, overflow: 'visible' }]}>
-          <View style={styles.stepHeader}>
+          <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
             <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '3' : '2'}</Text>
-            <Text style={styles.sectionTitle}>Ou ?</Text>
+            <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.where')}</Text>
           </View>
           <AddressAutocomplete
             value={address}
@@ -928,7 +933,7 @@ export default function CreateBookingScreen() {
               if (addressError) setAddressError(validateAddress(v));
             }}
             onAddressSelect={handleAddressSelect}
-            placeholder="Numero, Rue, Quartier, Ville"
+            placeholder={t('createBooking.addressPlaceholder')}
             error={addressError}
             disabled={isSubmitting}
           />
@@ -937,9 +942,9 @@ export default function CreateBookingScreen() {
         {/* ETAPE 3/4: Choix du perimetre - Shown only after address is selected */}
         {addressData?.coords ? (
           <Card style={styles.formCard}>
-            <View style={styles.stepHeader}>
+            <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
               <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '4' : '3'}</Text>
-              <Text style={styles.sectionTitle}>Perimetre de recherche</Text>
+              <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.searchRadius')}</Text>
             </View>
             <RadiusSelector
               selectedRadius={selectedRadius}
@@ -984,26 +989,26 @@ export default function CreateBookingScreen() {
             {/* Liste des prestataires - caché pour services personnalisés */}
             {isCustomService ? (
               <Card style={styles.formCard}>
-                <View style={styles.stepHeader}>
+                <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
                   <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '5' : '4'}</Text>
-                  <Text style={styles.sectionTitle}>Prestataire</Text>
+                  <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.provider')}</Text>
                 </View>
                 <View style={styles.customServiceProviderInfo}>
-                  <Text style={styles.customServiceProviderText}>
-                    ✅ Ce service exclusif sera réalisé par le prestataire qui l'a créé.
+                  <Text style={[styles.customServiceProviderText, isRTL && styles.rtlText]}>
+                    ✅ {t('createBooking.exclusiveServiceByCreator')}
                   </Text>
                 </View>
               </Card>
             ) : (
               <Card style={styles.formCard}>
-                <View style={styles.stepHeader}>
+                <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
                   <Text style={styles.stepNumber}>{(isChefService || isCoachService) ? '5' : '4'}</Text>
-                  <Text style={styles.sectionTitle}>Choisir un prestataire</Text>
+                  <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.chooseProvider')}</Text>
                 </View>
                 {loadingProviders ? (
                   <View style={styles.providersLoading}>
-                    <Text style={styles.providersLoadingText}>
-                      Recherche des prestataires disponibles...
+                    <Text style={[styles.providersLoadingText, isRTL && styles.rtlText]}>
+                      {t('createBooking.searchingProviders')}
                     </Text>
                   </View>
                 ) : availableProviders.length > 0 ? (
@@ -1016,11 +1021,11 @@ export default function CreateBookingScreen() {
                 ) : (
                   <View style={styles.noProvidersContainer}>
                     <Text style={styles.noProvidersIcon}>😕</Text>
-                    <Text style={styles.noProvidersText}>
-                      Aucun prestataire disponible dans cette zone.
+                    <Text style={[styles.noProvidersText, isRTL && styles.rtlText]}>
+                      {t('createBooking.noProvidersAvailable')}
                     </Text>
-                    <Text style={styles.noProvidersHint}>
-                      Essayez une autre adresse ou date.
+                    <Text style={[styles.noProvidersHint, isRTL && styles.rtlText]}>
+                      {t('createBooking.tryOtherAddress')}
                     </Text>
                   </View>
                 )}
@@ -1029,12 +1034,12 @@ export default function CreateBookingScreen() {
           </>
         ) : (
           <Card style={[styles.formCard, styles.formCardDisabled]}>
-            <View style={styles.stepHeader}>
+            <View style={[styles.stepHeader, isRTL && styles.stepHeaderRTL]}>
               <Text style={[styles.stepNumber, styles.stepNumberDisabled]}>{(isChefService || isCoachService) ? '4' : '3'}</Text>
-              <Text style={[styles.sectionTitle, styles.sectionTitleDisabled]}>Perimetre et prestataire</Text>
+              <Text style={[styles.sectionTitle, styles.sectionTitleDisabled, isRTL && styles.rtlText]}>{t('createBooking.radiusAndProvider')}</Text>
             </View>
-            <Text style={styles.stepHint}>
-              Renseignez d'abord l'adresse pour choisir le perimetre
+            <Text style={[styles.stepHint, isRTL && styles.rtlText]}>
+              {t('createBooking.enterAddressFirst')}
             </Text>
           </Card>
         )}
@@ -1054,9 +1059,9 @@ export default function CreateBookingScreen() {
 
         {/* Notes */}
         <Card style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Notes (optionnel)</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>{t('createBooking.notesOptional')}</Text>
           <Input
-            placeholder="Instructions speciales, code interphone, etage..."
+            placeholder={t('createBooking.notesPlaceholder')}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -1088,10 +1093,10 @@ export default function CreateBookingScreen() {
           style={styles.submitButton}
         >
           {isCustomService && !customServiceData
-            ? 'Chargement du service...'
+            ? t('createBooking.loadingService')
             : selectedProvider
-              ? `Reserver avec ${selectedProvider.name} - ${priceBreakdown.total} DH`
-              : 'Selectionnez un prestataire'
+              ? `${t('createBooking.bookWith')} ${selectedProvider.name} - ${priceBreakdown.total} DH`
+              : t('createBooking.selectProviderButton')
           }
         </Button>
 
@@ -1101,7 +1106,7 @@ export default function CreateBookingScreen() {
           style={styles.cancelLink}
           disabled={isSubmitting}
         >
-          <Text style={styles.cancelLinkText}>Annuler</Text>
+          <Text style={styles.cancelLinkText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
 
         {/* Spacer */}
@@ -1467,5 +1472,24 @@ const styles = StyleSheet.create({
   },
   blockedButton: {
     marginBottom: spacing.md,
+  },
+  // RTL support
+  rtlText: {
+    textAlign: 'right',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  stepHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  detailsRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  ratingRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  nightWarningRTL: {
+    flexDirection: 'row-reverse',
   },
 });

@@ -18,10 +18,12 @@ import {
   AppStateStatus,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 import BookingCard from '../../src/components/features/BookingCard';
 import SkeletonBookingCard from '../../src/components/features/SkeletonBookingCard';
 import Badge from '../../src/components/ui/Badge';
 import { SatisfactionModal } from '../../src/components/features/SatisfactionModal';
+import CancellationModal from '../../src/components/features/CancellationModal';
 import { colors, spacing, typography, borderRadius } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import {
@@ -42,6 +44,7 @@ const POLLING_INTERVAL = 10000;
 export default function BookingsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, isRTL } = useLanguage();
 
   const upcomingBookings = useAppSelector(selectUpcomingBookings);
   const pastBookings = useAppSelector(selectPastBookings);
@@ -55,6 +58,10 @@ export default function BookingsScreen() {
   // State pour le modal de satisfaction (avis)
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // State pour le modal d'annulation avec barème CGU
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [cancellationBooking, setCancellationBooking] = useState<Booking | null>(null);
 
   // Refs pour le polling
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -139,25 +146,20 @@ export default function BookingsScreen() {
   };
 
   const handleCancelBooking = (bookingId: number) => {
-    Alert.alert(
-      'Annuler la reservation',
-      'Etes-vous sur de vouloir annuler cette reservation ?',
-      [
-        { text: 'Non', style: 'cancel' },
-        {
-          text: 'Oui, annuler',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(cancelBooking({ id: bookingId })).unwrap();
-              Alert.alert('Succes', 'Reservation annulee');
-            } catch (err: any) {
-              Alert.alert('Erreur', err || 'Impossible d\'annuler');
-            }
-          },
-        },
-      ]
-    );
+    // Trouver la réservation pour obtenir son status
+    const allBookings = [...upcomingBookings, ...pastBookings];
+    const booking = allBookings.find(b => b.id === bookingId);
+    if (booking) {
+      setCancellationBooking(booking);
+      setShowCancellationModal(true);
+    }
+  };
+
+  const handleCancellationSuccess = () => {
+    setShowCancellationModal(false);
+    setCancellationBooking(null);
+    // Rafraîchir la liste
+    dispatch(fetchBookings());
   };
 
   const handleContactProvider = (bookingId: number) => {
@@ -184,7 +186,7 @@ export default function BookingsScreen() {
 
     try {
       await submitSatisfaction(selectedBookingForReview.id, data);
-      Alert.alert('Merci !', 'Votre avis a ete enregistre.');
+      Alert.alert(t('bookings.thankYou'), t('bookings.reviewRecorded'));
       setShowReviewModal(false);
       setSelectedBookingForReview(null);
       // Recharger les reservations pour mettre a jour le statut
@@ -208,17 +210,17 @@ export default function BookingsScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>Mes Reservations</Text>
-      <Text style={styles.subtitle}>Gerez vos rendez-vous beaute</Text>
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t('bookings.title')}</Text>
+      <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t('bookings.subtitle')}</Text>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, isRTL && styles.rowRTL]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'upcoming' && styles.tabActive, isRTL && styles.rowRTL]}
           onPress={() => setActiveTab('upcoming')}
         >
           <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-            A venir
+            {t('bookings.upcoming')}
           </Text>
           {upcomingBookings.length > 0 && (
             <View style={styles.tabBadge}>
@@ -228,11 +230,11 @@ export default function BookingsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'past' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'past' && styles.tabActive, isRTL && styles.rowRTL]}
           onPress={() => setActiveTab('past')}
         >
           <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
-            Historique
+            {t('bookings.history')}
           </Text>
           {pastBookings.length > 0 && (
             <View style={[styles.tabBadge, styles.tabBadgeGray]}>
@@ -280,20 +282,20 @@ export default function BookingsScreen() {
       <Text style={styles.emptyIcon}>
         {activeTab === 'upcoming' ? '📅' : '📋'}
       </Text>
-      <Text style={styles.emptyTitle}>
-        {activeTab === 'upcoming' ? 'Aucune reservation a venir' : 'Aucun historique'}
+      <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>
+        {activeTab === 'upcoming' ? t('bookings.noUpcoming') : t('bookings.noHistory')}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
         {activeTab === 'upcoming'
-          ? 'Reservez un service pour commencer'
-          : 'Vos reservations passees apparaitront ici'}
+          ? t('bookings.emptyUpcomingText')
+          : t('bookings.emptyPastText')}
       </Text>
       {activeTab === 'upcoming' && (
         <TouchableOpacity
           style={styles.browseButton}
           onPress={() => router.push('/(client)/services')}
         >
-          <Text style={styles.browseButtonText}>Parcourir les services</Text>
+          <Text style={styles.browseButtonText}>{t('bookings.browseServices')}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -304,8 +306,8 @@ export default function BookingsScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingHeader}>
-          <View style={styles.skeletonTitle} />
-          <View style={styles.skeletonSubtitle} />
+          <View style={[styles.skeletonTitle, isRTL && styles.skeletonRTL]} />
+          <View style={[styles.skeletonSubtitle, isRTL && styles.skeletonRTL]} />
           <View style={styles.skeletonTabs} />
         </View>
         <View style={styles.loadingList}>
@@ -348,6 +350,21 @@ export default function BookingsScreen() {
           }}
           onClose={handleCloseReviewModal}
           onSubmit={handleSubmitReview}
+        />
+      )}
+
+      {/* Modal d'annulation avec barème CGU */}
+      {cancellationBooking && (
+        <CancellationModal
+          visible={showCancellationModal}
+          onClose={() => {
+            setShowCancellationModal(false);
+            setCancellationBooking(null);
+          }}
+          onSuccess={handleCancellationSuccess}
+          orderId={cancellationBooking.id}
+          userType="client"
+          orderStatus={cancellationBooking.status}
         />
       )}
     </View>
@@ -489,5 +506,16 @@ const styles = StyleSheet.create({
   },
   loadingList: {
     padding: spacing.lg,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  skeletonRTL: {
+    alignSelf: 'flex-end',
   },
 });

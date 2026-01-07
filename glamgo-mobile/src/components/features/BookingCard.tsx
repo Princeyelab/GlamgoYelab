@@ -12,18 +12,27 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getServiceTranslation } from '../../i18n/translations/services';
+import { isOrderCancelled } from '../../lib/utils/cancelledOrdersCache';
 
-// French day names
-const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+// Day names (French / Arabic / English)
+const dayNamesFr = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const dayNamesAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// French month names
-const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+// Month names (French / Arabic / English)
+const monthNamesFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+const monthNamesAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
- * Format date to French format: "Lun 18 Déc - 14:30"
+ * Format date based on language: "Lun 18 Déc - 14:30" or Arabic/English equivalent
  */
-function formatDateFrench(dateStr: string, time: string): string {
+function formatDateLocalized(dateStr: string, time: string, language: 'fr' | 'ar' | 'en'): string {
   const date = new Date(dateStr);
+  const dayNames = language === 'ar' ? dayNamesAr : language === 'en' ? dayNamesEn : dayNamesFr;
+  const monthNames = language === 'ar' ? monthNamesAr : language === 'en' ? monthNamesEn : monthNamesFr;
   const dayName = dayNames[date.getDay()];
   const day = date.getDate();
   const month = monthNames[date.getMonth()];
@@ -35,6 +44,7 @@ function formatDateFrench(dateStr: string, time: string): string {
 
 export default function BookingCard(props: BookingCardProps) {
   const { formatPrice } = useCurrency();
+  const { t, isRTL, language } = useLanguage();
   const {
     id,
     service,
@@ -55,8 +65,18 @@ export default function BookingCard(props: BookingCardProps) {
   const [timeoutRemaining, setTimeoutRemaining] = useState<number | null>(null);
 
   // Timer countdown pour pending (4 minutes)
+  // S'arrête immédiatement si statut !== pending (y compris cancelled)
+  // Vérifie aussi le cache AsyncStorage pour les annulations
   useEffect(() => {
+    // Arrêter le timer pour tout statut autre que 'pending'
     if (status !== 'pending') {
+      setTimeoutRemaining(null);
+      return;
+    }
+
+    // Vérifier si la commande est dans le cache des annulations
+    if (isOrderCancelled(id)) {
+      console.log('[BookingCard] Timer stopped - order in cancelled cache:', id);
       setTimeoutRemaining(null);
       return;
     }
@@ -74,11 +94,22 @@ export default function BookingCard(props: BookingCardProps) {
       return Math.max(0, 240 - elapsed);
     };
 
-    setTimeoutRemaining(calculateRemaining());
+    const initialRemaining = calculateRemaining();
+    // Si déjà expiré, ne pas démarrer le timer
+    if (initialRemaining <= 0) {
+      setTimeoutRemaining(null);
+      return;
+    }
+
+    setTimeoutRemaining(initialRemaining);
 
     const interval = setInterval(() => {
       setTimeoutRemaining(prev => {
-        if (prev === null || prev <= 1) return 0;
+        // Si expiré ou null, arrêter et cacher le timer
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return null;
+        }
         return prev - 1;
       });
     }, 1000);
@@ -126,7 +157,8 @@ export default function BookingCard(props: BookingCardProps) {
   };
 
   // Get service display name - support both new and legacy fields
-  const serviceName = service?.title || service?.name || 'Service';
+  const rawServiceName = service?.title || service?.name || 'Service';
+  const serviceName = getServiceTranslation(rawServiceName, language).title;
   const serviceImage = service?.thumbnail || service?.image;
 
   // Get provider display name
@@ -141,8 +173,8 @@ export default function BookingCard(props: BookingCardProps) {
     >
       <View style={styles.container}>
         {/* Order Number */}
-        <View style={styles.orderNumberRow}>
-          <Text style={styles.orderNumberLabel}>Commande</Text>
+        <View style={[styles.orderNumberRow, isRTL && styles.rowRTL]}>
+          <Text style={[styles.orderNumberLabel, isRTL && styles.textRTL]}>{t('booking.title')}</Text>
           <Text style={styles.orderNumber}>#{id}</Text>
         </View>
 
@@ -195,40 +227,46 @@ export default function BookingCard(props: BookingCardProps) {
               variant="soft"
               size="sm"
             >
-              {statusConfig.label}
+              {t(statusConfig.labelKey)}
             </Badge>
             {(normalizedStatus === 'on_way' || normalizedStatus === 'in_progress') && (
               <Text style={styles.statusDescription}>
-                {statusConfig.description}
+                {t(statusConfig.descriptionKey)}
               </Text>
             )}
           </View>
         </View>
 
         {/* Date & Time */}
-        <View style={styles.dateTimeRow}>
+        <View style={[styles.dateTimeRow, isRTL && styles.rowRTL]}>
           <Text style={styles.dateTimeIcon}>📅</Text>
-          <Text style={styles.dateTimeText}>
-            {formatDateFrench(booking_date, booking_time)}
+          <Text style={[styles.dateTimeText, isRTL && styles.textRTL]}>
+            {formatDateLocalized(booking_date, booking_time, language)}
           </Text>
         </View>
 
         {/* Address */}
-        <View style={styles.addressRow}>
+        <View style={[styles.addressRow, isRTL && styles.rowRTL]}>
           <Text style={styles.addressIcon}>📍</Text>
-          <Text style={styles.addressText} numberOfLines={2}>
+          <Text style={[styles.addressText, isRTL && styles.textRTL]} numberOfLines={2}>
+            <Text style={styles.addressLabel}>{t('booking.address')}: </Text>
             {address}
           </Text>
         </View>
 
         {/* Price */}
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Prix</Text>
+        <View style={[styles.priceRow, isRTL && styles.rowRTL]}>
+          <Text style={[styles.priceLabel, isRTL && styles.textRTL]}>{t('services.price')}</Text>
           <Text style={styles.priceValue}>{formatPrice(total)}</Text>
         </View>
 
-        {/* Timer Countdown pour pending */}
-        {normalizedStatus === 'pending' && timeoutRemaining !== null && (
+        {/* Timer Countdown pour pending UNIQUEMENT */}
+        {/* Quadruple vérification: normalizedStatus, status brut, timeoutRemaining > 0, et pas dans cache annulations */}
+        {normalizedStatus === 'pending' &&
+         status === 'pending' &&
+         timeoutRemaining !== null &&
+         timeoutRemaining > 0 &&
+         !isOrderCancelled(id) && (
           <View style={[
             styles.timerContainer,
             timeoutRemaining < 60 && styles.timerContainerUrgent
@@ -241,8 +279,8 @@ export default function BookingCard(props: BookingCardProps) {
               ]}>
                 {formatTimeRemaining(timeoutRemaining)}
               </Text>
-              <Text style={styles.timerLabel}>
-                {timeoutRemaining < 60 ? 'Reponse imminente!' : 'Attente reponse prestataire'}
+              <Text style={[styles.timerLabel, isRTL && styles.textRTL]}>
+                {timeoutRemaining < 60 ? t('provider.respondBefore') : t('provider.timeRemaining')}
               </Text>
             </View>
             <View style={styles.timerProgressBg}>
@@ -258,15 +296,15 @@ export default function BookingCard(props: BookingCardProps) {
         {/* Notes (if present) */}
         {notes && (
           <View style={styles.notesRow}>
-            <Text style={styles.notesLabel}>Notes:</Text>
-            <Text style={styles.notesText} numberOfLines={2}>
+            <Text style={[styles.notesLabel, isRTL && styles.textRTL]}>{t('booking.notes')}:</Text>
+            <Text style={[styles.notesText, isRTL && styles.textRTL]} numberOfLines={2}>
               {notes}
             </Text>
           </View>
         )}
 
         {/* Action Buttons - Dynamiques selon status */}
-        <View style={styles.actionsRow}>
+        <View style={[styles.actionsRow, isRTL && styles.rowRTL]}>
           {/* Bouton Suivre (si on_way ou in_progress) */}
           {actions.canTrack && onTrackProvider && (
             <Button
@@ -275,7 +313,7 @@ export default function BookingCard(props: BookingCardProps) {
               onPress={handleTrack}
               style={styles.actionButton}
             >
-              📍 Suivre
+              📍 {t('bookings.trackProvider')}
             </Button>
           )}
 
@@ -287,7 +325,7 @@ export default function BookingCard(props: BookingCardProps) {
               onPress={handleContact}
               style={styles.actionButton}
             >
-              💬 Chat
+              💬 {t('chat.title')}
             </Button>
           )}
 
@@ -300,7 +338,7 @@ export default function BookingCard(props: BookingCardProps) {
               style={styles.actionButton}
               textStyle={styles.cancelButtonText}
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
           )}
 
@@ -312,30 +350,30 @@ export default function BookingCard(props: BookingCardProps) {
               onPress={() => onReview?.(id)}
               style={styles.actionButton}
             >
-              Laisser un avis
+              {t('ratings.leaveReview')}
             </Button>
           )}
 
           {/* Message si cancelled */}
           {normalizedStatus === 'cancelled' && (
             <View style={styles.cancelledContainer}>
-              <View style={styles.cancelledHeader}>
+              <View style={[styles.cancelledHeader, isRTL && styles.rowRTL]}>
                 <Text style={styles.cancelledIcon}>❌</Text>
-                <Text style={styles.cancelledTitle}>Reservation annulee</Text>
+                <Text style={[styles.cancelledTitle, isRTL && styles.textRTL]}>{t('bookingStatus.cancelled')}</Text>
               </View>
               {props.cancelled_by && (
-                <Text style={styles.cancelledBy}>
-                  Par: {props.cancelled_by === 'client' ? 'Client' : 'Prestataire'}
+                <Text style={[styles.cancelledBy, isRTL && styles.textRTL]}>
+                  {props.cancelled_by === 'client' ? t('auth.client') : t('auth.provider')}
                 </Text>
               )}
               {props.cancellation_reason && (
-                <Text style={styles.cancelledReason}>
-                  Motif: {props.cancellation_reason}
+                <Text style={[styles.cancelledReason, isRTL && styles.textRTL]}>
+                  {t('cancellation.reason')}: {props.cancellation_reason}
                 </Text>
               )}
               {props.cancellation_fee && props.cancellation_fee > 0 && (
-                <Text style={styles.cancelledFee}>
-                  Frais d'annulation: {props.cancellation_fee.toFixed(2)} MAD
+                <Text style={[styles.cancelledFee, isRTL && styles.textRTL]}>
+                  {t('price.serviceFee')}: {props.cancellation_fee.toFixed(2)} MAD
                 </Text>
               )}
             </View>
@@ -457,6 +495,10 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[600],
     lineHeight: 20,
+  },
+  addressLabel: {
+    fontWeight: '600',
+    color: colors.gray[700],
   },
   priceRow: {
     flexDirection: 'row',
@@ -609,5 +651,13 @@ const styles = StyleSheet.create({
   },
   timerProgressUrgent: {
     backgroundColor: colors.error,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

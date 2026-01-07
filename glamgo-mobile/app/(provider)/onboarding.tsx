@@ -20,6 +20,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, spacing, typography, borderRadius, shadows } from "../../src/lib/constants/theme";
+import { useLanguage } from "../../src/contexts/LanguageContext";
+import { getServiceTranslation, getCategoryTranslation } from "../../src/i18n/translations/services";
 import { addProviderServices, getProviderServices, removeProviderService } from "../../src/lib/api";
 import { appEvents, EVENTS } from "../../src/lib/utils/eventEmitter";
 import { getProviderFormulas, uploadProviderDiploma, getProviderDiplomas } from "../../src/lib/api/providerAPI";
@@ -44,6 +46,7 @@ const CATEGORY_COLORS: Record<string, [string, string]> = {
 
 export default function ProviderOnboardingScreen() {
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
   const scrollViewRef = useRef<ScrollView>(null);
   const diplomaSectionY = useRef<number>(0);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -77,7 +80,7 @@ export default function ProviderOnboardingScreen() {
         const token = await getToken();
 
         if (!token) {
-          setLoadError("Session non valide. Veuillez vous reconnecter.");
+          setLoadError(t('providerOnboarding.sessionInvalid'));
           return;
         }
 
@@ -139,7 +142,7 @@ export default function ProviderOnboardingScreen() {
         }
       } catch (error: any) {
         console.error("Erreur chargement services:", error);
-        setLoadError("Impossible de charger les services.");
+        setLoadError(t('providerOnboarding.loadError'));
       } finally {
         setIsLoading(false);
       }
@@ -263,8 +266,8 @@ export default function ProviderOnboardingScreen() {
   const handleSubmit = async () => {
     if (selectedServices.length === 0) {
       Alert.alert(
-        "Aucun service sélectionné",
-        "Veuillez sélectionner au moins un service pour continuer."
+        t('providerOnboarding.noServiceSelected'),
+        t('providerOnboarding.selectAtLeastOne')
       );
       return;
     }
@@ -282,12 +285,12 @@ export default function ProviderOnboardingScreen() {
     if (missingDiplomas.length > 0) {
       const missingNames = missingDiplomas.map(cat => {
         const info = getDiplomaCategoryInfo(cat);
-        return info?.label || cat;
+        return info?.label?.[language] || info?.label?.fr || cat;
       }).join(", ");
 
       Alert.alert(
-        "Diplôme(s) requis",
-        `Veuillez ajouter les diplômes suivants: ${missingNames}`
+        t('providerOnboarding.diplomaRequired'),
+        t('providerOnboarding.addDiplomas', { names: missingNames })
       );
       hapticFeedback.warning();
       return;
@@ -375,8 +378,8 @@ export default function ProviderOnboardingScreen() {
       console.error("Erreur mise à jour services:", error);
       hapticFeedback.error();
       Alert.alert(
-        "Erreur",
-        error?.message || "Impossible d'enregistrer les services."
+        t('common.error'),
+        error?.message || t('providerOnboarding.saveError')
       );
     } finally {
       setIsSubmitting(false);
@@ -432,7 +435,7 @@ export default function ProviderOnboardingScreen() {
           style={styles.loadingGradient}
         >
           <ActivityIndicator size="large" color={colors.white} />
-          <Text style={styles.loadingText}>Chargement des services...</Text>
+          <Text style={styles.loadingText}>{t('providerOnboarding.loadingServices')}</Text>
         </LinearGradient>
       </View>
     );
@@ -450,13 +453,13 @@ export default function ProviderOnboardingScreen() {
           <View style={styles.errorIconContainer}>
             <Text style={styles.errorIcon}>⚠️</Text>
           </View>
-          <Text style={styles.errorTitle}>Oups !</Text>
+          <Text style={styles.errorTitle}>{t('providerOnboarding.oops')}</Text>
           <Text style={styles.errorText}>{loadError}</Text>
           <TouchableOpacity
             style={styles.reconnectButton}
             onPress={() => router.replace('/auth/login' as any)}
           >
-            <Text style={styles.reconnectButtonText}>Se reconnecter</Text>
+            <Text style={styles.reconnectButtonText}>{t('providerOnboarding.reconnect')}</Text>
           </TouchableOpacity>
         </LinearGradient>
       </View>
@@ -486,26 +489,26 @@ export default function ProviderOnboardingScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>✨ Sélectionnez vos services</Text>
-          <Text style={styles.subtitle}>
-            Choisissez les services que vous proposez
+          <Text style={[styles.title, isRTL && styles.rtlText]}>✨ {t('providerOnboarding.selectServices')}</Text>
+          <Text style={[styles.subtitle, isRTL && styles.rtlText]}>
+            {t('providerOnboarding.chooseServices')}
           </Text>
 
           {/* Stats compacts */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{services.length}</Text>
-              <Text style={styles.statLabel}>Disponibles</Text>
+              <Text style={styles.statLabel}>{t('providerOnboarding.available')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{selectedServices.length}</Text>
-              <Text style={styles.statLabel}>Sélectionnés</Text>
+              <Text style={styles.statLabel}>{t('providerOnboarding.selected')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{categories.length}</Text>
-              <Text style={styles.statLabel}>Catégories</Text>
+              <Text style={styles.statLabel}>{t('providerOnboarding.categories')}</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -545,9 +548,9 @@ export default function ProviderOnboardingScreen() {
                       <Text style={styles.categoryIcon}>{categoryEmoji}</Text>
                     </View>
                     <View style={styles.categoryInfo}>
-                      <Text style={styles.categoryName}>{category.name}</Text>
+                      <Text style={styles.categoryName}>{getCategoryTranslation(category.name, language)}</Text>
                       <Text style={styles.categoryCount}>
-                        {categoryServices.length} services disponibles
+                        {categoryServices.length} {t('providerOnboarding.servicesAvailable')}
                       </Text>
                     </View>
                   </View>
@@ -574,7 +577,7 @@ export default function ProviderOnboardingScreen() {
                       onPress={() => selectAllInCategory(catId)}
                     >
                       <Text style={[styles.selectAllText, { color: gradient[0] }]}>
-                        {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                        {allSelected ? t('providerOnboarding.deselectAll') : t('providerOnboarding.selectAll')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -582,14 +585,17 @@ export default function ProviderOnboardingScreen() {
                   {categoryServices.length === 0 ? (
                     <View style={styles.emptyContainer}>
                       <Text style={styles.emptyIcon}>📭</Text>
-                      <Text style={styles.emptyText}>Aucun service dans cette catégorie</Text>
+                      <Text style={styles.emptyText}>{t('providerOnboarding.noServicesCategory')}</Text>
                     </View>
                   ) : (
                     categoryServices.map((service) => {
                       const serviceId = Number(service.id);
                       const isSelected = selectedServices.includes(serviceId);
-                      const serviceName = service.title || service.name || "";
-                      const needsDiploma = serviceRequiresDiploma(serviceName);
+                      const rawServiceName = service.title || service.name || "";
+                      const translatedService = getServiceTranslation(rawServiceName, language);
+                      const serviceName = translatedService.title || rawServiceName;
+                      const serviceDesc = translatedService.description || service.description;
+                      const needsDiploma = serviceRequiresDiploma(rawServiceName);
 
                       return (
                         <TouchableOpacity
@@ -623,7 +629,7 @@ export default function ProviderOnboardingScreen() {
                               )}
                             </View>
                             <Text style={styles.serviceDescription} numberOfLines={2}>
-                              {service.description}
+                              {serviceDesc}
                             </Text>
                             <View style={styles.serviceMeta}>
                               <View style={[styles.priceTag, { backgroundColor: gradient[0] + '15' }]}>
@@ -661,7 +667,7 @@ export default function ProviderOnboardingScreen() {
           <View style={styles.diplomasContainer}>
             <View style={styles.diplomasHeader}>
               <Text style={styles.diplomasHeaderIcon}>🎓</Text>
-              <Text style={styles.diplomasHeaderTitle}>Diplômes requis</Text>
+              <Text style={[styles.diplomasHeaderTitle, isRTL && styles.rtlText]}>{t('providerOnboarding.diplomasRequired')}</Text>
             </View>
 
             {requiredDiplomaCategories.map((category) => {
@@ -686,16 +692,16 @@ export default function ProviderOnboardingScreen() {
                   >
                     <Text style={styles.diplomaSectionIcon}>{categoryInfo?.icon || '📜'}</Text>
                     <View style={styles.diplomaSectionInfo}>
-                      <Text style={styles.diplomaSectionTitle}>
-                        {categoryInfo?.label || category}
+                      <Text style={[styles.diplomaSectionTitle, isRTL && styles.rtlText]}>
+                        {categoryInfo?.label?.[language] || categoryInfo?.label?.fr || category}
                       </Text>
-                      <Text style={styles.diplomaSectionSubtitle}>
-                        {categoryInfo?.description || 'Certificat requis'}
+                      <Text style={[styles.diplomaSectionSubtitle, isRTL && styles.rtlText]}>
+                        {categoryInfo?.description?.[language] || categoryInfo?.description?.fr || t('providerOnboarding.certificateRequired')}
                       </Text>
                     </View>
                     {isVerified && (
                       <View style={styles.verifiedBadge}>
-                        <Text style={styles.verifiedBadgeText}>✓ Vérifié</Text>
+                        <Text style={styles.verifiedBadgeText}>✓ {t('providerOnboarding.verified')}</Text>
                       </View>
                     )}
                   </LinearGradient>
@@ -714,10 +720,10 @@ export default function ProviderOnboardingScreen() {
                       </Text>
                       <View style={styles.diplomaUploadText}>
                         <Text style={styles.diplomaUploadTitle}>
-                          {hasFile ? "Diplôme ajouté" : "Ajouter votre diplôme"}
+                          {hasFile ? t('providerOnboarding.diplomaAdded') : t('providerOnboarding.addDiploma')}
                         </Text>
                         <Text style={styles.diplomaUploadHint}>
-                          {hasFile ? fileName : "JPG, PNG - Appuyez pour sélectionner"}
+                          {hasFile ? fileName : t('providerOnboarding.diplomaHint')}
                         </Text>
                       </View>
                     </View>
@@ -740,8 +746,8 @@ export default function ProviderOnboardingScreen() {
             style={styles.infoCardGradient}
           >
             <Text style={styles.infoIcon}>💡</Text>
-            <Text style={styles.infoText}>
-              Vous pourrez toujours modifier vos services plus tard depuis votre profil.
+            <Text style={[styles.infoText, isRTL && styles.rtlText]}>
+              {t('providerOnboarding.canModifyLater')}
             </Text>
           </LinearGradient>
         </View>
@@ -770,11 +776,11 @@ export default function ProviderOnboardingScreen() {
               <>
                 <Text style={styles.submitButtonText}>
                   {selectedServices.length > 0
-                    ? `Suivant (${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''})`
-                    : 'Sélectionnez au moins un service'}
+                    ? t('providerOnboarding.nextWithCount', { count: selectedServices.length })
+                    : t('providerOnboarding.selectAtLeastOneShort')}
                 </Text>
                 {selectedServices.length > 0 && (
-                  <Text style={styles.submitButtonArrow}>→</Text>
+                  <Text style={styles.submitButtonArrow}>{isRTL ? '←' : '→'}</Text>
                 )}
               </>
             )}
@@ -1303,5 +1309,9 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     color: colors.white,
     fontWeight: 'bold',
+  },
+  // RTL support
+  rtlText: {
+    textAlign: 'right',
   },
 });

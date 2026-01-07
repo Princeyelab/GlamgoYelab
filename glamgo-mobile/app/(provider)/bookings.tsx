@@ -22,6 +22,8 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation } from '../../src/i18n/translations/services';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
@@ -37,18 +39,25 @@ import {
 } from '../../src/lib/api/providerAPI';
 import { appEvents, EVENTS } from '../../src/lib/utils/eventEmitter';
 import CancellationModal from '../../src/components/features/CancellationModal';
+import { isOrderCancelled, addCancelledOrderId, initCancelledOrdersCache } from '../../src/lib/utils/cancelledOrdersCache';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// French day and month names
-const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+// Day and month names for date formatting
+const dayNamesFr = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const monthNamesFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+const dayNamesAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const monthNamesAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي', 'يونيو', 'يوليوز', 'غشت', 'شتنبر', 'أكتوبر', 'نونبر', 'دجنبر'];
+const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
- * Format date to French format: "Lun 6 Jan - 14:30"
+ * Format date based on language: "Lun 6 Jan - 14:30" (fr), "الإثنين 6 يناير - 14:30" (ar), "Mon 6 Jan - 14:30" (en)
  */
-const formatDateTimeFrench = (dateStr: string, timeStr: string): string => {
+const formatDateTime = (dateStr: string, timeStr: string, lang: 'fr' | 'ar' | 'en' = 'fr'): string => {
   const date = new Date(dateStr);
+  const dayNames = lang === 'ar' ? dayNamesAr : lang === 'en' ? dayNamesEn : dayNamesFr;
+  const monthNames = lang === 'ar' ? monthNamesAr : lang === 'en' ? monthNamesEn : monthNamesFr;
   const dayName = dayNames[date.getDay()];
   const day = date.getDate();
   const month = monthNames[date.getMonth()];
@@ -164,16 +173,23 @@ const transformOrder = (order: ProviderOrder): Booking => {
   };
 };
 
-// Tab configuration
-const TAB_CONFIG: { key: BookingTab; label: string; icon: string; gradient: [string, string] }[] = [
-  { key: 'pending', label: 'Nouveaux', icon: '🆕', gradient: ['#F59E0B', '#D97706'] },
-  { key: 'upcoming', label: 'À venir', icon: '📅', gradient: ['#10B981', '#059669'] },
-  { key: 'in_progress', label: 'En cours', icon: '🔨', gradient: ['#3B82F6', '#1D4ED8'] },
-  { key: 'completed', label: 'Terminés', icon: '✅', gradient: ['#6B7280', '#4B5563'] },
+// Tab configuration (labels are translated inside component)
+const TAB_CONFIG_BASE: { key: BookingTab; labelKey: string; icon: string; gradient: [string, string] }[] = [
+  { key: 'pending', labelKey: 'providerBookings.new', icon: '🆕', gradient: ['#F59E0B', '#D97706'] },
+  { key: 'upcoming', labelKey: 'providerBookings.upcoming', icon: '📅', gradient: ['#10B981', '#059669'] },
+  { key: 'in_progress', labelKey: 'providerBookings.inProgress', icon: '🔨', gradient: ['#3B82F6', '#1D4ED8'] },
+  { key: 'completed', labelKey: 'providerBookings.completed', icon: '✅', gradient: ['#6B7280', '#4B5563'] },
 ];
 
 export default function ProviderBookingsScreen() {
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
+
+  // Generate translated tab config
+  const TAB_CONFIG = TAB_CONFIG_BASE.map(tab => ({
+    ...tab,
+    label: t(tab.labelKey as any),
+  }));
 
   const [activeTab, setActiveTab] = useState<BookingTab>('pending');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -201,6 +217,8 @@ export default function ProviderBookingsScreen() {
 
   // Ref pour tracker les IDs expirés localement (ne pas re-afficher)
   const localExpiredIdsRef = useRef<Set<number>>(new Set());
+  // Note: On utilise maintenant le cache global AsyncStorage (cancelledOrdersCache)
+  // au lieu d'un ref local qui se réinitialise à chaque navigation
 
   // Vérifier si une commande est expirée (> 4 minutes depuis création)
   const isOrderExpired = useCallback((createdAt: string | undefined): boolean => {
@@ -226,6 +244,11 @@ export default function ProviderBookingsScreen() {
 
       const validOrders = (orders || []).filter((order: any) => {
         if (order.cancelled_at) return false;
+        // Vérifier le cache AsyncStorage global (seule source de vérité)
+        if (isOrderCancelled(order.id)) {
+          console.log('[Bookings] Filtering cancelled order from cache:', order.id);
+          return false;
+        }
         // Note: NE PAS filtrer provider_id === null pour les commandes pending
         // car elles n'ont pas encore de prestataire assigné
         if (order.provider_id === null && order.status !== 'pending') return false;
@@ -322,8 +345,12 @@ export default function ProviderBookingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadBookings(true);
-      startPolling();
+      // IMPORTANT: Recharger le cache AsyncStorage d'abord pour avoir les IDs annulés à jour
+      // (surtout après navigation depuis journey où on a annulé une commande)
+      initCancelledOrdersCache().then(() => {
+        loadBookings(true);
+        startPolling();
+      });
 
       return () => {
         stopPolling();
@@ -334,6 +361,20 @@ export default function ProviderBookingsScreen() {
   useEffect(() => {
     const unsubscribe = appEvents.on(EVENTS.REFRESH_PROVIDER_BOOKINGS, () => {
       loadBookings(false);
+    });
+    return unsubscribe;
+  }, [loadBookings]);
+
+  // Écouter les annulations (même depuis d'autres écrans comme journey)
+  useEffect(() => {
+    const unsubscribe = appEvents.on(EVENTS.ORDER_CANCELLED, async (data: { orderId: number; userType: string }) => {
+      console.log('[Bookings] Received ORDER_CANCELLED event:', data);
+      if (data.userType === 'provider') {
+        // Ajouter au cache global AsyncStorage
+        await addCancelledOrderId(data.orderId);
+        // Rafraîchir immédiatement
+        loadBookings(false);
+      }
     });
     return unsubscribe;
   }, [loadBookings]);
@@ -352,33 +393,33 @@ export default function ProviderBookingsScreen() {
     if (hasActiveOrder && activeOrder) {
       hapticFeedback.warning();
       Alert.alert(
-        'Commande en cours',
-        `Vous avez déjà une commande active (#${activeOrder.order_number}).\n\nTerminez-la avant d'en accepter une nouvelle.`,
-        [{ text: 'Compris' }]
+        t('providerBookings.waitingForAction'),
+        `${t('provider.activeBookings')} (#${activeOrder.order_number}).`,
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     hapticFeedback.success();
     Alert.alert(
-      'Accepter la réservation',
-      'Confirmez-vous cette réservation ?',
+      t('providerBookings.confirmReservation'),
+      t('providerBookings.confirmReservation'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Accepter',
+          text: t('provider.accept'),
           onPress: async () => {
             try {
               await acceptOrder(bookingId);
               hapticFeedback.success();
-              Alert.alert('Commande acceptée', 'Vous pouvez maintenant démarrer le trajet.');
+              Alert.alert(t('bookingStatus.accepted'), t('providerBookings.startJourneyQuestion'));
               await loadBookings(false);
             } catch (error: any) {
               hapticFeedback.error();
               const errorMessage = error?.response?.data?.message
                 || error?.response?.data?.error
-                || 'Impossible d\'accepter la commande.';
-              Alert.alert('Erreur', errorMessage);
+                || t('errors.generic');
+              Alert.alert(t('common.error'), errorMessage);
             }
           },
         },
@@ -389,21 +430,23 @@ export default function ProviderBookingsScreen() {
   const handleRejectBooking = (bookingId: number) => {
     hapticFeedback.warning();
     Alert.alert(
-      'Refuser la réservation',
-      'Êtes-vous sûr ? Le client sera notifié.',
+      t('confirm.rejectOrder'),
+      t('providerBookings.cancelQuestion'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Refuser',
+          text: t('provider.reject'),
           style: 'destructive',
           onPress: async () => {
             try {
               await cancelOrder(bookingId, 'Refusée par le prestataire');
               hapticFeedback.success();
+              // IMPORTANT: Ajouter au cache AVANT de recharger pour éviter réapparition
+              await addCancelledOrderId(bookingId);
               await loadBookings(false);
             } catch (error) {
               hapticFeedback.error();
-              Alert.alert('Erreur', 'Impossible de refuser la commande.');
+              Alert.alert(t('common.error'), t('errors.generic'));
             }
           },
         },
@@ -414,21 +457,23 @@ export default function ProviderBookingsScreen() {
   const handleCancelAcceptedBooking = (bookingId: number) => {
     hapticFeedback.warning();
     Alert.alert(
-      'Annuler la commande',
-      'Êtes-vous sûr de vouloir annuler cette commande acceptée ?',
+      t('bookings.cancelBookingTitle'),
+      t('providerBookings.cancelQuestion'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Oui, annuler',
+          text: t('bookings.yesCancel'),
           style: 'destructive',
           onPress: async () => {
             try {
               await cancelOrder(bookingId, 'Annulée par le prestataire');
               hapticFeedback.success();
+              // IMPORTANT: Ajouter au cache AVANT de recharger pour éviter réapparition
+              await addCancelledOrderId(bookingId);
               await loadBookings(false);
             } catch (error: any) {
               hapticFeedback.error();
-              Alert.alert('Erreur', error?.response?.data?.message || 'Impossible d\'annuler.');
+              Alert.alert(t('common.error'), error?.response?.data?.message || t('errors.generic'));
             }
           },
         },
@@ -442,7 +487,12 @@ export default function ProviderBookingsScreen() {
     setShowCancellationModal(true);
   };
 
-  const handleCancellationSuccess = () => {
+  const handleCancellationSuccess = async () => {
+    // Ajouter l'ID au cache global AsyncStorage AVANT de recharger
+    if (cancellationBooking) {
+      await addCancelledOrderId(cancellationBooking.id);
+      console.log('[Bookings] Added to cache:', cancellationBooking.id);
+    }
     setShowCancellationModal(false);
     setCancellationBooking(null);
     loadBookings(false);
@@ -456,7 +506,7 @@ export default function ProviderBookingsScreen() {
       router.push(`/(provider)/booking/journey/${bookingId}` as any);
     } catch (error) {
       hapticFeedback.error();
-      Alert.alert('Erreur', 'Impossible de démarrer le trajet.');
+      Alert.alert(t('common.error'), t('errors.generic'));
     }
   };
 
@@ -471,22 +521,22 @@ export default function ProviderBookingsScreen() {
         ),
       }));
       hapticFeedback.success();
-      Alert.alert('Arrivée signalée', 'Le client a été notifié.');
+      Alert.alert(t('provider.statusArrived'), t('notifications.providerArrived'));
     } catch (error: any) {
       hapticFeedback.error();
-      Alert.alert('Erreur', error?.response?.data?.message || 'Impossible de signaler votre arrivée');
+      Alert.alert(t('common.error'), error?.response?.data?.message || t('errors.generic'));
     }
   };
 
   const handleCompleteBooking = (bookingId: number) => {
     hapticFeedback.success();
     Alert.alert(
-      'Terminer le service',
-      'Le service est-il terminé ?',
+      t('providerBookings.serviceFinished'),
+      t('providerBookings.finishServiceQuestion'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Oui, terminer',
+          text: t('common.yes'),
           onPress: async () => {
             try {
               await completeOrder(bookingId);
@@ -494,7 +544,7 @@ export default function ProviderBookingsScreen() {
               await loadBookings(false);
             } catch (error) {
               hapticFeedback.error();
-              Alert.alert('Erreur', 'Impossible de terminer la commande.');
+              Alert.alert(t('common.error'), t('errors.generic'));
             }
           },
         },
@@ -504,15 +554,26 @@ export default function ProviderBookingsScreen() {
 
   const getStatusConfig = (status: BookingStatus) => {
     const config: Record<BookingStatus, { color: 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'error'; label: string; emoji: string }> = {
-      pending: { color: 'warning', label: 'Nouveau', emoji: '🆕' },
-      accepted: { color: 'success', label: 'Accepté', emoji: '✅' },
-      on_way: { color: 'accent', label: 'En route', emoji: '🚗' },
-      arrived: { color: 'primary', label: 'Arrivé', emoji: '📍' },
-      in_progress: { color: 'primary', label: 'En cours', emoji: '🔨' },
-      completed: { color: 'default', label: 'Terminé', emoji: '✓' },
-      cancelled: { color: 'error', label: 'Annulé', emoji: '✕' },
+      pending: { color: 'warning', label: t('providerBookings.new'), emoji: '🆕' },
+      accepted: { color: 'success', label: t('provider.statusAccepted'), emoji: '✅' },
+      on_way: { color: 'accent', label: t('provider.statusOnWay'), emoji: '🚗' },
+      arrived: { color: 'primary', label: t('provider.statusArrived'), emoji: '📍' },
+      in_progress: { color: 'primary', label: t('provider.statusInProgress'), emoji: '🔨' },
+      completed: { color: 'default', label: t('provider.statusCompleted'), emoji: '✓' },
+      cancelled: { color: 'error', label: t('provider.statusCancelled'), emoji: '✕' },
     };
     return config[status];
+  };
+
+  // Get translated tab labels
+  const getTabLabel = (key: BookingTab): string => {
+    switch (key) {
+      case 'pending': return t('providerBookings.new');
+      case 'upcoming': return t('providerBookings.upcoming');
+      case 'in_progress': return t('providerBookings.inProgress');
+      case 'completed': return t('providerBookings.completed');
+      default: return key;
+    }
   };
 
   const formatRelativeTime = (dateString: string) => {
@@ -594,9 +655,9 @@ export default function ProviderBookingsScreen() {
 
         // Afficher une notification simple (une seule fois)
         Alert.alert(
-          'Demande expirée',
-          `${expiredIds.length > 1 ? 'Des demandes ont expiré' : 'Une demande a expiré'} (délai de 4 min dépassé).`,
-          [{ text: 'OK' }]
+          t('provider.orderExpired'),
+          t('provider.orderExpiredMessage'),
+          [{ text: t('common.ok') }]
         );
 
         // Rafraîchir depuis le serveur pour synchroniser
@@ -633,7 +694,7 @@ export default function ProviderBookingsScreen() {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <Text style={styles.serviceName}>{booking.service.title}</Text>
+            <Text style={styles.serviceName}>{getServiceTranslation(booking.service.title, language).title || booking.service.title}</Text>
             <Text style={styles.orderNumber}>#{booking.order_number}</Text>
           </View>
           <Badge color={statusConfig.color} size="sm" variant="soft">
@@ -645,9 +706,9 @@ export default function ProviderBookingsScreen() {
         <View style={styles.dateTimeRow}>
           <Text style={styles.dateTimeIcon}>📅</Text>
           <Text style={styles.dateTimeText}>
-            {formatDateTimeFrench(booking.booking_date, booking.booking_time)}
+            {formatDateTime(booking.booking_date, booking.booking_time, language)}
           </Text>
-          <Text style={styles.durationBadge}>{booking.service.duration_minutes} min</Text>
+          <Text style={styles.durationBadge}>{booking.service.duration_minutes} {t('common.min')}</Text>
         </View>
 
         {/* Client */}
@@ -681,12 +742,12 @@ export default function ProviderBookingsScreen() {
 
         {/* Details */}
         <View style={styles.detailsSection}>
-          <View style={styles.detailRow}>
+          <View style={[styles.detailRow, isRTL && styles.rowRTL]}>
             <Text style={styles.detailIcon}>📍</Text>
-            <Text style={styles.detailText} numberOfLines={1}>{booking.address}</Text>
+            <Text style={[styles.detailText, isRTL && styles.textRTL]} numberOfLines={1}>{booking.address}</Text>
           </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Montant</Text>
+          <View style={[styles.priceRow, isRTL && styles.rowRTL]}>
+            <Text style={[styles.priceLabel, isRTL && styles.textRTL]}>{t('providerBookings.amount')}</Text>
             <Text style={styles.priceValue}>{booking.service.price} DH</Text>
           </View>
         </View>
@@ -694,26 +755,28 @@ export default function ProviderBookingsScreen() {
         {/* Notes du client */}
         {booking.notes && (
           <View style={styles.notesSection}>
-            <Text style={styles.notesLabel}>📝 Notes du client:</Text>
-            <Text style={styles.notesText}>{booking.notes}</Text>
+            <Text style={[styles.notesLabel, isRTL && styles.textRTL]}>📝 {t('providerBookings.clientNotes')}:</Text>
+            <Text style={[styles.notesText, isRTL && styles.textRTL]}>{booking.notes}</Text>
           </View>
         )}
 
-        {/* Timer Countdown pour pending */}
-        {booking.status === 'pending' && (() => {
+        {/* Timer Countdown pour pending - Vérifie aussi le cache des annulations */}
+        {booking.status === 'pending' && !isOrderCancelled(booking.id) && (() => {
           const remaining = calculateTimeoutRemaining(booking.created_at);
+          // Ne pas afficher si temps <= 0
+          if (remaining <= 0) return null;
           const isUrgent = remaining < 60;
           const progressPercent = Math.round((remaining / 240) * 100);
 
           return (
-            <View style={[styles.timerContainer, isUrgent && styles.timerContainerUrgent]}>
+            <View style={[styles.timerContainer, isUrgent && styles.timerContainerUrgent, isRTL && styles.rowRTL]}>
               <Text style={styles.timerIcon}>⏱️</Text>
               <View style={styles.timerContent}>
                 <Text style={[styles.timerValue, isUrgent && styles.timerValueUrgent]}>
                   {formatTimeRemaining(remaining)}
                 </Text>
-                <Text style={styles.timerLabel}>
-                  {isUrgent ? 'Repondez vite!' : 'pour repondre'}
+                <Text style={[styles.timerLabel, isRTL && styles.textRTL]}>
+                  {isUrgent ? t('providerBookings.respondQuickly') : t('providerBookings.toRespond')}
                 </Text>
                 <View style={styles.timerProgressContainer}>
                   <View
@@ -730,14 +793,14 @@ export default function ProviderBookingsScreen() {
         })()}
 
         {/* Actions */}
-        <View style={styles.actionsSection}>
+        <View style={[styles.actionsSection, isRTL && styles.rowRTL]}>
           {booking.status === 'pending' && (
             <>
               <TouchableOpacity
                 style={styles.rejectBtn}
                 onPress={() => handleRejectBooking(booking.id)}
               >
-                <Text style={styles.rejectBtnText}>Refuser</Text>
+                <Text style={styles.rejectBtnText}>{t('provider.reject')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.acceptBtn, hasActiveOrder && styles.btnDisabled]}
@@ -748,7 +811,7 @@ export default function ProviderBookingsScreen() {
                   style={styles.acceptBtnGradient}
                 >
                   <Text style={styles.acceptBtnText}>
-                    {hasActiveOrder ? 'Terminez d\'abord' : 'Accepter'}
+                    {hasActiveOrder ? t('providerBookings.waitingForAction') : t('provider.accept')}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -761,7 +824,7 @@ export default function ProviderBookingsScreen() {
                 style={styles.cancelBtn}
                 onPress={() => handleCancelAcceptedBooking(booking.id)}
               >
-                <Text style={styles.cancelBtnText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.startBtn}
@@ -771,7 +834,7 @@ export default function ProviderBookingsScreen() {
                   colors={[colors.primary, '#8B5CF6']}
                   style={styles.startBtnGradient}
                 >
-                  <Text style={styles.startBtnText}>🚗 Démarrer</Text>
+                  <Text style={styles.startBtnText}>🚗 {t('provider.startJourney')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </>
@@ -783,7 +846,7 @@ export default function ProviderBookingsScreen() {
                 style={styles.cancelOnWayBtn}
                 onPress={() => handleOpenCancellationModal(booking)}
               >
-                <Text style={styles.cancelOnWayBtnText}>Annuler</Text>
+                <Text style={styles.cancelOnWayBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.arrivedBtn}
@@ -793,16 +856,16 @@ export default function ProviderBookingsScreen() {
                   colors={['#8B5CF6', '#6D28D9']}
                   style={styles.arrivedBtnGradient}
                 >
-                  <Text style={styles.arrivedBtnText}>📍 Je suis arrivé</Text>
+                  <Text style={styles.arrivedBtnText}>📍 {t('provider.arrived')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </>
           )}
 
           {booking.status === 'arrived' && (
-            <View style={styles.waitingCard}>
+            <View style={[styles.waitingCard, isRTL && styles.rowRTL]}>
               <Text style={styles.waitingIcon}>⏳</Text>
-              <Text style={styles.waitingText}>En attente de confirmation client</Text>
+              <Text style={[styles.waitingText, isRTL && styles.textRTL]}>{t('providerBookings.waitingForAction')}</Text>
             </View>
           )}
 
@@ -815,14 +878,14 @@ export default function ProviderBookingsScreen() {
                 colors={['#10B981', '#059669']}
                 style={styles.completeBtnGradient}
               >
-                <Text style={styles.completeBtnText}>✅ Terminer le service</Text>
+                <Text style={styles.completeBtnText}>✅ {t('provider.completeService')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
 
           {booking.status === 'completed' && booking.rating && (
-            <View style={styles.ratingCard}>
-              <Text style={styles.ratingLabel}>Note client</Text>
+            <View style={[styles.ratingCard, isRTL && styles.rowRTL]}>
+              <Text style={[styles.ratingLabel, isRTL && styles.textRTL]}>{t('provider.rating')}</Text>
               <Text style={styles.ratingStars}>{'⭐'.repeat(booking.rating)}</Text>
             </View>
           )}
@@ -838,7 +901,7 @@ export default function ProviderBookingsScreen() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement des commandes...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -852,10 +915,10 @@ export default function ProviderBookingsScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Mes Demandes</Text>
-            <Text style={styles.headerSubtitle}>{totalActive} commande(s) active(s)</Text>
+        <View style={[styles.headerContent, isRTL && styles.rowRTL]}>
+          <View style={[styles.headerLeft, isRTL && { alignItems: 'flex-end' }]}>
+            <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t('providerBookings.myRequests')}</Text>
+            <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>{totalActive} {t('providerBookings.activeOrders')}</Text>
           </View>
           <TouchableOpacity
             style={styles.headerRefreshBtn}
@@ -866,12 +929,12 @@ export default function ProviderBookingsScreen() {
         </View>
 
         {/* Stats Summary */}
-        <View style={styles.statsSummary}>
+        <View style={[styles.statsSummary, isRTL && styles.rowRTL]}>
           {TAB_CONFIG.map((tab) => (
             <View key={tab.key} style={styles.statItem}>
               <Text style={styles.statIcon}>{tab.icon}</Text>
               <Text style={styles.statValue}>{bookings[tab.key].length}</Text>
-              <Text style={styles.statLabel}>{tab.label}</Text>
+              <Text style={styles.statLabel}>{getTabLabel(tab.key)}</Text>
             </View>
           ))}
         </View>
@@ -879,7 +942,7 @@ export default function ProviderBookingsScreen() {
 
       {/* Tab Selector */}
       <View style={styles.tabsWrapper}>
-        <View style={styles.tabsContainer}>
+        <View style={[styles.tabsContainer, isRTL && styles.rowRTL]}>
           {TAB_CONFIG.map((tab) => {
             const isActive = activeTab === tab.key;
             const count = bookings[tab.key].length;
@@ -897,10 +960,10 @@ export default function ProviderBookingsScreen() {
                 {isActive ? (
                   <LinearGradient
                     colors={tab.gradient}
-                    style={styles.tabGradient}
+                    style={[styles.tabGradient, isRTL && styles.rowRTL]}
                   >
                     <Text style={styles.tabIcon}>{tab.icon}</Text>
-                    <Text style={styles.tabTextActive}>{tab.label}</Text>
+                    <Text style={styles.tabTextActive}>{getTabLabel(tab.key)}</Text>
                     {count > 0 && (
                       <View style={styles.tabBadgeActive}>
                         <Text style={styles.tabBadgeTextActive}>{count}</Text>
@@ -908,8 +971,8 @@ export default function ProviderBookingsScreen() {
                     )}
                   </LinearGradient>
                 ) : (
-                  <View style={styles.tabInner}>
-                    <Text style={styles.tabText}>{tab.label}</Text>
+                  <View style={[styles.tabInner, isRTL && styles.rowRTL]}>
+                    <Text style={styles.tabText}>{getTabLabel(tab.key)}</Text>
                     {count > 0 && (
                       <View style={styles.tabBadge}>
                         <Text style={styles.tabBadgeText}>{count}</Text>
@@ -942,16 +1005,16 @@ export default function ProviderBookingsScreen() {
                 </Text>
               </LinearGradient>
             </View>
-            <Text style={styles.emptyTitle}>
-              {activeTab === 'pending' ? 'Aucune nouvelle demande' :
-               activeTab === 'upcoming' ? 'Aucune réservation à venir' :
-               activeTab === 'in_progress' ? 'Aucun service en cours' :
-               'Aucun service terminé'}
+            <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>
+              {activeTab === 'pending' ? t('providerBookings.noNewRequests') :
+               activeTab === 'upcoming' ? t('providerBookings.noUpcoming') :
+               activeTab === 'in_progress' ? t('providerBookings.noInProgress') :
+               t('providerBookings.noCompleted')}
             </Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
               {activeTab === 'pending'
-                ? 'Les nouvelles demandes apparaîtront ici'
-                : 'Cette section est vide pour le moment'}
+                ? t('provider.goOnlineToReceive')
+                : t('bookings.noBookings')}
             </Text>
           </View>
         }
@@ -1557,5 +1620,13 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     textAlign: 'center',
     lineHeight: 22,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

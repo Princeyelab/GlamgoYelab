@@ -16,6 +16,8 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
 import { getProviderOrders } from '../../lib/api/providerAPI';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { isOrderCancelled, initCancelledOrdersCache } from '../../lib/utils/cancelledOrdersCache';
 
 interface PendingOrder {
   id: number;
@@ -26,6 +28,7 @@ interface PendingOrder {
 
 export default function PendingOrdersBanner() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const pulseAnim = useState(new Animated.Value(1))[0];
@@ -36,7 +39,7 @@ export default function PendingOrdersBanner() {
     try {
       const orders = await getProviderOrders();
 
-      // Filtrer les commandes pending, éviter les doublons, et exclure les expirées
+      // Filtrer les commandes pending, éviter les doublons, exclure les expirées et annulées
       const seenIds = new Set<number>();
       const now = Date.now();
       const pending = (orders || [])
@@ -44,6 +47,9 @@ export default function PendingOrdersBanner() {
           if (o.status !== 'pending') return false;
           if (seenIds.has(o.id)) return false; // Éviter doublons
           seenIds.add(o.id);
+
+          // Vérifier le cache des annulations
+          if (isOrderCancelled(o.id)) return false;
 
           // Filtrer les commandes expirées (> 4 minutes)
           if (o.created_at) {
@@ -75,7 +81,10 @@ export default function PendingOrdersBanner() {
   // Verifier au montage et quand l'ecran devient actif
   useFocusEffect(
     useCallback(() => {
-      checkPendingOrders();
+      // Recharger le cache AsyncStorage d'abord pour avoir les IDs annulés à jour
+      initCancelledOrdersCache().then(() => {
+        checkPendingOrders();
+      });
       const interval = setInterval(checkPendingOrders, 10000);
       return () => clearInterval(interval);
     }, [checkPendingOrders])
@@ -127,14 +136,16 @@ export default function PendingOrdersBanner() {
       setPendingOrders(prev => prev.filter(o => o.id !== order.id));
 
       Alert.alert(
-        '⏱️ Commande expirée',
-        `Vous n'avez pas répondu à temps à la demande de "${order.client_name}" pour "${order.service_name}". La commande a été automatiquement annulée.`,
+        `⏱️ ${t('pendingOrders.orderExpired')}`,
+        t('pendingOrders.orderExpiredMessage')
+          .replace('{clientName}', order.client_name)
+          .replace('{serviceName}', order.service_name),
         [
           {
-            text: 'Voir les commandes',
+            text: t('pendingOrders.viewOrders'),
             onPress: () => router.push('/(provider)/bookings' as any),
           },
-          { text: 'OK', style: 'cancel' },
+          { text: t('pendingOrders.ok'), style: 'cancel' },
         ]
       );
 
@@ -182,6 +193,14 @@ export default function PendingOrdersBanner() {
   const isUrgent = timeRemaining < 60;
   const progressPercent = (timeRemaining / 240) * 100;
 
+  // Get the right translation based on count
+  const getOrdersWaitingText = () => {
+    if (pendingOrders.length > 1) {
+      return t('pendingOrders.ordersWaitingPlural').replace('{count}', String(pendingOrders.length));
+    }
+    return t('pendingOrders.ordersWaiting').replace('{count}', String(pendingOrders.length));
+  };
+
   return (
     <Animated.View
       style={[
@@ -191,31 +210,31 @@ export default function PendingOrdersBanner() {
       ]}
     >
       <TouchableOpacity
-        style={styles.content}
+        style={[styles.content, isRTL && styles.contentRTL]}
         onPress={() => router.push('/(provider)/bookings' as any)}
         activeOpacity={0.8}
       >
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, isRTL && styles.iconContainerRTL]}>
           <Text style={styles.icon}>🔔</Text>
         </View>
 
-        <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>
-            {pendingOrders.length} commande{pendingOrders.length > 1 ? 's' : ''} en attente
+        <View style={[styles.info, isRTL && styles.infoRTL]}>
+          <Text style={[styles.title, isRTL && styles.textRTL]} numberOfLines={1}>
+            {getOrdersWaitingText()}
           </Text>
-          <Text style={styles.subtitle}>
-            {isUrgent ? 'Repondez vite!' : 'Appuyez pour voir'}
+          <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+            {isUrgent ? t('pendingOrders.respondQuickly') : t('pendingOrders.tapToView')}
           </Text>
         </View>
 
-        <View style={styles.timerContainer}>
+        <View style={[styles.timerContainer, isRTL && styles.timerContainerRTL]}>
           <Text style={[styles.timer, isUrgent && styles.timerUrgent]}>
             {formatTime(timeRemaining)}
           </Text>
-          <Text style={styles.timerLabel}>restant</Text>
+          <Text style={styles.timerLabel}>{t('pendingOrders.remaining')}</Text>
         </View>
 
-        <Text style={styles.arrow}>›</Text>
+        <Text style={styles.arrow}>{isRTL ? '‹' : '›'}</Text>
       </TouchableOpacity>
 
       {/* Barre de progression */}
@@ -224,7 +243,8 @@ export default function PendingOrdersBanner() {
           style={[
             styles.progress,
             { width: `${progressPercent}%` },
-            isUrgent && styles.progressUrgent
+            isUrgent && styles.progressUrgent,
+            isRTL && styles.progressRTL
           ]}
         />
       </View>
@@ -316,5 +336,29 @@ const styles = StyleSheet.create({
   },
   progressUrgent: {
     backgroundColor: colors.white,
+  },
+  // RTL Styles
+  contentRTL: {
+    flexDirection: 'row-reverse',
+  },
+  iconContainerRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  infoRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+    alignItems: 'flex-end',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  timerContainerRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
+  },
+  progressRTL: {
+    alignSelf: 'flex-end',
   },
 });

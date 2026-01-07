@@ -35,6 +35,7 @@ import {
   isAllowedFileSize,
   MODERATION_WARNINGS,
 } from '../../src/lib/utils/contentModeration';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 
 // Numero du support
 const SUPPORT_PHONE = '+212600000000'; // A remplacer par le vrai numero
@@ -52,26 +53,27 @@ interface Message {
   message_type?: 'text' | 'image';
 }
 
-// Messages rapides
-const QUICK_MESSAGES_PROVIDER = [
-  'Je suis en route',
-  "J'arrive dans 5 min",
-  'Je suis arrive(e)',
-  'Je commence',
-  'Service termine',
+// Keys pour les messages rapides (seront traduits dynamiquement)
+const QUICK_MESSAGE_KEYS_PROVIDER = [
+  'orderChat.quickOnWay',
+  'orderChat.quick5min',
+  'orderChat.quickArrived',
+  'orderChat.quickStarting',
+  'orderChat.quickDone',
 ];
 
-const QUICK_MESSAGES_CLIENT = [
-  'OK',
-  'Merci',
-  'Ou etes-vous ?',
-  "J'attends",
-  'Parfait',
+const QUICK_MESSAGE_KEYS_CLIENT = [
+  'orderChat.quickOk',
+  'orderChat.quickThanks',
+  'orderChat.quickWhere',
+  'orderChat.quickWaiting',
+  'orderChat.quickPerfect',
 ];
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { t, isRTL, language } = useLanguage();
   const orderId = typeof id === 'string' ? parseInt(id, 10) : 0;
   const userRole = useAppSelector(selectUserRole);
   const isProvider = userRole === 'provider';
@@ -94,7 +96,8 @@ export default function ChatScreen() {
   // Statuts qui bloquent le chat
   const BLOCKED_STATUSES = ['completed', 'completed_pending_review', 'cancelled', 'rejected'];
 
-  const quickMessages = isProvider ? QUICK_MESSAGES_PROVIDER : QUICK_MESSAGES_CLIENT;
+  const quickMessageKeys = isProvider ? QUICK_MESSAGE_KEYS_PROVIDER : QUICK_MESSAGE_KEYS_CLIENT;
+  const quickMessages = quickMessageKeys.map(key => t(key));
 
   // Verifier le statut de la commande
   const checkOrderStatus = useCallback(async () => {
@@ -116,16 +119,16 @@ export default function ChatScreen() {
   const handleContactSupport = () => {
     hapticFeedback.light();
     Alert.alert(
-      '📞 Contacter le support',
-      'Choisissez un moyen de contact',
+      `📞 ${t('orderChat.contactSupport')}`,
+      t('orderChat.chooseContact'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '📧 Email',
+          text: `📧 ${t('orderChat.email')}`,
           onPress: () => Linking.openURL('mailto:support@glamgo.ma?subject=Aide commande #' + orderId),
         },
         {
-          text: '📱 Appeler',
+          text: `📱 ${t('orderChat.call')}`,
           onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE}`),
         },
       ]
@@ -137,7 +140,7 @@ export default function ChatScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Autorisez l\'acces a la galerie pour envoyer des photos.');
+        Alert.alert(t('orderChat.permissionRequired'), t('orderChat.galleryPermission'));
         return;
       }
 
@@ -154,7 +157,7 @@ export default function ChatScreen() {
       }
     } catch (error) {
       console.log('[Chat] Error picking image:', error);
-      Alert.alert('Erreur', 'Impossible de selectionner l\'image');
+      Alert.alert(t('common.error'), t('orderChat.selectImageError'));
     }
   };
 
@@ -163,7 +166,7 @@ export default function ChatScreen() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Autorisez l\'acces a la camera pour prendre des photos.');
+        Alert.alert(t('orderChat.permissionRequired'), t('orderChat.cameraPermission'));
         return;
       }
 
@@ -179,7 +182,7 @@ export default function ChatScreen() {
       }
     } catch (error) {
       console.log('[Chat] Error taking photo:', error);
-      Alert.alert('Erreur', 'Impossible de prendre la photo');
+      Alert.alert(t('common.error'), t('orderChat.takePhotoError'));
     }
   };
 
@@ -190,20 +193,14 @@ export default function ChatScreen() {
     // Verifier l'extension
     if (!isAllowedImageExtension(filename)) {
       hapticFeedback.error();
-      Alert.alert(
-        'Format non autorise',
-        'Seuls les formats JPG, PNG, WEBP et GIF sont autorises.'
-      );
+      Alert.alert(t('orderChat.formatNotAllowed'), t('orderChat.allowedFormats'));
       return;
     }
 
     // Verifier la taille si disponible
     if (fileSize && !isAllowedFileSize(fileSize)) {
       hapticFeedback.error();
-      Alert.alert(
-        'Fichier trop volumineux',
-        'La taille maximale autorisee est de 5 Mo.'
-      );
+      Alert.alert(t('orderChat.fileTooLarge'), t('orderChat.maxFileSize'));
       return;
     }
 
@@ -211,10 +208,7 @@ export default function ChatScreen() {
     const filenameCheck = moderateImageFilename(filename);
     if (!filenameCheck.isAllowed) {
       hapticFeedback.error();
-      Alert.alert(
-        'Image non autorisee',
-        'Cette image semble contenir du contenu inapproprie et ne peut pas etre envoyee.'
-      );
+      Alert.alert(t('orderChat.imageNotAllowed'), t('orderChat.inappropriateImage'));
       return;
     }
 
@@ -265,11 +259,11 @@ export default function ChatScreen() {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         hapticFeedback.success();
       } else {
-        Alert.alert('Erreur', response.data?.message || 'Impossible d\'envoyer la photo');
+        Alert.alert(t('common.error'), response.data?.message || t('orderChat.sendPhotoError'));
       }
     } catch (error: any) {
       console.log('[Chat] Error uploading image:', error);
-      Alert.alert('Erreur', 'Impossible d\'envoyer la photo');
+      Alert.alert(t('common.error'), t('orderChat.sendPhotoError'));
     } finally {
       setIsUploading(false);
     }
@@ -279,12 +273,12 @@ export default function ChatScreen() {
   const showImageOptions = () => {
     hapticFeedback.light();
     Alert.alert(
-      'Envoyer une photo',
-      'Choisissez une option',
+      t('orderChat.sendPhoto'),
+      t('orderChat.chooseOption'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: '📷 Camera', onPress: takePhoto },
-        { text: '🖼️ Galerie', onPress: pickImage },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: `📷 ${t('orderChat.camera')}`, onPress: takePhoto },
+        { text: `🖼️ ${t('orderChat.gallery')}`, onPress: pickImage },
       ]
     );
   };
@@ -331,9 +325,9 @@ export default function ChatScreen() {
 
         if (otherPersonMessages.length > 0) {
           const lastMsg = otherPersonMessages[otherPersonMessages.length - 1];
-          const msgContent = lastMsg.image_url ? '📷 Photo' : (lastMsg.content || 'Nouveau message');
+          const msgContent = lastMsg.image_url ? `📷 ${t('orderChat.photo')}` : (lastMsg.content || t('orderChat.newMessage'));
           Alert.alert(
-            '💬 Nouveau message',
+            `💬 ${t('orderChat.newMessage')}`,
             msgContent.length > 50
               ? msgContent.substring(0, 50) + '...'
               : msgContent
@@ -356,17 +350,12 @@ export default function ChatScreen() {
     if (!hasShownRulesAlert && !isLoading) {
       setHasShownRulesAlert(true);
       Alert.alert(
-        'Regles du Chat',
-        'Pour votre securite et celle de tous les utilisateurs :\n\n' +
-        '- Le partage de numeros de telephone est interdit\n' +
-        '- Le partage de reseaux sociaux (WhatsApp, Instagram, Snapchat...) est interdit\n' +
-        '- Les insultes et propos inappropries sont bloques\n' +
-        '- Les photos inappropriees sont detectees et bloquees\n\n' +
-        'Toute violation peut entrainer la suspension de votre compte.',
-        [{ text: 'J\'ai compris', style: 'default' }]
+        t('orderChat.chatRules'),
+        t('orderChat.chatRulesContent'),
+        [{ text: t('orderChat.understood'), style: 'default' }]
       );
     }
-  }, [hasShownRulesAlert, isLoading]);
+  }, [hasShownRulesAlert, isLoading, t]);
 
   // Polling pour les nouveaux messages et verification du statut
   useEffect(() => {
@@ -395,9 +384,9 @@ export default function ChatScreen() {
     if (!moderationResult.isAllowed) {
       hapticFeedback.error();
       Alert.alert(
-        'Message non autorise',
+        t('orderChat.messageNotAllowed'),
         moderationResult.reason || MODERATION_WARNINGS[moderationResult.category || 'inappropriate'],
-        [{ text: 'Compris', style: 'default' }]
+        [{ text: t('orderChat.understood'), style: 'default' }]
       );
       return;
     }
@@ -416,7 +405,7 @@ export default function ChatScreen() {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     } catch (error: any) {
-      Alert.alert('Erreur', "Impossible d'envoyer le message");
+      Alert.alert(t('common.error'), t('orderChat.sendMessageError'));
       setNewMessage(messageToSend); // Restaurer le message
     } finally {
       setIsSending(false);
@@ -433,7 +422,7 @@ export default function ChatScreen() {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleTimeString('fr-FR', {
+      return date.toLocaleTimeString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
         hour: '2-digit',
         minute: '2-digit',
       });
@@ -468,13 +457,13 @@ export default function ChatScreen() {
                 {imageLoadingStates[item.id] === 'loading' && (
                   <View style={styles.imagePlaceholder}>
                     <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={styles.imagePlaceholderText}>Chargement...</Text>
+                    <Text style={[styles.imagePlaceholderText, isRTL && styles.textRTL]}>{t('common.loading')}</Text>
                   </View>
                 )}
                 {imageLoadingStates[item.id] === 'error' && (
                   <View style={styles.imagePlaceholder}>
                     <Text style={styles.imageErrorIcon}>🖼️</Text>
-                    <Text style={styles.imagePlaceholderText}>Image non disponible</Text>
+                    <Text style={[styles.imagePlaceholderText, isRTL && styles.textRTL]}>{t('orderChat.imageNotAvailable')}</Text>
                   </View>
                 )}
                 <Image
@@ -511,7 +500,7 @@ export default function ChatScreen() {
 
           <Text style={[styles.messageTime, isMine && styles.messageTimeMine]}>
             {formatTime(item.created_at)}
-            {isMine && (item.is_read ? ' - Lu' : '')}
+            {isMine && (item.is_read ? ` - ${t('orderChat.read')}` : '')}
           </Text>
         </View>
       </View>
@@ -522,7 +511,7 @@ export default function ChatScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement...</Text>
+        <Text style={[styles.loadingText, isRTL && styles.textRTL]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -535,15 +524,15 @@ export default function ChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isRTL && styles.headerRTL]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>
-              {isProvider ? 'Chat Client' : 'Chat Prestataire'}
+            <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>
+              {isProvider ? t('orderChat.chatClient') : t('orderChat.chatProvider')}
             </Text>
-            <Text style={styles.headerSubtitle}>Commande #{orderId}</Text>
+            <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>{t('orderChat.order')} #{orderId}</Text>
           </View>
           <View style={styles.headerSpacer} />
         </View>
@@ -560,14 +549,14 @@ export default function ChatScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>💬</Text>
-              <Text style={styles.emptyText}>Aucun message</Text>
-              <Text style={styles.emptySubtext}>Commencez la conversation</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t('orderChat.noMessages')}</Text>
+              <Text style={[styles.emptySubtext, isRTL && styles.textRTL]}>{t('orderChat.startConversation')}</Text>
             </View>
           }
           ListHeaderComponent={
             <View style={styles.securityWarning}>
-              <Text style={styles.securityText}>
-                🔒 Numeros, reseaux sociaux, insultes et photos inappropriees sont bloques
+              <Text style={[styles.securityText, isRTL && styles.textRTL]}>
+                🔒 {t('orderChat.securityWarning')}
               </Text>
             </View>
           }
@@ -578,21 +567,21 @@ export default function ChatScreen() {
           {isChatBlocked ? (
             /* Chat bloque apres finalisation */
             <View style={styles.blockedContainer}>
-              <View style={styles.blockedMessage}>
-                <Text style={styles.blockedIcon}>{'🔒'}</Text>
+              <View style={[styles.blockedMessage, isRTL && styles.blockedMessageRTL]}>
+                <Text style={[styles.blockedIcon, isRTL && styles.blockedIconRTL]}>{'🔒'}</Text>
                 <View style={styles.blockedTextContainer}>
-                  <Text style={styles.blockedTitle}>{'Conversation terminée'}</Text>
-                  <Text style={styles.blockedSubtitle}>
-                    {'Cette commande est finalisée. Le chat n\'est plus disponible.'}
+                  <Text style={[styles.blockedTitle, isRTL && styles.textRTL]}>{t('orderChat.conversationEnded')}</Text>
+                  <Text style={[styles.blockedSubtitle, isRTL && styles.textRTL]}>
+                    {t('orderChat.chatNoLongerAvailable')}
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.supportButton}
+                style={[styles.supportButton, isRTL && styles.supportButtonRTL]}
                 onPress={handleContactSupport}
               >
                 <Text style={styles.supportButtonIcon}>{'📞'}</Text>
-                <Text style={styles.supportButtonText}>{'Contacter le support'}</Text>
+                <Text style={styles.supportButtonText}>{t('orderChat.contactSupport')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -618,7 +607,7 @@ export default function ChatScreen() {
               </View>
 
               {/* Input */}
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, isRTL && styles.inputContainerRTL]}>
                 {/* Photo Button */}
                 <TouchableOpacity
                   style={styles.photoButton}
@@ -633,13 +622,14 @@ export default function ChatScreen() {
                 </TouchableOpacity>
 
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, isRTL && styles.inputRTL]}
                   value={newMessage}
                   onChangeText={setNewMessage}
-                  placeholder="Ecrivez votre message..."
+                  placeholder={t('orderChat.writePlaceholder')}
                   placeholderTextColor={colors.gray[400]}
                   multiline
                   maxLength={500}
+                  textAlign={isRTL ? 'right' : 'left'}
                 />
                 <TouchableOpacity
                   style={[styles.sendButton, (!newMessage.trim() || isSending) && styles.sendButtonDisabled]}
@@ -1036,5 +1026,28 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.white,
+  },
+  // RTL Styles
+  textRTL: {
+    textAlign: 'right',
+  },
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  inputRTL: {
+    textAlign: 'right',
+  },
+  blockedMessageRTL: {
+    flexDirection: 'row-reverse',
+  },
+  blockedIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.md,
+  },
+  supportButtonRTL: {
+    flexDirection: 'row-reverse',
   },
 });

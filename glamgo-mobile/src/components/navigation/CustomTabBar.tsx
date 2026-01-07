@@ -1,29 +1,30 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { colors, spacing, typography, shadows } from '../../lib/constants/theme';
+import { colors, spacing, typography, shadows, getFontFamily } from '../../lib/constants/theme';
 import { useAppSelector } from '../../lib/store/hooks';
 import { selectUpcomingBookings } from '../../lib/store/slices/bookingsSlice';
 import { selectFavorites } from '../../lib/store/slices/servicesSlice';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 type TabMode = 'client' | 'provider';
 
-// Tab configuration for CLIENT mode
-const CLIENT_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
-  index: { icon: '🏠', activeIcon: '🏠', label: 'Accueil' },
-  services: { icon: '💇', activeIcon: '💇', label: 'Services' },
-  bookings: { icon: '📅', activeIcon: '📅', label: 'Reservations' },
-  favorites: { icon: '🤍', activeIcon: '❤️', label: 'Favoris' },
-  profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
+// Tab configuration for CLIENT mode - using translation keys
+const CLIENT_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; labelKey: string }> = {
+  index: { icon: '🏠', activeIcon: '🏠', labelKey: 'nav.home' },
+  services: { icon: '💇', activeIcon: '💇', labelKey: 'nav.services' },
+  bookings: { icon: '📅', activeIcon: '📅', labelKey: 'nav.bookings' },
+  favorites: { icon: '🤍', activeIcon: '❤️', labelKey: 'profile.favorites' },
+  profile: { icon: '👤', activeIcon: '👤', labelKey: 'nav.profile' },
 };
 
-// Tab configuration for PROVIDER mode (5 tabs - gains supprime)
-const PROVIDER_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; label: string }> = {
-  index: { icon: '📊', activeIcon: '📊', label: 'Dashboard' },
-  bookings: { icon: '📅', activeIcon: '📅', label: 'Demandes' },
-  profile: { icon: '👤', activeIcon: '👤', label: 'Profil' },
-  booking: { icon: '🚗', activeIcon: '🚗', label: 'Trajet' },
-  onboarding: { icon: '⚙️', activeIcon: '⚙️', label: 'Services' },
+// Tab configuration for PROVIDER mode - using translation keys
+const PROVIDER_TAB_CONFIG: Record<string, { icon: string; activeIcon: string; labelKey: string }> = {
+  index: { icon: '📊', activeIcon: '📊', labelKey: 'provider.dashboard' },
+  bookings: { icon: '📅', activeIcon: '📅', labelKey: 'provider.requests' },
+  profile: { icon: '👤', activeIcon: '👤', labelKey: 'nav.profile' },
+  booking: { icon: '🚗', activeIcon: '🚗', labelKey: 'location.directions' },
+  onboarding: { icon: '⚙️', activeIcon: '⚙️', labelKey: 'nav.services' },
 };
 
 interface CustomTabBarProps extends BottomTabBarProps {
@@ -33,6 +34,7 @@ interface CustomTabBarProps extends BottomTabBarProps {
 export default function CustomTabBar({ state, descriptors, navigation, mode = 'client' }: CustomTabBarProps) {
   const upcomingBookings = useAppSelector(selectUpcomingBookings);
   const favorites = useAppSelector(selectFavorites);
+  const { t, isRTL } = useLanguage();
 
   // Use the appropriate tab config based on mode
   const TAB_CONFIG = mode === 'provider' ? PROVIDER_TAB_CONFIG : CLIENT_TAB_CONFIG;
@@ -106,10 +108,11 @@ export default function CustomTabBar({ state, descriptors, navigation, mode = 'c
                   isFocused && styles.labelActive,
                   mode === 'provider' && styles.labelProvider,
                   mode === 'provider' && isFocused && styles.labelProviderActive,
+                  { fontFamily: getFontFamily(isRTL, 'medium') },
                 ]}
                 numberOfLines={1}
               >
-                {config.label}
+                {t(config.labelKey)}
               </Text>
               {isFocused && (
                 <View style={[

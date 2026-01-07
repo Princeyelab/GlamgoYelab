@@ -13,6 +13,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Loading from '../../src/components/ui/Loading';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { getServiceTranslation, getCategoryTranslation } from '../../src/i18n/translations/services';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import {
   fetchServiceById,
@@ -31,6 +33,7 @@ export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t, language, isRTL } = useLanguage();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export default function ServiceDetailScreen() {
       await dispatch(fetchServiceById(id!)).unwrap();
     } catch (err: any) {
       console.error('Error loading service:', err);
-      setError(err?.message || 'Erreur lors du chargement');
+      setError(err?.message || t('serviceDetail.loadError'));
     }
   };
 
@@ -85,7 +88,7 @@ export default function ServiceDetailScreen() {
   };
 
   if (isLoading && !service) {
-    return <Loading fullScreen message="Chargement du service..." />;
+    return <Loading fullScreen message={t('serviceDetail.loading')} />;
   }
 
   if (error || !service) {
@@ -93,11 +96,11 @@ export default function ServiceDetailScreen() {
       <View style={styles.errorContainer}>
         <StatusBar barStyle="dark-content" />
         <Text style={styles.errorIcon}>😕</Text>
-        <Text style={styles.errorText}>
-          {error || 'Service non trouve'}
+        <Text style={[styles.errorText, isRTL && styles.rtlText]}>
+          {error || t('serviceDetail.notFound')}
         </Text>
         <Button variant="outline" onPress={handleBack}>
-          Retour
+          {t('common.back')}
         </Button>
       </View>
     );
@@ -134,11 +137,11 @@ export default function ServiceDetailScreen() {
 
           {/* Back Button */}
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, isRTL && styles.backButtonRTL]}
             onPress={handleBack}
             activeOpacity={0.8}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{isRTL ? '→' : '←'}</Text>
           </TouchableOpacity>
 
           {/* Favorite Button */}
@@ -177,40 +180,42 @@ export default function ServiceDetailScreen() {
           {service.category && (
             <View style={[styles.categoryBadge, { backgroundColor: (service.category as any).color || colors.primary }]}>
               <Text style={styles.categoryBadgeText}>
-                {(service.category as any).name || 'Service'}
+                {getCategoryTranslation((service.category as any).name || 'Service', language)}
               </Text>
             </View>
           )}
 
           {/* Title */}
-          <Text style={styles.title}>{service.title || service.name}</Text>
+          <Text style={[styles.title, isRTL && styles.rtlText]}>
+            {getServiceTranslation(service.title || service.name || '', language).title || service.title || service.name}
+          </Text>
 
           {/* Rating */}
           {(service.rating || 0) > 0 && (
-            <View style={styles.ratingRow}>
+            <View style={[styles.ratingRow, isRTL && styles.ratingRowRTL]}>
               <Text style={styles.ratingStar}>★</Text>
               <Text style={styles.ratingValue}>{(service.rating || 0).toFixed(1)}</Text>
               <Text style={styles.reviewsCount}>
-                ({service.reviews_count || service.reviewsCount || 0} avis)
+                ({service.reviews_count || service.reviewsCount || 0} {t('serviceDetail.reviews')})
               </Text>
             </View>
           )}
 
           {/* Description */}
-          <Text style={styles.description}>
-            {service.description || 'Aucune description disponible pour ce service.'}
+          <Text style={[styles.description, isRTL && styles.rtlText]}>
+            {getServiceTranslation(service.title || service.name || '', language).description || service.description || t('serviceDetail.noDescription')}
           </Text>
 
           {/* Details Box - Prix & Durée */}
-          <View style={styles.detailsBox}>
+          <View style={[styles.detailsBox, isRTL && styles.detailsBoxRTL]}>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Prix de base</Text>
-              <Text style={styles.detailValue}>{service.price} DH</Text>
+              <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('serviceDetail.basePrice')}</Text>
+              <Text style={[styles.detailValue, isRTL && styles.rtlText]}>{service.price} DH</Text>
             </View>
             <View style={styles.detailDivider} />
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Duree estimee</Text>
-              <Text style={styles.detailValue}>⏱ {formatDuration(service.duration_minutes || 60)}</Text>
+              <Text style={[styles.detailLabel, isRTL && styles.rtlText]}>{t('serviceDetail.estimatedDuration')}</Text>
+              <Text style={[styles.detailValue, isRTL && styles.rtlText]}>⏱ {formatDuration(service.duration_minutes || 60)}</Text>
             </View>
           </View>
 
@@ -221,7 +226,7 @@ export default function ServiceDetailScreen() {
             fullWidth
             style={styles.bookButtonInline}
           >
-            Reserver maintenant
+            {t('serviceDetail.bookNow')}
           </Button>
         </View>
       </ScrollView>
@@ -414,5 +419,19 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  // RTL support
+  rtlText: {
+    textAlign: 'right',
+  },
+  backButtonRTL: {
+    left: undefined,
+    right: 20,
+  },
+  ratingRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  detailsBoxRTL: {
+    flexDirection: 'row-reverse',
   },
 });

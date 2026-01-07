@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../lib/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface RadiusSelectorProps {
   selectedRadius: number;
@@ -45,6 +46,7 @@ export default function RadiusSelector({
   onRadiusChange,
   disabled = false,
 }: RadiusSelectorProps) {
+  const { t, isRTL } = useLanguage();
   const showWarning = selectedRadius > FREE_RADIUS_KM;
 
   const handlePress = (value: number) => {
@@ -79,9 +81,9 @@ export default function RadiusSelector({
         onPress={() => handlePress(option.value)}
         disabled={disabled}
       >
-        <Text style={textStyles}>{option.label}</Text>
+        <Text style={textStyles}>{option.value} {t('radius.km')}</Text>
         {option.isFree ? (
-          <Text style={freeLabelStyles}>Gratuit</Text>
+          <Text style={freeLabelStyles}>{t('radius.free')}</Text>
         ) : null}
       </TouchableOpacity>
     );
@@ -89,11 +91,11 @@ export default function RadiusSelector({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.label}>Perimetre de recherche</Text>
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
+        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('radius.searchRadius')}</Text>
         {showWarning ? (
           <View style={styles.warningBadge}>
-            <Text style={styles.warningBadgeText}>Frais CGU</Text>
+            <Text style={styles.warningBadgeText}>{t('radius.cguFees')}</Text>
           </View>
         ) : null}
       </View>
@@ -101,18 +103,18 @@ export default function RadiusSelector({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.optionsContainer}
+        contentContainerStyle={[styles.optionsContainer, isRTL && styles.optionsContainerRTL]}
       >
         {RADIUS_OPTIONS.map(renderOption)}
       </ScrollView>
 
       {showWarning ? (
-        <View style={styles.warningContainer}>
-          <Text style={styles.warningIcon}>{'ℹ️'}</Text>
+        <View style={[styles.warningContainer, isRTL && styles.warningContainerRTL]}>
+          <Text style={[styles.warningIcon, isRTL && styles.warningIconRTL]}>{'ℹ️'}</Text>
           <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>Frais de deplacement applicables</Text>
-            <Text style={styles.warningText}>
-              {`Au-dela de 15 km, des frais de ${PRICE_PER_EXTRA_KM} DH/km s'appliquent selon nos CGU.`}
+            <Text style={[styles.warningTitle, isRTL && styles.textRTL]}>{t('radius.travelFeesApplicable')}</Text>
+            <Text style={[styles.warningText, isRTL && styles.textRTL]}>
+              {t('radius.beyondKmFees').replace('{price}', String(PRICE_PER_EXTRA_KM))}
             </Text>
           </View>
         </View>
@@ -241,5 +243,27 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: colors.gray[600],
     lineHeight: 18,
+  },
+
+  // RTL Styles
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  optionsContainerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  warningContainerRTL: {
+    flexDirection: 'row-reverse',
+    borderLeftWidth: 0,
+    borderRightWidth: 4,
+    borderRightColor: colors.warning,
+  },
+  warningIconRTL: {
+    marginRight: 0,
+    marginLeft: spacing.sm,
   },
 });
