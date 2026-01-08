@@ -6,11 +6,12 @@ import { useAppSelector } from '../src/lib/store/hooks';
 import { selectIsAuthenticated, selectUserRole } from '../src/lib/store/slices/authSlice';
 import { store } from '../src/lib/store';
 import { useLanguage } from '../src/contexts/LanguageContext';
+import { LanguageSelectorCompact } from '../src/components/features/LanguageSelector';
 
 export default function Index() {
   const router = useRouter();
   const { logout } = useLocalSearchParams();
-  const { t, isRTL, language, setLanguage } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const userRole = useAppSelector(selectUserRole);
 
@@ -42,18 +43,12 @@ export default function Index() {
     return () => clearTimeout(timer);
   }, [isAuthenticated, logout]);
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'fr' ? 'ar' : 'fr');
-  };
-
   return (
     <View style={styles.container}>
-      {/* Language Toggle */}
-      <TouchableOpacity style={styles.languageToggle} onPress={toggleLanguage}>
-        <Text style={[styles.languageText, language === 'fr' && styles.languageActive]}>FR</Text>
-        <Text style={styles.languageSeparator}>|</Text>
-        <Text style={[styles.languageText, language === 'ar' && styles.languageActive]}>AR</Text>
-      </TouchableOpacity>
+      {/* Language Selector - Support FR, EN, ES, AR */}
+      <View style={styles.languageContainer}>
+        <LanguageSelectorCompact />
+      </View>
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
@@ -73,10 +68,10 @@ export default function Index() {
       <View style={styles.buttons}>
         {/* Devenir Client */}
         <Link href="/auth/signup-client" asChild>
-          <TouchableOpacity style={[styles.clientButton, isRTL && styles.clientButtonRTL]}>
+          <TouchableOpacity style={[styles.providerButton, isRTL && styles.providerButtonRTL]}>
             <View style={styles.buttonContent}>
-              <Text style={[styles.clientButtonIcon, isRTL && styles.iconRTL]}>👤</Text>
-              <Text style={[styles.clientButtonText, isRTL && styles.providerButtonTextRTL]}>{t('welcome.becomeClient')}</Text>
+              <Text style={[styles.providerButtonIcon, isRTL && styles.iconRTL]}>👤</Text>
+              <Text style={[styles.providerButtonText, isRTL && styles.providerButtonTextRTL]}>{t('welcome.becomeClient')}</Text>
             </View>
           </TouchableOpacity>
         </Link>
@@ -124,29 +119,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['2xl'],
     justifyContent: 'space-between',
   },
-  languageToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  languageContainer: {
     alignSelf: 'flex-end',
-    backgroundColor: colors.gray[100],
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.full,
     marginTop: spacing.xl,
-  },
-  languageText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.gray[400],
-    paddingHorizontal: spacing.xs,
-  },
-  languageActive: {
-    color: colors.primary,
-  },
-  languageSeparator: {
-    fontSize: typography.fontSize.sm,
-    color: colors.gray[300],
   },
   content: {
     flex: 1,
@@ -192,7 +167,6 @@ const styles = StyleSheet.create({
   },
   // Client Button
   clientButton: {
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -211,8 +185,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   clientButtonText: {
-    color: '#FF0000',
+    color: colors.white,
     fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.medium,
   },
   // Provider Button
   providerButton: {
@@ -286,9 +261,6 @@ const styles = StyleSheet.create({
   },
   clientButtonRTL: {
     flexDirection: 'row-reverse',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.gray[300],
   },
   providerButtonRTL: {
     flexDirection: 'row-reverse',
@@ -298,16 +270,19 @@ const styles = StyleSheet.create({
   buttonTextRTL: {
     writingDirection: 'rtl',
     textAlign: 'center',
+    fontFamily: typography.fontFamily.medium,
   },
   clientButtonTextRTL: {
     writingDirection: 'rtl',
     textAlign: 'center',
     color: colors.white,
+    fontFamily: typography.fontFamily.medium,
   },
   providerButtonTextRTL: {
     writingDirection: 'rtl',
     textAlign: 'center',
     color: colors.primary,
+    fontFamily: typography.fontFamily.medium,
   },
   iconRTL: {
     marginRight: 0,
