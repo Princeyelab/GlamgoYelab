@@ -19,6 +19,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import ServiceCard from '../../src/components/features/ServiceCard';
 import CurrencySelector from '../../src/components/features/CurrencySelector';
+import { LanguageSelectorCompact } from '../../src/components/features/LanguageSelector';
 import { colors, spacing, typography, borderRadius, shadows, getFontFamily } from '../../src/lib/constants/theme';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
@@ -221,6 +222,9 @@ export default function HomeScreen() {
           <View style={styles.headerActions}>
             {/* Currency Selector */}
             <CurrencySelector />
+
+            {/* Language Selector */}
+            <LanguageSelectorCompact />
 
             {/* Message Button */}
             <TouchableOpacity

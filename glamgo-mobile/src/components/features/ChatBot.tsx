@@ -71,20 +71,17 @@ export default function ChatBot() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const [initialized, setInitialized] = useState(false);
 
-  // Initialize welcome message with translation
+  // Initialize and update welcome message with translation
   useEffect(() => {
-    if (!initialized) {
-      setMessages([{
-        id: '0',
-        text: t('chat.assistantWelcome'),
-        isBot: true,
-        timestamp: new Date(),
-      }]);
-      setInitialized(true);
-    }
-  }, [t, initialized]);
+    // Update welcome message when language changes
+    setMessages([{
+      id: '0',
+      text: t('chat.assistantWelcome'),
+      isBot: true,
+      timestamp: new Date(),
+    }]);
+  }, [t]);
 
   // Animation du bouton
   useEffect(() => {

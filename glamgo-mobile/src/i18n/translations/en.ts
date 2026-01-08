@@ -640,7 +640,9 @@ export const en = {
     messageNotAllowed: 'Unauthorized message',
     conversationEnded: 'Conversation over',
     chatNoLongerAvailable: 'This order is finalized. The chat is no longer available.',
-    imageNotAvailable: 'Image not available'
+    imageNotAvailable: 'Image not available',
+    seeOriginal: 'See original',
+    seeTranslation: 'See translation'
   },
   location: {
     currentLocation: 'Current position',

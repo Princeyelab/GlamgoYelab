@@ -36,6 +36,7 @@ import {
   MODERATION_WARNINGS,
 } from '../../src/lib/utils/contentModeration';
 import { useLanguage } from '../../src/contexts/LanguageContext';
+import { translateMessage, hasTranslation, detectMessageLanguage, type MessageLanguage } from '../../src/lib/utils/messageTranslation';
 
 // Numero du support
 const SUPPORT_PHONE = '+212600000000'; // A remplacer par le vrai numero
@@ -92,6 +93,7 @@ export default function ChatScreen() {
   const lastMessageCountRef = useRef<number>(0);
   const isFirstLoadRef = useRef<boolean>(true);
   const [hasShownRulesAlert, setHasShownRulesAlert] = useState(false);
+  const [showOriginalIds, setShowOriginalIds] = useState<Set<number>>(new Set());
 
   // Statuts qui bloquent le chat
   const BLOCKED_STATUSES = ['completed', 'completed_pending_review', 'cancelled', 'rejected'];
@@ -431,6 +433,19 @@ export default function ChatScreen() {
     }
   };
 
+  // Basculer entre message original et traduit
+  const toggleOriginal = (messageId: number) => {
+    setShowOriginalIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
   // Render un message
   const renderMessage = ({ item }: { item: Message }) => {
     if (!item) return null;
@@ -438,6 +453,16 @@ export default function ChatScreen() {
     const isMine = (isProvider && item.sender_type === 'provider') ||
                    (!isProvider && item.sender_type === 'user');
     const hasImage = item.image_url || item.message_type === 'image';
+
+    // Traduction automatique si la langue est différente
+    const userLang = language as MessageLanguage;
+    const showOriginal = showOriginalIds.has(item.id);
+    const canTranslate = item.content && !hasImage && hasTranslation(item.content, userLang);
+    const translatedText = canTranslate && !showOriginal
+      ? translateMessage(item.content, userLang)
+      : item.content;
+    const messageLang = item.content ? detectMessageLanguage(item.content) : userLang;
+    const isTranslated = canTranslate && !showOriginal;
 
     return (
       <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
@@ -486,9 +511,23 @@ export default function ChatScreen() {
 
           {/* Text content */}
           {item.content && !hasImage && (
-            <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
-              {item.content}
-            </Text>
+            <>
+              <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
+                {translatedText}
+              </Text>
+              {/* Indicateur de traduction avec bouton */}
+              {canTranslate && (
+                <TouchableOpacity
+                  style={styles.translationToggle}
+                  onPress={() => toggleOriginal(item.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.translationToggleText, isMine && styles.translationToggleTextMine]}>
+                    {isTranslated ? `🌐 ${t('orderChat.seeOriginal')} (${messageLang.toUpperCase()})` : `🌐 ${t('orderChat.seeTranslation')}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
 
           {/* Caption for image - masquer les textes par defaut comme [Image], [Photo], etc. */}
@@ -1049,5 +1088,19 @@ const styles = StyleSheet.create({
   },
   supportButtonRTL: {
     flexDirection: 'row-reverse',
+  },
+
+  // Translation Toggle
+  translationToggle: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  translationToggleText: {
+    fontSize: 11,
+    color: colors.gray[500],
+    fontStyle: 'italic',
+  },
+  translationToggleTextMine: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

@@ -170,10 +170,6 @@ export default function BookingIndexScreen() {
               <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.gpsNavigation')}</Text>
             </View>
             <View style={[styles.featureItem, isRTL && styles.featureItemRTL]}>
-              <Text style={[styles.featureIcon, isRTL && styles.featureIconRTL]}>📞</Text>
-              <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.quickContact')}</Text>
-            </View>
-            <View style={[styles.featureItem, isRTL && styles.featureItemRTL]}>
               <Text style={[styles.featureIcon, isRTL && styles.featureIconRTL]}>⏱️</Text>
               <Text style={[styles.featureText, isRTL && styles.textRTL]}>{t('journeyTab.timeTracking')}</Text>
             </View>

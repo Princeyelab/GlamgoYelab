@@ -5,11 +5,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fr, ar, en, type TranslationKeys } from '../i18n/translations';
+import { fr, ar, en, es, de, type TranslationKeys } from '../i18n/translations';
 
 const LANGUAGE_STORAGE_KEY = '@glamgo_language';
 
-export type Language = 'fr' | 'ar' | 'en';
+export type Language = 'fr' | 'ar' | 'en' | 'es' | 'de';
 
 interface LanguageContextType {
   language: Language;
@@ -56,7 +56,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const loadLanguage = async () => {
       try {
         const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-        if (saved === 'fr' || saved === 'ar' || saved === 'en') {
+        if (saved === 'fr' || saved === 'ar' || saved === 'en' || saved === 'es' || saved === 'de') {
           setLanguageState(saved);
         }
       } catch (error) {
@@ -84,13 +84,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Translation function
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
     // Select translations based on language
-    const translations = language === 'ar' ? ar : language === 'en' ? en : fr;
+    const translations = language === 'ar' ? ar : language === 'en' ? en : language === 'es' ? es : language === 'de' ? de : fr;
 
     // Try to get the translation
     let translation = getNestedValue(translations, key);
 
     // Fallback to French if translation missing
-    if (!translation && (language === 'ar' || language === 'en')) {
+    if (!translation && (language === 'ar' || language === 'en' || language === 'es' || language === 'de')) {
       translation = getNestedValue(fr, key);
     }
 

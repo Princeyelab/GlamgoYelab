@@ -29,6 +29,7 @@ import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import Button from '../../src/components/ui/Button';
 import CancellationModal from '../../src/components/features/CancellationModal';
+import { LanguageSelectorCompact } from '../../src/components/features/LanguageSelector';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/lib/constants/theme';
 import { useAppDispatch, useAppSelector } from '../../src/lib/store/hooks';
 import { selectUser, switchRole } from '../../src/lib/store/slices/authSlice';
@@ -63,14 +64,24 @@ const dayNamesAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأ�
 const monthNamesAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي', 'يونيو', 'يوليوز', 'غشت', 'شتنبر', 'أكتوبر', 'نونبر', 'دجنبر'];
 const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dayNamesEs = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const monthNamesEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const dayNamesDe = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const monthNamesDe = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 /**
- * Format date based on language: "Lun 6 Jan - 14:30" (fr), "الإثنين 6 يناير - 14:30" (ar), "Mon 6 Jan - 14:30" (en)
+ * Format date based on language: "Lun 6 Jan - 14:30" (fr), "الإثنين 6 يناير - 14:30" (ar), "Mon 6 Jan - 14:30" (en), "Mo 6 Jan - 14:30" (de)
  */
-const formatDateTime = (dateStr: string, timeStr: string, lang: 'fr' | 'ar' | 'en' = 'fr'): string => {
+const formatDateTime = (dateStr: string, timeStr: string, lang: 'fr' | 'ar' | 'en' | 'es' | 'de' = 'fr'): string => {
   const date = new Date(dateStr);
-  const dayNames = lang === 'ar' ? dayNamesAr : lang === 'en' ? dayNamesEn : dayNamesFr;
-  const monthNames = lang === 'ar' ? monthNamesAr : lang === 'en' ? monthNamesEn : monthNamesFr;
+  const dayNames = lang === 'ar' ? dayNamesAr :
+                    lang === 'en' ? dayNamesEn :
+                    lang === 'es' ? dayNamesEs :
+                    lang === 'de' ? dayNamesDe : dayNamesFr;
+  const monthNames = lang === 'ar' ? monthNamesAr :
+                     lang === 'en' ? monthNamesEn :
+                     lang === 'es' ? monthNamesEs :
+                     lang === 'de' ? monthNamesDe : monthNamesFr;
   const dayName = dayNames[date.getDay()];
   const day = date.getDate();
   const month = monthNames[date.getMonth()];
@@ -691,6 +702,8 @@ export default function ProviderDashboard() {
             <Text style={[styles.userName, isRTL && styles.textRTL]}>{user?.first_name || user?.name || t('auth.provider')}</Text>
           </View>
           <View style={styles.headerActions}>
+            {/* Language Selector */}
+            <LanguageSelectorCompact />
             <TouchableOpacity style={styles.headerBtn} onPress={handleMessagesPress}>
               <Text style={styles.headerBtnIcon}>💬</Text>
               {unreadMessages > 0 && (
@@ -1068,6 +1081,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   headerBtn: {

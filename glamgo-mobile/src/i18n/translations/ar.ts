@@ -613,10 +613,10 @@ export const ar: TranslationKeys = {
     typePlaceholder: 'اكتب رسالتك...',
     send: 'ارسال',
     noMessages: 'لا توجد رسائل',
-    assistant: 'المساعدة يمينة',
-    assistantWelcome: 'مرحبا! انا يمينة، مساعدتك في GlamGo. كيف يمكنني مساعدتك؟',
+    assistant: 'المساعدة Yamina',
+    assistantWelcome: 'مرحبا! انا Yamina، مساعدتك في GlamGo. كيف يمكنني مساعدتك؟',
     thinking: '...',
-    writeToYamina: 'اكتب ليمينة...',
+    writeToYamina: 'اكتب لـ Yamina...',
     yourAssistant: 'مساعدتك',
     online: 'متصلة',
     canHelpWith: 'يمكنني مساعدتك في:',
@@ -632,8 +632,8 @@ export const ar: TranslationKeys = {
     orderProblem: 'مشكلة في طلبي؟',
     orderProblemAnswer: 'اخبرني ما حدث. يمكنك الابلاغ عن المشكلة من طلبك، او الكتابة الى support@glamgo.ma.',
     // Bot responses
-    greetingResponse: 'مرحبا! انا يمينة، مساعدتك في GlamGo. كيف يمكنني مساعدتك؟',
-    whoAmIResponse: 'انا يمينة، مساعدتك الشخصية في GlamGo! انا هنا للاجابة على جميع اسئلتك وتسهيل حياتك. لا تتردد، انا متاحة 24 ساعة!',
+    greetingResponse: 'مرحبا! انا Yamina، مساعدتك في GlamGo. كيف يمكنني مساعدتك؟',
+    whoAmIResponse: 'انا Yamina، مساعدتك الشخصية في GlamGo! انا هنا للاجابة على جميع اسئلتك وتسهيل حياتك. لا تتردد، انا متاحة 24 ساعة!',
     aboutAppResponse: 'GlamGo هو تطبيقك لخدمات المنزل! الجمال، الرفاهية، التنظيف، الاصلاحات... محترفون موثوقون ياتون اليك مباشرة.',
     priceResponse: 'الاسعار تعتمد على الخدمة ومقدم الخدمة الذي تختاره. سترى السعر الدقيق قبل التاكيد، بدون مفاجات!',
     bookingResponse: 'الحجز سهل جدا! اختر خدمتك المفضلة، حدد المكان والوقت، ثم اختر مقدم الخدمة. في دقيقتين يتم الامر!',
@@ -711,6 +711,9 @@ export const ar: TranslationKeys = {
     chatNoLongerAvailable: 'تم انهاء هذا الطلب. المحادثة لم تعد متاحة.',
     // Image loading
     imageNotAvailable: 'الصورة غير متاحة',
+    // Translation
+    seeOriginal: 'عرض الأصلي',
+    seeTranslation: 'عرض الترجمة',
   },
 
   // Map & Location

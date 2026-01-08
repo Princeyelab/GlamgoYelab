@@ -87,6 +87,18 @@ export default function CancellationModal({
     return t(`${prefix}.${key}`);
   };
 
+  // Debug logging
+  useEffect(() => {
+    if (visible) {
+      console.log('[CancellationModal] Modal opened with props:', {
+        orderId,
+        userType,
+        orderStatus,
+        visible,
+      });
+    }
+  }, [visible, orderId, userType, orderStatus]);
+
   // Charger les infos de frais d'annulation
   useEffect(() => {
     if (visible && userType === 'client') {
@@ -206,16 +218,21 @@ export default function CancellationModal({
   };
 
   const getStatusWarning = () => {
+    console.log('[CancellationModal] getStatusWarning called:', { userType, orderStatus });
+
     if (userType === 'provider') {
       switch (orderStatus) {
         case 'on_way':
-          return t('cancellation.warningOnWayProvider');
+          const warningText = t('cancellation.warningOnWayProvider');
+          console.log('[CancellationModal] Returning on_way warning:', warningText);
+          return warningText;
         case 'accepted':
           return t('cancellation.warningAcceptedProvider');
         case 'arrived':
         case 'in_progress':
           return t('cancellation.warningArrivedProvider');
         default:
+          console.log('[CancellationModal] No warning for status:', orderStatus);
           return null;
       }
     } else {
@@ -254,21 +271,32 @@ export default function CancellationModal({
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Warning si applicable */}
-            {getStatusWarning() && (
-              <View style={[
-                styles.warningBox,
-                isRTL && styles.warningBoxRTL,
-                orderStatus === 'on_way' && userType === 'provider' && styles.warningBoxDanger
-              ]}>
-                <Text style={[
-                  styles.warningText,
-                  isRTL && styles.textRTL,
-                  orderStatus === 'on_way' && userType === 'provider' && styles.warningTextDanger
+            {(() => {
+              const warning = getStatusWarning();
+              console.log('[CancellationModal] Warning box check:', {
+                hasWarning: !!warning,
+                warning,
+                orderStatus,
+                userType,
+                isDangerStyle: orderStatus === 'on_way' && userType === 'provider'
+              });
+
+              return warning && (
+                <View style={[
+                  styles.warningBox,
+                  isRTL && styles.warningBoxRTL,
+                  orderStatus === 'on_way' && userType === 'provider' && styles.warningBoxDanger
                 ]}>
-                  {getStatusWarning()}
-                </Text>
-              </View>
-            )}
+                  <Text style={[
+                    styles.warningText,
+                    isRTL && styles.textRTL,
+                    orderStatus === 'on_way' && userType === 'provider' && styles.warningTextDanger
+                  ]}>
+                    {warning}
+                  </Text>
+                </View>
+              );
+            })()}
 
             {/* Barème des frais d'annulation CGU - Client uniquement */}
             {userType === 'client' && (

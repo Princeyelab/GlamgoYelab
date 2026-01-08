@@ -279,6 +279,408 @@ export default function NotificationsScreen() {
       return translatedMessage;
     }
 
+    // Traductions espagnoles
+    if (language === 'es') {
+      const esReplacements: [RegExp, string][] = [
+        // === CLIENT NOTIFICATIONS ===
+        // Order accepted
+        [/Votre commande #(\d+) a [ée]t[ée]? accept[ée]e? par un prestataire\.?/gi, 'Su pedido #$1 ha sido aceptado por un proveedor.'],
+        [/Votre commande #(\d+) a ete acceptee par un prestataire\.?/gi, 'Su pedido #$1 ha sido aceptado por un proveedor.'],
+        // Provider on the way
+        [/Le prestataire est en route pour votre commande #(\d+)\.?/gi, 'El proveedor está en camino para su pedido #$1.'],
+        [/Votre prestataire est en route\.?/gi, 'Su proveedor está en camino.'],
+        // Provider arrived
+        [/Votre prestataire est arriv[ée]?\.?/gi, 'Su proveedor ha llegado.'],
+        [/Votre prestataire est arrive\.?/gi, 'Su proveedor ha llegado.'],
+        [/Votre prestataire est arriv[ée]? !\.?/gi, '¡Su proveedor ha llegado!'],
+        [/Veuillez confirmer son arriv[ée]e? pour d[ée]marrer la prestation\.?/gi, 'Por favor confirme su llegada para iniciar el servicio.'],
+        [/Veuillez confirmer son arrivee pour demarrer la prestation\.?/gi, 'Por favor confirme su llegada para iniciar el servicio.'],
+        // Provider unavailable
+        [/Le prestataire ne peut pas assurer votre commande #(\d+)\. Nous recherchons un rempla[çc]ant\.?/gi, 'El proveedor no puede completar su pedido #$1. Estamos buscando un reemplazo.'],
+        // Order rejected
+        [/Votre commande #(\d+) a [ée]t[ée]? refus[ée]e?\. Raison: Refus[ée]e? par le prestataire/gi, 'Su pedido #$1 fue rechazado. Razón: Rechazado por el proveedor'],
+        [/Votre commande #(\d+) a ete refusee\. Raison: Refuse par le prestataire/gi, 'Su pedido #$1 fue rechazado. Razón: Rechazado por el proveedor'],
+        [/Votre commande #(\d+) a [ée]t[ée]? refus[ée]e?\. Raison: (.+)/gi, 'Su pedido #$1 fue rechazado. Razón: $2'],
+        // Order cancelled
+        [/Votre commande #(\d+) a [ée]t[ée]? annul[ée]e?\.?/gi, 'Su pedido #$1 ha sido cancelado.'],
+        [/La commande #(\d+) a [ée]t[ée]? annul[ée]e?\.?/gi, 'El pedido #$1 ha sido cancelado.'],
+        // Request expired
+        [/Le prestataire n'a pas r[ée]pondu [àa] temps\. Votre demande pour "(.+)" a [ée]t[ée]? annul[ée]e?\. Veuillez choisir un autre prestataire\.?/gi, 'El proveedor no respondió a tiempo. Su solicitud para "$1" ha sido cancelada. Por favor elija otro proveedor.'],
+        [/Le prestataire n'a pas repondu a temps\. Votre demande pour "(.+)" a ete annulee\. Veuillez choisir un autre prestataire\.?/gi, 'El proveedor no respondió a tiempo. Su solicitud para "$1" ha sido cancelada. Por favor elija otro proveedor.'],
+        // Service completed - rate
+        [/Votre prestation est termin[ée]e?\. Merci d'[ée]valuer le service re[çc]u pour lib[ée]rer le paiement\.?/gi, 'Su servicio ha finalizado. Por favor califique el servicio para liberar el pago.'],
+        [/Votre prestation est terminee\. Merci d'evaluer le service recu pour liberer le paiement\.?/gi, 'Su servicio ha finalizado. Por favor califique el servicio para liberar el pago.'],
+        // Service completed
+        [/Votre prestation est termin[ée]e?\.?/gi, 'Su servicio ha finalizado.'],
+        [/La prestation #(\d+) est termin[ée]e?\.?/gi, 'El servicio #$1 ha finalizado.'],
+        // New booking
+        [/Vous avez une nouvelle r[ée]servation pour (.+)\.?/gi, 'Tiene una nueva reserva para $1.'],
+        [/Nouvelle r[ée]servation pour (.+)\.?/gi, 'Nueva reserva para $1.'],
+        // Booking reminder
+        [/Rappel: Vous avez une prestation dans (\d+) minutes?\.?/gi, 'Recordatorio: Tiene un servicio en $1 minutos.'],
+        [/Rappel de r[ée]servation\.?/gi, 'Recordatorio de reserva.'],
+        // Payment
+        [/Le paiement de ([\d.,]+) ?(?:MAD|DH)? a [ée]t[ée]? effectu[ée]?\.?/gi, 'Se ha procesado el pago de $1 MAD.'],
+        [/Le paiement a [ée]t[ée]? effectu[ée]?\.?/gi, 'El pago ha sido procesado.'],
+
+        // === PROVIDER NOTIFICATIONS ===
+        // New order
+        [/Une nouvelle commande (.+) est disponible/gi, 'Un nuevo pedido $1 está disponible'],
+        [/Vous avez une nouvelle commande\.?/gi, 'Tiene un nuevo pedido.'],
+        [/Vous avez re[çc]u une nouvelle commande\.?/gi, 'Ha recibido un nuevo pedido.'],
+        [/Une nouvelle commande vous attend\.?/gi, 'Un nuevo pedido le está esperando.'],
+        [/Nouvelle commande #(\d+) de (.+)\.?/gi, 'Nuevo pedido #$1 de $2.'],
+        [/Nouvelle demande de (.+) pour le service (.+)\.?/gi, 'Nueva solicitud de $1 para el servicio $2.'],
+        [/Nouvelle demande pour le service (.+)\.?/gi, 'Nueva solicitud para el servicio $1.'],
+        [/Vous avez une nouvelle demande pour (.+)\.?/gi, 'Tiene una nueva solicitud para $1.'],
+        [/Vous avez une nouvelle demande\.?/gi, 'Tiene una nueva solicitud.'],
+        // Client confirmed arrival
+        [/Le client a confirm[ée]? votre arriv[ée]e?\.?/gi, 'El cliente confirmó su llegada.'],
+        [/Le client a confirme votre arrivee\.?/gi, 'El cliente confirmó su llegada.'],
+        [/Arriv[ée]e? confirm[ée]e? par le client\.?/gi, 'Llegada confirmada por el cliente.'],
+        // Client cancellation
+        [/Le client a annul[ée]? la commande #(\d+)\.?/gi, 'El cliente canceló el pedido #$1.'],
+        [/Le client a annule la commande #(\d+)\.?/gi, 'El cliente canceló el pedido #$1.'],
+        [/Le client a annul[ée]? la commande\.?/gi, 'El cliente canceló el pedido.'],
+        [/La commande #(\d+) a [ée]t[ée]? annul[ée]e? par le client\.?/gi, 'El pedido #$1 fue cancelado por el cliente.'],
+        [/Le client (.+) a annul[ée]? sa commande\.?/gi, 'El cliente $1 canceló su pedido.'],
+        // Review received
+        [/Vous avez re[çc]u (\d+)\/5 [ée]toiles? pour votre prestation\.?/gi, 'Recibió $1/5 estrellas por su servicio.'],
+        [/Vous avez recu (\d+)\/5 etoiles pour votre prestation\.?/gi, 'Recibió $1/5 estrellas por su servicio.'],
+        [/Vous avez re[çc]u une [ée]valuation de (\d+) [ée]toiles?\.?/gi, 'Recibió una calificación de $1 estrellas.'],
+        [/Vous avez re[çc]u une nouvelle [ée]valuation\.?/gi, 'Recibió una nueva reseña.'],
+        [/Le client vous a attribu[ée]? (\d+) [ée]toiles?\.?/gi, 'El cliente le otorgó $1 estrellas.'],
+        [/Nouvelle [ée]valuation: (\d+)\/5 [ée]toiles?\.?/gi, 'Nueva reseña: $1/5 estrellas.'],
+        [/(.+) vous a laiss[ée]? un avis\.?/gi, '$1 le dejó una reseña.'],
+        [/Bravo! Vous avez re[çc]u 5 [ée]toiles?\.?/gi, '¡Felicitaciones! Recibió 5 estrellas.'],
+        // Payment received
+        [/Paiement re[çc]u pour la commande #(\d+)\.?/gi, 'Pago recibido para el pedido #$1.'],
+        [/Votre paiement de ([\d.,]+) ?(?:MAD|DH)? a [ée]t[ée]? transf[ée]r[ée]?\.?/gi, 'Su pago de $1 MAD ha sido transferido.'],
+        [/Paiement de ([\d.,]+) ?(?:MAD|DH)? cr[ée]dit[ée]? sur votre compte\.?/gi, 'Pago de $1 MAD acreditado en su cuenta.'],
+        [/Votre solde a [ée]t[ée]? cr[ée]dit[ée]? de ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Su saldo ha sido acreditado con $1 MAD.'],
+        [/Gains de la journ[ée]e?: ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Ganancias del día: $1 MAD.'],
+        // Compensation
+        [/Vous recevrez une indemnisation de ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Recibirá una compensación de $1 MAD.'],
+        [/Une indemnisation de ([\d.,]+) ?(?:MAD|DH)? vous sera vers[ée]e?\.?/gi, 'Se le transferirá una compensación de $1 MAD.'],
+        [/Indemnisation de ([\d.,]+) ?(?:MAD|DH)? suite [àa] l'annulation\.?/gi, 'Compensación de $1 MAD debido a la cancelación.'],
+        // Service completed (provider side)
+        [/Prestation termin[ée]e? avec succ[èe]s\.?/gi, 'Servicio completado exitosamente.'],
+        [/Vous avez termin[ée]? la prestation #(\d+)\.?/gi, 'Completó el servicio #$1.'],
+        [/F[ée]licitations! Prestation r[ée]ussie\.?/gi, '¡Felicitaciones! Servicio exitoso.'],
+        // Order expired
+        [/La demande a expir[ée]?\.?/gi, 'La solicitud ha expirado.'],
+        [/Vous n'avez pas r[ée]pondu [àa] temps\.?/gi, 'No respondió a tiempo.'],
+        [/D[ée]lai de r[ée]ponse expir[ée]?\.?/gi, 'Tiempo de respuesta expirado.'],
+        [/La commande #(\d+) a expir[ée]?\.?/gi, 'El pedido #$1 ha expirado.'],
+        // Start service
+        [/Vous pouvez commencer la prestation\.?/gi, 'Puede comenzar el servicio.'],
+        [/Vous pouvez d[ée]marrer la prestation\.?/gi, 'Puede iniciar el servicio.'],
+        [/La prestation peut commencer\.?/gi, 'El servicio puede comenzar.'],
+        [/Le client vous attend, d[ée]marrez la prestation\.?/gi, 'El cliente está esperando, inicie el servicio.'],
+        // En route / Direction
+        [/Dirigez-vous vers le client\.?/gi, 'Diríjase al cliente.'],
+        [/Le client vous attend [àa] (.+)\.?/gi, 'El cliente le está esperando en $1.'],
+        [/Adresse: (.+)\.?/gi, 'Dirección: $1.'],
+        [/Rendez-vous chez (.+)\.?/gi, 'Cita en $1.'],
+        // Availability
+        [/Vous [êe]tes maintenant disponible\.?/gi, 'Ahora está disponible.'],
+        [/Vous [êe]tes maintenant indisponible\.?/gi, 'Ahora no está disponible.'],
+        [/Votre statut a [ée]t[ée]? mis [àa] jour\.?/gi, 'Su estado ha sido actualizado.'],
+        // Account
+        [/Votre compte a [ée]t[ée]? v[ée]rifi[ée]?\.?/gi, 'Su cuenta ha sido verificada.'],
+        [/Bienvenue sur GlamGo!\.?/gi, '¡Bienvenido a GlamGo!'],
+        [/Votre profil est complet\.?/gi, 'Su perfil está completo.'],
+        [/Documents valid[ée]s\.?/gi, 'Documentos verificados.'],
+        [/Veuillez compl[ée]ter votre profil\.?/gi, 'Por favor complete su perfil.'],
+        // Statistics
+        [/Vous avez r[ée]alis[ée]? (\d+) prestations? cette semaine\.?/gi, 'Completó $1 servicios esta semana.'],
+        [/Votre note moyenne est de ([\d.,]+)\/5\.?/gi, 'Su calificación promedio es $1/5.'],
+
+        // === Services (noms) ===
+        [/Coiffure Classique/gi, 'Peinado clásico'],
+        [/coiffure classique/gi, 'peinado clásico'],
+        [/Coiffure Express/gi, 'Peinado express'],
+        [/coiffure express/gi, 'peinado express'],
+        [/Coiffure Mariage/gi, 'Peinado de boda'],
+        [/coiffure mariage/gi, 'peinado de boda'],
+        [/Coiffure Homme Simple/gi, 'Corte de cabello masculino simple'],
+        [/coiffure homme simple/gi, 'corte de cabello masculino simple'],
+        [/Coiffure Homme Premium/gi, 'Corte de cabello masculino premium'],
+        [/coiffure homme premium/gi, 'corte de cabello masculino premium'],
+        [/Taille de Barbe/gi, 'Recorte de barba'],
+        [/taille de barbe/gi, 'recorte de barba'],
+        [/Pack Coiffure \+ Barbe/gi, 'Paquete corte + barba'],
+        [/pack coiffure \+ barbe/gi, 'paquete corte + barba'],
+        [/Coach Sportif/gi, 'Entrenador deportivo'],
+        [/coach sportif/gi, 'entrenador deportivo'],
+        [/Massage Relaxant/gi, 'Masaje relajante'],
+        [/massage relaxant/gi, 'masaje relajante'],
+        [/Hammam & Gommage/gi, 'Hammam y exfoliación'],
+        [/hammam & gommage/gi, 'hammam y exfoliación'],
+        [/Soin Premium Argan/gi, 'Tratamiento Premium de Argán'],
+        [/soin premium argan/gi, 'tratamiento premium de argán'],
+        [/Manucure Classique/gi, 'Manicura clásica'],
+        [/manucure classique/gi, 'manicura clásica'],
+        [/Manucure Gel/gi, 'Manicura con gel'],
+        [/manucure gel/gi, 'manicura con gel'],
+        [/Maquillage Jour/gi, 'Maquillaje de día'],
+        [/maquillage jour/gi, 'maquillaje de día'],
+        [/Maquillage Mariage/gi, 'Maquillaje de boda'],
+        [/maquillage mariage/gi, 'maquillaje de boda'],
+        [/Nettoyage Auto Externe/gi, 'Lavado exterior de auto'],
+        [/nettoyage auto externe/gi, 'lavado exterior de auto'],
+        [/Nettoyage Auto Interne/gi, 'Limpieza interior de auto'],
+        [/nettoyage auto interne/gi, 'limpieza interior de auto'],
+        [/Nettoyage Auto Complet/gi, 'Limpieza completa de auto'],
+        [/nettoyage auto complet/gi, 'limpieza completa de auto'],
+        [/Ménage [Cc]lassique/gi, 'Limpieza estándar'],
+        [/ménage classique/gi, 'limpieza estándar'],
+        [/menage classique/gi, 'limpieza estándar'],
+        [/Ménage/gi, 'Limpieza'],
+        [/ménage/gi, 'limpieza'],
+        [/Menage/gi, 'Limpieza'],
+        [/menage/gi, 'limpieza'],
+        [/Jardinage/gi, 'Jardinería'],
+        [/jardinage/gi, 'jardinería'],
+        [/Bricolage/gi, 'Bricolaje'],
+        [/bricolage/gi, 'bricolaje'],
+        [/Chef [àa] domicile/gi, 'Chef a domicilio'],
+        [/chef [àa] domicile/gi, 'chef a domicilio'],
+        [/Yoga/gi, 'Yoga'],
+        [/yoga/gi, 'yoga'],
+        [/Danse Orientale/gi, 'Danza oriental'],
+        [/danse orientale/gi, 'danza oriental'],
+        [/Hijama/gi, 'Hijama'],
+        [/hijama/gi, 'hijama'],
+        [/Gardiennage d'Animaux/gi, 'Cuidado de mascotas'],
+        [/gardiennage d'animaux/gi, 'cuidado de mascotas'],
+        [/Promenade d'Animaux/gi, 'Paseo de mascotas'],
+        [/promenade d'animaux/gi, 'paseo de mascotas'],
+        [/Smooth Femme Full/gi, 'Depilación femenina completa'],
+        [/smooth femme full/gi, 'depilación femenina completa'],
+        [/Smooth Femme/gi, 'Depilación femenina'],
+        [/smooth femme/gi, 'depilación femenina'],
+        [/Smooth Homme Full/gi, 'Depilación masculina completa'],
+        [/smooth homme full/gi, 'depilación masculina completa'],
+        [/Smooth Homme/gi, 'Depilación masculina'],
+        [/smooth homme/gi, 'depilación masculina'],
+        [/Manucure/gi, 'Manicura'],
+        [/manucure/gi, 'manicura'],
+        [/Pédicure/gi, 'Pedicura'],
+        [/pédicure/gi, 'pedicura'],
+        [/pedicure/gi, 'pedicura'],
+        [/Maquillage/gi, 'Maquillaje'],
+        [/maquillage/gi, 'maquillaje'],
+      ];
+
+      let translatedMessage = message;
+      for (const [pattern, replacement] of esReplacements) {
+        translatedMessage = translatedMessage.replace(pattern, replacement);
+      }
+      return translatedMessage;
+    }
+
+    // Traductions allemandes
+    if (language === 'de') {
+      const deReplacements: [RegExp, string][] = [
+        // === CLIENT NOTIFICATIONS ===
+        // Order accepted
+        [/Votre commande #(\d+) a [ée]t[ée]? accept[ée]e? par un prestataire\.?/gi, 'Ihre Bestellung #$1 wurde von einem Anbieter akzeptiert.'],
+        [/Votre commande #(\d+) a ete acceptee par un prestataire\.?/gi, 'Ihre Bestellung #$1 wurde von einem Anbieter akzeptiert.'],
+        // Provider on the way
+        [/Le prestataire est en route pour votre commande #(\d+)\.?/gi, 'Der Anbieter ist unterwegs für Ihre Bestellung #$1.'],
+        [/Votre prestataire est en route\.?/gi, 'Ihr Anbieter ist unterwegs.'],
+        // Provider arrived
+        [/Votre prestataire est arriv[ée]?\.?/gi, 'Ihr Anbieter ist angekommen.'],
+        [/Votre prestataire est arrive\.?/gi, 'Ihr Anbieter ist angekommen.'],
+        [/Votre prestataire est arriv[ée]? !\.?/gi, 'Ihr Anbieter ist angekommen!'],
+        [/Veuillez confirmer son arriv[ée]e? pour d[ée]marrer la prestation\.?/gi, 'Bitte bestätigen Sie seine Ankunft, um den Service zu starten.'],
+        [/Veuillez confirmer son arrivee pour demarrer la prestation\.?/gi, 'Bitte bestätigen Sie seine Ankunft, um den Service zu starten.'],
+        // Provider unavailable
+        [/Le prestataire ne peut pas assurer votre commande #(\d+)\. Nous recherchons un rempla[çc]ant\.?/gi, 'Der Anbieter kann Ihre Bestellung #$1 nicht durchführen. Wir suchen einen Ersatz.'],
+        // Order rejected
+        [/Votre commande #(\d+) a [ée]t[ée]? refus[ée]e?\. Raison: Refus[ée]e? par le prestataire/gi, 'Ihre Bestellung #$1 wurde abgelehnt. Grund: Vom Anbieter abgelehnt'],
+        [/Votre commande #(\d+) a ete refusee\. Raison: Refuse par le prestataire/gi, 'Ihre Bestellung #$1 wurde abgelehnt. Grund: Vom Anbieter abgelehnt'],
+        [/Votre commande #(\d+) a [ée]t[ée]? refus[ée]e?\. Raison: (.+)/gi, 'Ihre Bestellung #$1 wurde abgelehnt. Grund: $2'],
+        // Order cancelled
+        [/Votre commande #(\d+) a [ée]t[ée]? annul[ée]e?\.?/gi, 'Ihre Bestellung #$1 wurde storniert.'],
+        [/La commande #(\d+) a [ée]t[ée]? annul[ée]e?\.?/gi, 'Bestellung #$1 wurde storniert.'],
+        // Request expired
+        [/Le prestataire n'a pas r[ée]pondu [àa] temps\. Votre demande pour "(.+)" a [ée]t[ée]? annul[ée]e?\. Veuillez choisir un autre prestataire\.?/gi, 'Der Anbieter hat nicht rechtzeitig geantwortet. Ihre Anfrage für "$1" wurde storniert. Bitte wählen Sie einen anderen Anbieter.'],
+        [/Le prestataire n'a pas repondu a temps\. Votre demande pour "(.+)" a ete annulee\. Veuillez choisir un autre prestataire\.?/gi, 'Der Anbieter hat nicht rechtzeitig geantwortet. Ihre Anfrage für "$1" wurde storniert. Bitte wählen Sie einen anderen Anbieter.'],
+        // Service completed - rate
+        [/Votre prestation est termin[ée]e?\. Merci d'[ée]valuer le service re[çc]u pour lib[ée]rer le paiement\.?/gi, 'Ihr Service ist abgeschlossen. Bitte bewerten Sie den Service, um die Zahlung freizugeben.'],
+        [/Votre prestation est terminee\. Merci d'evaluer le service recu pour liberer le paiement\.?/gi, 'Ihr Service ist abgeschlossen. Bitte bewerten Sie den Service, um die Zahlung freizugeben.'],
+        // Service completed
+        [/Votre prestation est termin[ée]e?\.?/gi, 'Ihr Service ist abgeschlossen.'],
+        [/La prestation #(\d+) est termin[ée]e?\.?/gi, 'Service #$1 ist abgeschlossen.'],
+        // New booking
+        [/Vous avez une nouvelle r[ée]servation pour (.+)\.?/gi, 'Sie haben eine neue Buchung für $1.'],
+        [/Nouvelle r[ée]servation pour (.+)\.?/gi, 'Neue Buchung für $1.'],
+        // Booking reminder
+        [/Rappel: Vous avez une prestation dans (\d+) minutes?\.?/gi, 'Erinnerung: Sie haben einen Service in $1 Minuten.'],
+        [/Rappel de r[ée]servation\.?/gi, 'Buchungserinnerung.'],
+        // Payment
+        [/Le paiement de ([\d.,]+) ?(?:MAD|DH)? a [ée]t[ée]? effectu[ée]?\.?/gi, 'Zahlung von $1 MAD wurde verarbeitet.'],
+        [/Le paiement a [ée]t[ée]? effectu[ée]?\.?/gi, 'Zahlung wurde verarbeitet.'],
+
+        // === PROVIDER NOTIFICATIONS ===
+        // New order
+        [/Une nouvelle commande (.+) est disponible/gi, 'Eine neue Bestellung $1 ist verfügbar'],
+        [/Vous avez une nouvelle commande\.?/gi, 'Sie haben eine neue Bestellung.'],
+        [/Vous avez re[çc]u une nouvelle commande\.?/gi, 'Sie haben eine neue Bestellung erhalten.'],
+        [/Une nouvelle commande vous attend\.?/gi, 'Eine neue Bestellung wartet auf Sie.'],
+        [/Nouvelle commande #(\d+) de (.+)\.?/gi, 'Neue Bestellung #$1 von $2.'],
+        [/Nouvelle demande de (.+) pour le service (.+)\.?/gi, 'Neue Anfrage von $1 für Service $2.'],
+        [/Nouvelle demande pour le service (.+)\.?/gi, 'Neue Anfrage für Service $1.'],
+        [/Vous avez une nouvelle demande pour (.+)\.?/gi, 'Sie haben eine neue Anfrage für $1.'],
+        [/Vous avez une nouvelle demande\.?/gi, 'Sie haben eine neue Anfrage.'],
+        // Client confirmed arrival
+        [/Le client a confirm[ée]? votre arriv[ée]e?\.?/gi, 'Der Kunde hat Ihre Ankunft bestätigt.'],
+        [/Le client a confirme votre arrivee\.?/gi, 'Der Kunde hat Ihre Ankunft bestätigt.'],
+        [/Arriv[ée]e? confirm[ée]e? par le client\.?/gi, 'Ankunft vom Kunden bestätigt.'],
+        // Client cancellation
+        [/Le client a annul[ée]? la commande #(\d+)\.?/gi, 'Der Kunde hat Bestellung #$1 storniert.'],
+        [/Le client a annule la commande #(\d+)\.?/gi, 'Der Kunde hat Bestellung #$1 storniert.'],
+        [/Le client a annul[ée]? la commande\.?/gi, 'Der Kunde hat die Bestellung storniert.'],
+        [/La commande #(\d+) a [ée]t[ée]? annul[ée]e? par le client\.?/gi, 'Bestellung #$1 wurde vom Kunden storniert.'],
+        [/Le client (.+) a annul[ée]? sa commande\.?/gi, 'Kunde $1 hat seine Bestellung storniert.'],
+        // Review received
+        [/Vous avez re[çc]u (\d+)\/5 [ée]toiles? pour votre prestation\.?/gi, 'Sie haben $1/5 Sterne für Ihren Service erhalten.'],
+        [/Vous avez recu (\d+)\/5 etoiles pour votre prestation\.?/gi, 'Sie haben $1/5 Sterne für Ihren Service erhalten.'],
+        [/Vous avez re[çc]u une [ée]valuation de (\d+) [ée]toiles?\.?/gi, 'Sie haben eine Bewertung von $1 Sternen erhalten.'],
+        [/Vous avez re[çc]u une nouvelle [ée]valuation\.?/gi, 'Sie haben eine neue Bewertung erhalten.'],
+        [/Le client vous a attribu[ée]? (\d+) [ée]toiles?\.?/gi, 'Der Kunde hat Ihnen $1 Sterne gegeben.'],
+        [/Nouvelle [ée]valuation: (\d+)\/5 [ée]toiles?\.?/gi, 'Neue Bewertung: $1/5 Sterne.'],
+        [/(.+) vous a laiss[ée]? un avis\.?/gi, '$1 hat Ihnen eine Bewertung hinterlassen.'],
+        [/Bravo! Vous avez re[çc]u 5 [ée]toiles?\.?/gi, 'Glückwunsch! Sie haben 5 Sterne erhalten.'],
+        // Payment received
+        [/Paiement re[çc]u pour la commande #(\d+)\.?/gi, 'Zahlung für Bestellung #$1 erhalten.'],
+        [/Votre paiement de ([\d.,]+) ?(?:MAD|DH)? a [ée]t[ée]? transf[ée]r[ée]?\.?/gi, 'Ihre Zahlung von $1 MAD wurde überwiesen.'],
+        [/Paiement de ([\d.,]+) ?(?:MAD|DH)? cr[ée]dit[ée]? sur votre compte\.?/gi, 'Zahlung von $1 MAD auf Ihr Konto gutgeschrieben.'],
+        [/Votre solde a [ée]t[ée]? cr[ée]dit[ée]? de ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Ihr Guthaben wurde mit $1 MAD aufgeladen.'],
+        [/Gains de la journ[ée]e?: ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Tageseinnahmen: $1 MAD.'],
+        // Compensation
+        [/Vous recevrez une indemnisation de ([\d.,]+) ?(?:MAD|DH)?\.?/gi, 'Sie erhalten eine Entschädigung von $1 MAD.'],
+        [/Une indemnisation de ([\d.,]+) ?(?:MAD|DH)? vous sera vers[ée]e?\.?/gi, 'Eine Entschädigung von $1 MAD wird Ihnen überwiesen.'],
+        [/Indemnisation de ([\d.,]+) ?(?:MAD|DH)? suite [àa] l'annulation\.?/gi, 'Entschädigung von $1 MAD aufgrund der Stornierung.'],
+        // Service completed (provider side)
+        [/Prestation termin[ée]e? avec succ[èe]s\.?/gi, 'Service erfolgreich abgeschlossen.'],
+        [/Vous avez termin[ée]? la prestation #(\d+)\.?/gi, 'Sie haben Service #$1 abgeschlossen.'],
+        [/F[ée]licitations! Prestation r[ée]ussie\.?/gi, 'Glückwunsch! Erfolgreicher Service.'],
+        // Order expired
+        [/La demande a expir[ée]?\.?/gi, 'Die Anfrage ist abgelaufen.'],
+        [/Vous n'avez pas r[ée]pondu [àa] temps\.?/gi, 'Sie haben nicht rechtzeitig geantwortet.'],
+        [/D[ée]lai de r[ée]ponse expir[ée]?\.?/gi, 'Antwortzeit abgelaufen.'],
+        [/La commande #(\d+) a expir[ée]?\.?/gi, 'Bestellung #$1 ist abgelaufen.'],
+        // Start service
+        [/Vous pouvez commencer la prestation\.?/gi, 'Sie können den Service beginnen.'],
+        [/Vous pouvez d[ée]marrer la prestation\.?/gi, 'Sie können den Service starten.'],
+        [/La prestation peut commencer\.?/gi, 'Der Service kann beginnen.'],
+        [/Le client vous attend, d[ée]marrez la prestation\.?/gi, 'Der Kunde wartet, starten Sie den Service.'],
+        // En route / Direction
+        [/Dirigez-vous vers le client\.?/gi, 'Begeben Sie sich zum Kunden.'],
+        [/Le client vous attend [àa] (.+)\.?/gi, 'Der Kunde wartet auf Sie bei $1.'],
+        [/Adresse: (.+)\.?/gi, 'Adresse: $1.'],
+        [/Rendez-vous chez (.+)\.?/gi, 'Termin bei $1.'],
+        // Availability
+        [/Vous [êe]tes maintenant disponible\.?/gi, 'Sie sind jetzt verfügbar.'],
+        [/Vous [êe]tes maintenant indisponible\.?/gi, 'Sie sind jetzt nicht verfügbar.'],
+        [/Votre statut a [ée]t[ée]? mis [àa] jour\.?/gi, 'Ihr Status wurde aktualisiert.'],
+        // Account
+        [/Votre compte a [ée]t[ée]? v[ée]rifi[ée]?\.?/gi, 'Ihr Konto wurde verifiziert.'],
+        [/Bienvenue sur GlamGo!\.?/gi, 'Willkommen bei GlamGo!'],
+        [/Votre profil est complet\.?/gi, 'Ihr Profil ist vollständig.'],
+        [/Documents valid[ée]s\.?/gi, 'Dokumente verifiziert.'],
+        [/Veuillez compl[ée]ter votre profil\.?/gi, 'Bitte vervollständigen Sie Ihr Profil.'],
+        // Statistics
+        [/Vous avez r[ée]alis[ée]? (\d+) prestations? cette semaine\.?/gi, 'Sie haben diese Woche $1 Services abgeschlossen.'],
+        [/Votre note moyenne est de ([\d.,]+)\/5\.?/gi, 'Ihre Durchschnittsbewertung ist $1/5.'],
+
+        // === Services (noms) ===
+        [/Coiffure Classique/gi, 'Klassische Frisur'],
+        [/coiffure classique/gi, 'klassische Frisur'],
+        [/Coiffure Express/gi, 'Express-Frisur'],
+        [/coiffure express/gi, 'express-Frisur'],
+        [/Coiffure Mariage/gi, 'Hochzeitsfrisur'],
+        [/coiffure mariage/gi, 'hochzeitsfrisur'],
+        [/Coiffure Homme Simple/gi, 'Einfacher Herrenhaarschnitt'],
+        [/coiffure homme simple/gi, 'einfacher Herrenhaarschnitt'],
+        [/Coiffure Homme Premium/gi, 'Premium-Herrenhaarschnitt'],
+        [/coiffure homme premium/gi, 'premium-Herrenhaarschnitt'],
+        [/Taille de Barbe/gi, 'Bartschnitt'],
+        [/taille de barbe/gi, 'bartschnitt'],
+        [/Pack Coiffure \+ Barbe/gi, 'Paket Haarschnitt + Bart'],
+        [/pack coiffure \+ barbe/gi, 'paket Haarschnitt + Bart'],
+        [/Coach Sportif/gi, 'Sporttrainer'],
+        [/coach sportif/gi, 'sporttrainer'],
+        [/Massage Relaxant/gi, 'Entspannungsmassage'],
+        [/massage relaxant/gi, 'entspannungsmassage'],
+        [/Hammam & Gommage/gi, 'Hammam & Peeling'],
+        [/hammam & gommage/gi, 'hammam & Peeling'],
+        [/Soin Premium Argan/gi, 'Premium Argan-Behandlung'],
+        [/soin premium argan/gi, 'premium Argan-Behandlung'],
+        [/Manucure Classique/gi, 'Klassische Maniküre'],
+        [/manucure classique/gi, 'klassische Maniküre'],
+        [/Manucure Gel/gi, 'Gel-Maniküre'],
+        [/manucure gel/gi, 'gel-Maniküre'],
+        [/Maquillage Jour/gi, 'Tages-Make-up'],
+        [/maquillage jour/gi, 'tages-Make-up'],
+        [/Maquillage Mariage/gi, 'Hochzeits-Make-up'],
+        [/maquillage mariage/gi, 'hochzeits-Make-up'],
+        [/Nettoyage Auto Externe/gi, 'Autowäsche außen'],
+        [/nettoyage auto externe/gi, 'autowäsche außen'],
+        [/Nettoyage Auto Interne/gi, 'Autoreinigung innen'],
+        [/nettoyage auto interne/gi, 'autoreinigung innen'],
+        [/Nettoyage Auto Complet/gi, 'Komplette Autoreinigung'],
+        [/nettoyage auto complet/gi, 'komplette Autoreinigung'],
+        [/Ménage [Cc]lassique/gi, 'Standard-Reinigung'],
+        [/ménage classique/gi, 'standard-Reinigung'],
+        [/menage classique/gi, 'standard-Reinigung'],
+        [/Ménage/gi, 'Reinigung'],
+        [/ménage/gi, 'reinigung'],
+        [/Menage/gi, 'Reinigung'],
+        [/menage/gi, 'reinigung'],
+        [/Jardinage/gi, 'Gartenarbeit'],
+        [/jardinage/gi, 'gartenarbeit'],
+        [/Bricolage/gi, 'Heimwerken'],
+        [/bricolage/gi, 'heimwerken'],
+        [/Chef [àa] domicile/gi, 'Privatkoch'],
+        [/chef [àa] domicile/gi, 'privatkoch'],
+        [/Yoga/gi, 'Yoga'],
+        [/yoga/gi, 'yoga'],
+        [/Danse Orientale/gi, 'Orientalischer Tanz'],
+        [/danse orientale/gi, 'orientalischer Tanz'],
+        [/Hijama/gi, 'Hijama'],
+        [/hijama/gi, 'hijama'],
+        [/Gardiennage d'Animaux/gi, 'Tierbetreuung'],
+        [/gardiennage d'animaux/gi, 'tierbetreuung'],
+        [/Promenade d'Animaux/gi, 'Tierspaziergang'],
+        [/promenade d'animaux/gi, 'tierspaziergang'],
+        [/Smooth Femme Full/gi, 'Komplette Damen-Haarentfernung'],
+        [/smooth femme full/gi, 'komplette Damen-Haarentfernung'],
+        [/Smooth Femme/gi, 'Damen-Haarentfernung'],
+        [/smooth femme/gi, 'damen-Haarentfernung'],
+        [/Smooth Homme Full/gi, 'Komplette Herren-Haarentfernung'],
+        [/smooth homme full/gi, 'komplette Herren-Haarentfernung'],
+        [/Smooth Homme/gi, 'Herren-Haarentfernung'],
+        [/smooth homme/gi, 'herren-Haarentfernung'],
+        [/Manucure/gi, 'Maniküre'],
+        [/manucure/gi, 'maniküre'],
+        [/Pédicure/gi, 'Pediküre'],
+        [/pédicure/gi, 'pediküre'],
+        [/pedicure/gi, 'pediküre'],
+        [/Maquillage/gi, 'Make-up'],
+        [/maquillage/gi, 'make-up'],
+      ];
+
+      let translatedMessage = message;
+      for (const [pattern, replacement] of deReplacements) {
+        translatedMessage = translatedMessage.replace(pattern, replacement);
+      }
+      return translatedMessage;
+    }
+
     // Traductions arabes
     // Patterns de remplacement - PHRASES COMPLÈTES d'abord
     const replacements: [RegExp, string][] = [
@@ -654,10 +1056,13 @@ export default function NotificationsScreen() {
     } else if (diffDays < 7) {
       return t('notificationsPage.daysAgo', { count: diffDays });
     } else {
-      return date.toLocaleDateString(language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR', {
-        day: 'numeric',
-        month: 'short',
-      });
+      return date.toLocaleDateString(
+        language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : language === 'es' ? 'es-ES' : 'fr-FR',
+        {
+          day: 'numeric',
+          month: 'short',
+        }
+      );
     }
   };
 

@@ -13,25 +13,28 @@ import {
   Switch,
   StatusBar,
   Alert,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Card from '../src/components/ui/Card';
 import Button from '../src/components/ui/Button';
+import TermsModal from '../src/components/ui/TermsModal';
 import { colors, spacing, typography, borderRadius } from '../src/lib/constants/theme';
 import { hapticFeedback, setHapticsEnabled } from '../src/lib/utils/haptics';
-import { useAppDispatch } from '../src/lib/store/hooks';
-import { logoutUser } from '../src/lib/store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '../src/lib/store/hooks';
+import { logoutUser, selectAuth } from '../src/lib/store/slices/authSlice';
 import { useLanguage } from '../src/contexts/LanguageContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { user } = useAppSelector(selectAuth);
   const { t, isRTL } = useLanguage();
 
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [haptics, setHaptics] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleToggle = (
     setter: (val: boolean) => void,
@@ -107,6 +110,72 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleTermsOfUse = () => {
+    hapticFeedback.light();
+    // Ouvrir le modal des CGU (même modal que lors de l'inscription)
+    setShowTermsModal(true);
+  };
+
+  const handlePrivacyPolicy = () => {
+    hapticFeedback.light();
+    // Ouvrir le modal des CGU (même modal que lors de l'inscription)
+    setShowTermsModal(true);
+  };
+
+  const handleContactSupport = () => {
+    hapticFeedback.light();
+
+    Alert.alert(
+      t('settings.contactSupport'),
+      t('settings.chooseContactMethod') || 'Choisissez votre méthode de contact',
+      [
+        {
+          text: 'WhatsApp',
+          onPress: async () => {
+            const whatsappNumber = '+212642289189'; // Numéro support GlamGo
+            const message = t('settings.whatsappMessage') || 'Bonjour, j\'ai besoin d\'aide avec GlamGo';
+            const whatsappUrl = `whatsapp://send?phone=${whatsappNumber}&text=${encodeURIComponent(message)}`;
+
+            try {
+              const supported = await Linking.canOpenURL(whatsappUrl);
+              if (supported) {
+                await Linking.openURL(whatsappUrl);
+              } else {
+                Alert.alert(t('errors.error') || 'Erreur', t('settings.whatsappNotInstalled') || 'WhatsApp n\'est pas installé sur votre appareil.');
+              }
+            } catch (error) {
+              Alert.alert(t('errors.error') || 'Erreur', t('settings.cannotOpenWhatsapp') || 'Impossible d\'ouvrir WhatsApp.');
+            }
+          },
+        },
+        {
+          text: 'Email',
+          onPress: async () => {
+            const email = 'support@glamgo.ma'; // Email support GlamGo
+            const subject = encodeURIComponent('Support GlamGo Mobile');
+            const body = encodeURIComponent(t('settings.emailBody') || 'Bonjour,\n\nJ\'ai besoin d\'aide concernant :');
+            const emailUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+
+            try {
+              const supported = await Linking.canOpenURL(emailUrl);
+              if (supported) {
+                await Linking.openURL(emailUrl);
+              } else {
+                Alert.alert(t('errors.error') || 'Erreur', t('settings.cannotOpenEmail') || 'Impossible d\'ouvrir l\'application email.');
+              }
+            } catch (error) {
+              Alert.alert(t('errors.error') || 'Erreur', t('settings.cannotOpenEmail') || 'Impossible d\'ouvrir l\'application email.');
+            }
+          },
+        },
+        {
+          text: t('settings.cancel'),
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -174,22 +243,6 @@ export default function SettingsScreen() {
         <Card style={styles.card}>
           <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t('settings.appearance')}</Text>
 
-          <View style={[styles.settingRow, isRTL && styles.rowRTL]}>
-            <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
-              <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.darkMode')}</Text>
-              <Text style={[styles.settingDescription, isRTL && styles.textRTL]}>
-                {t('settings.comingSoon')}
-              </Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={() => handleToggle(setDarkMode, darkMode)}
-              trackColor={{ false: colors.gray[300], true: colors.primary }}
-              thumbColor={colors.white}
-              disabled
-            />
-          </View>
-
           <View style={[styles.settingRow, styles.settingRowLast, isRTL && styles.rowRTL]}>
             <View style={[styles.settingInfo, isRTL && styles.settingInfoRTL]}>
               <Text style={[styles.settingLabel, isRTL && styles.textRTL]}>{t('settings.hapticFeedback')}</Text>
@@ -212,7 +265,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.linkRow, isRTL && styles.rowRTL]}
-            onPress={() => hapticFeedback.light()}
+            onPress={handleTermsOfUse}
           >
             <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.termsOfUse')}</Text>
             <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
@@ -220,7 +273,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.linkRow, isRTL && styles.rowRTL]}
-            onPress={() => hapticFeedback.light()}
+            onPress={handlePrivacyPolicy}
           >
             <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.privacyPolicy')}</Text>
             <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
@@ -228,7 +281,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.linkRow, styles.linkRowLast, isRTL && styles.rowRTL]}
-            onPress={() => hapticFeedback.light()}
+            onPress={handleContactSupport}
           >
             <Text style={[styles.linkLabel, isRTL && styles.textRTL]}>{t('settings.contactSupport')}</Text>
             <Text style={styles.linkIcon}>{isRTL ? '←' : '→'}</Text>
@@ -275,6 +328,13 @@ export default function SettingsScreen() {
           </Button>
         </Card>
       </ScrollView>
+
+      {/* Modal des CGU et Politique de confidentialité */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        userType={user?.role || 'client'}
+      />
     </View>
   );
 }
