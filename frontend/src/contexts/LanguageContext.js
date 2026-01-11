@@ -2,6 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { translateText, translateBatch, translateObject } from '../lib/translationService';
+import { en } from '../lib/translations/en';
+import { es } from '../lib/translations/es';
+import { de } from '../lib/translations/de';
+
+// Supported languages configuration
+const SUPPORTED_LANGUAGES = ['fr', 'ar', 'en', 'es', 'de'];
+const RTL_LANGUAGES = ['ar'];
 
 // Traductions
 const translations = {
@@ -4022,7 +4029,11 @@ const translations = {
     'emergency.cancel': 'إلغاء',
     'emergency.sending': 'جاري الإرسال...',
     'emergency.sendReport': 'إرسال البلاغ',
-  }
+  },
+  // Import translations from external files
+  en,
+  es,
+  de
 };
 
 const LanguageContext = createContext();
@@ -4035,9 +4046,9 @@ export function LanguageProvider({ children }) {
   // Charger la langue sauvegardée
   useEffect(() => {
     const savedLanguage = localStorage.getItem('glamgo_language');
-    if (savedLanguage && (savedLanguage === 'fr' || savedLanguage === 'ar')) {
+    if (savedLanguage && SUPPORTED_LANGUAGES.includes(savedLanguage)) {
       setLanguage(savedLanguage);
-      setIsRTL(savedLanguage === 'ar');
+      setIsRTL(RTL_LANGUAGES.includes(savedLanguage));
     }
     setIsLoaded(true);
   }, []);
@@ -4055,13 +4066,20 @@ export function LanguageProvider({ children }) {
     }
   }, [isRTL, language]);
 
-  // Changer de langue
+  // Changer de langue (pour le dropdown)
+  const changeLanguage = useCallback((newLang) => {
+    if (SUPPORTED_LANGUAGES.includes(newLang)) {
+      setLanguage(newLang);
+      setIsRTL(RTL_LANGUAGES.includes(newLang));
+      localStorage.setItem('glamgo_language', newLang);
+    }
+  }, []);
+
+  // Toggle langue (legacy - cycle entre fr et ar)
   const toggleLanguage = useCallback(() => {
     const newLang = language === 'fr' ? 'ar' : 'fr';
-    setLanguage(newLang);
-    setIsRTL(newLang === 'ar');
-    localStorage.setItem('glamgo_language', newLang);
-  }, [language]);
+    changeLanguage(newLang);
+  }, [language, changeLanguage]);
 
   // Fonction pour les chiffres en arabe
   // Au Maghreb (Maroc, Algérie, Tunisie), on utilise les chiffres occidentaux (0-9)
@@ -4100,8 +4118,8 @@ export function LanguageProvider({ children }) {
     if (!text || language === 'fr') {
       return text; // Pas besoin de traduire si c'est déjà en français
     }
-    // Traduire vers l'arabe
-    return await translateText(text, 'AR', 'FR');
+    // Traduire vers la langue cible (AR, EN, ES, DE)
+    return await translateText(text, language.toUpperCase());
   }, [language]);
 
   // Traduction batch dynamique (plus efficace pour plusieurs textes)
@@ -4109,7 +4127,7 @@ export function LanguageProvider({ children }) {
     if (!texts || texts.length === 0 || language === 'fr') {
       return texts;
     }
-    return await translateBatch(texts, 'AR');
+    return await translateBatch(texts, language.toUpperCase());
   }, [language]);
 
   // Traduire un objet (catégorie, service, etc.)
@@ -4117,13 +4135,15 @@ export function LanguageProvider({ children }) {
     if (!obj || language === 'fr') {
       return obj;
     }
-    return await translateObject(obj, keys, 'AR');
+    return await translateObject(obj, keys, language.toUpperCase());
   }, [language]);
 
   const contextValue = useMemo(() => ({
     language,
     setLanguage,
+    changeLanguage,
     toggleLanguage,
+    supportedLanguages: SUPPORTED_LANGUAGES,
     t,
     isRTL,
     isLoaded,

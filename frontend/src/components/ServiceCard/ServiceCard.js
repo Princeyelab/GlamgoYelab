@@ -38,9 +38,9 @@ export default function ServiceCard({ service }) {
   const [translatedDesc, setTranslatedDesc] = useState(fixedDesc);
   const [translatedCategory, setTranslatedCategory] = useState(fixedCategory);
 
-  // Utiliser DeepL pour traduire en arabe
+  // Traduire pour toutes les langues non-françaises (AR, EN, ES, DE)
   useEffect(() => {
-    if (language !== 'ar') {
+    if (language === 'fr') {
       // En français, utiliser le texte original
       setTranslatedName(fixedName);
       setTranslatedDesc(fixedDesc);
@@ -57,7 +57,7 @@ export default function ServiceCard({ service }) {
       if (fixedDesc) setTranslatedDesc(translations[idx++]);
       if (fixedCategory) setTranslatedCategory(translations[idx]);
     }).catch(err => {
-      console.error('DeepL translation failed:', err);
+      console.error('Translation failed:', err);
     });
   }, [language, fixedName, fixedDesc, fixedCategory, translateDynamicBatch]);
 

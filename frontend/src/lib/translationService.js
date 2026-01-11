@@ -1,8 +1,11 @@
 /**
  * Service de traduction DeepL avec cache persistant
- * Permet la traduction à la volée FR <-> AR
+ * Permet la traduction à la volée vers AR, EN, ES, DE
  * DeepL est PRIORITAIRE - utilisé pour TOUT le contenu dynamique
  */
+
+// Langues supportées par DeepL (codes)
+const SUPPORTED_LANGS = ['FR', 'AR', 'EN', 'ES', 'DE'];
 
 // Cache en mémoire pour les traductions
 const translationCache = new Map();
@@ -67,9 +70,21 @@ function getCacheKey(text, targetLang) {
 }
 
 /**
+ * Normalise le code langue pour DeepL
+ * @param {string} lang - Code langue (fr, ar, en, es, de)
+ * @returns {string} - Code langue normalisé pour DeepL
+ */
+function normalizeLanguageCode(lang) {
+  const code = lang?.toUpperCase() || 'FR';
+  // DeepL utilise EN-US ou EN-GB, on utilise EN
+  if (code === 'EN') return 'EN';
+  return SUPPORTED_LANGS.includes(code) ? code : 'FR';
+}
+
+/**
  * Traduit un texte via l'API route Next.js
  * @param {string} text - Texte à traduire
- * @param {string} targetLang - Langue cible ('AR' ou 'FR')
+ * @param {string} targetLang - Langue cible ('AR', 'EN', 'ES', 'DE', 'FR')
  * @returns {Promise<string>} - Texte traduit
  */
 export async function translateText(text, targetLang) {
@@ -77,7 +92,7 @@ export async function translateText(text, targetLang) {
     return text;
   }
 
-  const normalizedTarget = targetLang.toUpperCase() === 'AR' ? 'AR' : 'FR';
+  const normalizedTarget = normalizeLanguageCode(targetLang);
 
   // Vérifier le cache
   const cacheKey = getCacheKey(text, normalizedTarget);
@@ -114,7 +129,7 @@ export async function translateText(text, targetLang) {
 /**
  * Traduit plusieurs textes en batch via l'API route Next.js
  * @param {string[]} texts - Tableau de textes à traduire
- * @param {string} targetLang - Langue cible ('AR' ou 'FR')
+ * @param {string} targetLang - Langue cible ('AR', 'EN', 'ES', 'DE', 'FR')
  * @returns {Promise<string[]>} - Tableau de textes traduits
  */
 export async function translateBatch(texts, targetLang) {
@@ -122,7 +137,7 @@ export async function translateBatch(texts, targetLang) {
     return texts;
   }
 
-  const normalizedTarget = targetLang.toUpperCase() === 'AR' ? 'AR' : 'FR';
+  const normalizedTarget = normalizeLanguageCode(targetLang);
   const results = new Array(texts.length);
   const textsToTranslate = [];
   const indexMap = [];

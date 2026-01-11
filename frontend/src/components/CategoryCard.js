@@ -67,9 +67,9 @@ export default function CategoryCard({ category }) {
   const [translatedName, setTranslatedName] = useState(fixedName);
   const [translatedDesc, setTranslatedDesc] = useState(fixedDesc);
 
-  // Utiliser DeepL pour traduire en arabe
+  // Traduire pour toutes les langues non-françaises (AR, EN, ES, DE)
   useEffect(() => {
-    if (language !== 'ar') {
+    if (language === 'fr') {
       setTranslatedName(fixedName);
       setTranslatedDesc(fixedDesc);
       return;
@@ -80,7 +80,7 @@ export default function CategoryCard({ category }) {
       if (fixedName) setTranslatedName(translations[0]);
       if (fixedDesc) setTranslatedDesc(translations[1] || translations[0]);
     }).catch(err => {
-      console.error('DeepL translation failed:', err);
+      console.error('Translation failed:', err);
     });
   }, [language, fixedName, fixedDesc, translateDynamicBatch]);
 

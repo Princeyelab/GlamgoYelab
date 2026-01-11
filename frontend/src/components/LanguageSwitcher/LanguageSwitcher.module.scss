@@ -1,3 +1,8 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .switcher {
   display: flex;
   align-items: center;
@@ -22,49 +27,121 @@
     transform: translateY(0);
   }
 
+  &.open {
+    border-color: #be63f9;
+    box-shadow: 0 0 0 2px rgba(190, 99, 249, 0.2);
+  }
+
   &.compact {
     padding: 6px 12px;
     font-size: 12px;
 
-    .flags {
+    .currentFlag {
       font-size: 16px;
     }
   }
 }
 
-.flags {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.currentFlag {
   font-size: 20px;
+  line-height: 1;
 }
 
-.flag {
-  opacity: 0.5;
-  transition: all 0.3s ease;
-  filter: grayscale(50%);
-
-  &.active {
-    opacity: 1;
-    filter: grayscale(0%);
-    transform: scale(1.1);
-  }
-}
-
-.divider {
-  color: #adb5bd;
-  font-size: 14px;
-  margin: 0 2px;
-}
-
-.label {
+.currentLabel {
   font-family: inherit;
   white-space: nowrap;
 
-  // Style arabe
   :global(.rtl) & {
     font-family: 'Noto Sans Arabic', 'Arial', sans-serif;
   }
+}
+
+.arrow {
+  font-size: 10px;
+  color: #6c757d;
+  transition: transform 0.2s ease;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: dropdownFade 0.2s ease;
+
+  :global(.rtl) & {
+    right: auto;
+    left: 0;
+  }
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  :global(.rtl) & {
+    text-align: right;
+    flex-direction: row-reverse;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, #f3e8ff 0%, #ede0ff 100%);
+    color: #7c3aed;
+  }
+}
+
+.optionFlag {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.optionLabel {
+  flex: 1;
+  font-family: inherit;
+
+  :global(.rtl) & {
+    font-family: 'Noto Sans Arabic', 'Arial', sans-serif;
+  }
+}
+
+.checkmark {
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 // Version flottante fixe
@@ -86,12 +163,21 @@
     padding: 6px 12px;
     font-size: 12px;
 
-    .flags {
+    .currentFlag {
       font-size: 18px;
     }
 
-    .label {
+    .currentLabel {
       display: none;
     }
+  }
+
+  .dropdown {
+    min-width: 140px;
+  }
+
+  .option {
+    padding: 8px 12px;
+    font-size: 13px;
   }
 }
