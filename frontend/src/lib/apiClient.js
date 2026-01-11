@@ -743,10 +743,28 @@ ApiClient.prototype.getProviderPayments = async function() {
 
 /**
  * Obtenir les statistiques de revenus du prestataire
+ * @param {string} period - Période: 'week', 'month', 'year'
  * @returns {Promise}
  */
-ApiClient.prototype.getProviderEarnings = async function() {
-  return this.get('/payments/provider/earnings');
+ApiClient.prototype.getProviderEarnings = async function(period = 'month') {
+  return this.get(`/payments/provider/earnings?period=${period}`);
+};
+
+/**
+ * Obtenir les transactions du prestataire
+ * @returns {Promise}
+ */
+ApiClient.prototype.getProviderTransactions = async function() {
+  return this.get('/payments/provider/transactions');
+};
+
+/**
+ * Demander un retrait de gains
+ * @param {number} amount - Montant à retirer
+ * @returns {Promise}
+ */
+ApiClient.prototype.requestWithdrawal = async function(amount) {
+  return this.post('/payments/provider/withdraw', { amount });
 };
 
 

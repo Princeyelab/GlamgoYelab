@@ -32,6 +32,10 @@ export default function ProviderDashboardPage() {
   const [completing, setCompleting] = useState(false);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
   const pollingIntervalRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+
+  // État pour le timer des commandes pending (tick chaque seconde)
+  const [timerTick, setTimerTick] = useState(0);
 
   // État pour le modal d'annulation prestataire
   const [cancelModal, setCancelModal] = useState({ show: false, order: null });
@@ -48,13 +52,57 @@ export default function ProviderDashboardPage() {
   useEffect(() => {
     checkAuth();
 
-    // Nettoyage : arrêter le polling quand le composant est démonté
+    // Nettoyage : arrêter le polling et timer quand le composant est démonté
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     };
   }, []);
+
+  // Timer effect: mise à jour chaque seconde pour les commandes pending
+  useEffect(() => {
+    const pendingOrders = orders.filter(o => o.status === 'pending');
+    if (pendingOrders.length > 0) {
+      timerIntervalRef.current = setInterval(() => {
+        setTimerTick(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [orders]);
+
+  // Calculer le temps restant pour une commande pending (4 min = 240 sec)
+  const calculateRemainingTime = (createdAt) => {
+    if (!createdAt) return 240;
+    const created = new Date(createdAt);
+    const now = new Date();
+    const elapsed = Math.floor((now - created) / 1000);
+    return Math.max(0, 240 - elapsed);
+  };
+
+  // Formater le temps restant en MM:SS
+  const formatTimeRemaining = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Vérifier si une commande est expirée
+  const isOrderExpired = (createdAt) => {
+    return calculateRemainingTime(createdAt) <= 0;
+  };
 
   const checkAuth = async () => {
     // Vérifier provider_token dans localStorage puis sessionStorage
@@ -394,7 +442,11 @@ export default function ProviderDashboardPage() {
     if (activeTab === 'available') {
       // Inclure: commandes pending sans prestataire OU commandes pending assignées à ce prestataire
       // (pré-sélection par le client qui nécessite validation manuelle)
-      return order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id);
+      // Exclure les commandes expirées (> 4 minutes)
+      const isPending = order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id);
+      if (!isPending) return false;
+      // Filtrer les commandes expirées
+      return !isOrderExpired(order.created_at);
     }
     if (activeTab === 'active') {
       // Inclure aussi completed_pending_review car la commande est toujours "active" cote prestataire
@@ -523,7 +575,7 @@ export default function ProviderDashboardPage() {
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.completedOrders')}</div>
             </div>
-            <div className={`${styles.statCard} ${styles.earningsCard}`}>
+            <Link href="/provider/earnings" className={`${styles.statCard} ${styles.earningsCard} ${styles.clickable}`}>
               <div className={styles.statValue}>
                 {toArabicNumerals(orders
                   .filter(o => o.status === 'completed')
@@ -537,7 +589,8 @@ export default function ProviderDashboardPage() {
                   .toFixed(0))} MAD
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.yourEarnings')}</div>
-            </div>
+              <div className={styles.viewMore}>{t('providerDashboard.viewDetails') || 'Voir détails →'}</div>
+            </Link>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
                 {toArabicNumerals(provider.rating ? parseFloat(provider.rating).toFixed(1) : '0.0')}
@@ -651,6 +704,31 @@ export default function ProviderDashboardPage() {
                     <div className={styles.orderActions}>
                       {order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id) && (
                         <>
+                          {/* Timer countdown pour commandes pending */}
+                          {(() => {
+                            const remaining = calculateRemainingTime(order.created_at);
+                            const isUrgent = remaining <= 60;
+                            const progressPercent = Math.round((remaining / 240) * 100);
+                            return (
+                              <div className={`${styles.timerContainer} ${isUrgent ? styles.timerUrgent : ''}`}>
+                                <span className={styles.timerIcon}>⏱️</span>
+                                <div className={styles.timerContent}>
+                                  <span className={`${styles.timerValue} ${isUrgent ? styles.timerValueUrgent : ''}`}>
+                                    {formatTimeRemaining(remaining)}
+                                  </span>
+                                  <span className={styles.timerLabel}>
+                                    {t('providerDashboard.timeToRespond') || 'pour répondre'}
+                                  </span>
+                                  <div className={styles.timerProgressContainer}>
+                                    <div
+                                      className={`${styles.timerProgress} ${isUrgent ? styles.timerProgressUrgent : ''}`}
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                           {order.provider_id == provider?.id && (
                             <div className={styles.preselectedBadge}>
                               ⭐ {t('providerDashboard.selectedByClient') || 'Sélectionné par le client'}

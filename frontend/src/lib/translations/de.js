@@ -800,4 +800,30 @@ export const de = {
   'howItWorksProvider.ctaSubtitle': 'Entwickeln Sie Ihr Geschäft und erreichen Sie neue Kunden in Marrakesch',
   'howItWorksProvider.ctaBecome': 'Dienstleister werden',
   'howItWorksProvider.ctaLogin': 'Ich habe bereits ein Konto',
+
+  // Provider Dashboard - Timer
+  'providerDashboard.timeToRespond': 'zum Antworten',
+
+  // Provider Earnings
+  'providerEarnings.myEarnings': 'Meine Einnahmen',
+  'providerEarnings.trackEarnings': 'Verfolgen Sie Ihre Einnahmen in Echtzeit',
+  'providerEarnings.availableBalance': 'Verfügbares Guthaben',
+  'providerEarnings.withdraw': 'Abheben',
+  'providerEarnings.withdrawConfirm': 'Abheben',
+  'providerEarnings.withdrawSuccess': 'Auszahlungsanfrage gesendet!',
+  'providerEarnings.withdrawError': 'Fehler bei der Auszahlung',
+  'providerEarnings.week': 'Woche',
+  'providerEarnings.month': 'Monat',
+  'providerEarnings.year': 'Jahr',
+  'providerEarnings.netEarnings': 'Nettoeinnahmen',
+  'providerEarnings.reservations': 'Buchungen',
+  'providerEarnings.earningsThisWeek': 'Einnahmen diese Woche',
+  'providerEarnings.earningsDetails': 'Einnahmendetails',
+  'providerEarnings.grossTotal': 'Bruttosumme',
+  'providerEarnings.commission': 'Provision',
+  'providerEarnings.history': 'Verlauf',
+  'providerEarnings.transactions': 'Transaktionen',
+  'providerEarnings.noTransactions': 'Keine Transaktionen',
+  'providerEarnings.pending': 'Ausstehend',
+  'providerEarnings.paid': 'Bezahlt',
 };

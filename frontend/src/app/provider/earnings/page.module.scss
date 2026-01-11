@@ -1,0 +1,657 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.earningsPage {
+  min-height: 100vh;
+  background: $gray-50;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: $spacing-md;
+  color: $gray-600;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $gray-200;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Header
+.header {
+  background: linear-gradient(135deg, $primary-color, $primary-dark);
+  padding: $spacing-lg $spacing-md;
+  padding-top: $spacing-xl;
+}
+
+.headerContent {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h1 {
+    color: $white;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    margin: 0;
+  }
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: rgba($white, 0.9);
+  text-decoration: none;
+  font-size: $font-size-sm;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($white, 0.1);
+    color: $white;
+  }
+}
+
+// Balance Card
+.balanceCard {
+  max-width: 800px;
+  margin: -$spacing-lg auto $spacing-lg;
+  margin-left: auto;
+  margin-right: auto;
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  box-shadow: $shadow-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: $spacing-md;
+  margin-right: $spacing-md;
+
+  @media (min-width: 840px) {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.balanceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balanceLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.balanceAmount {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $gray-900;
+}
+
+.withdrawButton {
+  background: $primary-color;
+  color: $white;
+  border: none;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-lg;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: $primary-dark;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: $gray-300;
+    cursor: not-allowed;
+  }
+}
+
+// Main content
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 $spacing-md $spacing-xl;
+}
+
+// Period Selector
+.periodSelector {
+  display: flex;
+  background: $white;
+  border-radius: $radius-lg;
+  padding: 4px;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-sm;
+}
+
+.periodButton {
+  flex: 1;
+  padding: $spacing-sm;
+  border: none;
+  background: transparent;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $gray-600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &.active {
+    background: $primary-color;
+    color: $white;
+  }
+
+  &:hover:not(.active) {
+    background: $gray-100;
+  }
+}
+
+// Stats Row
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.statCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  text-align: center;
+  box-shadow: $shadow-sm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.statCardGreen {
+  background: #ecfdf5;
+  border-left: 4px solid $success;
+}
+
+.statCardBlue {
+  background: #eff6ff;
+  border-left: 4px solid $info;
+}
+
+.statIcon {
+  font-size: 28px;
+}
+
+.statValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $gray-900;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+// Chart Card
+.chartCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-sm;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-md;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $gray-900;
+    margin: 0;
+  }
+}
+
+.chartSummary {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chartTotal {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $success;
+}
+
+.chartBookings {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+// Chart Component
+.chartContainer {
+  margin-top: $spacing-md;
+}
+
+.barsContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 140px;
+  padding-bottom: 30px;
+
+  &.rtl {
+    flex-direction: row-reverse;
+  }
+}
+
+.barWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.barBackground {
+  height: 100px;
+  width: 24px;
+  background: $gray-100;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.bar {
+  width: 100%;
+  background: rgba($primary-color, 0.4);
+  border-radius: 12px;
+  transition: height 0.3s ease;
+}
+
+.barToday {
+  background: $primary-color;
+}
+
+.dayLabel {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
+}
+
+.dayLabelActive {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+}
+
+.amountLabel {
+  position: absolute;
+  top: -18px;
+  font-size: 9px;
+  color: $gray-400;
+  font-weight: $font-weight-medium;
+}
+
+// Details Card
+.detailsCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-sm;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $gray-900;
+    margin: 0 0 $spacing-md 0;
+  }
+}
+
+.detailsRow {
+  display: flex;
+  margin-bottom: $spacing-md;
+}
+
+.detailItem {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailLabel {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.detailValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $gray-900;
+
+  &.negative {
+    color: $error;
+  }
+}
+
+.detailDivider {
+  width: 1px;
+  background: $gray-200;
+  margin: 0 $spacing-md;
+}
+
+.netRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-100;
+}
+
+.netLabel {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $gray-700;
+}
+
+.netValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $success;
+}
+
+// History Section
+.historySection {
+  margin-top: $spacing-lg;
+}
+
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.historyTitleRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $gray-900;
+    margin: 0;
+  }
+}
+
+.historyIcon {
+  font-size: 20px;
+}
+
+.historyCount {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  background: $gray-200;
+  padding: 2px $spacing-sm;
+  border-radius: $radius-full;
+}
+
+// Empty History
+.emptyHistory {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-2xl;
+  text-align: center;
+  box-shadow: $shadow-sm;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.5;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.emptyHistory p {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $gray-700;
+  margin: 0;
+}
+
+.emptySubtext {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+// Transactions List
+.transactionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.transactionCard {
+  background: $white;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-sm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transactionLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+}
+
+.avatarPaid {
+  background: rgba($success, 0.1);
+  color: $success;
+}
+
+.avatarPending {
+  background: rgba($warning, 0.1);
+  color: darken($warning, 15%);
+}
+
+.transactionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clientName {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $gray-900;
+}
+
+.serviceName {
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+.transactionMeta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $gray-400;
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  background: $gray-300;
+  border-radius: 50%;
+}
+
+.transactionRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.transactionAmount {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $success;
+}
+
+.transactionGross {
+  font-size: $font-size-xs;
+  color: $gray-400;
+}
+
+.transactionTip {
+  font-size: $font-size-xs;
+  color: $primary-color;
+  font-weight: $font-weight-semibold;
+}
+
+.status {
+  font-size: $font-size-xs;
+  padding: 2px $spacing-sm;
+  border-radius: $radius-full;
+  font-weight: $font-weight-medium;
+  margin-top: $spacing-xs;
+}
+
+.statusPending {
+  background: rgba($warning, 0.1);
+  color: darken($warning, 20%);
+}
+
+.statusPaid {
+  background: rgba($success, 0.1);
+  color: darken($success, 20%);
+}
+
+// Toast
+.toast {
+  position: fixed;
+  bottom: $spacing-lg;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+
+  &.success {
+    background: $success;
+    color: $white;
+  }
+
+  &.error {
+    background: $error;
+    color: $white;
+  }
+
+  button {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.toastIcon {
+  font-size: $font-size-lg;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .balanceCard {
+    flex-direction: column;
+    gap: $spacing-md;
+    text-align: center;
+  }
+
+  .withdrawButton {
+    width: 100%;
+  }
+
+  .transactionCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .transactionRight {
+    align-items: flex-start;
+    width: 100%;
+    padding-top: $spacing-sm;
+    border-top: 1px solid $gray-100;
+  }
+}

@@ -800,4 +800,30 @@ export const es = {
   'howItWorksProvider.ctaSubtitle': 'Desarrolla tu negocio y alcanza nuevos clientes en Marrakech',
   'howItWorksProvider.ctaBecome': 'Convertirse en proveedor',
   'howItWorksProvider.ctaLogin': 'Ya tengo una cuenta',
+
+  // Provider Dashboard - Timer
+  'providerDashboard.timeToRespond': 'para responder',
+
+  // Provider Earnings
+  'providerEarnings.myEarnings': 'Mis Ganancias',
+  'providerEarnings.trackEarnings': 'Sigue tus ganancias en tiempo real',
+  'providerEarnings.availableBalance': 'Saldo disponible',
+  'providerEarnings.withdraw': 'Retirar',
+  'providerEarnings.withdrawConfirm': 'Retirar',
+  'providerEarnings.withdrawSuccess': '¡Solicitud de retiro enviada!',
+  'providerEarnings.withdrawError': 'Error durante el retiro',
+  'providerEarnings.week': 'Semana',
+  'providerEarnings.month': 'Mes',
+  'providerEarnings.year': 'Año',
+  'providerEarnings.netEarnings': 'Ganancias netas',
+  'providerEarnings.reservations': 'Reservas',
+  'providerEarnings.earningsThisWeek': 'Ganancias esta semana',
+  'providerEarnings.earningsDetails': 'Detalles de ganancias',
+  'providerEarnings.grossTotal': 'Total bruto',
+  'providerEarnings.commission': 'Comisión',
+  'providerEarnings.history': 'Historial',
+  'providerEarnings.transactions': 'transacciones',
+  'providerEarnings.noTransactions': 'Sin transacciones',
+  'providerEarnings.pending': 'Pendiente',
+  'providerEarnings.paid': 'Pagado',
 };

@@ -974,4 +974,30 @@ export const en = {
   'howItWorksProvider.ctaSubtitle': 'Grow your business and reach new clients in Marrakech',
   'howItWorksProvider.ctaBecome': 'Become a provider',
   'howItWorksProvider.ctaLogin': 'I already have an account',
+
+  // Provider Dashboard - Timer
+  'providerDashboard.timeToRespond': 'to respond',
+
+  // Provider Earnings
+  'providerEarnings.myEarnings': 'My Earnings',
+  'providerEarnings.trackEarnings': 'Track your earnings in real-time',
+  'providerEarnings.availableBalance': 'Available balance',
+  'providerEarnings.withdraw': 'Withdraw',
+  'providerEarnings.withdrawConfirm': 'Withdraw',
+  'providerEarnings.withdrawSuccess': 'Withdrawal request sent!',
+  'providerEarnings.withdrawError': 'Error during withdrawal',
+  'providerEarnings.week': 'Week',
+  'providerEarnings.month': 'Month',
+  'providerEarnings.year': 'Year',
+  'providerEarnings.netEarnings': 'Net earnings',
+  'providerEarnings.reservations': 'Bookings',
+  'providerEarnings.earningsThisWeek': 'Earnings this week',
+  'providerEarnings.earningsDetails': 'Earnings details',
+  'providerEarnings.grossTotal': 'Gross total',
+  'providerEarnings.commission': 'Commission',
+  'providerEarnings.history': 'History',
+  'providerEarnings.transactions': 'transactions',
+  'providerEarnings.noTransactions': 'No transactions',
+  'providerEarnings.pending': 'Pending',
+  'providerEarnings.paid': 'Paid',
 };
