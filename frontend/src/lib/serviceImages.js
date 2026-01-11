@@ -55,6 +55,12 @@ export const SERVICE_IMAGES = {
 
   // Hijama
   'hijama': '/images/services/hijama.jpg',
+
+  // Manucure / Pédicure
+  'manucure-classique': '/images/services/coiffure-classique.jpg',
+  'manucure': '/images/services/coiffure-classique.jpg',
+  'pedicure': '/images/services/coiffure-classique.jpg',
+  'manucure-pedicure': '/images/services/coiffure-classique.jpg',
 };
 
 /**
@@ -76,28 +82,36 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'htt
  * Obtient l'URL de l'image pour un service
  */
 export function getServiceImageUrl(service, size = '400x300') {
+  const { name, slug } = service;
+
+  // D'abord vérifier le mapping par slug
+  if (slug && SERVICE_IMAGES[slug]) {
+    return SERVICE_IMAGES[slug];
+  }
+
+  // Essayer avec un slug généré du nom
+  const generatedSlug = generateSlug(name);
+  if (SERVICE_IMAGES[generatedSlug]) {
+    return SERVICE_IMAGES[generatedSlug];
+  }
+
+  // Si le service a une image définie
   if (service.image) {
     // Si c'est une URL complète, la retourner directement
     if (service.image.startsWith('http')) {
       return service.image;
     }
-    // Si c'est une image locale (/images/services/...), la retourner directement
-    if (service.image.startsWith('/images/')) {
-      return service.image;
+    // Si c'est une image locale, vérifier si elle est dans le mapping
+    if (service.image.startsWith('/images/services/')) {
+      const imageSlug = service.image.replace('/images/services/', '').replace('.jpg', '').replace('.png', '');
+      if (SERVICE_IMAGES[imageSlug]) {
+        return SERVICE_IMAGES[imageSlug];
+      }
     }
     // Sinon, préfixer avec l'URL du backend
-    return `${BACKEND_URL}${service.image}`;
-  }
-
-  const { name, slug } = service;
-
-  if (slug && SERVICE_IMAGES[slug]) {
-    return SERVICE_IMAGES[slug];
-  }
-
-  const generatedSlug = generateSlug(name);
-  if (SERVICE_IMAGES[generatedSlug]) {
-    return SERVICE_IMAGES[generatedSlug];
+    if (!service.image.startsWith('/')) {
+      return `${BACKEND_URL}${service.image}`;
+    }
   }
 
   // Image par défaut
