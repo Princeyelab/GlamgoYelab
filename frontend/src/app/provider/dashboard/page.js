@@ -84,11 +84,22 @@ export default function ProviderDashboardPage() {
   }, [orders]);
 
   // Calculer le temps restant pour une commande pending (4 min = 240 sec)
-  const calculateRemainingTime = (createdAt) => {
-    if (!createdAt) return 240;
-    const created = new Date(createdAt);
+  // Utilise pending_since si disponible, sinon created_at
+  const calculateRemainingTime = (order) => {
+    // Utiliser pending_since (quand la commande est devenue pending) ou created_at
+    const timestamp = order.pending_since || order.created_at;
+    if (!timestamp) return 240; // Si pas de timestamp, afficher temps plein
+
+    const created = new Date(timestamp);
     const now = new Date();
     const elapsed = Math.floor((now - created) / 1000);
+
+    // Debug: afficher dans console si problème
+    if (elapsed < 0) {
+      console.warn('Timer: elapsed time negative, possible timezone issue', { timestamp, elapsed });
+      return 240;
+    }
+
     return Math.max(0, 240 - elapsed);
   };
 
@@ -99,9 +110,11 @@ export default function ProviderDashboardPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Vérifier si une commande est expirée
-  const isOrderExpired = (createdAt) => {
-    return calculateRemainingTime(createdAt) <= 0;
+  // Vérifier si une commande est expirée (désactivé pour l'instant - le backend gère l'expiration)
+  const isOrderExpired = (order) => {
+    // Désactivé temporairement - laisser le backend gérer l'expiration
+    // return calculateRemainingTime(order) <= 0;
+    return false;
   };
 
   const checkAuth = async () => {
@@ -442,11 +455,10 @@ export default function ProviderDashboardPage() {
     if (activeTab === 'available') {
       // Inclure: commandes pending sans prestataire OU commandes pending assignées à ce prestataire
       // (pré-sélection par le client qui nécessite validation manuelle)
-      // Exclure les commandes expirées (> 4 minutes)
       const isPending = order.status === 'pending' && (!order.provider_id || order.provider_id == provider?.id);
       if (!isPending) return false;
-      // Filtrer les commandes expirées
-      return !isOrderExpired(order.created_at);
+      // Filtrer les commandes expirées (désactivé temporairement)
+      return !isOrderExpired(order);
     }
     if (activeTab === 'active') {
       // Inclure aussi completed_pending_review car la commande est toujours "active" cote prestataire
@@ -706,7 +718,7 @@ export default function ProviderDashboardPage() {
                         <>
                           {/* Timer countdown pour commandes pending */}
                           {(() => {
-                            const remaining = calculateRemainingTime(order.created_at);
+                            const remaining = calculateRemainingTime(order);
                             const isUrgent = remaining <= 60;
                             const progressPercent = Math.round((remaining / 240) * 100);
                             return (
