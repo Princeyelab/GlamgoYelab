@@ -599,12 +599,11 @@ class PaymentController extends Controller
                         o.payment_method,
                         o.completed_at as created_at,
                         o.service_id,
-                        COALESCE(s.name, cs.title) as service_name,
+                        s.name as service_name,
                         u.first_name as client_first_name,
                         u.last_name as client_last_name
                     FROM orders o
                     LEFT JOIN services s ON o.service_id = s.id
-                    LEFT JOIN custom_services cs ON o.custom_service_id = cs.id
                     JOIN users u ON o.user_id = u.id
                     WHERE o.provider_id = ?
                       AND o.status = 'completed'
