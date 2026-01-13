@@ -553,9 +553,9 @@ class PaymentController extends Controller
 
         // Calculer la date de début selon la période (PostgreSQL syntax)
         $date_filter = match($period) {
-            'week' => "AND t.created_at >= NOW() - INTERVAL '7 days'",
-            'month' => "AND t.created_at >= NOW() - INTERVAL '30 days'",
-            'year' => "AND t.created_at >= NOW() - INTERVAL '365 days'",
+            'week' => "AND o.completed_at >= NOW() - INTERVAL '7 days'",
+            'month' => "AND o.completed_at >= NOW() - INTERVAL '30 days'",
+            'year' => "AND o.completed_at >= NOW() - INTERVAL '365 days'",
             default => ""
         };
 
