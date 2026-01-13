@@ -535,8 +535,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * GET /api/provider/payment/earnings
-     * Gains du prestataire
+     * GET /api/provider/payment/earnings?period=week|month|year
+     * Gains du prestataire par période
      */
     public function getProviderEarnings()
     {
@@ -548,58 +548,89 @@ class PaymentController extends Controller
             return $this->error('Non authentifié en tant que prestataire', 401);
         }
 
+        // Récupérer le paramètre period
+        $period = $_GET['period'] ?? 'month';
+
+        // Calculer la date de début selon la période (PostgreSQL syntax)
+        $date_filter = match($period) {
+            'week' => "AND t.created_at >= NOW() - INTERVAL '7 days'",
+            'month' => "AND t.created_at >= NOW() - INTERVAL '30 days'",
+            'year' => "AND t.created_at >= NOW() - INTERVAL '365 days'",
+            default => ""
+        };
+
         try {
-            // Total gains
+            // Gains pour la période avec commission GlamGo (25%)
+            // Utilise directement la table orders car transactions n'existe pas en prod
             $stmt = $this->db->prepare("
                 SELECT
-                    SUM(provider_amount) as total_earnings,
-                    COUNT(*) as total_transactions,
-                    SUM(CASE WHEN status = 'completed' THEN provider_amount ELSE 0 END) as completed_earnings,
-                    SUM(CASE WHEN status = 'pending' THEN provider_amount ELSE 0 END) as pending_earnings
-                FROM transactions
-                WHERE provider_id = ?
+                    COALESCE(SUM(o.total), 0) as total_amount,
+                    COALESCE(SUM(o.price), 0) as total_price,
+                    COALESCE(SUM(o.tip), 0) as total_tips,
+                    COUNT(*) as bookings
+                FROM orders o
+                WHERE o.provider_id = ?
+                  AND o.status = 'completed'
+                  AND o.payment_status = 'paid'
+                  $date_filter
             ");
             $stmt->execute([$provider_id]);
             $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Dernières transactions avec pourboires
-            $stmt = $this->db->prepare("
-                SELECT
-                    t.*,
-                    o.service_id,
-                    o.tip as tip_amount,
-                    s.name as service_name,
-                    u.first_name as client_first_name,
-                    u.last_name as client_last_name
-                FROM transactions t
-                JOIN orders o ON t.order_id = o.id
-                LEFT JOIN services s ON o.service_id = s.id
-                JOIN users u ON t.user_id = u.id
-                WHERE t.provider_id = ?
-                ORDER BY t.created_at DESC
-                LIMIT 20
-            ");
-            $stmt->execute([$provider_id]);
-            $recent_transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $total_amount = floatval($stats['total_amount'] ?? 0);
+            $total_tips = floatval($stats['total_tips'] ?? 0);
+            $bookings = intval($stats['bookings'] ?? 0);
 
-            // Calculer le total des pourboires
-            $stmt = $this->db->prepare("
-                SELECT COALESCE(SUM(o.tip), 0) as total_tips
-                FROM transactions t
-                JOIN orders o ON t.order_id = o.id
-                WHERE t.provider_id = ? AND t.status = 'completed'
-            ");
-            $stmt->execute([$provider_id]);
-            $tips_result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $total_tips = floatval($tips_result['total_tips'] ?? 0);
+            // Commission GlamGo: 25% du montant HT (sans pourboires)
+            $amount_without_tips = $total_amount - $total_tips;
+            $commission = $amount_without_tips * 0.25;
+            $net = $amount_without_tips - $commission;
+
+            // Dernières commandes avec détails (seulement pour month)
+            $recent_transactions = [];
+            if ($period === 'month' || !isset($_GET['period'])) {
+                $stmt = $this->db->prepare("
+                    SELECT
+                        o.id,
+                        o.total as amount,
+                        o.price,
+                        o.tip as tip_amount,
+                        o.payment_status as status,
+                        o.payment_method,
+                        o.completed_at as created_at,
+                        o.service_id,
+                        COALESCE(s.name, cs.title) as service_name,
+                        u.first_name as client_first_name,
+                        u.last_name as client_last_name
+                    FROM orders o
+                    LEFT JOIN services s ON o.service_id = s.id
+                    LEFT JOIN custom_services cs ON o.custom_service_id = cs.id
+                    JOIN users u ON o.user_id = u.id
+                    WHERE o.provider_id = ?
+                      AND o.status = 'completed'
+                    ORDER BY o.completed_at DESC
+                    LIMIT 20
+                ");
+                $stmt->execute([$provider_id]);
+                $recent_transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            // Total inclut pourboires
+            $total = $net + $total_tips;
 
             return $this->success([
-                'stats' => array_merge($stats, ['total_tips' => $total_tips]),
+                'total' => $total,
+                'net' => $net,
+                'commission' => $commission,
+                'tips' => $total_tips,
+                'bookings' => intval($stats['bookings'] ?? 0),
+                'period' => $period,
                 'recent_transactions' => $recent_transactions
             ]);
 
         } catch (\Exception $e) {
-            return $this->error('Erreur lors de la récupération des gains', 500);
+            error_log("Error in getProviderEarnings: " . $e->getMessage());
+            return $this->error('Erreur lors de la récupération des gains: ' . $e->getMessage(), 500);
         }
     }
 
