@@ -89,9 +89,9 @@ class Order extends Model
                  LEFT JOIN user_addresses a ON o.address_id = a.id
                  WHERE (o.provider_id = ? OR (o.provider_id IS NULL AND o.status = 'pending'))
                        AND o.status = ?
-                       AND NOT jsonb_exists(COALESCE(o.refused_by_providers, '[]'::jsonb), ?)
+                       AND NOT (COALESCE(o.refused_by_providers, '[]'::jsonb) @> to_jsonb(?::integer))
                  ORDER BY o.created_at DESC",
-                [$providerId, $status, (string)$providerId]
+                [$providerId, $status, $providerId]
             );
         }
 
@@ -116,7 +116,7 @@ class Order extends Model
              LEFT JOIN user_addresses a ON o.address_id = a.id
              WHERE (o.provider_id = ?
                    OR (o.provider_id IS NULL AND o.status = 'pending'))
-                   AND NOT jsonb_exists(COALESCE(o.refused_by_providers, '[]'::jsonb), ?)
+                   AND NOT (COALESCE(o.refused_by_providers, '[]'::jsonb) @> to_jsonb(?::integer))
              ORDER BY
                 CASE
                     WHEN o.status = 'pending' AND o.provider_id = ? THEN 0
@@ -124,7 +124,7 @@ class Order extends Model
                     ELSE 2
                 END,
                 o.created_at DESC",
-            [$providerId, (string)$providerId, $providerId]
+            [$providerId, $providerId, $providerId]
         );
     }
 
