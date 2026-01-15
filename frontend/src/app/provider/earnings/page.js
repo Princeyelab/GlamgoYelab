@@ -10,9 +10,9 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // Données de démonstration
 const DEMO_EARNINGS = {
-  week: { total: 1250, commission: 250, net: 1000, bookings: 5 },
-  month: { total: 4800, commission: 960, net: 3840, bookings: 18 },
-  year: { total: 52000, commission: 10400, net: 41600, bookings: 195 },
+  week: { total: 1250, commission: 250, net: 1000, tips: 50, bookings: 5 },
+  month: { total: 4800, commission: 960, net: 3840, tips: 180, bookings: 18 },
+  year: { total: 52000, commission: 10400, net: 41600, tips: 2100, bookings: 195 },
 };
 
 const DEMO_TRANSACTIONS = [
@@ -60,7 +60,7 @@ function WeeklyChart({ data, isRTL }) {
 
 export default function ProviderEarningsPage() {
   const router = useRouter();
-  const { t, isRTL, toArabicNumerals, language } = useLanguage();
+  const { t, isRTL, toArabicNumerals, language, locale } = useLanguage();
   const [period, setPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
   const [earnings, setEarnings] = useState(DEMO_EARNINGS);
@@ -99,32 +99,35 @@ export default function ProviderEarningsPage() {
           total: weekRes.data.total || 0,
           commission: weekRes.data.commission || 0,
           net: weekRes.data.net || 0,
+          tips: weekRes.data.tips || 0,
           bookings: weekRes.data.bookings || 0,
         } : DEMO_EARNINGS.week,
         month: monthRes.success && monthRes.data ? {
           total: monthRes.data.total || 0,
           commission: monthRes.data.commission || 0,
           net: monthRes.data.net || 0,
+          tips: monthRes.data.tips || 0,
           bookings: monthRes.data.bookings || 0,
         } : DEMO_EARNINGS.month,
         year: yearRes.success && yearRes.data ? {
           total: yearRes.data.total || 0,
           commission: yearRes.data.commission || 0,
           net: yearRes.data.net || 0,
+          tips: yearRes.data.tips || 0,
           bookings: yearRes.data.bookings || 0,
         } : DEMO_EARNINGS.year,
       });
 
       // Mettre à jour les transactions
-      if (transRes.success && transRes.data && transRes.data.length > 0) {
-        const formattedTransactions = transRes.data.map(t => ({
+      if (transRes.success && transRes.data && transRes.data.transactions && transRes.data.transactions.length > 0) {
+        const formattedTransactions = transRes.data.transactions.map(t => ({
           id: t.id,
           clientName: t.client_name || `${t.client_first_name || ''} ${t.client_last_name || ''}`.trim() || 'Client',
           service: t.service_name || t.service_title || 'Service',
           date: t.date || t.created_at || new Date().toISOString(),
           amount: t.amount || t.total_amount || 0,
-          commission: t.commission || Math.round((t.amount || t.total_amount || 0) * 0.2),
-          netAmount: t.net_amount || Math.round((t.amount || t.total_amount || 0) * 0.8),
+          commission: t.commission || Math.round((t.amount || t.total_amount || 0) * 0.25),
+          netAmount: t.net_amount || Math.round((t.amount || t.total_amount || 0) * 0.75),
           tip: t.tip_amount || 0,
           status: t.status || 'pending_payout',
         }));
@@ -218,7 +221,6 @@ export default function ProviderEarningsPage() {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const locale = language === 'ar' ? 'ar-MA' : language === 'en' ? 'en-GB' : 'fr-FR';
     return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   };
 
@@ -324,7 +326,7 @@ export default function ProviderEarningsPage() {
             </div>
             <div className={styles.detailDivider}></div>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>{t('providerEarnings.commission') || 'Commission'} (20%)</span>
+              <span className={styles.detailLabel}>{t('providerEarnings.commission') || 'Commission'} (25%)</span>
               <span className={`${styles.detailValue} ${styles.negative}`}>
                 -{toArabicNumerals(currentEarnings.commission)} MAD
               </span>
@@ -334,6 +336,16 @@ export default function ProviderEarningsPage() {
             <span className={styles.netLabel}>{t('providerEarnings.netEarnings') || 'Gains nets'}</span>
             <span className={styles.netValue}>{toArabicNumerals(currentEarnings.net)} MAD</span>
           </div>
+          {currentEarnings.tips > 0 && (
+            <div className={styles.detailsRow} style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #e0e0e0' }}>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>💝 {t('providerEarnings.tips') || 'Pourboires'}</span>
+                <span className={styles.detailValue} style={{ color: '#10b981' }}>
+                  +{toArabicNumerals(currentEarnings.tips)} MAD
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Transaction History */}

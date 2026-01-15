@@ -71,7 +71,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
   // Etape actuelle (1, 2 ou 3)
   const [step, setStep] = useState(1);
   const { currency } = useCurrency();
-  const { t, isRTL, language, toArabicNumerals, formatNumber } = useLanguage();
+  const { t, isRTL, language, toArabicNumerals, formatNumber, locale } = useLanguage();
 
   // Donnees du formulaire
   const [formData, setFormData] = useState({
@@ -194,7 +194,7 @@ export default function SatisfactionModal({ order, onClose, onSubmit }) {
   // Formater la date
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
+    return new Date(dateString).toLocaleDateString(locale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric'

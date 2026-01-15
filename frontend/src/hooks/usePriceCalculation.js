@@ -167,6 +167,18 @@ export function usePriceCalculation(serviceId) {
       return null;
     }
 
+    // Ne pas calculer via API pour les services personnalisés
+    const isCustomService = String(serviceId).startsWith('custom_');
+    if (isCustomService) {
+      // Pour les services personnalisés, utiliser le calcul local si un prix est fourni
+      if (servicePrice) {
+        const localBreakdown = calculateLocally(params, servicePrice);
+        setBreakdown(localBreakdown);
+        return localBreakdown;
+      }
+      return null;
+    }
+
     // Créer une clé unique pour les paramètres
     const paramsKey = JSON.stringify({ serviceId, ...params });
 

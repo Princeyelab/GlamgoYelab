@@ -209,6 +209,8 @@ $router->patch('/api/provider/orders/{id}/arrive', 'ProviderOrderController', 'a
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/provider/orders/{id}/cancel', 'ProviderOrderController', 'cancel')
     ->middleware([AuthMiddleware::class]);
+$router->post('/api/provider/orders/{id}/refuse', 'ProviderOrderController', 'refuse')
+    ->middleware([AuthMiddleware::class]);
 $router->get("/api/provider/orders/{id}/client-location", "LocationController", "getClientLocation")
     ->middleware([AuthMiddleware::class]);
 

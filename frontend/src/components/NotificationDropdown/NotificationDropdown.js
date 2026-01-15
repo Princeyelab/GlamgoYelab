@@ -5,14 +5,19 @@ import Link from 'next/link';
 import styles from './NotificationDropdown.module.scss';
 import apiClient from '@/lib/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import RefusedOrderModal from '@/components/RefusedOrderModal/RefusedOrderModal';
 
 export default function NotificationDropdown() {
-  const { t, isRTL, toArabicNumerals } = useLanguage();
+  const { t, isRTL, toArabicNumerals, locale } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Modal pour commande refusée
+  const [refusedModalOpen, setRefusedModalOpen] = useState(false);
+  const [refusedOrderData, setRefusedOrderData] = useState(null);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -100,7 +105,7 @@ export default function NotificationDropdown() {
     if (diffMins < 60) return t('notifications.minutesAgo', { n: diffMins });
     if (diffHours < 24) return t('notifications.hoursAgo', { n: diffHours });
     if (diffDays < 7) return t('notifications.daysAgo', { n: diffDays });
-    return date.toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR');
+    return date.toLocaleDateString(locale);
   };
 
   const getNotificationIcon = (type) => {
@@ -111,6 +116,8 @@ export default function NotificationDropdown() {
       order_in_progress: '🔧',
       order_completed: '🎉',
       order_cancelled: '❌',
+      order_refused: '😔',
+      order_rejected: '😔',
       new_message: '💬'
     };
     return icons[type] || '🔔';
@@ -127,8 +134,27 @@ export default function NotificationDropdown() {
       'Nouveau message': t('notificationDropdown.newMessage'),
       'Prestation terminee - Evaluez le service': t('notificationDropdown.rateService'),
       'Prestation terminée - Évaluez le service': t('notificationDropdown.rateService'),
+      'Prestataire non disponible': t('refusedOrderModal.title'),
+      'Provider unavailable': t('refusedOrderModal.title'),
     };
     return titleMap[title] || title;
+  };
+
+  // Gérer le clic sur une notification de refus
+  const handleRefusedNotificationClick = (notification) => {
+    // Extraire les données du notification.data
+    const data = notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : {};
+    setRefusedOrderData({
+      orderId: notification.order_id,
+      serviceId: data.service_id,
+      serviceName: data.service_name || 'Service',
+    });
+    setRefusedModalOpen(true);
+    setIsOpen(false);
+    // Marquer comme lue
+    if (!notification.is_read) {
+      handleMarkAsRead(notification.id);
+    }
   };
 
   // Traduire le message de notification
@@ -193,37 +219,57 @@ export default function NotificationDropdown() {
             ) : notifications.length === 0 ? (
               <div className={styles.empty}>{t('notifications.noNotifications')}</div>
             ) : (
-              notifications.map(notification => (
-                <div
-                  key={notification.id}
-                  className={`${styles.notificationItem} ${!notification.is_read ? styles.unread : ''}`}
-                  onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
-                >
-                  <span className={styles.icon}>
-                    {getNotificationIcon(notification.notification_type)}
-                  </span>
-                  <div className={styles.notificationContent}>
-                    <div className={styles.notificationTitle}>
-                      {translateNotificationTitle(notification.title)}
+              notifications.map(notification => {
+                const isRefusedNotification = notification.notification_type === 'order_refused' || notification.notification_type === 'order_rejected';
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={`${styles.notificationItem} ${!notification.is_read ? styles.unread : ''} ${isRefusedNotification ? styles.refusedNotification : ''}`}
+                    onClick={() => {
+                      if (isRefusedNotification) {
+                        handleRefusedNotificationClick(notification);
+                      } else if (!notification.is_read) {
+                        handleMarkAsRead(notification.id);
+                      }
+                    }}
+                  >
+                    <span className={styles.icon}>
+                      {getNotificationIcon(notification.notification_type)}
+                    </span>
+                    <div className={styles.notificationContent}>
+                      <div className={styles.notificationTitle}>
+                        {translateNotificationTitle(notification.title)}
+                      </div>
+                      <div className={styles.notificationMessage}>
+                        {translateNotificationMessage(notification.message)}
+                      </div>
+                      <div className={styles.notificationTime}>
+                        {formatDate(notification.created_at)}
+                      </div>
                     </div>
-                    <div className={styles.notificationMessage}>
-                      {translateNotificationMessage(notification.message)}
-                    </div>
-                    <div className={styles.notificationTime}>
-                      {formatDate(notification.created_at)}
-                    </div>
+                    {isRefusedNotification ? (
+                      <button
+                        className={styles.rebookButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRefusedNotificationClick(notification);
+                        }}
+                      >
+                        {t('refusedOrderModal.rebookButton') || 'Réserver'}
+                      </button>
+                    ) : notification.order_id && (
+                      <Link
+                        href={`/orders/${notification.order_id}`}
+                        className={styles.viewOrder}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t('notificationDropdown.view')}
+                      </Link>
+                    )}
                   </div>
-                  {notification.order_id && (
-                    <Link
-                      href={`/orders/${notification.order_id}`}
-                      className={styles.viewOrder}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {t('notificationDropdown.view')}
-                    </Link>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -236,6 +282,18 @@ export default function NotificationDropdown() {
           )}
         </div>
       )}
+
+      {/* Modal de commande refusée */}
+      <RefusedOrderModal
+        isOpen={refusedModalOpen}
+        onClose={() => {
+          setRefusedModalOpen(false);
+          setRefusedOrderData(null);
+        }}
+        order={refusedOrderData}
+        serviceName={refusedOrderData?.serviceName}
+        serviceId={refusedOrderData?.serviceId}
+      />
     </div>
   );
 }

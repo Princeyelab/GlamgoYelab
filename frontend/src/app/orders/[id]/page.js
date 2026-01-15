@@ -26,7 +26,7 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
-  const { t, language, isRTL, toArabicNumerals } = useLanguage();
+  const { t, language, isRTL, toArabicNumerals, locale } = useLanguage();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,6 +81,14 @@ export default function OrderDetailPage() {
       }
     };
   }, [user, params.id]);
+
+  // Détection automatique du statut "arrived" pour afficher la modal de confirmation
+  useEffect(() => {
+    if (order && order.status === 'arrived' && !arrivalConfirmed) {
+      // Afficher automatiquement la modal quand le prestataire marque son arrivée
+      setShowArrivalModal(true);
+    }
+  }, [order?.status, arrivalConfirmed]);
 
   const fetchOrder = async (silent = false) => {
     if (!silent) {
@@ -173,6 +181,7 @@ export default function OrderDetailPage() {
       pending: t('status.pending'),
       accepted: t('status.accepted'),
       on_way: t('status.on_way'),
+      arrived: t('status.arrived'),
       in_progress: t('status.in_progress'),
       completed_pending_review: t('status.completed_pending_review'),
       completed: t('status.completed'),
@@ -186,6 +195,7 @@ export default function OrderDetailPage() {
       pending: styles.statusPending,
       accepted: styles.statusAccepted,
       on_way: styles.statusOnWay,
+      arrived: styles.statusArrived,
       in_progress: styles.statusInProgress,
       completed_pending_review: styles.statusPendingReview,
       completed: styles.statusCompleted,
@@ -197,15 +207,17 @@ export default function OrderDetailPage() {
   const formatDate = (dateString) => {
     if (!dateString) return t('orderDetail.notDefined');
     const date = new Date(dateString);
-    const formatted = date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'fr-FR', {
+
+    const formatted = date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    // Appliquer la conversion des chiffres arabes
-    return toArabicNumerals(formatted);
+
+    // Appliquer la conversion des chiffres arabes uniquement pour l'arabe
+    return language === 'ar' ? toArabicNumerals(formatted) : formatted;
   };
 
   // Récupérer les informations d'annulation depuis l'API
@@ -677,8 +689,8 @@ export default function OrderDetailPage() {
             </div>
           )}
 
-          {/* Bouton confirmer arrivée du prestataire (quand en route) */}
-          {order.status === 'on_way' && order.provider_id && (
+          {/* Bouton confirmer arrivée du prestataire (quand arrivé) */}
+          {order.status === 'arrived' && order.provider_id && (
             <div className={styles.arrivalSection}>
               {/* Photo du prestataire style Uber */}
               <div className={styles.providerArriving}>
@@ -698,7 +710,7 @@ export default function OrderDetailPage() {
                 </div>
                 <div className={styles.providerArrivingInfo}>
                   <h3>{order.provider_name}</h3>
-                  <p className={styles.arrivingStatus}>🚗 {t('orderDetail.onTheWay')}</p>
+                  <p className={styles.arrivingStatus}>🎯 {t('orderDetail.providerArrived')}</p>
                   {order.provider_rating && (
                     <span className={styles.arrivingRating}>⭐ {parseFloat(order.provider_rating).toFixed(1)}</span>
                   )}
@@ -717,7 +729,7 @@ export default function OrderDetailPage() {
             </div>
           )}
 
-          {order.provider_id && ['accepted', 'on_way', 'in_progress'].includes(order.status) && (
+          {order.provider_id && ['accepted', 'on_way', 'arrived', 'in_progress'].includes(order.status) && (
             <div className={styles.chatSection}>
               <Chat orderId={order.id} userType="user" />
             </div>
@@ -737,6 +749,9 @@ export default function OrderDetailPage() {
                 clientAddress={order.address_line}
                 clientLat={order.latitude}
                 clientLng={order.longitude}
+                providerName={order.provider_name}
+                providerAvatar={order.provider_avatar}
+                uploadsBaseUrl={UPLOADS_BASE_URL}
               />
             </div>
           )}

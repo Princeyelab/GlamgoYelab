@@ -11,11 +11,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import Chat from '@/components/Chat';
 import Price from '@/components/Price';
 import TranslatedText from '@/components/TranslatedText';
+import RefusedOrderModal from '@/components/RefusedOrderModal/RefusedOrderModal';
 
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { t, isRTL, toArabicNumerals } = useLanguage();
+  const { t, language, isRTL, toArabicNumerals, locale } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,10 +29,51 @@ export default function OrdersPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [confirmModal, setConfirmModal] = useState({ show: false, orderId: null });
 
+  // État pour le modal de commande refusée
+  const [refusedModalOpen, setRefusedModalOpen] = useState(false);
+  const [refusedOrderData, setRefusedOrderData] = useState(null);
+  const lastRefusedCheckRef = useRef(null);
+
   // Fonction pour afficher un toast
   const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+  }, []);
+
+  // Vérifier les notifications de refus récentes
+  const checkRefusedNotifications = useCallback(async () => {
+    try {
+      const response = await apiClient.getNotifications(10);
+      if (response.success && response.data.notifications) {
+        // Chercher une notification de refus non lue récente
+        const refusedNotif = response.data.notifications.find(n =>
+          (n.notification_type === 'order_refused' || n.notification_type === 'order_rejected') &&
+          !n.is_read
+        );
+
+        if (refusedNotif && refusedNotif.id !== lastRefusedCheckRef.current) {
+          lastRefusedCheckRef.current = refusedNotif.id;
+
+          // Parser les données
+          const data = refusedNotif.data
+            ? (typeof refusedNotif.data === 'string' ? JSON.parse(refusedNotif.data) : refusedNotif.data)
+            : {};
+
+          // Afficher le modal
+          setRefusedOrderData({
+            orderId: refusedNotif.order_id,
+            serviceId: data.service_id,
+            serviceName: data.service_name || 'Service',
+          });
+          setRefusedModalOpen(true);
+
+          // Marquer comme lue
+          await apiClient.markNotificationAsRead(refusedNotif.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking refused notifications:', err);
+    }
   }, []);
 
   const fetchOrders = useCallback(async (silent = false) => {
@@ -72,6 +114,7 @@ export default function OrdersPage() {
   useEffect(() => {
     if (user) {
       fetchOrders();
+      checkRefusedNotifications(); // Vérifier immédiatement
 
       // Démarrer le polling automatique toutes les 5 secondes
       if (pollingIntervalRef.current) {
@@ -79,6 +122,7 @@ export default function OrdersPage() {
       }
       pollingIntervalRef.current = setInterval(() => {
         fetchOrders(true); // silent = true pour éviter le clignotement
+        checkRefusedNotifications(); // Vérifier les notifications de refus
       }, 5000);
     }
 
@@ -88,7 +132,7 @@ export default function OrdersPage() {
         clearInterval(pollingIntervalRef.current);
       }
     };
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, checkRefusedNotifications]);
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -119,14 +163,17 @@ export default function OrdersPage() {
   const formatDate = (dateString) => {
     if (!dateString) return t('ordersPage.notPlanned');
     const date = new Date(dateString);
-    const formatted = date.toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR', {
+
+    const formatted = date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    return toArabicNumerals(formatted);
+
+    // Appliquer la conversion des chiffres arabes uniquement pour l'arabe
+    return language === 'ar' ? toArabicNumerals(formatted) : formatted;
   };
 
   const openCancelModal = (orderId) => {
@@ -309,6 +356,13 @@ export default function OrdersPage() {
                         <span className={styles.detailValue}>{order.provider_name}</span>
                       </div>
                     )}
+                    {/* Indicateur de recherche de prestataire après refus */}
+                    {order.status === 'pending' && order.refused_count > 0 && (
+                      <div className={styles.refusedIndicator}>
+                        <span className={styles.searchingIcon}>🔄</span>
+                        <span>{t('ordersPage.searchingNewProvider') || 'Recherche d\'un nouveau prestataire...'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -412,6 +466,18 @@ export default function OrdersPage() {
           </button>
         </div>
       )}
+
+      {/* Modal de commande refusée */}
+      <RefusedOrderModal
+        isOpen={refusedModalOpen}
+        onClose={() => {
+          setRefusedModalOpen(false);
+          setRefusedOrderData(null);
+        }}
+        order={refusedOrderData}
+        serviceName={refusedOrderData?.serviceName}
+        serviceId={refusedOrderData?.serviceId}
+      />
     </div>
   );
 }

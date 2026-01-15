@@ -13,6 +13,8 @@ import { fixEncoding } from '@/lib/textUtils';
 import Price from '@/components/Price';
 import LocationPicker from '@/components/LocationPicker';
 import FormulaSelector from '@/components/FormulaSelector';
+import GuestSelector from '@/components/GuestSelector';
+import PackSelector, { COACH_PACKS } from '@/components/PackSelector';
 import PriceBreakdown from '@/components/PriceBreakdown';
 import NearbyProvidersList from '@/components/NearbyProvidersList';
 import { usePriceCalculation } from '@/hooks/usePriceCalculation';
@@ -27,7 +29,7 @@ export default function BookingPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, checkAuth } = useAuth();
-  const { t, language, translateDynamicBatch, isRTL, toArabicNumerals } = useLanguage();
+  const { t, language, translateDynamicBatch, isRTL, toArabicNumerals, locale } = useLanguage();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +58,10 @@ const [selectedFormula, setSelectedFormula] = useState(null);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showProviders, setShowProviders] = useState(false);
 
+  // Chef multi-invités et Coach packs
+  const [numberOfGuests, setNumberOfGuests] = useState(2);
+  const [selectedPack, setSelectedPack] = useState('classique');
+
   // Géolocalisation du client
   const {
     location: clientLocation,
@@ -80,6 +86,28 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     return hour >= 22 || hour < 6;
   }, [formData.time]);
 
+  // Détection du type de service (Chef ou Coach)
+  const isChefService = useMemo(() => {
+    if (!service) return false;
+    const slug = service.slug?.toLowerCase() || '';
+    const name = service.name?.toLowerCase() || '';
+    return slug.includes('chef') || name.includes('chef') || slug.includes('domicile');
+  }, [service]);
+
+  const isCoachService = useMemo(() => {
+    if (!service) return false;
+    const slug = service.slug?.toLowerCase() || '';
+    const name = service.name?.toLowerCase() || '';
+    return slug.includes('coach') || name.includes('coach') || slug.includes('sportif');
+  }, [service]);
+
+  // Calcul du prix par session pour les packs Coach
+  const coachSessionPrice = useMemo(() => {
+    if (!isCoachService) return null;
+    const pack = COACH_PACKS.find(p => p.id === selectedPack);
+    return pack ? pack.pricePerSession : null;
+  }, [isCoachService, selectedPack]);
+
   // Détection intervention de nuit
   const {
     isNightShift,
@@ -92,14 +120,32 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
   // Au montage, forcer une re-vérification de l'auth pour s'assurer que le token est toujours valide
   useEffect(() => {
-    checkAuth(true); // forceCheck = true pour re-vérifier même si déjà checked
-  }, []);
+    checkAuth();
+  }, [checkAuth]);
 
   useEffect(() => {
+    // Ne rediriger que si:
+    // 1. Le chargement auth est termine
+    // 2. L'utilisateur n'est pas connecte
+    // 3. Il n'y a pas de token en attente de verification
     if (!authLoading && !user) {
+      // Verifier si un token existe (peut-etre pas encore charge)
+      const hasToken = typeof window !== 'undefined' && (
+        localStorage.getItem('auth_token') ||
+        sessionStorage.getItem('auth_token')
+      );
+
+      if (hasToken) {
+        // Token existe mais user pas encore charge - attendre
+        console.log('[Booking] Token exists but user not loaded, waiting...');
+        checkAuth();
+        return;
+      }
+
+      // Pas de token, rediriger vers login
       router.push(`/login?redirect=/booking/${params.id}`);
     }
-  }, [user, authLoading, router, params.id]);
+  }, [user, authLoading, router, params.id, checkAuth]);
 
   // Pré-remplir l'adresse avec celle du profil utilisateur
   useEffect(() => {
@@ -232,8 +278,18 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     try {
       // Mode réservation classique uniquement
       const scheduledAt = `${formData.date} ${formData.time}:00`;
-      const response = await apiClient.createOrder({
-        service_id: parseInt(params.id),
+
+      // Détecter si c'est un service personnalisé (ID commence par "custom_")
+      const isCustomService = params.id.startsWith('custom_');
+      const actualServiceId = isCustomService
+        ? parseInt(params.id.replace('custom_', ''))
+        : parseInt(params.id);
+
+      const orderData = {
+        ...(isCustomService
+          ? { custom_service_id: actualServiceId }
+          : { service_id: actualServiceId }
+        ),
         provider_id: selectedProvider.id, // ID du prestataire sélectionné
         address: formData.address,
         latitude: formData.latitude,
@@ -242,7 +298,25 @@ const [selectedFormula, setSelectedFormula] = useState(null);
         notes: formData.notes,
         payment_method: formData.payment_method,
         formula_type: formData.formula_type,
-      });
+      };
+
+      // Ajouter le nombre d'invités pour les services Chef
+      if (isChefService) {
+        orderData.number_of_guests = numberOfGuests;
+      }
+
+      // Ajouter les infos du pack pour les services Coach
+      if (isCoachService) {
+        const selectedPackData = COACH_PACKS.find(p => p.id === selectedPack);
+        if (selectedPackData) {
+          orderData.pack_id = selectedPackData.id;
+          orderData.pack_name = selectedPackData.name;
+          orderData.pack_sessions = selectedPackData.sessions;
+          orderData.pack_price = selectedPackData.price;
+        }
+      }
+
+      const response = await apiClient.createOrder(orderData);
 
       if (response.success) {
         setSuccess(true);
@@ -344,15 +418,19 @@ const [selectedFormula, setSelectedFormula] = useState(null);
             </div>
           </div>
 
-          {/* Calcul du prix (caché) */}
+          {/* Calcul du prix (caché) - seulement pour les services standards */}
+          {!params.id.startsWith('custom_') && (
           <div style={{ display: 'none' }}>
             <PriceBreakdown
               serviceId={parseInt(params.id)}
               formulaType={formData.formula_type}
               scheduledTime={getScheduledDateTime()}
+              quantity={isChefService ? numberOfGuests : 1}
+              basePrice={isCoachService ? coachSessionPrice : undefined}
               onPriceChange={handlePriceCalculated}
             />
           </div>
+          )}
 
           {/* Formulaire */}
           <div className={styles.bookingForm}>
@@ -489,7 +567,8 @@ const [selectedFormula, setSelectedFormula] = useState(null);
               ) : (
                 // Formulaire mode réservation classique
                 <>
-                  {/* Sélecteur de formule */}
+                  {/* Sélecteur de formule - seulement pour les services standards */}
+                  {!params.id.startsWith('custom_') && (
                   <div className={styles.formGroup}>
                     <FormulaSelector
                       serviceId={parseInt(params.id)}
@@ -498,6 +577,31 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                       scheduledTime={getScheduledDateTime()}
                     />
                   </div>
+                  )}
+
+                  {/* Sélecteur de nombre d'invités pour Chef à domicile */}
+                  {isChefService && (
+                    <div className={styles.formGroup}>
+                      <GuestSelector
+                        value={numberOfGuests}
+                        onChange={setNumberOfGuests}
+                        minGuests={2}
+                        maxGuests={12}
+                        pricePerPerson={service?.price || 0}
+                      />
+                    </div>
+                  )}
+
+                  {/* Sélecteur de pack pour Coach sportif */}
+                  {isCoachService && (
+                    <div className={styles.formGroup}>
+                      <PackSelector
+                        packs={COACH_PACKS}
+                        selectedPackId={selectedPack}
+                        onChange={setSelectedPack}
+                      />
+                    </div>
+                  )}
 
                   <div className={styles.formGroup}>
                     <label htmlFor="date" className={styles.label}>
@@ -663,7 +767,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {showProviders && (
                       <div className={styles.providersSection}>
                         <NearbyProvidersList
-                          serviceId={parseInt(params.id)}
+                          serviceId={params.id}
                           clientLocation={formData.latitude && formData.longitude ? {
                             lat: formData.latitude,
                             lng: formData.longitude
@@ -785,7 +889,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {formData.date && (
                       <div className={styles.summaryItem}>
                         <span>{t('bookingPage.serviceDate')}</span>
-                        <span>{new Date(formData.date).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR')}</span>
+                        <span>{new Date(formData.date).toLocaleDateString(locale)}</span>
                       </div>
                     )}
                     {formData.time && (
@@ -805,7 +909,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
                     {formData.date && (
                       <div className={styles.summaryItem}>
                         <span>{t('bookingPage.date')}</span>
-                        <span>{new Date(formData.date).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span>{new Date(formData.date).toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                       </div>
                     )}
                     {formData.time && (

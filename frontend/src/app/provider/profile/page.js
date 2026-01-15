@@ -54,7 +54,7 @@ const DEFAULT_AVAILABILITY = {
 
 export default function ProviderProfilePage() {
   const router = useRouter();
-  const { t, isRTL, toArabicNumerals } = useLanguage();
+  const { t, isRTL, toArabicNumerals, locale } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -491,7 +491,7 @@ export default function ProviderProfilePage() {
                       <span className={styles.label}>{t('providerProfile.birthDate')}:</span>
                       <span className={styles.value}>
                         {provider.date_of_birth
-                          ? new Date(provider.date_of_birth).toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
+                          ? new Date(provider.date_of_birth).toLocaleDateString(locale, {
                               day: 'numeric',
                               month: 'long',
                               year: 'numeric'
@@ -594,29 +594,6 @@ export default function ProviderProfilePage() {
                   )}
                 </section>
 
-                {/* Section Disponibilités */}
-                <section className={styles.section}>
-                  <h2>{t('providerProfile.availability')}</h2>
-                  <div className={styles.availabilityGrid}>
-                    {DAYS_OF_WEEK_KEYS.map((key) => {
-                      const schedule = provider.availability_schedule
-                        ? (typeof provider.availability_schedule === 'string'
-                          ? JSON.parse(provider.availability_schedule)
-                          : provider.availability_schedule)[key]
-                        : DEFAULT_AVAILABILITY[key];
-                      return (
-                        <div key={key} className={styles.availabilityItem}>
-                          <span className={styles.dayLabel}>{t(`providerProfile.${key}`)}</span>
-                          <span className={`${styles.availabilityStatus} ${schedule?.available ? styles.available : styles.unavailable}`}>
-                            {schedule?.available
-                              ? `${schedule.start} - ${schedule.end}`
-                              : t('providerProfile.unavailable')}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
               </div>
             ) : (
               // Mode édition
@@ -874,52 +851,6 @@ export default function ProviderProfilePage() {
                         {t('providerProfile.bioHint')}
                       </span>
                     </div>
-                  </div>
-                </section>
-
-                {/* Section Disponibilités */}
-                <section className={styles.formSection}>
-                  <h2>{t('providerProfile.availability')}</h2>
-                  <p className={styles.sectionHint}>
-                    {t('providerProfile.defineSchedule')}
-                  </p>
-                  <div className={styles.availabilityForm}>
-                    {DAYS_OF_WEEK_KEYS.map((key) => (
-                      <div key={key} className={styles.availabilityRow}>
-                        <div className={styles.dayToggle}>
-                          <input
-                            type="checkbox"
-                            id={`available_${key}`}
-                            checked={formData.availability_schedule[key]?.available || false}
-                            onChange={(e) => handleAvailabilityChange(key, 'available', e.target.checked)}
-                            className={styles.checkbox}
-                          />
-                          <label htmlFor={`available_${key}`} className={styles.dayName}>
-                            {t(`providerProfile.${key}`)}
-                          </label>
-                        </div>
-                        {formData.availability_schedule[key]?.available && (
-                          <div className={styles.timeInputs}>
-                            <input
-                              type="time"
-                              value={formData.availability_schedule[key]?.start || '09:00'}
-                              onChange={(e) => handleAvailabilityChange(key, 'start', e.target.value)}
-                              className={styles.timeInput}
-                            />
-                            <span className={styles.timeSeparator}>{t('providerProfile.to')}</span>
-                            <input
-                              type="time"
-                              value={formData.availability_schedule[key]?.end || '18:00'}
-                              onChange={(e) => handleAvailabilityChange(key, 'end', e.target.value)}
-                              className={styles.timeInput}
-                            />
-                          </div>
-                        )}
-                        {!formData.availability_schedule[key]?.available && (
-                          <span className={styles.unavailableLabel}>{t('providerProfile.unavailable')}</span>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 </section>
 

@@ -1,0 +1,260 @@
+@import '../../styles/variables';
+
+.container {
+  background-color: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  box-shadow: $shadow-sm;
+}
+
+.header {
+  margin-bottom: $spacing-lg;
+}
+
+.label {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-900;
+}
+
+.packsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.packCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  border: 2px solid $gray-200;
+  background-color: $white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    border-color: $primary-color;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.packCardSelected {
+  border-color: $primary-color;
+  background-color: rgba($primary-color, 0.08);
+}
+
+.packCardPopular {
+  border-color: $warning;
+}
+
+.popularBadge {
+  position: absolute;
+  top: -10px;
+  right: $spacing-md;
+  background-color: $warning;
+  padding: 2px $spacing-sm;
+  border-radius: $radius-sm;
+}
+
+.popularBadgeText {
+  font-size: 10px;
+  font-weight: 700;
+  color: $white;
+  text-transform: uppercase;
+}
+
+.radioContainer {
+  margin-right: $spacing-md;
+}
+
+.radioOuter {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid $gray-300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease;
+}
+
+.radioOuterSelected {
+  border-color: $primary-color;
+}
+
+.radioInner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: $primary-color;
+}
+
+.packInfo {
+  flex: 1;
+}
+
+.packHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.packIcon {
+  font-size: 16px;
+}
+
+.packName {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+}
+
+.packNameSelected {
+  color: $primary-color;
+}
+
+.packSessions {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  display: block;
+  margin-top: 2px;
+}
+
+.priceContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: $spacing-md;
+}
+
+.packPrice {
+  font-size: $font-size-lg;
+  font-weight: 700;
+  color: $gray-800;
+}
+
+.packPriceSelected {
+  color: $primary-color;
+}
+
+.discountBadge {
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $success;
+  margin-top: 2px;
+}
+
+.summaryContainer {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background-color: $gray-50;
+  border-radius: $radius-md;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.summaryLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+}
+
+.summaryValue {
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $gray-800;
+}
+
+.summaryTotal {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1px solid $gray-200;
+  margin-bottom: 0;
+}
+
+.totalLabel {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+}
+
+.totalPrice {
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.infoContainer {
+  display: flex;
+  align-items: center;
+  background-color: rgba($primary-color, 0.1);
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  margin-top: $spacing-lg;
+}
+
+.infoIcon {
+  font-size: 20px;
+  margin-right: $spacing-sm;
+}
+
+.infoText {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $primary-color;
+  line-height: 1.5;
+}
+
+// RTL Support
+[dir="rtl"] {
+  .packCard {
+    flex-direction: row-reverse;
+  }
+
+  .radioContainer {
+    margin-right: 0;
+    margin-left: $spacing-md;
+  }
+
+  .popularBadge {
+    right: auto;
+    left: $spacing-md;
+  }
+
+  .priceContainer {
+    margin-left: 0;
+    margin-right: $spacing-md;
+    align-items: flex-start;
+  }
+
+  .summaryRow {
+    flex-direction: row-reverse;
+  }
+
+  .infoContainer {
+    flex-direction: row-reverse;
+
+    .infoIcon {
+      margin-right: 0;
+      margin-left: $spacing-sm;
+    }
+  }
+}

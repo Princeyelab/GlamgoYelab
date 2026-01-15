@@ -34,7 +34,7 @@ const MOROCCAN_CITIES = [
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale, language } = useLanguage();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -467,7 +467,7 @@ export default function ProfilePage() {
             <div className={styles.infoIcon}>📊</div>
             <h3 className={styles.infoTitle}>{t('profile.statistics')}</h3>
             <p className={styles.infoText}>
-              {t('profile.memberSince', { date: user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'récemment' })}
+              {t('profile.memberSince', { date: user.created_at ? new Date(user.created_at).toLocaleDateString(locale, { month: 'long', year: 'numeric' }) : t('profile.recently') })}
             </p>
           </div>
 

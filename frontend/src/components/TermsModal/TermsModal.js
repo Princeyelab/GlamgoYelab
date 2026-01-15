@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import styles from './TermsModal.module.scss';
 
 export default function TermsModal({ isOpen, onClose, userType = 'client' }) {
-  const { language, t } = useLanguage();
+  const { language, t, locale } = useLanguage();
   const isRTL = language === 'ar';
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function TermsModal({ isOpen, onClose, userType = 'client' }) {
 
   if (!isOpen) return null;
 
-  const currentDate = new Date().toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR');
+  const currentDate = new Date().toLocaleDateString(locale);
 
   const clientTermsFr = `
 CONDITIONS GÉNÉRALES D'UTILISATION - GLAMGO MARRAKECH
@@ -48,6 +48,7 @@ Dernière mise à jour : ${currentDate}
 📅 POLITIQUE D'ANNULATION ET REMBOURSEMENT
 • Annulation sans frais jusqu'à 2h avant.
 • Moins de 2h → frais possibles.
+• Retard du Prestataire de plus de 15 minutes après l'heure fixée → annulation sans pénalité pour le Client.
 • Absence sans annulation → prestation due intégralement.
 • Annulation par le Prestataire → remboursement intégral.
 • Cas de force majeure → conditions adaptées.
@@ -121,6 +122,7 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTÉ L'INTÉGRALITÉ
 📅 سياسة الإلغاء والاسترداد
 • إلغاء مجاني حتى ساعتين قبل الموعد.
 • أقل من ساعتين ← رسوم محتملة.
+• تأخر مقدم الخدمة أكثر من 15 دقيقة بعد الموعد المحدد ← إلغاء بدون عقوبة للعميل.
 • الغياب بدون إلغاء ← الخدمة مستحقة بالكامل.
 • إلغاء من مقدم الخدمة ← استرداد كامل.
 • حالة القوة القاهرة ← شروط مكيفة.
@@ -226,6 +228,7 @@ Dernière mise à jour : ${currentDate}
 📅 POLITIQUE D'ANNULATION
 • Annulation par le Prestataire → remboursement intégral au Client.
 • Annulations répétées → impact négatif sur votre profil et suspension possible.
+• Retard du Prestataire de plus de 15 minutes après l'heure fixée → annulation sans pénalité pour le Client.
 • Cas de force majeure → conditions adaptées au cas par cas.
 
 🛡️ PROTECTION ET SÉCURITÉ
@@ -342,6 +345,7 @@ EN COCHANT LA CASE, VOUS CONFIRMEZ AVOIR LU, COMPRIS ET ACCEPTÉ L'INTÉGRALITÉ
 📅 سياسة الإلغاء
 • الإلغاء من مقدم الخدمة ← استرداد كامل للعميل.
 • الإلغاءات المتكررة ← تأثير سلبي على ملفك وإمكانية التعليق.
+• تأخر مقدم الخدمة أكثر من 15 دقيقة بعد الموعد المحدد ← إلغاء بدون غرامة للعميل.
 • حالة القوة القاهرة ← شروط مكيفة حسب الحالة.
 
 🛡️ الحماية والأمان

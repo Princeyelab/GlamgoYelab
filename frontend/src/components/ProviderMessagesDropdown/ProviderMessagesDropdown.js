@@ -18,7 +18,7 @@ export default function ProviderMessagesDropdown() {
   const [totalUnread, setTotalUnread] = useState(0);
   const dropdownRef = useRef(null);
   const router = useRouter();
-  const { t: translate, toArabicNumerals } = useLanguage();
+  const { t: translate, toArabicNumerals, locale } = useLanguage();
 
   // Protection contre t undefined
   const t = (key) => {
@@ -167,7 +167,7 @@ export default function ProviderMessagesDropdown() {
     if (diffMins < 60) return `${toArabicNumerals(diffMins)} min`;
     if (diffHours < 24) return `${toArabicNumerals(diffHours)}h`;
     if (diffDays < 7) return `${toArabicNumerals(diffDays)}j`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(locale);
   };
 
   return (

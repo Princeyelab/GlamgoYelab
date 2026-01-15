@@ -10,13 +10,47 @@ class Service extends Model
 
     public function getAllWithCategory(): array
     {
-        return $this->query(
-            "SELECT s.*, c.name as category_name, c.id as category_id_ref
+        // Services standards
+        $standardServices = $this->query(
+            "SELECT s.*, c.name as category_name, c.id as category_id_ref,
+                    FALSE as is_custom, NULL as provider_id, NULL as provider_name
              FROM services s
              INNER JOIN categories c ON s.category_id = c.id
              WHERE s.is_active = TRUE
              ORDER BY c.display_order, s.name"
         );
+
+        // Services personnalisés actifs
+        $customServices = $this->query(
+            "SELECT
+                CONCAT('custom_', pcs.id) as id,
+                pcs.name,
+                pcs.description,
+                pcs.price,
+                pcs.price as base_price,
+                pcs.duration_minutes,
+                pcs.category_id,
+                c.name as category_name,
+                pcs.category_id as category_id_ref,
+                pcs.images,
+                pcs.is_active,
+                pcs.created_at,
+                pcs.updated_at,
+                c.slug as category_slug,
+                TRUE as is_custom,
+                pcs.provider_id,
+                CONCAT(p.first_name, ' ', p.last_name) as provider_name
+             FROM provider_custom_services pcs
+             INNER JOIN categories c ON pcs.category_id = c.id
+             INNER JOIN providers p ON pcs.provider_id = p.id
+             WHERE pcs.is_active = TRUE
+               AND p.is_available = TRUE
+               AND p.account_status = 'active'
+             ORDER BY c.display_order, pcs.name"
+        );
+
+        // Combiner et retourner
+        return array_merge($standardServices, $customServices);
     }
 
     public function findBySlug(string $slug): ?array
@@ -26,25 +60,97 @@ class Service extends Model
 
     public function getByCategory(int $categoryId): array
     {
-        return $this->query(
-            "SELECT * FROM services WHERE category_id = ? AND is_active = TRUE ORDER BY name",
+        // Services standards de la catégorie
+        $standardServices = $this->query(
+            "SELECT s.*, c.name as category_name,
+                    FALSE as is_custom, NULL as provider_id, NULL as provider_name
+             FROM services s
+             INNER JOIN categories c ON s.category_id = c.id
+             WHERE s.category_id = ? AND s.is_active = TRUE
+             ORDER BY s.name",
             [$categoryId]
         );
+
+        // Services personnalisés de la catégorie
+        $customServices = $this->query(
+            "SELECT
+                CONCAT('custom_', pcs.id) as id,
+                pcs.name,
+                pcs.description,
+                pcs.price,
+                pcs.price as base_price,
+                pcs.duration_minutes,
+                pcs.category_id,
+                c.name as category_name,
+                pcs.images,
+                pcs.is_active,
+                pcs.created_at,
+                pcs.updated_at,
+                TRUE as is_custom,
+                pcs.provider_id,
+                CONCAT(p.first_name, ' ', p.last_name) as provider_name
+             FROM provider_custom_services pcs
+             INNER JOIN categories c ON pcs.category_id = c.id
+             INNER JOIN providers p ON pcs.provider_id = p.id
+             WHERE pcs.category_id = ?
+               AND pcs.is_active = TRUE
+               AND p.is_available = TRUE
+               AND p.account_status = 'active'
+             ORDER BY pcs.name",
+            [$categoryId]
+        );
+
+        return array_merge($standardServices, $customServices);
     }
 
     public function search(string $query): array
     {
         $searchTerm = "%{$query}%";
-        return $this->query(
-            "SELECT s.*, c.name as category_name
+
+        // Services standards
+        $standardServices = $this->query(
+            "SELECT s.*, c.name as category_name,
+                    FALSE as is_custom, NULL as provider_id, NULL as provider_name
              FROM services s
              INNER JOIN categories c ON s.category_id = c.id
              WHERE s.is_active = TRUE
-             AND (s.name LIKE ? OR s.description LIKE ? OR c.name LIKE ?)
+             AND (s.name ILIKE ? OR s.description ILIKE ? OR c.name ILIKE ?)
              ORDER BY s.name
-             LIMIT 20",
+             LIMIT 15",
             [$searchTerm, $searchTerm, $searchTerm]
         );
+
+        // Services personnalisés
+        $customServices = $this->query(
+            "SELECT
+                CONCAT('custom_', pcs.id) as id,
+                pcs.name,
+                pcs.description,
+                pcs.price,
+                pcs.price as base_price,
+                pcs.duration_minutes,
+                pcs.category_id,
+                c.name as category_name,
+                pcs.images,
+                pcs.is_active,
+                pcs.created_at,
+                pcs.updated_at,
+                TRUE as is_custom,
+                pcs.provider_id,
+                CONCAT(p.first_name, ' ', p.last_name) as provider_name
+             FROM provider_custom_services pcs
+             INNER JOIN categories c ON pcs.category_id = c.id
+             INNER JOIN providers p ON pcs.provider_id = p.id
+             WHERE pcs.is_active = TRUE
+               AND p.is_available = TRUE
+               AND p.account_status = 'active'
+               AND (pcs.name ILIKE ? OR pcs.description ILIKE ? OR c.name ILIKE ?)
+             ORDER BY pcs.name
+             LIMIT 10",
+            [$searchTerm, $searchTerm, $searchTerm]
+        );
+
+        return array_merge($standardServices, $customServices);
     }
 
     public function getWithFormulas(int $id): ?array
@@ -109,5 +215,57 @@ class Service extends Model
         }
 
         return json_decode($result[0]['special_rules'] ?? '{}', true) ?: [];
+    }
+
+    /**
+     * Récupère un service personnalisé par son ID
+     */
+    public function findCustomService(int $customServiceId): ?array
+    {
+        $result = $this->query(
+            "SELECT
+                CONCAT('custom_', pcs.id) as id,
+                pcs.id as custom_service_id,
+                pcs.name,
+                pcs.description,
+                pcs.price,
+                pcs.price as base_price,
+                pcs.duration_minutes,
+                pcs.category_id,
+                c.name as category_name,
+                c.slug as category_slug,
+                pcs.images,
+                pcs.is_active,
+                pcs.created_at,
+                pcs.updated_at,
+                TRUE as is_custom,
+                pcs.provider_id,
+                CONCAT(p.first_name, ' ', p.last_name) as provider_name,
+                p.first_name as provider_first_name,
+                p.last_name as provider_last_name,
+                p.avatar as provider_avatar,
+                p.rating as provider_rating,
+                p.total_reviews as provider_total_reviews
+             FROM provider_custom_services pcs
+             INNER JOIN categories c ON pcs.category_id = c.id
+             INNER JOIN providers p ON pcs.provider_id = p.id
+             WHERE pcs.id = ?
+               AND pcs.is_active = TRUE
+               AND p.is_available = TRUE
+               AND p.account_status = 'active'",
+            [$customServiceId]
+        );
+
+        if (empty($result)) {
+            return null;
+        }
+
+        $service = $result[0];
+        $service['images'] = json_decode($service['images'] ?? '[]', true);
+        // Formules par défaut pour les services personnalisés
+        $service['allowed_formulas'] = ['standard'];
+        $service['special_rules'] = [];
+
+        return $service;
     }
 }

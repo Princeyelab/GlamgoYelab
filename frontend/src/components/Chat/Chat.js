@@ -18,7 +18,7 @@ const getImageUrl = (path) => {
 };
 
 export default function Chat({ orderId, userType = 'user' }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -242,7 +242,7 @@ export default function Chat({ orderId, userType = 'user' }) {
   
   const formatTime = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('fr-FR', {
+    return date.toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit'
     });

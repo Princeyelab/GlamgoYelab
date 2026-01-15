@@ -12,7 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const { t } = useLanguage();
 
   // Récupérer l'URL de redirection depuis les paramètres
@@ -27,6 +27,13 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push(redirectUrl);
+    }
+  }, [isAuthenticated, user, router, redirectUrl]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

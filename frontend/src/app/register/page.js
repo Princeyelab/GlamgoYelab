@@ -13,10 +13,19 @@ import PaymentMethodSetup from '@/components/PaymentMethodSetup/PaymentMethodSet
 import ServiceSelector from '@/components/ServiceSelector/ServiceSelector';
 import { saveClientTempData } from '@/lib/clientDataHelper';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
+
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push('/');
+    }
+  }, [isAuthenticated, user, router]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -544,13 +553,17 @@ export default function RegisterPage() {
                   />
                   <span className={styles.termsText}>
                     {t('register.iAccept')}{' '}
-                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className={styles.termsLink}
+                    >
                       {t('register.termsAndConditions')}
                     </button>
                     {' '}{t('register.and')}{' '}
-                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                    <Link href="/privacy" target="_blank" className={styles.termsLink}>
                       {t('register.privacyPolicy')}
-                    </button>
+                    </Link>
                     {' '}<span className={styles.required}>*</span>
                   </span>
                 </label>

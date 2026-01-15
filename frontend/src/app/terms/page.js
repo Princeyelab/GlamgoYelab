@@ -53,6 +53,7 @@ export default function TermsPage() {
             <li>{t('terms.section5Item1')}</li>
             <li>{t('terms.section5Item2')}</li>
             <li>{t('terms.section5Item3')}</li>
+            <li>{t('terms.section5Item4')}</li>
           </ul>
         </section>
 

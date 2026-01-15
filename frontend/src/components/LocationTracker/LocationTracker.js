@@ -13,7 +13,7 @@ export default function LocationTracker({ orderId, clientAddress = null }) {
   const mapRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const scrollPosRef = useRef(0);
-  const { toArabicNumerals } = useLanguage();
+  const { toArabicNumerals, locale } = useLanguage();
 
   useEffect(() => {
     fetchLocation();
@@ -92,7 +92,7 @@ export default function LocationTracker({ orderId, clientAddress = null }) {
 
     if (diffSecs < 60) return `Il y a ${toArabicNumerals(diffSecs)} secondes`;
     if (diffMins < 60) return `Il y a ${toArabicNumerals(diffMins)} minutes`;
-    return lastUpdate.toLocaleTimeString('fr-FR');
+    return lastUpdate.toLocaleTimeString(locale);
   };
 
   const openInMaps = () => {

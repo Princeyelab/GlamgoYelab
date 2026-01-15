@@ -11,9 +11,13 @@ class Order extends Model
     /**
      * Récupère les commandes d'un utilisateur
      * Supporte les services standards ET personnalisés
+     * Annule automatiquement les commandes pending expirées avant de récupérer
      */
     public function getUserOrders(int $userId, ?string $status = null): array
     {
+        // Annuler automatiquement les commandes expirées
+        $this->cancelExpiredPendingOrders();
+
         if ($status) {
             return $this->query(
                 "SELECT o.*,
@@ -22,7 +26,8 @@ class Order extends Model
                         p.first_name as provider_first_name, p.last_name as provider_last_name,
                         p.phone as provider_phone, p.avatar as provider_avatar,
                         a.address_line, a.city,
-                        CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
+                        CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service,
+                        COALESCE(jsonb_array_length(o.refused_by_providers), 0) as refused_count
                  FROM orders o
                  LEFT JOIN services s ON o.service_id = s.id
                  LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
@@ -43,7 +48,8 @@ class Order extends Model
                     p.avatar as provider_avatar, p.phone as provider_phone,
                     a.address_line, a.city, a.latitude, a.longitude,
                     o.cancelled_by, o.cancellation_reason, o.cancelled_at,
-                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
+                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service,
+                    COALESCE(jsonb_array_length(o.refused_by_providers), 0) as refused_count
              FROM orders o
              LEFT JOIN services s ON o.service_id = s.id
              LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
@@ -58,9 +64,14 @@ class Order extends Model
     /**
      * Récupère les commandes d'un prestataire (incluant les commandes disponibles)
      * Supporte les services standards ET personnalisés
+     * Annule automatiquement les commandes pending expirées avant de récupérer
+     * Exclut les commandes que le prestataire a déjà refusées
      */
     public function getProviderOrders(int $providerId, ?string $status = null): array
     {
+        // Annuler automatiquement les commandes expirées
+        $this->cancelExpiredPendingOrders();
+
         if ($status) {
             return $this->query(
                 "SELECT o.*,
@@ -78,8 +89,9 @@ class Order extends Model
                  LEFT JOIN user_addresses a ON o.address_id = a.id
                  WHERE (o.provider_id = ? OR (o.provider_id IS NULL AND o.status = 'pending'))
                        AND o.status = ?
+                       AND NOT (o.refused_by_providers ? ?::text)
                  ORDER BY o.created_at DESC",
-                [$providerId, $status]
+                [$providerId, $status, (string)$providerId]
             );
         }
 
@@ -87,6 +99,8 @@ class Order extends Model
         // Inclut: commandes assignées à ce prestataire (tout statut)
         //         + commandes pending sans prestataire (disponibles pour tous)
         //         + commandes pending assignées à ce prestataire (en attente d'acceptation)
+        // Exclut: commandes que ce prestataire a déjà refusées
+        // Note: Les commandes expirées sont déjà annulées automatiquement
         return $this->query(
             "SELECT o.*,
                     COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
@@ -100,8 +114,9 @@ class Order extends Model
              LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
              INNER JOIN users u ON o.user_id = u.id
              LEFT JOIN user_addresses a ON o.address_id = a.id
-             WHERE o.provider_id = ?
-                   OR (o.provider_id IS NULL AND o.status = 'pending')
+             WHERE (o.provider_id = ?
+                   OR (o.provider_id IS NULL AND o.status = 'pending'))
+                   AND NOT (COALESCE(o.refused_by_providers, '[]'::jsonb) ? ?::text)
              ORDER BY
                 CASE
                     WHEN o.status = 'pending' AND o.provider_id = ? THEN 0
@@ -109,16 +124,20 @@ class Order extends Model
                     ELSE 2
                 END,
                 o.created_at DESC",
-            [$providerId, $providerId]
+            [$providerId, (string)$providerId, $providerId]
         );
     }
 
     /**
      * Récupère les commandes en attente pour un service
      * Supporte les services standards ET personnalisés
+     * Annule automatiquement les commandes pending expirées avant de récupérer
      */
     public function getPendingOrdersForService(int $serviceId): array
     {
+        // Annuler automatiquement les commandes expirées
+        $this->cancelExpiredPendingOrders();
+
         return $this->query(
             "SELECT o.*,
                     COALESCE(s.name, pcs.name, o.custom_service_name) as service_name,
@@ -156,7 +175,8 @@ class Order extends Model
                     a.label as address_label, a.address_line, a.city, a.postal_code,
                     a.latitude, a.longitude,
                     CONCAT(p.first_name, ' ', p.last_name) as provider_name,
-                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service
+                    CASE WHEN o.custom_service_id IS NOT NULL THEN true ELSE false END as is_custom_service,
+                    COALESCE(jsonb_array_length(o.refused_by_providers), 0) as refused_count
              FROM orders o
              LEFT JOIN services s ON o.service_id = s.id
              LEFT JOIN provider_custom_services pcs ON o.custom_service_id = pcs.id
@@ -236,6 +256,25 @@ class Order extends Model
         );
 
         return $result[0] ?? null;
+    }
+
+    /**
+     * Annule automatiquement les commandes pending expirées (> 4 minutes)
+     * Retourne le nombre de commandes annulées
+     */
+    public function cancelExpiredPendingOrders(): int
+    {
+        $sql = "UPDATE orders
+                SET status = 'cancelled',
+                    cancelled_by = 'system',
+                    cancellation_reason = 'Commande expirée - aucun prestataire n''a accepté dans les 4 minutes'
+                WHERE status = 'pending'
+                  AND EXTRACT(EPOCH FROM (NOW() - created_at)) >= 240";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->rowCount();
     }
 
     /**

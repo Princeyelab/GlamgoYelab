@@ -156,14 +156,21 @@ class PricingController
         }
 
         // Calcul avec PriceCalculator
-        $result = PriceCalculator::calculate([
+        $calcParams = [
             'service_id' => (int) $input['service_id'],
             'formula_type' => $input['formula_type'] ?? 'standard',
             'scheduled_time' => $input['scheduled_time'] ?? date('Y-m-d H:i:s'),
             'duration_hours' => (int) ($input['duration_hours'] ?? 1),
             'distance_km' => (float) ($input['distance_km'] ?? 0),
             'quantity' => (int) ($input['quantity'] ?? 1)
-        ]);
+        ];
+
+        // Ajouter base_price si fourni (pour les packs Coach par exemple)
+        if (isset($input['base_price'])) {
+            $calcParams['base_price'] = (float) $input['base_price'];
+        }
+
+        $result = PriceCalculator::calculate($calcParams);
 
         echo json_encode($result);
     }

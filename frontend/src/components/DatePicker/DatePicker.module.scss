@@ -1,8 +1,11 @@
 @import '@/styles/variables';
 
-// Variables locales pour le thème sombre
-$dp-text-color: #FFFFFF;
-$dp-text-muted: rgba(255, 255, 255, 0.6);
+// Variables locales pour le thème clair (fond blanc/gris)
+$dp-text-color: #1f2937;
+$dp-text-muted: #6b7280;
+$dp-border-color: #d1d5db;
+$dp-bg-color: #ffffff;
+$dp-bg-hover: #f3f4f6;
 
 .datePicker {
   position: relative;
@@ -14,16 +17,16 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: $dp-bg-color;
+  border: 1px solid $dp-border-color;
   border-radius: $radius-md;
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 48px;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: #9ca3af;
+    background: $dp-bg-hover;
   }
 
   &.focused {
@@ -40,6 +43,7 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   flex: 1;
   color: $dp-text-color;
   font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .placeholder {
@@ -63,13 +67,12 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: $dp-bg-color;
+  border: 1px solid $dp-border-color;
   border-radius: $radius-lg;
   padding: $spacing-md;
   z-index: 1000;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   animation: slideDown 0.2s ease;
 }
 
@@ -90,7 +93,7 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   justify-content: space-between;
   margin-bottom: $spacing-md;
   padding-bottom: $spacing-sm;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid $dp-border-color;
 }
 
 .navBtn {
@@ -99,7 +102,7 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: $dp-bg-hover;
   border: none;
   border-radius: $radius-sm;
   color: $dp-text-color;
@@ -108,7 +111,7 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #e5e7eb;
     color: $primary-color;
   }
 }
@@ -152,7 +155,7 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   transition: all 0.15s ease;
 
   &:hover:not(.empty):not(.disabled) {
-    background: rgba($primary-color, 0.2);
+    background: rgba($primary-color, 0.15);
   }
 
   &.empty {
@@ -160,22 +163,22 @@ $dp-text-muted: rgba(255, 255, 255, 0.6);
   }
 
   &.disabled {
-    color: rgba(255, 255, 255, 0.2);
+    color: #d1d5db;
     cursor: not-allowed;
   }
 
   &.today {
-    border: 1px solid $primary-color;
+    border: 2px solid $primary-color;
     font-weight: 600;
   }
 
   &.selected {
-    background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+    background: $primary-color;
     color: white;
     font-weight: 600;
 
     &:hover {
-      background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
+      background: darken($primary-color, 5%);
     }
   }
 }

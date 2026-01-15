@@ -52,7 +52,7 @@ import {
 import * as Location from 'expo-location';
 import apiClient, { API_BASE_URL } from '../../src/lib/api/client';
 import { isOrderInRange } from '../../src/lib/utils/geoUtils';
-import { addCancelledOrderId } from '../../src/lib/utils/cancelledOrdersCache';
+import { addCancelledOrderId, isOrderCancelled } from '../../src/lib/utils/cancelledOrdersCache';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DEFAULT_RADIUS_KM = 50;
@@ -156,6 +156,19 @@ export default function ProviderDashboard() {
   const [providerCoords, setProviderCoords] = useState<{ lat: number; lon: number; radius: number } | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
+  // Vérifier si une commande pending est expirée (> 4 minutes)
+  const isPendingOrderExpired = (createdAt: string | null | undefined): boolean => {
+    if (!createdAt) return false;
+
+    let createdAtStr = createdAt;
+    if (!createdAtStr.endsWith('Z') && !createdAtStr.includes('+')) {
+      createdAtStr = createdAtStr.replace(' ', 'T') + 'Z';
+    }
+
+    const elapsed = Math.floor((Date.now() - new Date(createdAtStr).getTime()) / 1000);
+    return elapsed >= 240; // 4 minutes
+  };
+
   const handleUpdateLocation = async () => {
     hapticFeedback.medium();
     setIsUpdatingLocation(true);
@@ -205,8 +218,17 @@ export default function ProviderDashboard() {
       setUnreadNotifications(notifCount);
 
       const validOrders = (ordersData || []).filter((order: any) => {
+        // Exclure les commandes annulées
         if (order.cancelled_at || order.status === 'cancelled') return false;
+
+        // Exclure les commandes dans le cache des annulations
+        if (isOrderCancelled(order.id)) return false;
+
         if (order.status === 'pending') {
+          // Exclure les commandes pending expirées (> 4 minutes)
+          if (isPendingOrderExpired(order.created_at)) return false;
+
+          // Vérifier la zone géographique
           if (providerCoords) {
             const orderLat = order.client_latitude || order.latitude;
             const orderLon = order.client_longitude || order.longitude;
@@ -216,6 +238,8 @@ export default function ProviderDashboard() {
           }
           return true;
         }
+
+        // Pour les commandes non-pending, vérifier qu'elles ont un provider_id
         if (!order.provider_id) return false;
         return true;
       });

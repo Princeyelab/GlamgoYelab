@@ -25,19 +25,6 @@ class PriceCalculator
     const DISTANCE_FEE_PER_KM = 2; // Legacy: 2 MAD/km après 5km
     const FREE_DISTANCE_KM = 5;    // Legacy: rayon gratuit par défaut
 
-    /**
-     * Calculer le prix complet avec breakdown détaillé
-     *
-     * @param array $params [
-     *   'service_id' => int,
-     *   'formula_type' => string,
-     *   'scheduled_time' => string (datetime),
-     *   'duration_hours' => int (optionnel),
-     *   'distance_km' => float (optionnel),
-     *   'quantity' => int (optionnel, défaut 1)
-     * ]
-     * @return array Prix détaillé avec breakdown
-     */
     public static function calculate(array $params): array
     {
         $db = Database::getInstance();
@@ -53,6 +40,7 @@ class PriceCalculator
         $durationHours = $params['duration_hours'] ?? 1;
         $distanceKm = $params['distance_km'] ?? 0;
         $quantity = $params['quantity'] ?? 1;
+        $customBasePrice = isset($params['base_price']) ? floatval($params['base_price']) : null;
 
         // Récupérer le service
         $stmt = $db->prepare("
@@ -68,7 +56,8 @@ class PriceCalculator
             return ['success' => false, 'error' => 'Service non trouvé'];
         }
 
-        $basePrice = floatval($service['price']);
+        // Utiliser le basePrice fourni en paramètre ou celui du service
+        $basePrice = isset($params['base_price']) ? floatval($params['base_price']) : floatval($service['price']);
 
         // Vérifier si la formule est autorisée (basée sur la catégorie)
         $categoryName = strtolower($service['category_name'] ?? '');

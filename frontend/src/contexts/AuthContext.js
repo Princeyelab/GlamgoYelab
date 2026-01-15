@@ -85,7 +85,9 @@ export function AuthProvider({ children }) {
 
     if (contextChanged) {
       console.log('[Auth] Context changed:', wasProviderPage ? 'provider' : 'client', '->', isProviderPage ? 'provider' : 'client');
-      // Reset user et recharger
+      // IMPORTANT: Mettre loading=true AVANT de reset user pour eviter la race condition
+      // qui pourrait declencher une redirection vers login
+      setLoading(true);
       setUser(null);
     }
 

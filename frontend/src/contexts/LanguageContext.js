@@ -10,6 +10,15 @@ import { de } from '../lib/translations/de';
 const SUPPORTED_LANGUAGES = ['fr', 'ar', 'en', 'es', 'de'];
 const RTL_LANGUAGES = ['ar'];
 
+// Mapping des langues vers les locales pour le formatage des dates
+const LANGUAGE_LOCALES = {
+  fr: 'fr-FR',
+  ar: 'ar-MA',
+  en: 'en-GB',
+  es: 'es-ES',
+  de: 'de-DE'
+};
+
 // Traductions
 const translations = {
   fr: {
@@ -144,6 +153,9 @@ const translations = {
     'providerNotificationDropdown.serviceCompletedMsg': 'La prestation #{orderNum} a été marquée comme terminée.',
     'providerNotificationDropdown.paymentReceivedMsg': 'Vous avez reçu un paiement de {amount} MAD pour la commande #{orderNum}.',
     'providerNotificationDropdown.reviewReceivedMsg': 'Un client vous a donné {stars} étoiles.',
+    'providerNotificationDropdown.missedOrder': 'Commande manquée',
+    'providerNotificationDropdown.missedOrderMsg': 'Vous n\'avez pas répondu à temps et la commande a été attribuée à un autre prestataire.',
+    'providerNotificationDropdown.newBookingMsg': 'Vous avez une nouvelle réservation.',
 
     // Provider Priority Badge
     'providerPriority.loading': 'Chargement...',
@@ -726,6 +738,9 @@ const translations = {
     'card.from': 'À partir de',
     'card.bookNow': 'Réserver',
 
+    // Service Card
+    'serviceCard.customService': 'Exclusif',
+
     // Price Breakdown
     'price.calculating': 'Calcul du prix...',
     'price.calculationError': 'Erreur de calcul',
@@ -751,6 +766,24 @@ const translations = {
     'price.commission': 'Commission GlamGo',
     'price.totalToPay': 'Total à payer',
     'price.providerEarnings': 'Revenu prestataire',
+
+    // Guest Selector (Chef multi-invités)
+    'guestSelector.numberOfPeople': 'Nombre de personnes',
+    'guestSelector.perPerson': '/pers',
+    'guestSelector.person': 'personne',
+    'guestSelector.people': 'personnes',
+    'guestSelector.totalServicePrice': 'Prix total service',
+    'guestSelector.chefInfo': 'Le chef préparera un menu personnalisé pour {count} personne(s)',
+
+    // Pack Selector (Coach)
+    'packSelector.chooseProgram': 'Choisissez votre programme',
+    'packSelector.pack': 'Pack',
+    'packSelector.sessions': 'séances',
+    'packSelector.popular': 'POPULAIRE',
+    'packSelector.selectedProgram': 'Programme sélectionné',
+    'packSelector.pricePerSession': 'Prix par séance',
+    'packSelector.totalPrice': 'Prix total',
+    'packSelector.info': 'Minimum 4 séances pour un suivi personnalisé efficace. Les séances sont valables 3 mois.',
     'price.nightService': 'Service de nuit (22h - 6h)',
 
     // Distance Fee Modal
@@ -883,6 +916,7 @@ const translations = {
     'ordersPage.cancelSuccess': 'Commande annulée avec succès',
     'ordersPage.cancelError': "Erreur lors de l'annulation",
     'ordersPage.notPlanned': 'Non planifié',
+    'ordersPage.searchingNewProvider': 'Recherche d\'un nouveau prestataire...',
 
     // Order Detail Page
     'orderDetail.title': 'Détails de la commande',
@@ -1034,6 +1068,7 @@ const translations = {
     'status.pending': 'En attente',
     'status.accepted': 'Acceptée',
     'status.on_way': 'En route',
+    'status.arrived': 'Arrivé',
     'status.in_progress': 'En cours',
     'status.completed_pending_review': 'En attente d\'évaluation',
     'status.completed': 'Terminée',
@@ -1545,6 +1580,8 @@ const translations = {
     'providerDashboard.unavailableWarning': 'Vous ne recevrez pas de nouvelles commandes tant que vous êtes indisponible.',
     'providerDashboard.myServices': 'Mes services',
     'providerDashboard.manageServicesRates': 'Gérez vos services et tarifs',
+    'providerDashboard.customServices': 'Services Personnalisés',
+    'providerDashboard.createCustomServices': 'Créez vos services uniques',
     'providerDashboard.myProfile': 'Mon profil',
     'providerDashboard.editInfo': 'Modifiez vos informations',
     'providerDashboard.availableOrders': 'Commandes disponibles',
@@ -1573,9 +1610,17 @@ const translations = {
     'providerDashboard.notes': 'Notes',
     'providerDashboard.accept': 'Accepter',
     'providerDashboard.accepting': 'Acceptation...',
+    'providerDashboard.refuse': 'Refuser',
+    'providerDashboard.refusing': 'Refus...',
+    'providerDashboard.orderRefused': 'Commande refusée',
+    'providerDashboard.errorRefusing': 'Erreur lors du refus',
     'providerDashboard.selectedByClient': 'Sélectionné par le client',
     'providerDashboard.onTheWay': 'En route',
     'providerDashboard.starting': 'Démarrage...',
+    'providerDashboard.imArrived': 'Je suis arrivé',
+    'providerDashboard.arriving': 'Marquage...',
+    'providerDashboard.arrivedSuccessfully': 'Arrivée signalée ! Le client va confirmer.',
+    'providerDashboard.errorArriving': 'Erreur lors du signalement d\'arrivée',
     'providerDashboard.cannotProvide': 'Je ne peux pas assurer',
     'providerDashboard.waitingClientConfirmation': 'En attente de confirmation client',
     'providerDashboard.serviceInProgress': 'Service en cours...',
@@ -1761,6 +1806,75 @@ const translations = {
     'providerServices.requiresDiploma': 'Diplôme requis',
     'providerServices.servicesSynced': 'Services synchronisés avec succès !',
 
+    // Custom Services (Provider)
+    'customServices.title': 'Services Personnalisés',
+    'customServices.subtitle': '{count}/10 services créés',
+    'customServices.loading': 'Chargement...',
+    'customServices.createService': 'Créer un service personnalisé',
+    'customServices.emptyTitle': 'Aucun service personnalisé',
+    'customServices.emptyDescription': 'Créez vos propres services avec vos tarifs et durées personnalisés',
+    'customServices.createFirstService': 'Créer mon premier service',
+    'customServices.active': 'Actif',
+    'customServices.inactive': 'Inactif',
+    'customServices.activate': 'Activer',
+    'customServices.deactivate': 'Désactiver',
+    'customServices.edit': 'Modifier',
+    'customServices.delete': 'Supprimer',
+    'customServices.modalTitleEdit': 'Modifier le service',
+    'customServices.modalTitleNew': 'Nouveau service personnalisé',
+    'customServices.serviceName': 'Nom du service',
+    'customServices.serviceNamePlaceholder': 'Ex: Maquillage express',
+    'customServices.category': 'Catégorie',
+    'customServices.price': 'Prix (MAD)',
+    'customServices.duration': 'Durée (minutes)',
+    'customServices.description': 'Description',
+    'customServices.descriptionPlaceholder': 'Décrivez votre service...',
+    'customServices.photos': 'Photos (max 5)',
+    'customServices.cancel': 'Annuler',
+    'customServices.saving': 'Enregistrement...',
+    'customServices.update': 'Mettre à jour',
+    'customServices.create': 'Créer',
+    'customServices.confirmDelete': 'Êtes-vous sûr de vouloir supprimer ce service ?',
+    'customServices.deleteSuccess': 'Service supprimé avec succès',
+    'customServices.deleteError': 'Erreur lors de la suppression',
+    'customServices.updateSuccess': 'Service mis à jour avec succès',
+    'customServices.createSuccess': 'Service créé avec succès',
+    'customServices.nameRequired': 'Le nom du service est requis',
+    'customServices.priceRequired': 'Le prix doit être supérieur à 0',
+    'customServices.maxImages': 'Maximum 5 images par service',
+    'customServices.loadError': 'Erreur lors du chargement des services',
+    'customServices.updateError': 'Erreur lors de la mise à jour',
+    'customServices.createError': 'Erreur lors de la création',
+
+    // Modal de commande refusée
+    'refusedOrderModal.title': 'Prestataire non disponible',
+    'refusedOrderModal.message': 'Le prestataire que vous avez sélectionné n\'est malheureusement pas disponible.',
+    'refusedOrderModal.subMessage': 'Souhaitez-vous réserver avec un autre prestataire disponible ?',
+    'refusedOrderModal.rebookButton': 'Réserver avec un autre prestataire',
+    'refusedOrderModal.cancelButton': 'Non merci',
+    'refusedOrderModal.info': 'Votre commande restera disponible pour d\'autres prestataires à proximité.',
+
+    // Chatbot Yamina
+    'chatbot.name': 'Yamina',
+    'chatbot.online': 'En ligne',
+    'chatbot.placeholder': 'Écrivez votre message...',
+    'chatbot.greeting1': 'Bonjour ! Je suis Yamina, votre assistante GlamGo. Comment puis-je vous aider aujourd\'hui ?',
+    'chatbot.greeting2': 'Bienvenue sur GlamGo ! Je suis Yamina, je suis là pour répondre à vos questions.',
+    'chatbot.greeting3': 'Salut ! Je suis Yamina, comment puis-je vous assister ?',
+    'chatbot.services': 'Nous proposons une large gamme de services de beauté à domicile : coiffure, maquillage, manucure, soins du visage, massages et bien plus encore ! Consultez notre page Services pour découvrir toutes nos prestations.',
+    'chatbot.booking': 'Pour réserver un service, c\'est simple :\n1. Choisissez un service dans notre catalogue\n2. Sélectionnez une date et une heure\n3. Confirmez votre adresse\n4. Validez votre réservation\n\nUn prestataire proche de chez vous sera assigné à votre demande !',
+    'chatbot.pricing': 'Nos tarifs varient selon le service choisi. Vous pouvez consulter les prix sur chaque fiche service. Les frais de déplacement sont calculés automatiquement en fonction de la distance.',
+    'chatbot.provider': 'Vous souhaitez devenir prestataire GlamGo ? Rendez-vous sur notre page d\'inscription prestataire pour rejoindre notre équipe de professionnels de la beauté !',
+    'chatbot.payment': 'Nous acceptons plusieurs moyens de paiement : carte bancaire, paiement mobile (Wave, Orange Money) et paiement en espèces. Le paiement est sécurisé et effectué après la prestation.',
+    'chatbot.cancel': 'Vous pouvez annuler votre réservation jusqu\'à 2 heures avant le rendez-vous sans frais. Pour annuler, rendez-vous dans \'Mes commandes\' et cliquez sur \'Annuler\'.',
+    'chatbot.contact': 'Pour nous contacter, vous pouvez :\n- Utiliser ce chat\n- Envoyer un email à support@glamgo.com\n- Nous appeler au +221 XX XXX XX XX\n\nNotre équipe est disponible 7j/7 de 8h à 22h.',
+    'chatbot.default': 'Je ne suis pas sûre de comprendre votre demande. Voici ce que je peux vous aider avec :\n\n• Nos services\n• Comment réserver\n• Les tarifs\n• Devenir prestataire\n• Les moyens de paiement\n• Annuler une commande\n• Nous contacter\n\nN\'hésitez pas à reformuler votre question !',
+    'chatbot.quick.services': 'Vos services',
+    'chatbot.quick.booking': 'Comment réserver ?',
+    'chatbot.quick.pricing': 'Les tarifs',
+    'chatbot.quick.provider': 'Devenir prestataire',
+    'chatbot.quick.payment': 'Moyens de paiement',
+
     // Provider Onboarding
     'providerOnboarding.title': 'Vos services',
     'providerOnboarding.subtitle': 'Sélectionnez les services que vous proposez. Vous pourrez modifier cette liste plus tard.',
@@ -1880,6 +1994,7 @@ const translations = {
     'terms.section5Item1': 'Annulation gratuite jusqu\'à 24h avant le rendez-vous',
     'terms.section5Item2': 'Frais d\'annulation de 50% entre 24h et 2h avant',
     'terms.section5Item3': 'Aucun remboursement pour annulation moins de 2h avant',
+    'terms.section5Item4': 'Retard du Prestataire de plus de 15 minutes après l\'heure fixée → annulation sans pénalité pour le Client',
     'terms.section6Title': '6. Responsabilités',
     'terms.section6Content': 'GlamGo agit en tant qu\'intermédiaire et n\'est pas responsable de la qualité des prestations effectuées par les prestataires indépendants.',
     'terms.section7Title': '7. Protection des Données',
@@ -2177,6 +2292,9 @@ const translations = {
     'providerNotificationDropdown.serviceCompletedMsg': 'تم وضع علامة "منتهية" على الخدمة #{orderNum}.',
     'providerNotificationDropdown.paymentReceivedMsg': 'استلمت دفعة بقيمة {amount} درهم للطلب #{orderNum}.',
     'providerNotificationDropdown.reviewReceivedMsg': 'أعطاك عميل {stars} نجوم.',
+    'providerNotificationDropdown.missedOrder': 'طلب فائت',
+    'providerNotificationDropdown.missedOrderMsg': 'لم ترد في الوقت المحدد وتم تخصيص الطلب لمقدم خدمة آخر.',
+    'providerNotificationDropdown.newBookingMsg': 'لديك حجز جديد.',
 
     // Provider Priority Badge
     'providerPriority.loading': 'جاري التحميل...',
@@ -2759,6 +2877,9 @@ const translations = {
     'card.from': 'ابتداءً من',
     'card.bookNow': 'احجز الآن',
 
+    // Service Card
+    'serviceCard.customService': 'حصري',
+
     // Price Breakdown
     'price.calculating': 'جاري حساب السعر...',
     'price.calculationError': 'خطأ في الحساب',
@@ -2784,6 +2905,24 @@ const translations = {
     'price.commission': 'عمولة GlamGo',
     'price.totalToPay': 'المبلغ الإجمالي',
     'price.providerEarnings': 'إيرادات مقدم الخدمة',
+
+    // Guest Selector (Chef multi-invités)
+    'guestSelector.numberOfPeople': 'عدد الأشخاص',
+    'guestSelector.perPerson': '/شخص',
+    'guestSelector.person': 'شخص',
+    'guestSelector.people': 'أشخاص',
+    'guestSelector.totalServicePrice': 'السعر الإجمالي للخدمة',
+    'guestSelector.chefInfo': 'سيقوم الشيف بإعداد قائمة مخصصة لـ {count} شخص',
+
+    // Pack Selector (Coach)
+    'packSelector.chooseProgram': 'اختر برنامجك',
+    'packSelector.pack': 'باقة',
+    'packSelector.sessions': 'جلسات',
+    'packSelector.popular': 'الأكثر شعبية',
+    'packSelector.selectedProgram': 'البرنامج المختار',
+    'packSelector.pricePerSession': 'السعر لكل جلسة',
+    'packSelector.totalPrice': 'السعر الإجمالي',
+    'packSelector.info': 'الحد الأدنى 4 جلسات لمتابعة شخصية فعالة. الجلسات صالحة لمدة 3 أشهر.',
     'price.nightService': 'خدمة ليلية (22:00 - 6:00)',
 
     // Distance Fee Modal
@@ -2916,6 +3055,7 @@ const translations = {
     'ordersPage.cancelSuccess': 'تم إلغاء الطلب بنجاح',
     'ordersPage.cancelError': 'خطأ أثناء الإلغاء',
     'ordersPage.notPlanned': 'غير مخطط',
+    'ordersPage.searchingNewProvider': 'جاري البحث عن مقدم خدمة جديد...',
 
     // Order Detail Page
     'orderDetail.title': 'تفاصيل الطلب',
@@ -3067,6 +3207,7 @@ const translations = {
     'status.pending': 'قيد الانتظار',
     'status.accepted': 'مقبول',
     'status.on_way': 'في الطريق',
+    'status.arrived': 'وصل',
     'status.in_progress': 'جاري التنفيذ',
     'status.completed_pending_review': 'في انتظار التقييم',
     'status.completed': 'مكتمل',
@@ -3579,6 +3720,8 @@ const translations = {
     'providerDashboard.unavailableWarning': 'لن تستلم طلبات جديدة طالما أنت غير متاح.',
     'providerDashboard.myServices': 'خدماتي',
     'providerDashboard.manageServicesRates': 'أدر خدماتك وأسعارك',
+    'providerDashboard.customServices': 'الخدمات المخصصة',
+    'providerDashboard.createCustomServices': 'أنشئ خدماتك الفريدة',
     'providerDashboard.myProfile': 'ملفي الشخصي',
     'providerDashboard.editInfo': 'عدّل معلوماتك',
     'providerDashboard.availableOrders': 'الطلبات المتاحة',
@@ -3607,9 +3750,17 @@ const translations = {
     'providerDashboard.notes': 'ملاحظات',
     'providerDashboard.accept': 'قبول',
     'providerDashboard.accepting': 'جاري القبول...',
+    'providerDashboard.refuse': 'رفض',
+    'providerDashboard.refusing': 'جاري الرفض...',
+    'providerDashboard.orderRefused': 'تم رفض الطلب',
+    'providerDashboard.errorRefusing': 'خطأ أثناء الرفض',
     'providerDashboard.selectedByClient': 'تم اختياره من قبل العميل',
     'providerDashboard.onTheWay': 'في الطريق',
     'providerDashboard.starting': 'جاري البدء...',
+    'providerDashboard.imArrived': 'لقد وصلت',
+    'providerDashboard.arriving': 'جاري الإشارة...',
+    'providerDashboard.arrivedSuccessfully': 'تم الإبلاغ عن الوصول! سيؤكد العميل.',
+    'providerDashboard.errorArriving': 'خطأ أثناء الإبلاغ عن الوصول',
     'providerDashboard.cannotProvide': 'لا أستطيع تقديم الخدمة',
     'providerDashboard.waitingClientConfirmation': 'في انتظار تأكيد العميل',
     'providerDashboard.serviceInProgress': 'الخدمة جارية...',
@@ -3795,6 +3946,76 @@ const translations = {
     'providerServices.addWithDiploma': 'إضافة الخدمة',
     'providerServices.requiresDiploma': 'شهادة مطلوبة',
     'providerServices.servicesSynced': 'تم مزامنة الخدمات بنجاح!',
+
+    // Custom Services (Provider)
+    'customServices.title': 'خدمات مخصصة',
+    'customServices.subtitle': '{count}/10 خدمات تم إنشاؤها',
+    'customServices.loading': 'جاري التحميل...',
+    'customServices.createService': 'إنشاء خدمة مخصصة',
+    'customServices.emptyTitle': 'لا توجد خدمات مخصصة',
+    'customServices.emptyDescription': 'أنشئ خدماتك الخاصة بأسعارك ومدتك المخصصة',
+    'customServices.createFirstService': 'إنشاء خدمتي الأولى',
+    'customServices.active': 'نشط',
+    'customServices.inactive': 'غير نشط',
+    'customServices.activate': 'تفعيل',
+    'customServices.deactivate': 'إلغاء التفعيل',
+    'customServices.edit': 'تعديل',
+    'customServices.delete': 'حذف',
+    'customServices.modalTitleEdit': 'تعديل الخدمة',
+    'customServices.modalTitleNew': 'خدمة مخصصة جديدة',
+    'customServices.serviceName': 'اسم الخدمة',
+    'customServices.serviceNamePlaceholder': 'مثال: مكياج سريع',
+    'customServices.category': 'الفئة',
+    'customServices.price': 'السعر (درهم)',
+    'customServices.duration': 'المدة (دقائق)',
+    'customServices.description': 'الوصف',
+    'customServices.descriptionPlaceholder': 'صف خدمتك...',
+    'customServices.photos': 'الصور (5 كحد أقصى)',
+    'customServices.cancel': 'إلغاء',
+    'customServices.saving': 'جاري الحفظ...',
+    'customServices.update': 'تحديث',
+    'customServices.create': 'إنشاء',
+    'customServices.confirmDelete': 'هل أنت متأكد من حذف هذه الخدمة؟',
+    'customServices.deleteSuccess': 'تم حذف الخدمة بنجاح',
+    'customServices.deleteError': 'خطأ في حذف الخدمة',
+    'customServices.updateSuccess': 'تم تحديث الخدمة بنجاح',
+    'customServices.createSuccess': 'تم إنشاء الخدمة بنجاح',
+    'customServices.nameRequired': 'اسم الخدمة مطلوب',
+    'customServices.priceRequired': 'السعر يجب أن يكون أكبر من 0',
+    'customServices.maxImages': '5 صور كحد أقصى لكل خدمة',
+    'customServices.loadError': 'خطأ في تحميل الخدمات',
+    'customServices.updateError': 'خطأ في تحديث الخدمة',
+    'customServices.createError': 'خطأ في إنشاء الخدمة',
+
+    // Modal de commande refusée
+    'refusedOrderModal.title': 'مقدم الخدمة غير متاح',
+    'refusedOrderModal.message': 'مقدم الخدمة الذي اخترته غير متاح للأسف.',
+    'refusedOrderModal.subMessage': 'هل تود الحجز مع مقدم خدمة آخر متاح؟',
+    'refusedOrderModal.rebookButton': 'الحجز مع مقدم خدمة آخر',
+    'refusedOrderModal.cancelButton': 'لا شكراً',
+    'refusedOrderModal.info': 'طلبك سيظل متاحاً لمقدمي خدمات آخرين بالقرب منك.',
+
+    // Chatbot Yamina
+    'chatbot.name': 'يامينة',
+    'chatbot.online': 'متصلة',
+    'chatbot.placeholder': 'اكتب رسالتك...',
+    'chatbot.greeting1': 'مرحباً! أنا يامينة، مساعدتك في GlamGo. كيف يمكنني مساعدتك اليوم؟',
+    'chatbot.greeting2': 'أهلاً بك في GlamGo! أنا يامينة، أنا هنا للإجابة على أسئلتك.',
+    'chatbot.greeting3': 'مرحباً! أنا يامينة، كيف يمكنني مساعدتك؟',
+    'chatbot.services': 'نقدم مجموعة واسعة من خدمات التجميل في المنزل: تصفيف الشعر، المكياج، العناية بالأظافر، العناية بالبشرة، التدليك وأكثر من ذلك! تصفح صفحة الخدمات لاكتشاف جميع عروضنا.',
+    'chatbot.booking': 'للحجز، الأمر بسيط:\n1. اختر خدمة من كتالوجنا\n2. حدد التاريخ والوقت\n3. أكد عنوانك\n4. أكد حجزك\n\nسيتم تعيين مقدم خدمة قريب منك لطلبك!',
+    'chatbot.pricing': 'تختلف أسعارنا حسب الخدمة المختارة. يمكنك الاطلاع على الأسعار في كل صفحة خدمة. يتم حساب رسوم التنقل تلقائياً بناءً على المسافة.',
+    'chatbot.provider': 'هل تريد أن تصبح مقدم خدمة في GlamGo؟ توجه إلى صفحة تسجيل مقدمي الخدمات للانضمام إلى فريقنا من محترفي التجميل!',
+    'chatbot.payment': 'نقبل عدة طرق دفع: البطاقة البنكية، الدفع عبر الهاتف (Wave، Orange Money) والدفع نقداً. الدفع آمن ويتم بعد تقديم الخدمة.',
+    'chatbot.cancel': 'يمكنك إلغاء حجزك حتى ساعتين قبل الموعد بدون رسوم. للإلغاء، توجه إلى \'طلباتي\' وانقر على \'إلغاء\'.',
+    'chatbot.contact': 'للتواصل معنا، يمكنك:\n- استخدام هذه المحادثة\n- إرسال بريد إلكتروني إلى support@glamgo.com\n- الاتصال بنا على +221 XX XXX XX XX\n\nفريقنا متاح 7 أيام/7 من 8 صباحاً إلى 10 مساءً.',
+    'chatbot.default': 'لست متأكدة من فهم طلبك. إليك ما يمكنني مساعدتك به:\n\n• خدماتنا\n• كيفية الحجز\n• الأسعار\n• أن تصبح مقدم خدمة\n• طرق الدفع\n• إلغاء طلب\n• التواصل معنا\n\nلا تتردد في إعادة صياغة سؤالك!',
+    'chatbot.quick.services': 'خدماتكم',
+    'chatbot.quick.booking': 'كيف أحجز؟',
+    'chatbot.quick.pricing': 'الأسعار',
+    'chatbot.quick.provider': 'أصبح مقدم خدمة',
+    'chatbot.quick.payment': 'طرق الدفع',
+
     // Provider Onboarding
     'providerOnboarding.title': 'خدماتك',
     'providerOnboarding.subtitle': 'اختر الخدمات التي تقدمها. يمكنك تعديل هذه القائمة لاحقاً.',
@@ -3950,6 +4171,7 @@ const translations = {
     'terms.section5Item1': 'إلغاء مجاني حتى 24 ساعة قبل الموعد',
     'terms.section5Item2': 'رسوم إلغاء 50% بين 24 و2 ساعة قبل الموعد',
     'terms.section5Item3': 'لا يوجد استرداد للإلغاء قبل أقل من ساعتين',
+    'terms.section5Item4': 'تأخر مقدم الخدمة أكثر من 15 دقيقة بعد الموعد المحدد ← إلغاء بدون غرامة للعميل',
     'terms.section6Title': '6. المسؤوليات',
     'terms.section6Content': 'تعمل GlamGo كوسيط وليست مسؤولة عن جودة الخدمات التي يقدمها مقدمو الخدمات المستقلون.',
     'terms.section7Title': '7. حماية البيانات',
@@ -4186,6 +4408,9 @@ export function LanguageProvider({ children }) {
     return await translateObject(obj, keys, language.toUpperCase());
   }, [language]);
 
+  // Locale pour le formatage des dates
+  const locale = LANGUAGE_LOCALES[language] || 'fr-FR';
+
   const contextValue = useMemo(() => ({
     language,
     setLanguage,
@@ -4195,6 +4420,7 @@ export function LanguageProvider({ children }) {
     t,
     isRTL,
     isLoaded,
+    locale, // Locale pour le formatage des dates
     translations: translations[language],
     // Fonctions de formatage des chiffres
     toArabicNumerals,
@@ -4203,7 +4429,7 @@ export function LanguageProvider({ children }) {
     translateDynamic,
     translateDynamicBatch,
     translateDynamicObject
-  }), [language, toggleLanguage, t, isRTL, isLoaded, toArabicNumerals, formatNumber, translateDynamic, translateDynamicBatch, translateDynamicObject]);
+  }), [language, toggleLanguage, t, isRTL, isLoaded, locale, toArabicNumerals, formatNumber, translateDynamic, translateDynamicBatch, translateDynamicObject]);
 
   // Ne pas rendre les enfants tant que la langue n'est pas chargée depuis localStorage
   // Cela évite le flash de contenu en français quand l'utilisateur a choisi l'arabe

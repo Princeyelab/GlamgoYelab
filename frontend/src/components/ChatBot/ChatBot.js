@@ -2,63 +2,23 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { FaComments, FaTimes, FaPaperPlane, FaRobot } from 'react-icons/fa';
+import { useLanguage } from '@/contexts/LanguageContext';
 import styles from './ChatBot.module.scss';
 
-// Réponses prédéfinies du chatbot
-const botResponses = {
-  greeting: [
-    "Bonjour ! Je suis l'assistant GlamGo. Comment puis-je vous aider aujourd'hui ?",
-    "Bienvenue sur GlamGo ! Je suis là pour répondre à vos questions.",
-    "Salut ! Comment puis-je vous assister ?"
-  ],
-  services: [
-    "Nous proposons une large gamme de services de beauté à domicile : coiffure, maquillage, manucure, soins du visage, massages et bien plus encore ! Consultez notre page Services pour découvrir toutes nos prestations.",
-  ],
-  booking: [
-    "Pour réserver un service, c'est simple :\n1. Choisissez un service dans notre catalogue\n2. Sélectionnez une date et une heure\n3. Confirmez votre adresse\n4. Validez votre réservation\n\nUn prestataire proche de chez vous sera assigné à votre demande !",
-  ],
-  pricing: [
-    "Nos tarifs varient selon le service choisi. Vous pouvez consulter les prix sur chaque fiche service. Les frais de déplacement sont calculés automatiquement en fonction de la distance.",
-  ],
-  provider: [
-    "Vous souhaitez devenir prestataire GlamGo ? Rendez-vous sur notre page d'inscription prestataire pour rejoindre notre équipe de professionnels de la beauté !",
-  ],
-  payment: [
-    "Nous acceptons plusieurs moyens de paiement : carte bancaire, paiement mobile (Wave, Orange Money) et paiement en espèces. Le paiement est sécurisé et effectué après la prestation.",
-  ],
-  cancel: [
-    "Vous pouvez annuler votre réservation jusqu'à 2 heures avant le rendez-vous sans frais. Pour annuler, rendez-vous dans 'Mes commandes' et cliquez sur 'Annuler'.",
-  ],
-  contact: [
-    "Pour nous contacter, vous pouvez :\n- Utiliser ce chat\n- Envoyer un email à support@glamgo.com\n- Nous appeler au +221 XX XXX XX XX\n\nNotre équipe est disponible 7j/7 de 8h à 22h.",
-  ],
-  default: [
-    "Je ne suis pas sûr de comprendre votre demande. Voici ce que je peux vous aider avec :\n\n• Nos services\n• Comment réserver\n• Les tarifs\n• Devenir prestataire\n• Les moyens de paiement\n• Annuler une commande\n• Nous contacter\n\nN'hésitez pas à reformuler votre question !",
-  ]
-};
-
-// Mots-clés pour détecter l'intention
+// Mots-clés pour détecter l'intention (multilingue)
 const intentKeywords = {
-  greeting: ['bonjour', 'salut', 'hello', 'hi', 'bonsoir', 'coucou', 'hey'],
-  services: ['service', 'prestation', 'proposez', 'offrez', 'catalogue', 'coiffure', 'maquillage', 'manucure', 'massage'],
-  booking: ['réserver', 'commander', 'prendre rendez-vous', 'rdv', 'réservation', 'comment faire'],
-  pricing: ['prix', 'tarif', 'coût', 'combien', 'cher', 'frais'],
-  provider: ['prestataire', 'travailler', 'rejoindre', 'devenir', 'inscription pro'],
-  payment: ['payer', 'paiement', 'carte', 'wave', 'orange money', 'espèce'],
-  cancel: ['annuler', 'annulation', 'rembourser', 'remboursement'],
-  contact: ['contact', 'joindre', 'email', 'téléphone', 'appeler', 'support']
+  greeting: ['bonjour', 'salut', 'hello', 'hi', 'bonsoir', 'coucou', 'hey', 'hola', 'hallo', 'مرحبا', 'السلام'],
+  services: ['service', 'prestation', 'proposez', 'offrez', 'catalogue', 'coiffure', 'maquillage', 'manucure', 'massage', 'beauty', 'hair', 'makeup', 'nail', 'belleza', 'تجميل', 'خدمات'],
+  booking: ['réserver', 'commander', 'rendez-vous', 'rdv', 'réservation', 'comment faire', 'book', 'reservation', 'appointment', 'reservar', 'cita', 'حجز', 'موعد'],
+  pricing: ['prix', 'tarif', 'coût', 'combien', 'cher', 'frais', 'price', 'cost', 'how much', 'precio', 'coste', 'سعر', 'تكلفة'],
+  provider: ['prestataire', 'travailler', 'rejoindre', 'devenir', 'inscription pro', 'provider', 'become', 'join', 'work', 'proveedor', 'مقدم خدمة'],
+  payment: ['payer', 'paiement', 'carte', 'wave', 'orange money', 'espèce', 'pay', 'payment', 'card', 'cash', 'pago', 'tarjeta', 'دفع'],
+  cancel: ['annuler', 'annulation', 'rembourser', 'remboursement', 'cancel', 'refund', 'cancelar', 'إلغاء'],
+  contact: ['contact', 'joindre', 'email', 'téléphone', 'appeler', 'support', 'call', 'contactar', 'llamar', 'اتصال', 'تواصل']
 };
-
-// Suggestions rapides
-const quickReplies = [
-  "Vos services",
-  "Comment réserver ?",
-  "Les tarifs",
-  "Devenir prestataire",
-  "Moyens de paiement"
-];
 
 export default function ChatBot() {
+  const { t, isRTL } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -66,6 +26,32 @@ export default function ChatBot() {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Réponses du bot traduites
+  const getBotResponses = () => ({
+    greeting: [
+      t('chatbot.greeting1') || "Bonjour ! Je suis Yamina, votre assistante GlamGo. Comment puis-je vous aider aujourd'hui ?",
+      t('chatbot.greeting2') || "Bienvenue sur GlamGo ! Je suis Yamina, je suis là pour répondre à vos questions.",
+      t('chatbot.greeting3') || "Salut ! Je suis Yamina, comment puis-je vous assister ?"
+    ],
+    services: [t('chatbot.services') || "Nous proposons une large gamme de services de beauté à domicile."],
+    booking: [t('chatbot.booking') || "Pour réserver un service, c'est simple..."],
+    pricing: [t('chatbot.pricing') || "Nos tarifs varient selon le service choisi."],
+    provider: [t('chatbot.provider') || "Vous souhaitez devenir prestataire GlamGo ?"],
+    payment: [t('chatbot.payment') || "Nous acceptons plusieurs moyens de paiement."],
+    cancel: [t('chatbot.cancel') || "Vous pouvez annuler votre réservation jusqu'à 2 heures avant."],
+    contact: [t('chatbot.contact') || "Pour nous contacter..."],
+    default: [t('chatbot.default') || "Je ne suis pas sûre de comprendre votre demande."]
+  });
+
+  // Suggestions rapides traduites
+  const getQuickReplies = () => [
+    t('chatbot.quick.services') || "Vos services",
+    t('chatbot.quick.booking') || "Comment réserver ?",
+    t('chatbot.quick.pricing') || "Les tarifs",
+    t('chatbot.quick.provider') || "Devenir prestataire",
+    t('chatbot.quick.payment') || "Moyens de paiement"
+  ];
 
   // Scroll automatique vers le dernier message
   const scrollToBottom = () => {
@@ -101,6 +87,7 @@ export default function ChatBot() {
 
   // Obtenir une réponse aléatoire
   const getRandomResponse = (intent) => {
+    const botResponses = getBotResponses();
     const responses = botResponses[intent] || botResponses.default;
     return responses[Math.floor(Math.random() * responses.length)];
   };
@@ -181,8 +168,8 @@ export default function ChatBot() {
                 <FaRobot />
               </div>
               <div className={styles.chatHeaderText}>
-                <h3>Assistant GlamGo</h3>
-                <p>En ligne</p>
+                <h3>{t('chatbot.name') || 'Yamina'}</h3>
+                <p>{t('chatbot.online') || 'En ligne'}</p>
               </div>
             </div>
             <button className={styles.closeButton} onClick={toggleChat}>
@@ -221,7 +208,7 @@ export default function ChatBot() {
           {/* Suggestions rapides */}
           {messages.length <= 1 && !isTyping && (
             <div className={styles.quickReplies}>
-              {quickReplies.map((reply, index) => (
+              {getQuickReplies().map((reply, index) => (
                 <button
                   key={index}
                   className={styles.quickReply}
@@ -239,7 +226,7 @@ export default function ChatBot() {
               ref={inputRef}
               type="text"
               className={styles.inputField}
-              placeholder="Écrivez votre message..."
+              placeholder={t('chatbot.placeholder') || 'Écrivez votre message...'}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}

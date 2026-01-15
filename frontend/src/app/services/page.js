@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 // Configuration de la page pour revalidation
-export const revalidate = 300; // 5 minutes
+export const revalidate = 60; // 1 minute (pour voir rapidement les changements de services personnalisés)
 
 async function ServicesContent({ searchParams }) {
   // Await searchParams (Next.js 15 requirement)

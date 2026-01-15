@@ -14,7 +14,7 @@ export default function ProviderNotificationDropdown() {
   const [loading, setLoading] = useState(false);
   const [cancellationModal, setCancellationModal] = useState({ show: false, data: null });
   const dropdownRef = useRef(null);
-  const { t, toArabicNumerals, isRTL } = useLanguage();
+  const { t, toArabicNumerals, isRTL, locale } = useLanguage();
 
   useEffect(() => {
     // S'assurer que le token provider est chargé
@@ -141,7 +141,7 @@ export default function ProviderNotificationDropdown() {
     if (diffMins < 60) return isRTL ? `منذ ${toArabicNumerals(diffMins)} ${t('common.min')}` : `Il y a ${toArabicNumerals(diffMins)} min`;
     if (diffHours < 24) return isRTL ? `منذ ${toArabicNumerals(diffHours)} س` : `Il y a ${toArabicNumerals(diffHours)}h`;
     if (diffDays < 7) return isRTL ? `منذ ${toArabicNumerals(diffDays)} ي` : `Il y a ${toArabicNumerals(diffDays)}j`;
-    return date.toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR');
+    return date.toLocaleDateString(locale);
   };
 
   const getNotificationIcon = (type) => {
@@ -161,10 +161,15 @@ export default function ProviderNotificationDropdown() {
   const translateNotificationTitle = (title) => {
     if (!title) return title;
     const titleMap = {
+      // French titles
       'Nouvelle commande disponible': t('providerNotificationDropdown.newOrderAvailable'),
       'Nouvelle commande': t('providerNotifications.newOrder'),
+      'Nouvelle réservation': t('providerNotifications.newOrder'),
+      'Nouvelle reservation': t('providerNotifications.newOrder'),
       'Prestation confirmée': t('providerNotificationDropdown.orderConfirmed'),
       'Prestation confirmee': t('providerNotificationDropdown.orderConfirmed'),
+      'Service confirmé': t('providerNotificationDropdown.orderConfirmed'),
+      'Service confirme': t('providerNotificationDropdown.orderConfirmed'),
       'Client en route': t('providerNotificationDropdown.clientOnWay'),
       'Client arrivé': t('providerNotificationDropdown.clientArrived'),
       'Client arrive': t('providerNotificationDropdown.clientArrived'),
@@ -184,6 +189,31 @@ export default function ProviderNotificationDropdown() {
       'Évaluation reçue': t('providerNotificationDropdown.reviewReceived'),
       'Evaluation reçue': t('providerNotificationDropdown.reviewReceived'),
       'Evaluation recue': t('providerNotificationDropdown.reviewReceived'),
+      'Commande manquée': t('providerNotificationDropdown.missedOrder'),
+      'Commande manquee': t('providerNotificationDropdown.missedOrder'),
+
+      // English titles (from backend)
+      'New order available': t('providerNotificationDropdown.newOrderAvailable'),
+      'New order': t('providerNotifications.newOrder'),
+      'New booking': t('providerNotifications.newOrder'),
+      'Service confirmed': t('providerNotificationDropdown.orderConfirmed'),
+      'Order confirmed': t('providerNotificationDropdown.orderConfirmed'),
+      'Client on the way': t('providerNotificationDropdown.clientOnWay'),
+      'Client on way': t('providerNotificationDropdown.clientOnWay'),
+      'Client arrived': t('providerNotificationDropdown.clientArrived'),
+      'Service in progress': t('providerNotificationDropdown.serviceInProgress'),
+      'Service completed': t('providerNotificationDropdown.serviceCompleted'),
+      'Order cancelled': t('providerNotificationDropdown.orderCancelled'),
+      'Order canceled': t('providerNotificationDropdown.orderCancelled'),
+      'Order cancelled by client': t('providerNotificationDropdown.orderCancelledByClient'),
+      'Order canceled by client': t('providerNotificationDropdown.orderCancelledByClient'),
+      'Order cancelled - Compensation': t('providerNotificationDropdown.orderCancelledWithCompensation'),
+      'Order canceled - Compensation': t('providerNotificationDropdown.orderCancelledWithCompensation'),
+      'New message': t('providerNotificationDropdown.newMessage'),
+      'Payment received': t('providerNotificationDropdown.paymentReceived'),
+      'Review received': t('providerNotificationDropdown.reviewReceived'),
+      'New review': t('providerNotificationDropdown.reviewReceived'),
+      'Missed order': t('providerNotificationDropdown.missedOrder'),
     };
     // Log pour debug
     if (!titleMap[title]) {
@@ -194,45 +224,136 @@ export default function ProviderNotificationDropdown() {
 
   // Traduire le message de notification (patterns connus)
   const translateNotificationMessage = (message) => {
-    // Pattern: nouvelle commande pour X est disponible
-    if (message.includes('nouvelle commande pour') || message.includes('Une nouvelle commande pour')) {
-      const match = message.match(/(?:nouvelle|Une nouvelle) commande pour (.+?) est disponible/i);
+    if (!message) return message;
+
+    // Pattern: nouvelle commande/réservation pour X est disponible (FR)
+    if (message.includes('nouvelle commande pour') || message.includes('Une nouvelle commande pour') ||
+        message.includes('nouvelle réservation') || message.includes('nouvelle reservation')) {
+      const match = message.match(/(?:nouvelle|Une nouvelle) (?:commande|réservation|reservation) pour (.+?) est disponible/i);
+      if (match) {
+        return t('providerNotificationDropdown.newOrderMsg', { service: match[1] });
+      }
+      // Pattern alternatif: Vous avez une nouvelle réservation
+      if (message.includes('Vous avez une nouvelle')) {
+        return t('providerNotificationDropdown.newBookingMsg');
+      }
+    }
+
+    // Pattern: new order/booking for X is available (EN)
+    if (message.includes('new order for') || message.includes('New order for') ||
+        message.includes('new booking for') || message.includes('New booking for')) {
+      const match = message.match(/[Nn]ew (?:order|booking) for (.+?) is available/i);
       if (match) {
         return t('providerNotificationDropdown.newOrderMsg', { service: match[1] });
       }
     }
-    // Pattern: commande confirmée
-    if (message.includes('a été confirmée') || message.includes('a ete confirmee')) {
+
+    // Pattern: You have a new booking (EN)
+    if (message.includes('You have a new booking') || message.includes('You have a new order')) {
+      return t('providerNotificationDropdown.newBookingMsg');
+    }
+
+    // Pattern: commande confirmée (FR)
+    if (message.includes('a été confirmée') || message.includes('a ete confirmee') ||
+        message.includes('client a confirmé') || message.includes('client a confirme')) {
       const orderNum = message.match(/#(\d+)/)?.[1];
       return t('providerNotificationDropdown.orderConfirmedMsg', { orderNum: orderNum || '' });
     }
-    // Pattern: client en route
+
+    // Pattern: order confirmed (EN)
+    if (message.includes('has been confirmed') || message.includes('client confirmed') ||
+        message.includes('The client confirmed')) {
+      const orderNum = message.match(/#(\d+)/)?.[1];
+      return t('providerNotificationDropdown.orderConfirmedMsg', { orderNum: orderNum || '' });
+    }
+
+    // Pattern: client en route (FR)
     if (message.includes('client est en route') || message.includes('Le client est en route')) {
       return t('providerNotificationDropdown.clientOnWayMsg');
     }
-    // Pattern: client arrivé
+
+    // Pattern: client on the way (EN)
+    if (message.includes('client is on the way') || message.includes('The client is on the way') ||
+        message.includes('client is on their way')) {
+      return t('providerNotificationDropdown.clientOnWayMsg');
+    }
+
+    // Pattern: client arrivé (FR)
     if (message.includes('client est arrivé') || message.includes('client est arrive') || message.includes('Le client est arrivé')) {
       return t('providerNotificationDropdown.clientArrivedMsg');
     }
-    // Pattern: prestation terminée
+
+    // Pattern: client arrived (EN)
+    if (message.includes('client has arrived') || message.includes('The client has arrived') ||
+        message.includes('client arrived')) {
+      return t('providerNotificationDropdown.clientArrivedMsg');
+    }
+
+    // Pattern: prestation terminée (FR)
     if (message.includes('marquée comme terminée') || message.includes('marquee comme terminee')) {
       const orderNum = message.match(/#(\d+)/)?.[1];
       return t('providerNotificationDropdown.serviceCompletedMsg', { orderNum: orderNum || '' });
     }
-    // Pattern: paiement reçu
+
+    // Pattern: service completed (EN)
+    if (message.includes('marked as completed') || message.includes('has been completed')) {
+      const orderNum = message.match(/#(\d+)/)?.[1];
+      return t('providerNotificationDropdown.serviceCompletedMsg', { orderNum: orderNum || '' });
+    }
+
+    // Pattern: paiement reçu (FR)
     if (message.includes('reçu un paiement') || message.includes('recu un paiement')) {
       const amount = message.match(/(\d+)\s*MAD/)?.[1];
       const orderNum = message.match(/#(\d+)/)?.[1];
       return t('providerNotificationDropdown.paymentReceivedMsg', { amount: amount || '', orderNum: orderNum || '' });
     }
-    // Pattern: étoiles/évaluation
-    if (message.includes('a donné') && message.includes('étoile')) {
-      const stars = message.match(/(\d+)\s*étoile/)?.[1] || '5';
-      return t('providerNotificationDropdown.reviewReceivedMsg', { stars });
+
+    // Pattern: payment received (EN)
+    if (message.includes('received a payment') || message.includes('Payment of')) {
+      const amount = message.match(/(\d+)\s*MAD/)?.[1];
+      const orderNum = message.match(/#(\d+)/)?.[1];
+      return t('providerNotificationDropdown.paymentReceivedMsg', { amount: amount || '', orderNum: orderNum || '' });
     }
-    if (message.includes('a donne') && message.includes('etoile')) {
-      const stars = message.match(/(\d+)\s*etoile/)?.[1] || '5';
-      return t('providerNotificationDropdown.reviewReceivedMsg', { stars });
+
+    // Pattern: étoiles/évaluation (FR) - multiple formats
+    if (message.includes('étoile') || message.includes('etoile')) {
+      // Pattern: "Vous avez recu 4/5 etoiles"
+      const slashMatch = message.match(/(\d+)\/5\s*(?:étoile|etoile)/i);
+      if (slashMatch) {
+        return t('providerNotificationDropdown.reviewReceivedMsg', { stars: slashMatch[1] });
+      }
+      // Pattern: "a donné X étoiles"
+      const starsMatch = message.match(/(\d+)\s*(?:étoile|etoile)/i);
+      if (starsMatch) {
+        return t('providerNotificationDropdown.reviewReceivedMsg', { stars: starsMatch[1] });
+      }
+    }
+
+    // Pattern: stars/review (EN)
+    if (message.includes('star') || message.includes('rating')) {
+      // Pattern: "You received 4/5 stars"
+      const slashMatch = message.match(/(\d+)\/5\s*star/i);
+      if (slashMatch) {
+        return t('providerNotificationDropdown.reviewReceivedMsg', { stars: slashMatch[1] });
+      }
+      // Pattern: "gave you X stars"
+      const starsMatch = message.match(/(\d+)\s*star/i);
+      if (starsMatch) {
+        return t('providerNotificationDropdown.reviewReceivedMsg', { stars: starsMatch[1] });
+      }
+    }
+
+    // Pattern: commande manquée (FR)
+    if (message.includes("n'avez pas répondu") || message.includes("n'avez pas repondu") ||
+        message.includes('pas répondu') || message.includes('pas repondu') ||
+        message.includes('commande manquée') || message.includes('commande manquee')) {
+      return t('providerNotificationDropdown.missedOrderMsg');
+    }
+
+    // Pattern: missed order (EN)
+    if (message.includes("didn't respond") || message.includes('did not respond') ||
+        message.includes('missed order') || message.includes('order expired')) {
+      return t('providerNotificationDropdown.missedOrderMsg');
     }
 
     // Log pour debug
@@ -366,7 +487,7 @@ export default function ProviderNotificationDropdown() {
                     <span className={styles.label}>{t('providerNotificationDropdown.scheduledDate') || 'Date prévue'}</span>
                     <span className={styles.value}>
                       {cancellationModal.data.scheduled_at
-                        ? new Date(cancellationModal.data.scheduled_at).toLocaleString(isRTL ? 'ar-MA' : 'fr-FR')
+                        ? new Date(cancellationModal.data.scheduled_at).toLocaleString(locale)
                         : t('providerNotificationDropdown.notScheduled') || 'Non planifiée'}
                     </span>
                   </div>

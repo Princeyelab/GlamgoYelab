@@ -116,43 +116,12 @@ export function getCurrencyInfo(code) {
 
 /**
  * Détecter la devise selon la localisation du navigateur
+ * Note: MAD (Dirham marocain) est toujours la devise par défaut
  */
 export function detectUserCurrency() {
-  if (typeof navigator === 'undefined') return 'MAD';
-
-  const language = navigator.language || navigator.userLanguage || 'fr-MA';
-
-  // Mapping langue/pays -> devise
-  const languageToCurrency = {
-    'fr-MA': 'MAD',
-    'ar-MA': 'MAD',
-    'fr-FR': 'EUR',
-    'en-US': 'USD',
-    'en-GB': 'GBP',
-    'fr-CH': 'CHF',
-    'de-CH': 'CHF',
-    'en-CA': 'CAD',
-    'fr-CA': 'CAD',
-    'ar-AE': 'AED',
-    'ar-SA': 'SAR',
-    'fr-TN': 'TND',
-    'ar-TN': 'TND',
-    'fr-DZ': 'DZD',
-    'ar-DZ': 'DZD',
-  };
-
-  // Chercher correspondance exacte
-  if (languageToCurrency[language]) {
-    return languageToCurrency[language];
-  }
-
-  // Chercher par préfixe de langue
-  const langPrefix = language.split('-')[0];
-  if (langPrefix === 'ar') return 'MAD'; // Arabe -> MAD par défaut
-  if (langPrefix === 'fr') return 'EUR'; // Français -> EUR
-  if (langPrefix === 'en') return 'USD'; // Anglais -> USD
-
-  return 'MAD'; // Par défaut
+  // Toujours retourner MAD comme devise par défaut
+  // L'utilisateur peut changer manuellement via le sélecteur de devise
+  return 'MAD';
 }
 
 /**

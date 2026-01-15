@@ -94,6 +94,7 @@ export default function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const [isGeolocating, setIsGeolocating] = useState(false);
   const suggestionsRef = useRef(null);
 
   // Placeholder traduit
@@ -168,6 +169,86 @@ export default function AddressAutocomplete({
       console.error('Erreur Google Places:', err);
     }
   }, [isGoogleLoaded, onChange, onPlaceSelected, name]);
+
+  // Géolocalisation automatique
+  const handleGeolocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      alert(isRTL ? 'الموقع الجغرافي غير مدعوم في متصفحك' : 'La géolocalisation n\'est pas supportée par votre navigateur');
+      return;
+    }
+
+    setIsGeolocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          // Reverse geocoding avec Nominatim
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?` +
+            `lat=${latitude}&` +
+            `lon=${longitude}&` +
+            `format=json&` +
+            `addressdetails=1&` +
+            `accept-language=${isRTL ? 'ar' : 'fr'}`,
+            {
+              headers: {
+                'User-Agent': 'GlamGo-App/1.0'
+              }
+            }
+          );
+
+          if (!response.ok) throw new Error('Reverse geocoding failed');
+
+          const data = await response.json();
+          const address = data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+          // Mettre à jour le champ
+          onChange({ target: { name, value: address } });
+
+          // Notifier le parent avec les coordonnées
+          if (onPlaceSelected) {
+            onPlaceSelected({
+              address,
+              latitude,
+              longitude,
+            });
+          }
+
+          setShowSuggestions(false);
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          alert(isRTL ? 'فشل في الحصول على العنوان' : 'Impossible de récupérer l\'adresse');
+        } finally {
+          setIsGeolocating(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setIsGeolocating(false);
+
+        let errorMessage = isRTL ? 'فشل في تحديد الموقع' : 'Erreur de géolocalisation';
+
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = isRTL
+            ? 'الرجاء السماح بالوصول إلى موقعك في إعدادات المتصفح'
+            : 'Veuillez autoriser l\'accès à votre position dans les paramètres du navigateur';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = isRTL ? 'الموقع غير متاح' : 'Position indisponible';
+        } else if (error.code === error.TIMEOUT) {
+          errorMessage = isRTL ? 'انتهى الوقت المحدد' : 'Délai d\'attente dépassé';
+        }
+
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  }, [isRTL, onChange, onPlaceSelected, name]);
 
   // Recherche via OpenStreetMap Nominatim (adresses réelles)
   const searchNominatim = useCallback(async (searchText) => {
@@ -380,6 +461,15 @@ export default function AddressAutocomplete({
           required={required}
         />
         {isSearching && <span className={styles.loadingIcon}>⏳</span>}
+        <button
+          type="button"
+          onClick={handleGeolocation}
+          disabled={isGeolocating}
+          className={styles.geoButton}
+          title={isRTL ? 'استخدم موقعي الحالي' : 'Utiliser ma position actuelle'}
+        >
+          {isGeolocating ? '⏳' : '📍'}
+        </button>
       </div>
 
       {/* Liste de suggestions */}

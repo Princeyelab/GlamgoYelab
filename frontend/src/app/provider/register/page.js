@@ -726,9 +726,17 @@ export default function ProviderRegisterPage() {
                   />
                   <span className={styles.termsText}>
                     {t('register.iAccept')}{' '}
-                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className={styles.termsLink}
+                    >
                       {t('register.termsAndConditions')}
                     </button>
+                    {' '}{t('register.and')}{' '}
+                    <Link href="/privacy" target="_blank" className={styles.termsLink}>
+                      {t('register.privacyPolicy')}
+                    </Link>
                     {' '}<span className={styles.required}>*</span>
                   </span>
                 </label>

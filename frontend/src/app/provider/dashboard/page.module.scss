@@ -479,6 +479,11 @@
   color: $secondary-dark;
 }
 
+.statusArrived {
+  background-color: rgba($success, 0.1);
+  color: darken($success, 15%);
+}
+
 .statusInProgress {
   background-color: rgba($primary-color, 0.1);
   color: $primary-dark;
@@ -644,6 +649,26 @@
   }
   50% {
     box-shadow: 0 0 15px rgba(#f59e0b, 0.6);
+  }
+}
+
+// Boutons Accepter/Refuser
+.orderActionButtons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+
+  button {
+    flex: 1;
+  }
+}
+
+.refuseButton {
+  color: #dc2626 !important;
+  border-color: #dc2626 !important;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.1) !important;
   }
 }
 

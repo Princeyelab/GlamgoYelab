@@ -57,10 +57,21 @@ export const SERVICE_IMAGES = {
   'hijama': '/images/services/hijama.jpg',
 
   // Manucure / Pédicure
-  'manucure-classique': '/images/services/coiffure-classique.jpg',
-  'manucure': '/images/services/coiffure-classique.jpg',
-  'pedicure': '/images/services/coiffure-classique.jpg',
-  'manucure-pedicure': '/images/services/coiffure-classique.jpg',
+  'manucure-classique': '/images/services/manucure-classique.jpg',
+  'manucure-gel': '/images/services/manucure-gel.jpg',
+  'manucure-gel-semi-permanent': '/images/services/manucure-gel.jpg',
+  'manucure': '/images/services/manucure-classique.jpg',
+  'pedicure': '/images/services/manucure-classique.jpg',
+  'manucure-pedicure': '/images/services/manucure-classique.jpg',
+
+  // Maquillage
+  'maquillage-jour': '/images/services/maquillage-jour.jpg',
+  'maquillage-du-jour': '/images/services/maquillage-jour.jpg',
+  'maquillage-mariage': '/images/services/maquillage-mariage.jpg',
+  'maquillage': '/images/services/maquillage-jour.jpg',
+
+  // Chef à domicile (image générique)
+  'chef-domicile': '/images/services/chef-domicile.jpg',
 };
 
 /**
@@ -83,6 +94,28 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'htt
  */
 export function getServiceImageUrl(service, size = '400x300') {
   const { name, slug } = service;
+
+  // Pour les services personnalisés, utiliser leurs images uploadées
+  if (service.is_custom && service.images) {
+    // service.images peut être un tableau ou une chaîne JSON
+    let imagesArray = service.images;
+    if (typeof imagesArray === 'string') {
+      try {
+        imagesArray = JSON.parse(imagesArray);
+      } catch (e) {
+        imagesArray = [];
+      }
+    }
+    if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+      const firstImage = imagesArray[0];
+      // Si c'est une URL complète
+      if (firstImage.startsWith('http')) {
+        return firstImage;
+      }
+      // Sinon, préfixer avec l'URL du backend
+      return `${BACKEND_URL}${firstImage.startsWith('/') ? '' : '/'}${firstImage}`;
+    }
+  }
 
   // D'abord vérifier le mapping par slug
   if (slug && SERVICE_IMAGES[slug]) {

@@ -1,0 +1,163 @@
+@import '../../styles/variables';
+
+.container {
+  background-color: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  box-shadow: $shadow-sm;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.label {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-900;
+}
+
+.pricePerPerson {
+  font-size: $font-size-sm;
+  color: $primary-color;
+  font-weight: 600;
+}
+
+.stepperContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-xl;
+}
+
+.stepperButton {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: $primary-color;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $shadow-md;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: $shadow-lg;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+}
+
+.stepperButtonDisabled {
+  background-color: $gray-200;
+  cursor: not-allowed;
+
+  &:hover {
+    transform: none;
+  }
+}
+
+.stepperButtonText {
+  font-size: 28px;
+  font-weight: 600;
+  color: $white;
+  line-height: 1;
+
+  .stepperButtonDisabled & {
+    color: $gray-400;
+  }
+}
+
+.valueContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 $spacing-2xl;
+  min-width: 120px;
+}
+
+.valueText {
+  font-size: 48px;
+  font-weight: 700;
+  color: $gray-900;
+  line-height: 1;
+}
+
+.valueLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-top: 4px;
+}
+
+.totalContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-100;
+  margin-bottom: $spacing-md;
+}
+
+.totalLabel {
+  font-size: $font-size-base;
+  color: $gray-600;
+}
+
+.totalPrice {
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.infoContainer {
+  display: flex;
+  align-items: center;
+  background-color: rgba($primary-color, 0.1);
+  padding: $spacing-md;
+  border-radius: $radius-md;
+}
+
+.infoIcon {
+  font-size: 20px;
+  margin-right: $spacing-sm;
+}
+
+.infoText {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $primary-color;
+  line-height: 1.5;
+}
+
+// RTL Support
+[dir="rtl"] {
+  .header {
+    flex-direction: row-reverse;
+  }
+
+  .stepperContainer {
+    flex-direction: row-reverse;
+  }
+
+  .totalContainer {
+    flex-direction: row-reverse;
+  }
+
+  .infoContainer {
+    flex-direction: row-reverse;
+
+    .infoIcon {
+      margin-right: 0;
+      margin-left: $spacing-sm;
+    }
+  }
+}

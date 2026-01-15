@@ -800,3 +800,47 @@
     color: $white;
   }
 }
+
+// Indicateur de recherche de nouveau prestataire après refus
+.refusedIndicator {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: $radius-md;
+  padding: $spacing-xs $spacing-sm;
+  margin-top: $spacing-sm;
+  color: #92400e;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  animation: pulse 2s infinite;
+
+  @include tablet-up {
+    font-size: $font-size-sm;
+    padding: $spacing-sm $spacing-md;
+  }
+}
+
+.searchingIcon {
+  animation: spin 1.5s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

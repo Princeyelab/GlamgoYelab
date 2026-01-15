@@ -111,6 +111,81 @@ class ProviderOrderController extends Controller
     }
 
     /**
+     * Refuse une commande en attente (différent de cancel)
+     * La commande reste disponible pour d'autres prestataires
+     */
+    public function refuse(string $orderId): void
+    {
+        $providerId = $_SERVER['USER_ID'];
+        $data = $this->getJsonInput();
+        $reason = $data['reason'] ?? 'Non disponible';
+
+        $order = $this->orderModel->getDetailedOrder((int)$orderId);
+
+        if (!$order) {
+            $this->error('Commande non trouvée', 404);
+        }
+
+        // Le refus n'est possible que pour les commandes en attente
+        if ($order['status'] !== 'pending') {
+            $this->error('Seules les commandes en attente peuvent être refusées', 400);
+        }
+
+        // Récupérer les prestataires qui ont déjà refusé
+        $refusedByProviders = [];
+        if (!empty($order['refused_by_providers'])) {
+            $refusedByProviders = json_decode($order['refused_by_providers'], true) ?: [];
+        }
+
+        // Ajouter ce prestataire à la liste des refus
+        if (!in_array($providerId, $refusedByProviders)) {
+            $refusedByProviders[] = $providerId;
+        }
+
+        // Si le prestataire était pré-sélectionné, réinitialiser provider_id
+        $wasPreSelected = ($order['provider_id'] == $providerId);
+        $updateData = [
+            'refused_by_providers' => json_encode($refusedByProviders)
+        ];
+
+        if ($wasPreSelected) {
+            $updateData['provider_id'] = null;
+            // Réinitialiser le timer pour donner plus de temps aux autres prestataires
+            $updateData['created_at'] = date('Y-m-d H:i:s');
+        }
+
+        // Mettre à jour la commande
+        $this->orderModel->update((int)$orderId, $updateData);
+
+        // Notifier le client pour proposer de réserver avec un autre prestataire
+        $serviceName = $order['service_name'] ?? 'Service';
+        $this->notificationModel->createNotification([
+            'recipient_type' => 'user',
+            'recipient_id' => $order['user_id'],
+            'order_id' => (int)$orderId,
+            'notification_type' => 'order_refused',
+            'title' => 'Prestataire non disponible',
+            'message' => "Le prestataire pour {$serviceName} n'est pas disponible. Voulez-vous réserver avec un autre prestataire ?",
+            'data' => [
+                'order_id' => (int)$orderId,
+                'service_id' => $order['service_id'] ?? $order['custom_service_id'] ?? null,
+                'service_name' => $serviceName,
+                'reason' => $reason,
+                'action' => 'show_rebook_modal',
+                'vibrate' => true,
+                'priority' => 'high'
+            ]
+        ]);
+
+        error_log("[ProviderOrderController] Order #{$orderId} refused by provider #{$providerId}, still available for others");
+
+        $this->success([
+            'message' => 'Commande refusée',
+            'was_preselected' => $wasPreSelected
+        ], 'Commande refusée');
+    }
+
+    /**
      * Indique que le prestataire est en route
      */
     public function start(string $orderId): void
@@ -302,8 +377,9 @@ class ProviderOrderController extends Controller
             $this->error('Accès refusé', 403);
         }
 
-        // Seules les commandes acceptées ou en route peuvent être annulées
-        if (!in_array($order['status'], ['accepted', 'on_way'])) {
+        // Seules les commandes acceptées, en route ou arrivées peuvent être annulées
+        // (pas les commandes déjà en cours de prestation ou terminées)
+        if (!in_array($order['status'], ['accepted', 'on_way', 'arrived'])) {
             $this->error('Impossible d\'annuler cette commande', 400);
         }
 

@@ -14,6 +14,7 @@ export default function PriceBreakdown({
   durationHours = 1,
   distanceKm = 0,
   quantity = 1,
+  basePrice, // Prix de base personnalisé (pour les packs Coach par exemple)
   onPriceChange,
   className,
   compact = false,
@@ -33,11 +34,13 @@ export default function PriceBreakdown({
   }, [propBreakdown]);
 
   // Calculer via l'API quand les paramètres changent
+  // Ne pas calculer pour les services personnalisés (ID commence par "custom_")
   useEffect(() => {
-    if (!propBreakdown && serviceId) {
+    const isCustomService = serviceId && String(serviceId).startsWith('custom_');
+    if (!propBreakdown && serviceId && !isCustomService) {
       calculatePrice();
     }
-  }, [serviceId, formulaType, scheduledTime, durationHours, distanceKm, quantity]);
+  }, [serviceId, formulaType, scheduledTime, durationHours, distanceKm, quantity, basePrice]);
 
   const calculatePrice = async (retryWithStandard = false) => {
     try {
@@ -54,6 +57,11 @@ export default function PriceBreakdown({
         distance_km: distanceKm,
         quantity: quantity
       };
+
+      // Ajouter basePrice si fourni (pour les packs Coach)
+      if (basePrice) {
+        params.base_price = basePrice;
+      }
 
       const response = await apiClient.calculatePrice(params);
 
@@ -313,8 +321,8 @@ export default function PriceBreakdown({
           </span>
         </div>
 
-        {/* Commission GlamGo */}
-        <div className={`${styles.breakdownItem} ${styles.commission}`}>
+        {/* Commission GlamGo - MASQUÉ pour aligner sur mobile */}
+        {/* <div className={`${styles.breakdownItem} ${styles.commission}`}>
           <div className={styles.itemLabel}>
             <span className={styles.itemIcon}>🏷️</span>
             <span>{t('price.commission')} ({breakdown.commission_rate})</span>
@@ -322,7 +330,7 @@ export default function PriceBreakdown({
           <span className={styles.itemValue}>
             <Price amount={breakdown.commission_glamgo} />
           </span>
-        </div>
+        </div> */}
 
         <div className={styles.divider}></div>
 
@@ -336,8 +344,8 @@ export default function PriceBreakdown({
           </span>
         </div>
 
-        {/* Montant prestataire */}
-        <div className={`${styles.breakdownItem} ${styles.providerRow}`}>
+        {/* Montant prestataire - MASQUÉ pour aligner sur mobile */}
+        {/* <div className={`${styles.breakdownItem} ${styles.providerRow}`}>
           <div className={styles.itemLabel}>
             <span className={styles.itemIcon}>👤</span>
             <span>{t('price.providerEarnings')}</span>
@@ -345,7 +353,7 @@ export default function PriceBreakdown({
           <span className={styles.providerValue}>
             <Price amount={breakdown.provider_amount} />
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* Indicateur nuit */}

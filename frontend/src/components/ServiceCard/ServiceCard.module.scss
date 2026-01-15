@@ -20,6 +20,7 @@
 }
 
 .imageContainer {
+  position: relative;
   width: 100%;
   border-radius: $radius-md;
   overflow: hidden;
@@ -36,6 +37,39 @@
 
   @include desktop {
     height: 200px;
+  }
+}
+
+.customBadge {
+  position: absolute;
+  top: $spacing-sm;
+  left: $spacing-sm;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #8B5CF6, #A855F7);
+  color: white;
+  font-size: 11px;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-full;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  @include tablet-up {
+    padding: 5px 12px;
+    font-size: 12px;
+    gap: 5px;
+  }
+}
+
+.customBadgeIcon {
+  font-size: 12px;
+
+  @include tablet-up {
+    font-size: 14px;
   }
 }
 
@@ -70,23 +104,51 @@
   flex-direction: column;
 }
 
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+
+  @include tablet-up {
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
+  }
+}
+
 .category {
   display: inline-block;
   font-weight: $font-weight-medium;
   background-color: rgba($secondary-color, 0.1);
   color: $secondary-dark;
   border-radius: $radius-full;
-  align-self: flex-start;
 
   // Mobile (base)
   padding: 2px $spacing-xs;
   font-size: 10px;
-  margin-bottom: $spacing-xs;
 
   @include tablet-up {
     padding: $spacing-xs $spacing-sm;
     font-size: $font-size-xs;
-    margin-bottom: $spacing-sm;
+  }
+}
+
+.providerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: $font-weight-medium;
+  background-color: rgba(#8B5CF6, 0.1);
+  color: #7C3AED;
+  border-radius: $radius-full;
+
+  // Mobile (base)
+  padding: 2px $spacing-xs;
+  font-size: 10px;
+
+  @include tablet-up {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
   }
 }
 

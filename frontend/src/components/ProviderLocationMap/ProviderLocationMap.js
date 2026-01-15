@@ -9,11 +9,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
  * Composant pour le client : Visualiser la position du prestataire en temps réel
  * La carte iframe est masquée par défaut pour éviter les problèmes de scroll
  */
-export default function ProviderLocationMap({ orderId, clientAddress, clientLat, clientLng }) {
+export default function ProviderLocationMap({ orderId, clientAddress, clientLat, clientLng, providerName, providerAvatar, uploadsBaseUrl }) {
   const { t, isRTL, toArabicNumerals } = useLanguage();
   const [providerLocation, setProviderLocation] = useState(null);
   const [mapUrl, setMapUrl] = useState(null);
-  const [showMap, setShowMap] = useState(false); // Carte masquée par défaut
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -24,15 +23,26 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
   const clientLngNum = clientLng ? parseFloat(clientLng) : null;
 
   const updateMapUrl = useCallback((lat, lng) => {
-    let centerLat = lat;
-    let centerLng = lng;
-
-    if (clientLatNum && clientLngNum) {
-      centerLat = (lat + clientLatNum) / 2;
-      centerLng = (lng + clientLngNum) / 2;
+    if (!clientLatNum || !clientLngNum) {
+      // Si pas de position client, centrer sur le prestataire
+      const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`;
+      setMapUrl(url);
+      return;
     }
 
-    const url = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng - 0.02},${centerLat - 0.02},${centerLng + 0.02},${centerLat + 0.02}&layer=mapnik&marker=${lat},${lng}`;
+    // Calculer le centre entre prestataire et client
+    const centerLat = (lat + clientLatNum) / 2;
+    const centerLng = (lng + clientLngNum) / 2;
+
+    // Calculer la distance pour ajuster le zoom
+    const latDiff = Math.abs(lat - clientLatNum);
+    const lngDiff = Math.abs(lng - clientLngNum);
+    const maxDiff = Math.max(latDiff, lngDiff);
+
+    // Ajuster le bbox pour inclure les deux points avec un padding
+    const padding = maxDiff * 0.5 + 0.005; // Ajouter 50% + minimum padding
+
+    const url = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng - padding},${centerLat - padding},${centerLng + padding},${centerLat + padding}&layer=mapnik&marker=${lat},${lng}`;
     setMapUrl(url);
   }, [clientLatNum, clientLngNum]);
 
@@ -59,10 +69,8 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
           setLastUpdate(new Date());
           setError('');
 
-          // Mettre à jour l'URL de la carte seulement si elle est affichée
-          if (showMap) {
-            updateMapUrl(newLat, newLng);
-          }
+          // Mettre à jour l'URL de la carte
+          updateMapUrl(newLat, newLng);
         } else {
           setError(t('gps.providerNotShared'));
         }
@@ -76,7 +84,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
         setLoading(false);
       }
     }
-  }, [orderId, showMap, updateMapUrl, t]);
+  }, [orderId, updateMapUrl, t]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -93,12 +101,12 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
     };
   }, [fetchProviderLocation]);
 
-  // Générer l'URL de la carte quand on l'affiche
+  // Générer l'URL de la carte dès qu'on a la position du prestataire
   useEffect(() => {
-    if (showMap && providerLocation) {
+    if (providerLocation) {
       updateMapUrl(providerLocation.lat, providerLocation.lng);
     }
-  }, [showMap, providerLocation, updateMapUrl]);
+  }, [providerLocation, updateMapUrl]);
 
   const calculateDistance = () => {
     if (!providerLocation || !clientLatNum || !clientLngNum) return null;
@@ -121,7 +129,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
   const toRad = (value) => (value * Math.PI) / 180;
 
   const formatDistance = (distanceKm) => {
-    if (!distanceKm) return 'N/A';
+    if (distanceKm === null || distanceKm === undefined) return 'N/A';
     if (distanceKm < 1) {
       return `${toArabicNumerals(Math.round(distanceKm * 1000))} m`;
     }
@@ -129,7 +137,7 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
   };
 
   const estimatedTime = (distanceKm) => {
-    if (!distanceKm) return 'N/A';
+    if (distanceKm === null || distanceKm === undefined) return 'N/A';
     const hours = distanceKm / 30;
     const minutes = Math.round(hours * 60);
     if (minutes < 1) return `< ${toArabicNumerals(1)} ${t('common.min')}`;
@@ -154,10 +162,6 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
     if (!providerLocation || !clientLatNum || !clientLngNum) return;
     const url = `https://www.google.com/maps/dir/${providerLocation.lat},${providerLocation.lng}/${clientLatNum},${clientLngNum}`;
     window.open(url, '_blank');
-  };
-
-  const handleToggleMap = () => {
-    setShowMap(prev => !prev);
   };
 
   const distance = calculateDistance();
@@ -224,7 +228,64 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
         </div>
       )}
 
-      {/* Coordonnées du prestataire */}
+      {/* Carte en temps réel avec badges */}
+      <div className={styles.visualMap}>
+        {/* Carte OpenStreetMap en arrière-plan */}
+        {mapUrl && (
+          <div className={styles.realMapContainer}>
+            <iframe
+              src={mapUrl}
+              className={styles.realMapIframe}
+              frameBorder="0"
+              scrolling="no"
+              title="Carte en temps réel"
+              loading="lazy"
+            />
+
+            {/* Overlay avec badges par-dessus la carte */}
+            <div className={styles.mapOverlayBadges}>
+              {/* Badge Prestataire flottant */}
+              <div className={styles.floatingProviderBadge}>
+                <div className={styles.badgeIcon}>
+                  {providerAvatar && uploadsBaseUrl ? (
+                    <img
+                      src={`${uploadsBaseUrl}${providerAvatar}`}
+                      alt={providerName || t('gps.provider')}
+                      className={styles.badgeAvatarImg}
+                    />
+                  ) : (
+                    <div className={styles.badgeAvatarPlaceholder}>
+                      {providerName?.charAt(0)?.toUpperCase() || '🚗'}
+                    </div>
+                  )}
+                </div>
+                <div className={styles.badgeLabel}>{providerName || t('gps.provider')}</div>
+                <div className={styles.badgePulse}></div>
+              </div>
+
+              {/* Info distance au centre */}
+              {distance !== null && (
+                <div className={styles.centerDistanceInfo}>
+                  <div className={styles.distanceBox}>
+                    <div className={styles.distanceValue}>{formatDistance(distance)}</div>
+                    <div className={styles.etaValue}>{estimatedTime(distance)}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Badge Client flottant */}
+              {clientLatNum && clientLngNum && (
+                <div className={styles.floatingClientBadge}>
+                  <div className={styles.badgeIcon}>🏠</div>
+                  <div className={styles.badgeLabel}>{t('gps.you')}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Coordonnées détaillées */}
       <div className={styles.mapOverlay}>
         <div className={styles.locationCards}>
           <div className={styles.locationCard}>
@@ -246,30 +307,6 @@ export default function ProviderLocationMap({ orderId, clientAddress, clientLat,
           )}
         </div>
       </div>
-
-      {/* Bouton pour afficher/masquer la carte */}
-      <div className={styles.mapToggle}>
-        <button onClick={handleToggleMap} className={styles.toggleButton}>
-          🗺️ {showMap ? t('gps.hideMap') : t('gps.showMap')}
-        </button>
-      </div>
-
-      {/* Carte iframe - affichée seulement si showMap est true */}
-      {showMap && (
-        <div className={styles.mapWrapper}>
-          {mapUrl && (
-            <iframe
-              src={mapUrl}
-              className={styles.mapIframe}
-              frameBorder="0"
-              scrolling="no"
-              title={t('gps.provider')}
-              loading="lazy"
-              tabIndex="-1"
-            />
-          )}
-        </div>
-      )}
 
       <div className={styles.mapActions}>
         <button onClick={openInGoogleMaps} className={styles.mapButton}>

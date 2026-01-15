@@ -468,6 +468,46 @@ class ApiClient {
     return this.delete(`/provider/services/${serviceId}`);
   }
 
+  // Custom Services
+  async getCustomServices() {
+    return this.get('/provider/custom-services');
+  }
+
+  async createCustomService(data) {
+    return this.post('/provider/custom-services', data);
+  }
+
+  async updateCustomService(serviceId, data) {
+    return this.put(`/provider/custom-services/${serviceId}`, data);
+  }
+
+  async deleteCustomService(serviceId) {
+    return this.delete(`/provider/custom-services/${serviceId}`);
+  }
+
+  async uploadCustomServiceImages(serviceId, formData) {
+    try {
+      const headers = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+      // Ne pas mettre Content-Type - le navigateur le gère avec FormData
+      const response = await fetch(`${this.baseURL}/provider/custom-services/${serviceId}/images`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Custom service images upload error:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async deleteCustomServiceImage(serviceId, imageIndex) {
+    return this.delete(`/provider/custom-services/${serviceId}/images/${imageIndex}`);
+  }
+
   async getProviderOrders() {
     return this.get('/provider/orders');
   }
@@ -486,6 +526,10 @@ class ApiClient {
 
   async beginProviderOrder(orderId) {
     return this.patch(`/provider/orders/${orderId}/begin`);
+  }
+
+  async arriveProviderOrder(orderId) {
+    return this.patch(`/provider/orders/${orderId}/arrive`);
   }
 
   async completeProviderOrder(orderId) {
@@ -747,7 +791,7 @@ ApiClient.prototype.getProviderPayments = async function() {
  * @returns {Promise}
  */
 ApiClient.prototype.getProviderEarnings = async function(period = 'month') {
-  return this.get(`/payments/provider/earnings?period=${period}`);
+  return this.get(`/provider/payment/earnings?period=${period}`);
 };
 
 /**
@@ -755,7 +799,18 @@ ApiClient.prototype.getProviderEarnings = async function(period = 'month') {
  * @returns {Promise}
  */
 ApiClient.prototype.getProviderTransactions = async function() {
-  return this.get('/payments/provider/transactions');
+  // Les transactions sont incluses dans getProviderEarnings
+  const result = await this.get('/provider/payment/earnings?period=month');
+  if (result.success && result.data) {
+    return {
+      success: true,
+      data: {
+        transactions: result.data.recent_transactions || [],
+        count: result.data.recent_transactions?.length || 0
+      }
+    };
+  }
+  return result;
 };
 
 /**
@@ -912,6 +967,18 @@ ApiClient.prototype.completeServiceAsProvider = async function(orderId) {
  */
 ApiClient.prototype.cancelOrderAsProvider = async function(orderId, data) {
   return this.post(`/provider/orders/${orderId}/cancel`, data);
+};
+
+/**
+ * (Prestataire) Refuser une commande en attente
+ * La commande sera réassignée à un autre prestataire
+ * @param {number} orderId - ID de la commande
+ * @param {Object} data - Données de refus
+ * @param {string} data.reason - Raison du refus (optionnel)
+ * @returns {Promise}
+ */
+ApiClient.prototype.refuseProviderOrder = async function(orderId, data = {}) {
+  return this.post(`/provider/orders/${orderId}/refuse`, data);
 };
 
 /**

@@ -19,7 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
-  const { t, isRTL, toArabicNumerals } = useLanguage();
+  const { t, isRTL, toArabicNumerals, locale } = useLanguage();
   const [provider, setProvider] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,14 +90,27 @@ export default function ProviderDashboardPage() {
     const timestamp = order.pending_since || order.created_at;
     if (!timestamp) return 240; // Si pas de timestamp, afficher temps plein
 
-    const created = new Date(timestamp);
+    // Normaliser le timestamp pour gérer les problèmes de timezone
+    // Si le timestamp n'a pas de 'Z' ou de timezone, on assume UTC
+    let normalizedTimestamp = timestamp;
+    if (typeof timestamp === 'string' && !timestamp.includes('Z') && !timestamp.includes('+')) {
+      normalizedTimestamp = timestamp + 'Z';
+    }
+
+    const created = new Date(normalizedTimestamp);
     const now = new Date();
     const elapsed = Math.floor((now - created) / 1000);
 
     // Debug: afficher dans console si problème
     if (elapsed < 0) {
-      console.warn('Timer: elapsed time negative, possible timezone issue', { timestamp, elapsed });
-      return 240;
+      console.warn('Timer: elapsed time negative, timezone issue detected', { timestamp, normalizedTimestamp, elapsed });
+      return 240; // Afficher temps plein si le calcul donne un résultat négatif
+    }
+
+    // Si elapsed est trop grand (> 10 minutes), c'est probablement une vieille commande
+    // ou un problème de timezone - on affiche quand même le temps restant (peut être 0)
+    if (elapsed > 600) {
+      console.warn('Timer: very old order or timezone issue', { timestamp, elapsed });
     }
 
     return Math.max(0, 240 - elapsed);
@@ -110,11 +123,9 @@ export default function ProviderDashboardPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Vérifier si une commande est expirée (désactivé pour l'instant - le backend gère l'expiration)
+  // Vérifier si une commande est expirée (4 minutes écoulées)
   const isOrderExpired = (order) => {
-    // Désactivé temporairement - laisser le backend gérer l'expiration
-    // return calculateRemainingTime(order) <= 0;
-    return false;
+    return calculateRemainingTime(order) <= 0;
   };
 
   const checkAuth = async () => {
@@ -192,6 +203,16 @@ export default function ProviderDashboardPage() {
       const response = await apiClient.getProviderOrders();
       if (response.success) {
         setOrders(response.data || []);
+
+        // Vérifier s'il y a encore des commandes actives
+        const hasActiveOrders = (response.data || []).some(order =>
+          ['accepted', 'on_way', 'arrived', 'in_progress'].includes(order.status)
+        );
+
+        // Fermer le modal d'erreur si plus aucune commande active
+        if (!hasActiveOrders && errorModal.show) {
+          setErrorModal({ show: false, message: '' });
+        }
       }
     } catch (err) {
       if (!silent) {
@@ -233,6 +254,23 @@ export default function ProviderDashboardPage() {
     }
   };
 
+  const handleRefuseOrder = async (orderId) => {
+    setActionLoading(prev => ({ ...prev, [`refuse_${orderId}`]: true }));
+    try {
+      const response = await apiClient.refuseProviderOrder(orderId);
+      if (response.success) {
+        showToast(t('providerDashboard.orderRefused') || 'Commande refusée', 'info');
+        fetchOrders();
+      } else {
+        showToast(response.message || t('providerDashboard.errorRefusing') || 'Erreur lors du refus', 'error');
+      }
+    } catch (err) {
+      showToast(err.message || t('providerDashboard.errorRefusing') || 'Erreur lors du refus', 'error');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`refuse_${orderId}`]: false }));
+    }
+  };
+
   const handleStartOrder = async (orderId) => {
     setActionLoading(prev => ({ ...prev, [`start_${orderId}`]: true }));
     try {
@@ -247,6 +285,23 @@ export default function ProviderDashboardPage() {
       showToast(err.message || t('providerDashboard.errorStarting'), 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [`start_${orderId}`]: false }));
+    }
+  };
+
+  const handleArriveOrder = async (orderId) => {
+    setActionLoading(prev => ({ ...prev, [`arrive_${orderId}`]: true }));
+    try {
+      const response = await apiClient.arriveProviderOrder(orderId);
+      if (response.success) {
+        showToast(t('providerDashboard.arrivedSuccessfully'), 'success');
+        fetchOrders();
+      } else {
+        showToast(response.message || t('providerDashboard.errorArriving'), 'error');
+      }
+    } catch (err) {
+      showToast(err.message || t('providerDashboard.errorArriving'), 'error');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`arrive_${orderId}`]: false }));
     }
   };
 
@@ -394,7 +449,6 @@ export default function ProviderDashboardPage() {
   const formatDate = (dateString) => {
     if (!dateString) return t('providerDashboard.notDefined');
     const date = new Date(dateString);
-    const locale = isRTL ? 'ar-MA' : 'fr-FR';
     return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
@@ -430,6 +484,7 @@ export default function ProviderDashboardPage() {
       pending: t('status.pending'),
       accepted: t('status.accepted'),
       on_way: t('status.on_way'),
+      arrived: t('status.arrived'),
       in_progress: t('status.in_progress'),
       completed_pending_review: t('status.completed_pending_review'),
       completed: t('status.completed'),
@@ -443,6 +498,7 @@ export default function ProviderDashboardPage() {
       pending: styles.statusPending,
       accepted: styles.statusAccepted,
       on_way: styles.statusOnWay,
+      arrived: styles.statusArrived,
       in_progress: styles.statusInProgress,
       completed_pending_review: styles.statusPendingReview,
       completed: styles.statusCompleted,
@@ -461,8 +517,8 @@ export default function ProviderDashboardPage() {
       return !isOrderExpired(order);
     }
     if (activeTab === 'active') {
-      // Inclure aussi completed_pending_review car la commande est toujours "active" cote prestataire
-      return ['accepted', 'on_way', 'in_progress', 'completed_pending_review'].includes(order.status);
+      // Inclure aussi arrived et completed_pending_review car la commande est toujours "active" cote prestataire
+      return ['accepted', 'on_way', 'arrived', 'in_progress', 'completed_pending_review'].includes(order.status);
     }
     if (activeTab === 'completed') {
       return order.status === 'completed';
@@ -559,6 +615,13 @@ export default function ProviderDashboardPage() {
                 <p>{t('providerDashboard.manageServicesRates')}</p>
               </div>
             </Link>
+            <Link href="/provider/custom-services" className={styles.quickActionCard}>
+              <div className={styles.quickActionIcon}>🎨</div>
+              <div className={styles.quickActionContent}>
+                <h3>{t('providerDashboard.customServices') || 'Services Personnalisés'}</h3>
+                <p>{t('providerDashboard.createCustomServices') || 'Créez vos services uniques'}</p>
+              </div>
+            </Link>
             <Link href="/provider/profile" className={styles.quickActionCard}>
               <div className={styles.quickActionIcon}>👤</div>
               <div className={styles.quickActionContent}>
@@ -571,7 +634,7 @@ export default function ProviderDashboardPage() {
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={styles.statValue}>
-                {toArabicNumerals(orders.filter(o => o.status === 'pending' && (!o.provider_id || o.provider_id == provider?.id)).length)}
+                {toArabicNumerals(orders.filter(o => o.status === 'pending' && (!o.provider_id || o.provider_id == provider?.id) && !isOrderExpired(o)).length)}
               </div>
               <div className={styles.statLabel}>{t('providerDashboard.availableOrders')}</div>
             </div>
@@ -746,14 +809,25 @@ export default function ProviderDashboardPage() {
                               ⭐ {t('providerDashboard.selectedByClient') || 'Sélectionné par le client'}
                             </div>
                           )}
-                          <Button
-                            variant="primary"
-                            size="small"
-                            onClick={() => handleAcceptOrder(order.id)}
-                            disabled={actionLoading[`accept_${order.id}`]}
-                          >
-                            {actionLoading[`accept_${order.id}`] ? t('providerDashboard.accepting') : t('providerDashboard.accept')}
-                          </Button>
+                          <div className={styles.orderActionButtons}>
+                            <Button
+                              variant="primary"
+                              size="small"
+                              onClick={() => handleAcceptOrder(order.id)}
+                              disabled={actionLoading[`accept_${order.id}`]}
+                            >
+                              {actionLoading[`accept_${order.id}`] ? t('providerDashboard.accepting') : t('providerDashboard.accept')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="small"
+                              onClick={() => handleRefuseOrder(order.id)}
+                              disabled={actionLoading[`refuse_${order.id}`]}
+                              className={styles.refuseButton}
+                            >
+                              {actionLoading[`refuse_${order.id}`] ? t('providerDashboard.refusing') || 'Refus...' : t('providerDashboard.refuse') || 'Refuser'}
+                            </Button>
+                          </div>
                         </>
                       )}
                       {order.status === 'accepted' && (
@@ -784,6 +858,33 @@ export default function ProviderDashboardPage() {
                         </>
                       )}
                       {order.status === 'on_way' && (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="small"
+                            onClick={() => handleArriveOrder(order.id)}
+                            disabled={actionLoading[`arrive_${order.id}`]}
+                          >
+                            {actionLoading[`arrive_${order.id}`] ? t('providerDashboard.arriving') : t('providerDashboard.imArrived')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="small"
+                            onClick={() => setSelectedOrderForChat(order)}
+                          >
+                            Chat
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="small"
+                            onClick={() => openCancelModal(order)}
+                            className={styles.cancelBtn}
+                          >
+                            {t('providerDashboard.cannotProvide')}
+                          </Button>
+                        </>
+                      )}
+                      {order.status === 'arrived' && (
                         <>
                           <div className={styles.waitingClient}>
                             ⏳ {t('providerDashboard.waitingClientConfirmation')}
@@ -847,7 +948,7 @@ export default function ProviderDashboardPage() {
                           </div>
                           {order.cancelled_at && (
                             <div className={styles.cancelledDate}>
-                              📅 {new Date(order.cancelled_at).toLocaleString(isRTL ? 'ar-MA' : 'fr-FR')}
+                              📅 {new Date(order.cancelled_at).toLocaleString(locale)}
                             </div>
                           )}
                           {order.cancellation_reason && (

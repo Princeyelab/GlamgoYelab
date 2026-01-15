@@ -24,6 +24,8 @@ export default function ServiceCard({ service }) {
     duration_minutes,
     image,
     image_url,
+    is_custom,
+    provider_name,
   } = service;
 
   const [imageError, setImageError] = useState(false);
@@ -70,6 +72,12 @@ export default function ServiceCard({ service }) {
   return (
     <Link href={`/services/${id}`} className={styles.serviceCard} prefetch={true}>
       <div className={styles.imageContainer}>
+        {is_custom && (
+          <div className={styles.customBadge}>
+            <span className={styles.customBadgeIcon}>✨</span>
+            <span>{t('serviceCard.customService')}</span>
+          </div>
+        )}
         {imageError ? (
           <div className={styles.imagePlaceholder}>
             <span>🛠️</span>
@@ -85,7 +93,14 @@ export default function ServiceCard({ service }) {
       </div>
 
       <div className={styles.content}>
-        {translatedCategory && <span className={styles.category}>{translatedCategory}</span>}
+        <div className={styles.badges}>
+          {translatedCategory && <span className={styles.category}>{translatedCategory}</span>}
+          {is_custom && provider_name && (
+            <span className={styles.providerBadge}>
+              👤 {provider_name}
+            </span>
+          )}
+        </div>
 
         <h3 className={styles.title}>{translatedName}</h3>
 

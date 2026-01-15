@@ -42,7 +42,7 @@ export default function ProviderCard({
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const { currency } = useCurrency();
-  const { t, toArabicNumerals, isRTL } = useLanguage();
+  const { t, toArabicNumerals, isRTL, locale } = useLanguage();
 
   // Réinitialiser le prix dynamique quand la formule change
   useEffect(() => {
@@ -169,7 +169,7 @@ export default function ProviderCard({
   const formatReviewDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString(isRTL ? 'ar-MA' : 'fr-FR', {
+    return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric'

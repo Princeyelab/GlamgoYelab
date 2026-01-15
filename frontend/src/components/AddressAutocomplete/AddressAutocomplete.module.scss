@@ -25,13 +25,52 @@
 
 .input {
   padding-left: $spacing-2xl !important;
+  padding-right: 60px !important;
 }
 
 .loadingIcon {
   position: absolute;
-  right: $spacing-sm;
+  right: 60px;
   font-size: $font-size-base;
   animation: spin 1s linear infinite;
+}
+
+.geoButton {
+  position: absolute;
+  right: $spacing-sm;
+  background: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: $radius-md;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-lg;
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  z-index: 2;
+
+  &:hover:not(:disabled) {
+    background: darken($primary-color, 10%);
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.3);
+  }
 }
 
 @keyframes spin {
