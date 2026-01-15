@@ -192,10 +192,16 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       if (response.success) {
         setService(response.data);
       } else {
-        setError(t('bookingPage.serviceNotFound'));
+        // Service non trouvé, rediriger vers la liste des services
+        console.warn('Service not found, redirecting to services page');
+        router.replace('/services');
+        return;
       }
     } catch (err) {
-      setError(err.message || t('bookingPage.serviceNotFound'));
+      // En cas d'erreur (404, etc.), rediriger vers la liste des services
+      console.warn('Error fetching service, redirecting to services page:', err.message);
+      router.replace('/services');
+      return;
     } finally {
       setLoading(false);
     }
