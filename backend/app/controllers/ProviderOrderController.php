@@ -159,6 +159,13 @@ class ProviderOrderController extends Controller
 
         // Notifier le client pour proposer de réserver avec un autre prestataire
         $serviceName = $order['service_name'] ?? 'Service';
+
+        // Déterminer le bon ID de service pour la redirection
+        $isCustomService = !empty($order['custom_service_id']);
+        $bookingServiceId = $isCustomService
+            ? 'custom_' . $order['custom_service_id']
+            : ($order['service_id'] ?? null);
+
         $this->notificationModel->createNotification([
             'recipient_type' => 'user',
             'recipient_id' => $order['user_id'],
@@ -168,7 +175,8 @@ class ProviderOrderController extends Controller
             'message' => "Le prestataire pour {$serviceName} n'est pas disponible. Voulez-vous réserver avec un autre prestataire ?",
             'data' => [
                 'order_id' => (int)$orderId,
-                'service_id' => $order['service_id'] ?? $order['custom_service_id'] ?? null,
+                'service_id' => $bookingServiceId,
+                'is_custom_service' => $isCustomService,
                 'service_name' => $serviceName,
                 'reason' => $reason,
                 'action' => 'show_rebook_modal',
