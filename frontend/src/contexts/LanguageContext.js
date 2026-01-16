@@ -4373,7 +4373,7 @@ export function LanguageProvider({ children }) {
 
   // Fonction de traduction (clés statiques)
   const t = useCallback((key, params = {}) => {
-    let text = translations[language][key] || translations['fr'][key] || key;
+    let text = translations[language]?.[key] || translations['fr']?.[key] || key;
 
     // Remplacer les paramètres {param}
     Object.keys(params).forEach(param => {
