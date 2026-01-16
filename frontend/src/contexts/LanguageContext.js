@@ -1588,7 +1588,6 @@ const translations = {
     'providerDashboard.activeOrders': 'Commandes actives',
     'providerDashboard.completedOrders': 'Commandes terminées',
     'providerDashboard.yourEarnings': 'Vos revenus',
-    'providerDashboard.viewDetails': 'Voir détails',
     'providerDashboard.averageRating': 'Note moyenne',
     'providerDashboard.tabAvailable': 'Disponibles',
     'providerDashboard.tabActive': 'En cours',
@@ -3729,7 +3728,6 @@ const translations = {
     'providerDashboard.activeOrders': 'الطلبات النشطة',
     'providerDashboard.completedOrders': 'الطلبات المنتهية',
     'providerDashboard.yourEarnings': 'أرباحك',
-    'providerDashboard.viewDetails': 'عرض التفاصيل',
     'providerDashboard.averageRating': 'متوسط التقييم',
     'providerDashboard.tabAvailable': 'المتاحة',
     'providerDashboard.tabActive': 'الجارية',
@@ -4304,8 +4302,8 @@ const translations = {
   },
   // Import translations from external files
   en,
-  es: en, // TEMP: Test if ES translations cause issue
-  de: en  // TEMP: Test if DE translations cause issue
+  es,
+  de
 };
 
 const LanguageContext = createContext();
@@ -4314,8 +4312,6 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('fr');
   const [isRTL, setIsRTL] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  // Note: Auto-translation for static keys removed to avoid infinite loops
-  // Use translateDynamic() for database content translation
 
   // Charger la langue sauvegardée
   useEffect(() => {
@@ -4375,16 +4371,9 @@ export function LanguageProvider({ children }) {
     return formatted;
   }, [language]);
 
-  // Fonction de traduction (clés statiques uniquement)
-  // Pour le contenu dynamique (BDD), utiliser translateDynamic() ou translateDynamicBatch()
+  // Fonction de traduction (clés statiques)
   const t = useCallback((key, params = {}) => {
-    // 1. Vérifier si traduction statique existe pour la langue
-    let text = translations[language]?.[key];
-
-    // 2. Fallback sur français ou clé
-    if (!text) {
-      text = translations['fr']?.[key] || key;
-    }
+    let text = translations[language][key] || translations['fr'][key] || key;
 
     // Remplacer les paramètres {param}
     Object.keys(params).forEach(param => {
@@ -4419,26 +4408,28 @@ export function LanguageProvider({ children }) {
     return await translateObject(obj, keys, language.toUpperCase());
   }, [language]);
 
-  // Locale pour le formatage des dates - TEMP: always fr-FR to test
-  const locale = 'fr-FR'; // LANGUAGE_LOCALES[language] || 'fr-FR';
+  // Locale pour le formatage des dates
+  const locale = LANGUAGE_LOCALES[language] || 'fr-FR';
 
-  // TEMP: Minimal context for debugging infinite loop
   const contextValue = useMemo(() => ({
     language,
     setLanguage,
     changeLanguage,
-    toggleLanguage: () => {}, // TEMP: no-op
+    toggleLanguage,
     supportedLanguages: SUPPORTED_LANGUAGES,
     t,
     isRTL,
     isLoaded,
-    locale: 'fr-FR',
-    toArabicNumerals: (v) => String(v),
-    formatNumber: (v) => String(v),
-    translateDynamic: async (t) => t,
-    translateDynamicBatch: async (t) => t,
-    translateDynamicObject: async (o) => o
-  }), [language, t, isRTL, isLoaded, changeLanguage]);
+    locale, // Locale pour le formatage des dates
+    translations: translations[language],
+    // Fonctions de formatage des chiffres
+    toArabicNumerals,
+    formatNumber,
+    // Nouvelles fonctions de traduction dynamique DeepL
+    translateDynamic,
+    translateDynamicBatch,
+    translateDynamicObject
+  }), [language, toggleLanguage, t, isRTL, isLoaded, locale, toArabicNumerals, formatNumber, translateDynamic, translateDynamicBatch, translateDynamicObject]);
 
   // Ne pas rendre les enfants tant que la langue n'est pas chargée depuis localStorage
   // Cela évite le flash de contenu en français quand l'utilisateur a choisi l'arabe
