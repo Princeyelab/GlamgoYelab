@@ -4422,25 +4422,23 @@ export function LanguageProvider({ children }) {
   // Locale pour le formatage des dates - TEMP: always fr-FR to test
   const locale = 'fr-FR'; // LANGUAGE_LOCALES[language] || 'fr-FR';
 
+  // TEMP: Minimal context for debugging infinite loop
   const contextValue = useMemo(() => ({
     language,
     setLanguage,
     changeLanguage,
-    toggleLanguage,
+    toggleLanguage: () => {}, // TEMP: no-op
     supportedLanguages: SUPPORTED_LANGUAGES,
     t,
     isRTL,
     isLoaded,
-    locale, // Locale pour le formatage des dates
-    // translations: translations[language], // TEMP: disabled to test
-    // Fonctions de formatage des chiffres
-    toArabicNumerals,
-    formatNumber
-    // TEMP: Disabled dynamic translation functions
-    // translateDynamic,
-    // translateDynamicBatch,
-    // translateDynamicObject
-  }), [language, toggleLanguage, t, isRTL, isLoaded, locale, toArabicNumerals, formatNumber]);
+    locale: 'fr-FR',
+    toArabicNumerals: (v) => String(v),
+    formatNumber: (v) => String(v),
+    translateDynamic: async (t) => t,
+    translateDynamicBatch: async (t) => t,
+    translateDynamicObject: async (o) => o
+  }), [language, t, isRTL, isLoaded, changeLanguage]);
 
   // Ne pas rendre les enfants tant que la langue n'est pas chargée depuis localStorage
   // Cela évite le flash de contenu en français quand l'utilisateur a choisi l'arabe
