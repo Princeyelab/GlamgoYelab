@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { translateText, translateBatch, translateObject } from '../lib/translationService';
 import { en } from '../lib/translations/en';
 import { es } from '../lib/translations/es';
@@ -4314,9 +4314,8 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('fr');
   const [isRTL, setIsRTL] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [dynamicTranslations, setDynamicTranslations] = useState({});
-  const pendingTranslationsRef = useRef(new Set());
-  const [translationTrigger, setTranslationTrigger] = useState(0);
+  // Note: Auto-translation for static keys removed to avoid infinite loops
+  // Use translateDynamic() for database content translation
 
   // Charger la langue sauvegardée
   useEffect(() => {
@@ -4376,35 +4375,13 @@ export function LanguageProvider({ children }) {
     return formatted;
   }, [language]);
 
-  // Fonction de traduction (clés statiques + auto-traduction DeepL)
+  // Fonction de traduction (clés statiques uniquement)
+  // Pour le contenu dynamique (BDD), utiliser translateDynamic() ou translateDynamicBatch()
   const t = useCallback((key, params = {}) => {
     // 1. Vérifier si traduction statique existe pour la langue
     let text = translations[language]?.[key];
 
-    // 2. Si pas de traduction et langue != fr, vérifier les traductions dynamiques
-    if (!text && language !== 'fr') {
-      const dynamicKey = `${language}:${key}`;
-      if (dynamicTranslations[dynamicKey]) {
-        text = dynamicTranslations[dynamicKey];
-      } else {
-        // Obtenir le texte français à traduire
-        const frenchText = translations['fr']?.[key] || key;
-
-        // Ajouter à la queue de traduction si c'est du vrai texte (pas une clé)
-        // Utiliser ref pour ne pas déclencher de re-render
-        const itemKey = `${key}|||${frenchText}`;
-        if (frenchText !== key && !pendingTranslationsRef.current.has(itemKey)) {
-          pendingTranslationsRef.current.add(itemKey);
-          // Déclencher la traduction après un court délai (debounce)
-          setTimeout(() => setTranslationTrigger(n => n + 1), 50);
-        }
-
-        // Retourner le français en attendant
-        text = frenchText;
-      }
-    }
-
-    // 3. Fallback sur français ou clé
+    // 2. Fallback sur français ou clé
     if (!text) {
       text = translations['fr']?.[key] || key;
     }
@@ -4415,53 +4392,6 @@ export function LanguageProvider({ children }) {
     });
 
     return text;
-  }, [language, dynamicTranslations]);
-
-  // Traiter la queue de traductions automatiquement
-  useEffect(() => {
-    if (language === 'fr') return;
-    if (pendingTranslationsRef.current.size === 0) return;
-
-    const translatePending = async () => {
-      const items = Array.from(pendingTranslationsRef.current);
-      if (items.length === 0) return;
-
-      // Vider la queue immédiatement pour éviter les doublons
-      pendingTranslationsRef.current = new Set();
-
-      // Extraire les textes français à traduire
-      const textsToTranslate = items.map(item => {
-        const parts = item.split('|||');
-        return parts[1] || parts[0];
-      });
-
-      try {
-        // Traduire en batch via DeepL
-        const translatedTexts = await translateBatch(textsToTranslate, language.toUpperCase());
-
-        // Stocker les résultats
-        const newTranslations = {};
-        items.forEach((item, index) => {
-          const [key] = item.split('|||');
-          const dynamicKey = `${language}:${key}`;
-          newTranslations[dynamicKey] = translatedTexts[index];
-        });
-
-        setDynamicTranslations(prev => ({ ...prev, ...newTranslations }));
-      } catch (error) {
-        console.error('Auto-translation error:', error);
-      }
-    };
-
-    // Debounce pour regrouper les traductions
-    const timeout = setTimeout(translatePending, 200);
-    return () => clearTimeout(timeout);
-  }, [translationTrigger, language]);
-
-  // Vider les traductions dynamiques quand la langue change
-  useEffect(() => {
-    setDynamicTranslations({});
-    pendingTranslationsRef.current = new Set();
   }, [language]);
 
   // Traduction dynamique avec DeepL (pour contenu de la BDD)
