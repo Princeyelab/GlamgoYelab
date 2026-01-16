@@ -14,7 +14,7 @@ export default function ProviderLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   // Récupérer l'URL de redirection depuis les paramètres
   const redirectUrl = searchParams.get('redirect') || '/provider/dashboard';
@@ -111,8 +111,6 @@ export default function ProviderLoginPage() {
       setLoading(false);
     }
   };
-
-  const { isRTL } = useLanguage();
 
   return (
     <div className={styles.loginPage} dir={isRTL ? 'rtl' : 'ltr'}>
