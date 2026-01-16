@@ -4342,10 +4342,12 @@ export function LanguageProvider({ children }) {
 
   // Changer de langue (pour le dropdown)
   const changeLanguage = useCallback((newLang) => {
+    console.log('[Language] Changing to:', newLang);
     if (SUPPORTED_LANGUAGES.includes(newLang)) {
       setLanguage(newLang);
       setIsRTL(RTL_LANGUAGES.includes(newLang));
       localStorage.setItem('glamgo_language', newLang);
+      console.log('[Language] Changed successfully to:', newLang);
     }
   }, []);
 
@@ -4380,6 +4382,18 @@ export function LanguageProvider({ children }) {
   const t = useCallback((key, params = {}) => {
     // 1. Vérifier si traduction statique existe pour la langue
     let text = translations[language]?.[key];
+
+    // Debug: log si la clé n'existe pas pour cette langue
+    if (!text && language !== 'fr') {
+      // Juste la première fois pour chaque clé
+      if (typeof window !== 'undefined' && !window._loggedKeys) {
+        window._loggedKeys = new Set();
+      }
+      if (typeof window !== 'undefined' && !window._loggedKeys.has(key)) {
+        window._loggedKeys.add(key);
+        console.log(`[t] Missing key for ${language}:`, key);
+      }
+    }
 
     // 2. Fallback sur français ou clé
     if (!text) {
