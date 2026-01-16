@@ -4304,8 +4304,8 @@ const translations = {
   },
   // Import translations from external files
   en,
-  es,
-  de
+  es: en, // TEMP: Test if ES translations cause issue
+  de: en  // TEMP: Test if DE translations cause issue
 };
 
 const LanguageContext = createContext();
