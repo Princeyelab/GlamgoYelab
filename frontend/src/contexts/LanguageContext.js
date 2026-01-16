@@ -4435,12 +4435,12 @@ export function LanguageProvider({ children }) {
     // translations: translations[language], // TEMP: disabled to test
     // Fonctions de formatage des chiffres
     toArabicNumerals,
-    formatNumber,
-    // Nouvelles fonctions de traduction dynamique DeepL
-    translateDynamic,
-    translateDynamicBatch,
-    translateDynamicObject
-  }), [language, toggleLanguage, t, isRTL, isLoaded, locale, toArabicNumerals, formatNumber, translateDynamic, translateDynamicBatch, translateDynamicObject]);
+    formatNumber
+    // TEMP: Disabled dynamic translation functions
+    // translateDynamic,
+    // translateDynamicBatch,
+    // translateDynamicObject
+  }), [language, toggleLanguage, t, isRTL, isLoaded, locale, toArabicNumerals, formatNumber]);
 
   // Ne pas rendre les enfants tant que la langue n'est pas chargée depuis localStorage
   // Cela évite le flash de contenu en français quand l'utilisateur a choisi l'arabe
