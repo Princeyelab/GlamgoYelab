@@ -4419,8 +4419,8 @@ export function LanguageProvider({ children }) {
     return await translateObject(obj, keys, language.toUpperCase());
   }, [language]);
 
-  // Locale pour le formatage des dates
-  const locale = LANGUAGE_LOCALES[language] || 'fr-FR';
+  // Locale pour le formatage des dates - TEMP: always fr-FR to test
+  const locale = 'fr-FR'; // LANGUAGE_LOCALES[language] || 'fr-FR';
 
   const contextValue = useMemo(() => ({
     language,
@@ -4432,7 +4432,7 @@ export function LanguageProvider({ children }) {
     isRTL,
     isLoaded,
     locale, // Locale pour le formatage des dates
-    translations: translations[language],
+    // translations: translations[language], // TEMP: disabled to test
     // Fonctions de formatage des chiffres
     toArabicNumerals,
     formatNumber,
