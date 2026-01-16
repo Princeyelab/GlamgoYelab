@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import styles from './NearbyProvidersList.module.scss';
 import ProviderCard from '@/components/ProviderCard';
@@ -40,7 +40,33 @@ export default function NearbyProvidersList({
   const [sortBy, setSortBy] = useState('distance');
   const [showMap, setShowMap] = useState(true);
   const [radius, setRadius] = useState(15); // 15km = rayon d'intervention gratuit
+  const [localRadius, setLocalRadius] = useState(15); // Pour le slider (UI immédiate)
+  const debounceRef = useRef(null);
   const { t, toArabicNumerals } = useLanguage();
+
+  // Debounce le changement de rayon pour éviter trop de requêtes
+  const handleRadiusChange = useCallback((newRadius) => {
+    setLocalRadius(newRadius);
+
+    // Annuler le timer précédent
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    // Déclencher la recherche après 300ms
+    debounceRef.current = setTimeout(() => {
+      setRadius(newRadius);
+    }, 300);
+  }, []);
+
+  // Cleanup du debounce
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   // Géolocalisation du client
   const {
@@ -204,20 +230,26 @@ export default function NearbyProvidersList({
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label>{t('nearbyProviders.radius')}:</label>
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-            <option value={5}>5 {t('common.km')}</option>
-            <option value={10}>10 {t('common.km')}</option>
-            <option value={15}>15 {t('common.km')} (Gratuit)</option>
-            <option value={20}>20 {t('common.km')}</option>
-            <option value={30}>30 {t('common.km')}</option>
-            <option value={50}>50 {t('common.km')}</option>
-            <option value={100}>100 {t('common.km')}</option>
-            <option value={200}>200 {t('common.km')}</option>
-            <option value={300}>300 {t('common.km')}</option>
-            <option value={500}>500 {t('common.km')} (Tout le Maroc)</option>
-          </select>
+        <div className={styles.radiusSlider}>
+          <label className={styles.radiusLabel}>
+            {t('nearbyProviders.radius')}: <strong>{toArabicNumerals(localRadius)} {t('common.km')}</strong>
+            {localRadius <= 15 && <span className={styles.freeBadge}>{t('nearbyProviders.free')}</span>}
+          </label>
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min={5}
+              max={100}
+              step={5}
+              value={localRadius}
+              onChange={(e) => handleRadiusChange(Number(e.target.value))}
+              className={styles.slider}
+            />
+            <div className={styles.sliderLabels}>
+              <span>5 {t('common.km')}</span>
+              <span>100 {t('common.km')}</span>
+            </div>
+          </div>
         </div>
       </div>
 

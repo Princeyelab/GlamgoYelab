@@ -926,7 +926,7 @@ export default function OrderDetailPage() {
       )}
 
       {/* Bouton d'urgence - visible pendant la prestation active */}
-      {order && ['on_way', 'in_progress'].includes(order.status) && (
+      {order && ['on_way', 'arrived', 'in_progress'].includes(order.status) && (
         <EmergencyButton
           orderId={order.id}
           providerName={order.provider_name}

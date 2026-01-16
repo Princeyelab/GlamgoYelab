@@ -45,7 +45,8 @@ export default function ClientLayout({ children }) {
           </Suspense>
           {!isProviderPage && <Header />}
           <main>{children}</main>
-          <ChatBot />
+          {/* ChatBot temporarily disabled for debugging */}
+          {/* <ChatBot /> */}
         </CurrencyProvider>
       </AuthProvider>
     </LanguageProvider>

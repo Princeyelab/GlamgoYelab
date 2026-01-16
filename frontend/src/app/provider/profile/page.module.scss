@@ -1,21 +1,35 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
+// ============================================
+// Modern Provider Profile Page - Professional Design
+// ============================================
+
+$card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+$hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+
 .profilePage {
   min-height: 100vh;
-  background: $gray-50;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+// ============================================
+// Modern Header
+// ============================================
+
 .header {
-  background: $secondary-color;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
   padding: $spacing-md 0;
-  box-shadow: $shadow-md;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .headerContent {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 $spacing-md;
+  padding: 0 $spacing-lg;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,14 +43,22 @@
   text-decoration: none;
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
 }
 
 .providerBadge {
-  background: rgba($white, 0.2);
-  padding: 2px $spacing-xs;
-  border-radius: $radius-sm;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+  padding: 4px $spacing-sm;
+  border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .headerActions {
@@ -46,94 +68,120 @@
 }
 
 .backLink {
-  color: $white;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: rgba($white, 0.9);
   text-decoration: none;
   font-size: $font-size-sm;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  transition: all $transition-normal;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.1);
+  transition: all 0.3s ease;
 
   &:hover {
     background: rgba($white, 0.2);
+    color: $white;
+    transform: translateX(-2px);
   }
 }
 
 .logoutBtn {
-  background: rgba($white, 0.2);
-  border: none;
-  color: $white;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
   cursor: pointer;
   font-size: $font-size-sm;
-  transition: background-color $transition-normal;
+  font-weight: $font-weight-medium;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($white, 0.3);
+    background: rgba(239, 68, 68, 0.3);
+    color: #fecaca;
+    transform: translateY(-1px);
   }
 }
 
+// ============================================
+// Main Content
+// ============================================
+
 .main {
   padding: $spacing-xl 0;
-
-  @include md {
-    padding: $spacing-lg 0;
-  }
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: $spacing-lg;
+  padding-right: $spacing-lg;
 }
 
 .profileContainer {
   background: $white;
   border-radius: $radius-2xl;
-  box-shadow: $shadow-md;
-  padding: $spacing-xl;
-
-  @include md {
-    padding: $spacing-lg;
-  }
+  box-shadow: $card-shadow;
+  padding: $spacing-2xl;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .profileHeader {
-  @include flex-between;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: $spacing-xl;
   padding-bottom: $spacing-lg;
-  border-bottom: 2px solid $gray-200;
+  border-bottom: 2px solid $gray-100;
 
   h1 {
     font-size: $font-size-3xl;
     font-weight: $font-weight-bold;
     color: $black;
-
-    @include md {
-      font-size: $font-size-2xl;
-    }
+    background: linear-gradient(135deg, #1e3a5f, #2d5a87);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
+// ============================================
+// Alerts
+// ============================================
+
 .errorAlert {
-  background-color: rgba($error, 0.1);
-  border: 1px solid $error;
-  border-radius: $radius-md;
-  color: $error;
-  padding: $spacing-sm;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: $radius-xl;
+  color: #dc2626;
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
 }
 
 .successAlert {
-  background-color: rgba($success, 0.1);
-  border: 1px solid $success;
-  border-radius: $radius-md;
-  color: $success;
-  padding: $spacing-sm;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: $radius-xl;
+  color: #059669;
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
 }
 
+// ============================================
+// Loading State
+// ============================================
+
 .loading {
-  @include flex-center;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   gap: $spacing-md;
 
@@ -141,7 +189,7 @@
     width: 50px;
     height: 50px;
     border: 4px solid $gray-200;
-    border-top-color: $primary-color;
+    border-top-color: $secondary-color;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -151,11 +199,86 @@
   to { transform: rotate(360deg); }
 }
 
-// Mode affichage
+// ============================================
+// Status Banner
+// ============================================
+
+.statusBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  padding: $spacing-lg $spacing-xl;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.06);
+  margin-bottom: $spacing-xl;
+}
+
+.statusInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+
+  &.verified {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.pending {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.inactive {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+}
+
+.reviewsInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: #f59e0b;
+
+  .reviewCount {
+    font-weight: $font-weight-normal;
+    color: $gray-600;
+  }
+}
+
+// ============================================
+// Profile View Mode
+// ============================================
+
 .profileView {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: $spacing-2xl;
 }
 
 .section {
@@ -165,7 +288,18 @@
     color: $gray-800;
     margin-bottom: $spacing-lg;
     padding-bottom: $spacing-sm;
-    border-bottom: 2px solid $gray-200;
+    border-bottom: 2px solid $gray-100;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(180deg, $secondary-color, #4ECDC4);
+      border-radius: 2px;
+    }
   }
 }
 
@@ -179,12 +313,22 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
 }
 
 .label {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
-  color: $gray-600;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  color: $gray-500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -192,7 +336,7 @@
 .value {
   font-size: $font-size-base;
   color: $black;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
 }
 
 .bioSection {
@@ -205,8 +349,12 @@
 .bioText {
   font-size: $font-size-base;
   color: $gray-700;
-  line-height: 1.6;
+  line-height: 1.8;
   white-space: pre-wrap;
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .specialtiesSection,
@@ -220,24 +368,33 @@
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-xs;
+  gap: $spacing-sm;
 }
 
 .tag {
-  background: linear-gradient(135deg, rgba($primary-color, 0.1), rgba($secondary-color, 0.1));
-  color: $primary-color;
-  padding: $spacing-xs $spacing-sm;
+  background: linear-gradient(135deg, rgba($secondary-color, 0.1), rgba(78, 205, 196, 0.1));
+  color: #0d9488;
+  padding: $spacing-xs $spacing-md;
   border-radius: $radius-full;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-  border: 1px solid rgba($primary-color, 0.2);
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  border: 1px solid rgba($secondary-color, 0.2);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba($secondary-color, 0.2);
+  }
 }
 
-// Mode édition
+// ============================================
+// Profile Form / Edit Mode
+// ============================================
+
 .profileForm {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: $spacing-2xl;
 }
 
 .formSection {
@@ -247,7 +404,18 @@
     color: $gray-800;
     margin-bottom: $spacing-lg;
     padding-bottom: $spacing-sm;
-    border-bottom: 2px solid $gray-200;
+    border-bottom: 2px solid $gray-100;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(180deg, $secondary-color, #4ECDC4);
+      border-radius: 2px;
+    }
   }
 }
 
@@ -264,30 +432,32 @@
 
   label {
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
-    color: $gray-800;
+    font-weight: $font-weight-semibold;
+    color: $gray-700;
   }
 }
 
 .required {
-  color: $error;
+  color: #ef4444;
 }
 
 .input,
 .select,
 .textarea {
-  padding: $spacing-sm;
-  border: 2px solid $gray-300;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
+  padding: $spacing-md;
+  border: 2px solid $gray-200;
+  border-radius: $radius-xl;
+  font-size: $font-size-base;
   font-family: $font-family-primary;
-  transition: all $transition-normal;
+  transition: all 0.3s ease;
   width: 100%;
+  background: $gray-50;
 
   &:focus {
     outline: none;
     border-color: $secondary-color;
-    box-shadow: 0 0 0 3px rgba($secondary-color, 0.1);
+    box-shadow: 0 0 0 4px rgba($secondary-color, 0.1);
+    background: $white;
   }
 
   &::placeholder {
@@ -295,10 +465,10 @@
   }
 
   &.inputError {
-    border-color: $error;
+    border-color: #ef4444;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba($error, 0.1);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
     }
   }
 }
@@ -309,15 +479,17 @@
 }
 
 .multiSelect {
-  padding: $spacing-xs;
+  padding: $spacing-sm;
+  min-height: 150px;
 
   option {
-    padding: $spacing-xs;
-    border-radius: $radius-sm;
-    margin-bottom: 2px;
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+    margin-bottom: 4px;
+    transition: all 0.2s ease;
 
     &:checked {
-      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      background: linear-gradient(135deg, $secondary-color, #4ECDC4);
       color: $white;
     }
   }
@@ -326,96 +498,26 @@
 .hint {
   font-size: $font-size-xs;
   color: $gray-500;
-  font-style: italic;
 }
 
 .error {
   font-size: $font-size-xs;
-  color: $error;
+  color: #ef4444;
+  font-weight: $font-weight-medium;
 }
 
 .formActions {
   display: flex;
   justify-content: flex-end;
   gap: $spacing-md;
-  padding-top: $spacing-lg;
-  border-top: 2px solid $gray-200;
-
-  @include md {
-    flex-direction: column-reverse;
-  }
+  padding-top: $spacing-xl;
+  border-top: 2px solid $gray-100;
 }
 
-// Bannière de statut
-.statusBanner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: $spacing-md;
-  padding: $spacing-md $spacing-lg;
-  background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($primary-color, 0.05));
-  border-radius: $radius-lg;
-  border: 1px solid $gray-200;
-  margin-bottom: $spacing-lg;
-}
+// ============================================
+// Availability Section
+// ============================================
 
-.statusInfo {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  flex-wrap: wrap;
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-full;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
-
-  &.verified {
-    background: rgba($success, 0.1);
-    color: $success;
-    border: 1px solid rgba($success, 0.3);
-  }
-
-  &.pending {
-    background: rgba($warning, 0.1);
-    color: darken($warning, 15%);
-    border: 1px solid rgba($warning, 0.3);
-  }
-
-  &.active {
-    background: rgba($success, 0.1);
-    color: $success;
-    border: 1px solid rgba($success, 0.3);
-  }
-
-  &.inactive {
-    background: rgba($error, 0.1);
-    color: $error;
-    border: 1px solid rgba($error, 0.3);
-  }
-}
-
-.reviewsInfo {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $gray-800;
-
-  .reviewCount {
-    font-weight: $font-weight-normal;
-    color: $gray-600;
-  }
-}
-
-// Section Disponibilités - Mode Affichage
 .availabilityGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -426,38 +528,50 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-sm $spacing-md;
-  background: $gray-50;
-  border-radius: $radius-md;
-  border: 1px solid $gray-200;
+  padding: $spacing-md $spacing-lg;
+  background: $white;
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
 }
 
 .dayLabel {
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: $gray-800;
 }
 
 .availabilityStatus {
   font-size: $font-size-sm;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
+  font-weight: $font-weight-semibold;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
 
   &.available {
-    background: rgba($success, 0.1);
-    color: $success;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+    color: #059669;
   }
 
   &.unavailable {
-    background: rgba($gray-400, 0.2);
+    background: rgba($gray-400, 0.15);
     color: $gray-500;
   }
 }
 
-// Section Disponibilités - Mode Édition
+// Availability Form
 .sectionHint {
   font-size: $font-size-sm;
   color: $gray-600;
   margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.02));
+  border-radius: $radius-lg;
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .availabilityForm {
@@ -470,21 +584,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-sm $spacing-md;
-  background: $gray-50;
-  border-radius: $radius-md;
-  border: 1px solid $gray-200;
-  transition: all $transition-normal;
+  padding: $spacing-md $spacing-lg;
+  background: $white;
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
 
   &:hover {
-    border-color: $gray-300;
-    background: $white;
-  }
-
-  @include sm {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: $spacing-sm;
+    border-color: rgba($secondary-color, 0.3);
+    background: linear-gradient(135deg, rgba($secondary-color, 0.02), rgba(78, 205, 196, 0.01));
   }
 }
 
@@ -496,14 +604,14 @@
 }
 
 .checkbox {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
   accent-color: $secondary-color;
 }
 
 .dayName {
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: $gray-800;
   cursor: pointer;
 }
@@ -512,72 +620,66 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-
-  @include sm {
-    width: 100%;
-    justify-content: flex-start;
-  }
 }
 
 .timeInput {
-  padding: $spacing-xs $spacing-sm;
-  border: 2px solid $gray-300;
-  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  border: 2px solid $gray-200;
+  border-radius: $radius-lg;
   font-size: $font-size-sm;
   font-family: $font-family-primary;
-  transition: all $transition-normal;
-  width: 110px;
+  transition: all 0.3s ease;
+  width: 120px;
+  background: $gray-50;
 
   &:focus {
     outline: none;
     border-color: $secondary-color;
     box-shadow: 0 0 0 3px rgba($secondary-color, 0.1);
+    background: $white;
   }
 }
 
 .timeSeparator {
-  color: $gray-500;
-  font-size: $font-size-sm;
+  color: $gray-400;
+  font-weight: $font-weight-bold;
 }
 
 .unavailableLabel {
   font-size: $font-size-sm;
-  color: $gray-500;
+  color: $gray-400;
   font-style: italic;
 }
 
-// Section Photo de profil
+// ============================================
+// Photo Section
+// ============================================
+
 .photoSection {
   display: flex;
   align-items: center;
-  gap: $spacing-xl;
+  gap: $spacing-2xl;
   padding: $spacing-xl;
-  background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($primary-color, 0.05));
-  border-radius: $radius-xl;
-  border: 1px solid $gray-200;
-
-  @include sm {
-    flex-direction: column;
-    text-align: center;
-    gap: $spacing-lg;
-  }
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-2xl;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .avatarContainer {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: $shadow-lg;
-  border: 4px solid $white;
-  transition: all $transition-normal;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 5px solid $white;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 10px 30px rgba($secondary-color, 0.3);
+    box-shadow: 0 12px 40px rgba($secondary-color, 0.3);
 
     .uploadHint {
       opacity: 1;
@@ -587,11 +689,6 @@
   &.uploading {
     cursor: wait;
     transform: none;
-  }
-
-  @include sm {
-    width: 120px;
-    height: 120px;
   }
 }
 
@@ -604,47 +701,44 @@
 .avatarPlaceholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, $secondary-color, $primary-color);
+  background: linear-gradient(135deg, $secondary-color, #4ECDC4);
   display: flex;
   align-items: center;
   justify-content: center;
 
   span {
-    font-size: 48px;
+    font-size: 56px;
     font-weight: $font-weight-bold;
     color: $white;
     text-transform: uppercase;
-
-    @include sm {
-      font-size: 36px;
-    }
   }
 }
 
 .uploadHint {
   position: absolute;
   inset: 0;
-  background: rgba($black, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: $spacing-xs;
   opacity: 0;
-  transition: opacity $transition-normal;
+  transition: opacity 0.3s ease;
   color: $white;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
 }
 
 .cameraIcon {
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .uploadOverlay {
   position: absolute;
   inset: 0;
-  background: rgba($black, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -671,28 +765,36 @@
     font-weight: $font-weight-bold;
     color: $black;
     margin-bottom: $spacing-xs;
-
-    @include sm {
-      font-size: $font-size-xl;
-    }
   }
 }
 
 .photoHint {
   font-size: $font-size-sm;
   color: $gray-500;
-  font-style: italic;
 }
 
 // ============================================
-// Responsive Styles - Mobile First
+// Responsive Styles
 // ============================================
 
 @include mobile {
+  .header {
+    padding: $spacing-sm 0;
+  }
+
   .headerContent {
     flex-direction: column;
     gap: $spacing-sm;
     padding: 0 $spacing-sm;
+  }
+
+  .logo {
+    font-size: $font-size-lg;
+  }
+
+  .providerBadge {
+    font-size: 10px;
+    padding: 2px $spacing-xs;
   }
 
   .headerActions {
@@ -704,22 +806,21 @@
 
   .backLink {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .logoutBtn {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .main {
-    padding: $spacing-md 0;
+    padding: $spacing-md $spacing-sm;
   }
 
   .profileContainer {
-    border-radius: $radius-lg;
+    border-radius: $radius-xl;
     padding: $spacing-md;
-    margin: 0 $spacing-sm;
   }
 
   .profileHeader {
@@ -736,62 +837,52 @@
     }
   }
 
-  .section {
-    h2 {
-      font-size: $font-size-lg;
-    }
-  }
-
-  .infoGrid {
-    grid-template-columns: 1fr;
-    gap: $spacing-md;
-  }
-
-  .infoItem {
-    padding: $spacing-sm;
-    background: $gray-50;
-    border-radius: $radius-md;
-  }
-
   .statusBanner {
     flex-direction: column;
     align-items: flex-start;
-    padding: $spacing-sm;
+    padding: $spacing-md;
   }
 
   .statusInfo {
     width: 100%;
-    justify-content: flex-start;
   }
 
   .statusBadge {
     font-size: $font-size-xs;
-    padding: 2px $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
-  .availabilityGrid {
+  .section h2,
+  .formSection h2 {
+    font-size: $font-size-lg;
+  }
+
+  .infoGrid {
     grid-template-columns: 1fr;
-  }
-
-  .availabilityItem {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: $spacing-xs;
-    padding: $spacing-sm;
   }
 
   .formGrid {
     grid-template-columns: 1fr;
   }
 
-  .formSection {
-    h2 {
-      font-size: $font-size-lg;
-    }
+  .availabilityGrid {
+    grid-template-columns: 1fr;
   }
 
-  .multiSelect {
-    size: 4;
+  .availabilityRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+  }
+
+  .timeInputs {
+    width: 100%;
+  }
+
+  .timeInput {
+    flex: 1;
+    width: auto;
   }
 
   .formActions {
@@ -803,17 +894,33 @@
     }
   }
 
+  .photoSection {
+    flex-direction: column;
+    text-align: center;
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+  }
+
+  .avatarContainer {
+    width: 130px;
+    height: 130px;
+  }
+
+  .avatarPlaceholder span {
+    font-size: 42px;
+  }
+
+  .photoInfo h2 {
+    font-size: $font-size-xl;
+  }
+
   .tags {
-    gap: 4px;
+    gap: $spacing-xs;
   }
 
   .tag {
-    font-size: 10px;
-    padding: 2px $spacing-xs;
-  }
-
-  .bioText {
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 }
 
@@ -822,25 +929,27 @@
     padding: 0 $spacing-md;
   }
 
-  .profileContainer {
+  .main {
     padding: $spacing-lg;
   }
 
-  .profileHeader {
-    h1 {
-      font-size: $font-size-2xl;
-    }
+  .profileContainer {
+    padding: $spacing-xl;
+  }
+
+  .profileHeader h1 {
+    font-size: $font-size-2xl;
   }
 
   .infoGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .availabilityGrid {
+  .formGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .formGrid {
+  .availabilityGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }

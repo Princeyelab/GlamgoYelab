@@ -507,6 +507,20 @@ export default function ProviderDashboardPage() {
     return classes[status] || '';
   };
 
+  // Calculer les comptages pour chaque onglet
+  const orderCounts = {
+    available: orders.filter(o =>
+      o.status === 'pending' &&
+      (!o.provider_id || o.provider_id == provider?.id) &&
+      !isOrderExpired(o)
+    ).length,
+    active: orders.filter(o =>
+      ['accepted', 'on_way', 'arrived', 'in_progress', 'completed_pending_review'].includes(o.status)
+    ).length,
+    completed: orders.filter(o => o.status === 'completed').length,
+    cancelled: orders.filter(o => o.status === 'cancelled' && o.provider_id == provider?.id).length
+  };
+
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'available') {
       // Inclure: commandes pending sans prestataire OU commandes pending assignées à ce prestataire
@@ -554,7 +568,7 @@ export default function ProviderDashboardPage() {
           </Link>
 
           <div className={styles.headerActions}>
-            <LanguageSwitcher compact />
+            <LanguageSwitcher compact dark />
             <ProviderNotificationDropdown />
             <div className={styles.providerInfo}>
               <Link href="/provider/profile" className={styles.profileLink}>
@@ -681,24 +695,44 @@ export default function ProviderDashboardPage() {
                 onClick={() => setActiveTab('available')}
               >
                 {t('providerDashboard.tabAvailable')}
+                {orderCounts.available > 0 && (
+                  <span className={`${styles.tabBadge} ${styles.tabBadgeAvailable}`}>
+                    {toArabicNumerals(orderCounts.available)}
+                  </span>
+                )}
               </button>
               <button
                 className={`${styles.tab} ${activeTab === 'active' ? styles.active : ''}`}
                 onClick={() => setActiveTab('active')}
               >
                 {t('providerDashboard.tabActive')}
+                {orderCounts.active > 0 && (
+                  <span className={`${styles.tabBadge} ${styles.tabBadgeActive}`}>
+                    {toArabicNumerals(orderCounts.active)}
+                  </span>
+                )}
               </button>
               <button
                 className={`${styles.tab} ${activeTab === 'completed' ? styles.active : ''}`}
                 onClick={() => setActiveTab('completed')}
               >
                 {t('providerDashboard.tabCompleted')}
+                {orderCounts.completed > 0 && (
+                  <span className={`${styles.tabBadge} ${styles.tabBadgeCompleted}`}>
+                    {toArabicNumerals(orderCounts.completed)}
+                  </span>
+                )}
               </button>
               <button
                 className={`${styles.tab} ${styles.cancelledTab} ${activeTab === 'cancelled' ? styles.active : ''}`}
                 onClick={() => setActiveTab('cancelled')}
               >
                 {t('providerDashboard.tabCancelled') || 'Annulées'}
+                {orderCounts.cancelled > 0 && (
+                  <span className={`${styles.tabBadge} ${styles.tabBadgeCancelled}`}>
+                    {toArabicNumerals(orderCounts.cancelled)}
+                  </span>
+                )}
               </button>
             </div>
 

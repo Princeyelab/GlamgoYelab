@@ -365,7 +365,7 @@ export default function ProviderServicesPage() {
           </Link>
 
           <div className={styles.headerActions}>
-            <LanguageSwitcher compact />
+            <LanguageSwitcher compact dark />
             <ProviderNotificationDropdown />
             <Link href="/provider/dashboard" className={styles.backLink}>
               {isRTL ? '→' : '←'} {t('providerProfile.backToDashboard')}

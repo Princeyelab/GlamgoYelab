@@ -6,6 +6,7 @@ import styles from './ProviderCard.module.scss';
 import Price from '@/components/Price';
 import PriceBreakdown from '@/components/PriceBreakdown';
 import { DistanceFeeModal } from '@/components/DistanceFeeExplainer';
+import ProviderProfileModal from '@/components/ProviderProfileModal';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import apiClient from '@/lib/apiClient';
@@ -39,6 +40,7 @@ export default function ProviderCard({
   const [dynamicPrice, setDynamicPrice] = useState(null);
   const [showDistanceModal, setShowDistanceModal] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const { currency } = useCurrency();
@@ -231,7 +233,14 @@ export default function ProviderCard({
         </div>
 
         <div className={styles.info}>
-          <h3 className={styles.name}>{name}</h3>
+          <button
+            type="button"
+            className={styles.nameButton}
+            onClick={(e) => { e.stopPropagation(); setShowProfileModal(true); }}
+            title={t('provider.viewProfile')}
+          >
+            <h3 className={styles.name}>{name}</h3>
+          </button>
           {business_name && business_name !== name && (
             <p className={styles.businessName}>{business_name}</p>
           )}
@@ -466,6 +475,14 @@ export default function ProviderCard({
           </div>
         </div>
       )}
+
+      {/* Modal profil prestataire détaillé */}
+      <ProviderProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        provider={provider}
+        onSelect={onSelect}
+      />
     </div>
   );
 }

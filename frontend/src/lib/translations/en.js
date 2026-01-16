@@ -709,6 +709,7 @@ export const en = {
   'providerDashboard.activeOrders': 'Active orders',
   'providerDashboard.completedOrders': 'Completed orders',
   'providerDashboard.yourEarnings': 'Your earnings',
+  'providerDashboard.viewDetails': 'View details',
   'providerDashboard.averageRating': 'Average rating',
   'providerDashboard.tabAvailable': 'Available',
   'providerDashboard.tabActive': 'Active',
@@ -1236,6 +1237,8 @@ export const en = {
   'providerEarnings.noTransactions': 'No transactions',
   'providerEarnings.pending': 'Pending',
   'providerEarnings.paid': 'Paid',
+  'providerEarnings.gross': 'gross',
+  'providerEarnings.tips': 'Tips',
 
   // Order Detail Page
   'orderDetail.title': 'Order details',
@@ -1516,4 +1519,40 @@ export const en = {
   'privacy.section8Title': '8. Contact',
   'privacy.section8Content': 'For any questions regarding your personal data:',
   'privacy.section8Email': 'Email: privacy@glamgo.ma',
+
+  // Timer translations
+  'timer.expiresIn': 'Expires in',
+  'timer.expired': 'Expired',
+
+  // Cancellation translations
+  'cancellation.policyTitle': 'Cancellation Policy',
+  'cancellation.moreThan2h': 'More than 2h before',
+  'cancellation.between1and2h': 'Between 1h and 2h',
+  'cancellation.lessThan1h': 'Less than 1h',
+  'cancellation.noShow': 'No-show',
+  'cancellation.free': 'Free',
+  'cancellation.yourFee': 'Your fee',
+  'cancellation.selectReason': 'Why are you cancelling?',
+  'cancellation.selectReasonRequired': 'Please select a reason',
+  'cancellation.changedMind': 'I changed my mind',
+  'cancellation.foundAnother': 'Found another provider',
+  'cancellation.scheduleConflict': 'Schedule conflict',
+  'cancellation.financial': 'Financial reasons',
+  'cancellation.emergency': 'Personal emergency',
+  'cancellation.other': 'Other reason',
+  'cancellation.specifyReason': 'Specify your reason...',
+
+  // Pending Review translations
+  'pendingReview.title': 'Pending Review',
+  'pendingReview.message': 'You must first review your last service before making a new booking.',
+  'pendingReview.goToReview': 'Go to Review',
+
+  // Provider Profile translations
+  'provider.viewProfile': 'View profile',
+  'provider.selectProvider': 'Select this provider',
+  'provider.completedServices': 'Services completed',
+  'provider.responseTime': 'Response time',
+  'provider.acceptanceRate': 'Acceptance rate',
+  'provider.recentReviews': 'Recent reviews',
+  'provider.noReviews': 'No reviews yet',
 };

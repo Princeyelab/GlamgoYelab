@@ -104,6 +104,135 @@
   }
 }
 
+// Slider pour le rayon de recherche
+.radiusSlider {
+  flex: 1;
+  min-width: 200px;
+  padding: $spacing-sm $spacing-md;
+  background: $gray-50;
+  border-radius: $radius-lg;
+  border: 1px solid $gray-200;
+
+  @include sm {
+    width: 100%;
+  }
+}
+
+.radiusLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $gray-600;
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacing-xs;
+
+  strong {
+    color: $primary-color;
+    font-size: $font-size-base;
+  }
+}
+
+.freeBadge {
+  background: linear-gradient(135deg, $success, darken($success, 10%));
+  color: $white;
+  font-size: $font-size-xs;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
+  margin-left: $spacing-xs;
+}
+
+.sliderContainer {
+  position: relative;
+}
+
+.slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right,
+    $success 0%,
+    $success 15%,
+    $gray-300 15%,
+    $gray-300 100%
+  );
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+
+  // Thumb styles for WebKit (Chrome, Safari)
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    cursor: pointer;
+    box-shadow: $shadow-md;
+    border: 3px solid $white;
+    transition: transform $transition-fast, box-shadow $transition-fast;
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: $shadow-lg;
+    }
+  }
+
+  // Thumb styles for Firefox
+  &::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    cursor: pointer;
+    box-shadow: $shadow-md;
+    border: 3px solid $white;
+    transition: transform $transition-fast, box-shadow $transition-fast;
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: $shadow-lg;
+    }
+  }
+
+  // Track styles for Firefox
+  &::-moz-range-track {
+    height: 8px;
+    border-radius: 4px;
+    background: $gray-300;
+  }
+
+  &:focus {
+    &::-webkit-slider-thumb {
+      box-shadow: 0 0 0 4px rgba($primary-color, 0.2), $shadow-md;
+    }
+
+    &::-moz-range-thumb {
+      box-shadow: 0 0 0 4px rgba($primary-color, 0.2), $shadow-md;
+    }
+  }
+}
+
+.sliderLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: $spacing-xs;
+}
+
+// RTL support for slider
+[dir="rtl"] {
+  .slider {
+    direction: ltr; // Keep slider LTR for consistent UX
+  }
+
+  .sliderLabels {
+    direction: rtl;
+  }
+}
+
 // Carte
 .mapContainer {
   height: 400px;

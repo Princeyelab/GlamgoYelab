@@ -576,6 +576,7 @@ export const es = {
   'providerDashboard.activeOrders': 'Pedidos activos',
   'providerDashboard.completedOrders': 'Pedidos completados',
   'providerDashboard.yourEarnings': 'Tus ganancias',
+  'providerDashboard.viewDetails': 'Ver detalles',
   'providerDashboard.averageRating': 'Calificacion promedio',
   'providerDashboard.tabAvailable': 'Disponibles',
   'providerDashboard.tabActive': 'Activos',
@@ -1071,6 +1072,8 @@ export const es = {
   'providerEarnings.noTransactions': 'Sin transacciones',
   'providerEarnings.pending': 'Pendiente',
   'providerEarnings.paid': 'Pagado',
+  'providerEarnings.gross': 'bruto',
+  'providerEarnings.tips': 'Propinas',
 
   // Order Detail Page
   'orderDetail.title': 'Detalles del pedido',

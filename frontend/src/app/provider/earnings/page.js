@@ -7,6 +7,7 @@ import styles from './page.module.scss';
 import apiClient from '@/lib/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { translateBatch } from '@/lib/translationService';
 
 // Données de démonstration
 const DEMO_EARNINGS = {
@@ -126,11 +127,26 @@ export default function ProviderEarningsPage() {
           service: t.service_name || t.service_title || 'Service',
           date: t.date || t.created_at || new Date().toISOString(),
           amount: t.amount || t.total_amount || 0,
-          commission: t.commission || Math.round((t.amount || t.total_amount || 0) * 0.25),
-          netAmount: t.net_amount || Math.round((t.amount || t.total_amount || 0) * 0.75),
+          commission: t.commission || Math.round((t.amount || t.total_amount || 0) * 0.20),
+          netAmount: t.net_amount || Math.round((t.amount || t.total_amount || 0) * 0.80),
           tip: t.tip_amount || 0,
           status: t.status || 'pending_payout',
         }));
+
+        // Traduire les noms de services si la langue n'est pas le français
+        const currentLang = localStorage.getItem('glamgo_language') || 'fr';
+        if (currentLang !== 'fr') {
+          const serviceNames = formattedTransactions.map(t => t.service);
+          try {
+            const translatedNames = await translateBatch(serviceNames, currentLang.toUpperCase());
+            formattedTransactions.forEach((t, i) => {
+              t.service = translatedNames[i] || t.service;
+            });
+          } catch (e) {
+            console.error('Translation error:', e);
+          }
+        }
+
         setTransactions(formattedTransactions);
       } else {
         setTransactions([]);
@@ -145,7 +161,7 @@ export default function ProviderEarningsPage() {
   const currentEarnings = earnings[period];
 
   const pendingAmount = transactions
-    .filter(t => t.status === 'pending_payout')
+    .filter(t => t.status === 'paid' || t.status === 'pending_payout')
     .reduce((sum, t) => sum + t.netAmount, 0);
 
   // Calculer les données hebdomadaires
@@ -243,7 +259,7 @@ export default function ProviderEarningsPage() {
             <span>{t('common.back') || 'Retour'}</span>
           </Link>
           <h1>{t('providerEarnings.myEarnings') || 'Mes Gains'}</h1>
-          <LanguageSwitcher compact />
+          <LanguageSwitcher compact dark />
         </div>
       </header>
 
@@ -326,7 +342,7 @@ export default function ProviderEarningsPage() {
             </div>
             <div className={styles.detailDivider}></div>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>{t('providerEarnings.commission') || 'Commission'} (25%)</span>
+              <span className={styles.detailLabel}>{t('providerEarnings.commission') || 'Commission'} (20%)</span>
               <span className={`${styles.detailValue} ${styles.negative}`}>
                 -{toArabicNumerals(currentEarnings.commission)} MAD
               </span>
@@ -388,7 +404,7 @@ export default function ProviderEarningsPage() {
                   </div>
                   <div className={styles.transactionRight}>
                     <span className={styles.transactionAmount}>+{toArabicNumerals(transaction.netAmount)} MAD</span>
-                    <span className={styles.transactionGross}>{toArabicNumerals(transaction.amount)} MAD brut</span>
+                    <span className={styles.transactionGross}>{toArabicNumerals(transaction.amount)} MAD {t('providerEarnings.gross') || 'brut'}</span>
                     {transaction.tip > 0 && (
                       <span className={styles.transactionTip}>💝 +{toArabicNumerals(transaction.tip)} MAD</span>
                     )}

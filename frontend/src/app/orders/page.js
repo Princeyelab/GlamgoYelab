@@ -12,6 +12,7 @@ import Chat from '@/components/Chat';
 import Price from '@/components/Price';
 import TranslatedText from '@/components/TranslatedText';
 import RefusedOrderModal from '@/components/RefusedOrderModal/RefusedOrderModal';
+import CountdownTimer from '@/components/CountdownTimer';
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -28,6 +29,22 @@ export default function OrdersPage() {
   const [actionLoading, setActionLoading] = useState({});
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [confirmModal, setConfirmModal] = useState({ show: false, orderId: null });
+
+  // États pour le modal d'annulation amélioré
+  const [cancellationInfo, setCancellationInfo] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [loadingCancellationInfo, setLoadingCancellationInfo] = useState(false);
+
+  // Raisons d'annulation
+  const CANCELLATION_REASONS = [
+    { id: 'changed_mind', labelKey: 'cancellation.changedMind' },
+    { id: 'found_another', labelKey: 'cancellation.foundAnother' },
+    { id: 'schedule_conflict', labelKey: 'cancellation.scheduleConflict' },
+    { id: 'financial', labelKey: 'cancellation.financial' },
+    { id: 'emergency', labelKey: 'cancellation.emergency' },
+    { id: 'other', labelKey: 'cancellation.other' }
+  ];
 
   // État pour le modal de commande refusée
   const [refusedModalOpen, setRefusedModalOpen] = useState(false);
@@ -176,23 +193,49 @@ export default function OrdersPage() {
     return language === 'ar' ? toArabicNumerals(formatted) : formatted;
   };
 
-  const openCancelModal = (orderId) => {
+  const openCancelModal = async (orderId) => {
     setConfirmModal({ show: true, orderId });
+    setCancellationReason('');
+    setCustomReason('');
+    setCancellationInfo(null);
+
+    // Récupérer les informations de frais d'annulation
+    setLoadingCancellationInfo(true);
+    try {
+      const response = await apiClient.getCancellationInfo(orderId);
+      if (response.success && response.data) {
+        setCancellationInfo(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching cancellation info:', err);
+    } finally {
+      setLoadingCancellationInfo(false);
+    }
   };
 
   const closeCancelModal = () => {
     setConfirmModal({ show: false, orderId: null });
+    setCancellationInfo(null);
+    setCancellationReason('');
+    setCustomReason('');
   };
 
   const handleCancelOrder = async () => {
     const orderId = confirmModal.orderId;
     if (!orderId) return;
 
+    // Vérifier qu'une raison est sélectionnée
+    const finalReason = cancellationReason === 'other' ? customReason : cancellationReason;
+    if (!finalReason) {
+      showToast(t('cancellation.selectReasonRequired') || 'Veuillez sélectionner une raison', 'error');
+      return;
+    }
+
     setActionLoading(prev => ({ ...prev, [`cancel_${orderId}`]: true }));
     closeCancelModal();
 
     try {
-      const response = await apiClient.cancelOrder(orderId);
+      const response = await apiClient.cancelOrder(orderId, { reason: finalReason });
       if (response.success) {
         showToast(t('ordersPage.cancelSuccess'), 'success');
         fetchOrders();
@@ -204,6 +247,14 @@ export default function OrdersPage() {
     } finally {
       setActionLoading(prev => ({ ...prev, [`cancel_${orderId}`]: false }));
     }
+  };
+
+  // Déterminer quelle tranche de frais est applicable
+  const getApplicableFeeLevel = (hoursUntil) => {
+    if (hoursUntil > 2) return 'moreThan2h';
+    if (hoursUntil >= 1) return 'between1and2h';
+    if (hoursUntil > 0) return 'lessThan1h';
+    return 'noShow';
   };
 
   if (authLoading) {
@@ -297,9 +348,19 @@ export default function OrdersPage() {
                       <span className={styles.biddingBadge}>🎯 {t('ordersPage.biddingMode')}</span>
                     )}
                   </div>
-                  <span className={`${styles.status} ${getStatusClass(order.status)}`}>
-                    {getStatusLabel(order.status)}
-                  </span>
+                  <div className={styles.orderHeaderRight}>
+                    {/* Timer 4 minutes pour les commandes pending */}
+                    {order.status === 'pending' && order.created_at && (
+                      <CountdownTimer
+                        expiresAt={new Date(new Date(order.created_at).getTime() + 4 * 60 * 1000)}
+                        onExpired={() => fetchOrders(true)}
+                        size="small"
+                      />
+                    )}
+                    <span className={`${styles.status} ${getStatusClass(order.status)}`}>
+                      {getStatusLabel(order.status)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className={styles.orderContent}>
@@ -425,24 +486,106 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Modal de confirmation d'annulation */}
+      {/* Modal de confirmation d'annulation avec barème CGU et raisons */}
       {confirmModal.show && (
         <div className={styles.modalOverlay} onClick={closeCancelModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.cancelModalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <span className={styles.modalIcon}>⚠️</span>
               <h2>{t('ordersPage.cancelOrder')}</h2>
+              <button className={styles.modalClose} onClick={closeCancelModal}>✕</button>
             </div>
+
             <div className={styles.modalBody}>
-              <p>{t('ordersPage.cancelConfirm')}</p>
-              <p className={styles.modalHint}>{t('ordersPage.cancelWarning')}</p>
+              {/* Barème CGU */}
+              <div className={styles.feeBreakdown}>
+                <h4 className={styles.feeTitle}>
+                  <span>📋</span> {t('cancellation.policyTitle') || 'Politique d\'annulation'}
+                </h4>
+
+                {loadingCancellationInfo ? (
+                  <div className={styles.feeLoading}>
+                    <div className={styles.spinnerSmall}></div>
+                  </div>
+                ) : (
+                  <div className={styles.feeTable}>
+                    <div className={`${styles.feeRow} ${cancellationInfo && getApplicableFeeLevel(cancellationInfo.hours_until) === 'moreThan2h' ? styles.feeRowActive : ''}`}>
+                      <span>{t('cancellation.moreThan2h') || 'Plus de 2h avant'}</span>
+                      <span className={styles.feeFree}>{t('cancellation.free') || 'Gratuit'}</span>
+                    </div>
+                    <div className={`${styles.feeRow} ${cancellationInfo && getApplicableFeeLevel(cancellationInfo.hours_until) === 'between1and2h' ? styles.feeRowActive : ''}`}>
+                      <span>{t('cancellation.between1and2h') || 'Entre 1h et 2h'}</span>
+                      <span>25%</span>
+                    </div>
+                    <div className={`${styles.feeRow} ${cancellationInfo && getApplicableFeeLevel(cancellationInfo.hours_until) === 'lessThan1h' ? styles.feeRowActive : ''}`}>
+                      <span>{t('cancellation.lessThan1h') || 'Moins d\'1h'}</span>
+                      <span>50%</span>
+                    </div>
+                    <div className={`${styles.feeRow} ${cancellationInfo && getApplicableFeeLevel(cancellationInfo.hours_until) === 'noShow' ? styles.feeRowActive : ''}`}>
+                      <span>{t('cancellation.noShow') || 'Absence'}</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                )}
+
+                {cancellationInfo && cancellationInfo.fee > 0 && (
+                  <div className={styles.currentFee}>
+                    <span>{t('cancellation.yourFee') || 'Vos frais'}:</span>
+                    <strong><Price amount={cancellationInfo.fee} /></strong>
+                    <span className={styles.feePercentage}>({cancellationInfo.percentage}%)</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Sélection de la raison */}
+              <div className={styles.reasonSection}>
+                <h4 className={styles.reasonTitle}>
+                  {t('cancellation.selectReason') || 'Pourquoi annulez-vous ?'} <span className={styles.required}>*</span>
+                </h4>
+
+                <div className={styles.reasonsList}>
+                  {CANCELLATION_REASONS.map((reason) => (
+                    <label key={reason.id} className={`${styles.reasonOption} ${cancellationReason === reason.id ? styles.reasonOptionSelected : ''}`}>
+                      <input
+                        type="radio"
+                        name="cancellationReason"
+                        value={reason.id}
+                        checked={cancellationReason === reason.id}
+                        onChange={(e) => setCancellationReason(e.target.value)}
+                      />
+                      <span className={styles.reasonRadio}></span>
+                      <span className={styles.reasonLabel}>
+                        {t(reason.labelKey) || reason.id}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {cancellationReason === 'other' && (
+                  <textarea
+                    className={styles.customReasonInput}
+                    placeholder={t('cancellation.specifyReason') || 'Précisez votre raison...'}
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    maxLength={200}
+                  />
+                )}
+              </div>
             </div>
+
             <div className={styles.modalActions}>
               <Button variant="outline" onClick={closeCancelModal}>
                 {t('ordersPage.keepOrder')}
               </Button>
-              <Button variant="danger" onClick={handleCancelOrder}>
+              <Button
+                variant="danger"
+                onClick={handleCancelOrder}
+                disabled={!cancellationReason || (cancellationReason === 'other' && !customReason.trim())}
+              >
                 {t('ordersPage.yesCancel')}
+                {cancellationInfo && cancellationInfo.fee > 0 && (
+                  <span className={styles.feeInButton}> ({toArabicNumerals(cancellationInfo.fee)} MAD)</span>
+                )}
               </Button>
             </div>
           </div>

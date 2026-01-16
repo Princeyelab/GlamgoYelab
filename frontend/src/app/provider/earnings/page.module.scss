@@ -1,10 +1,21 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
+// ============================================
+// Modern Provider Earnings Page - Professional Design
+// ============================================
+
+$card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+$hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+
 .earningsPage {
   min-height: 100vh;
-  background: $gray-50;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
+
+// ============================================
+// Loading State
+// ============================================
 
 .loading {
   display: flex;
@@ -17,10 +28,10 @@
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid $gray-200;
-  border-top-color: $primary-color;
+  width: 50px;
+  height: 50px;
+  border: 4px solid $gray-200;
+  border-top-color: $secondary-color;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -29,15 +40,19 @@
   to { transform: rotate(360deg); }
 }
 
-// Header
+// ============================================
+// Modern Header
+// ============================================
+
 .header {
-  background: linear-gradient(135deg, $primary-color, $primary-dark);
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
   padding: $spacing-lg $spacing-md;
   padding-top: $spacing-xl;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
 .headerContent {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -45,9 +60,10 @@
 
   h1 {
     color: $white;
-    font-size: $font-size-xl;
+    font-size: $font-size-2xl;
     font-weight: $font-weight-bold;
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -58,33 +74,63 @@
   color: rgba($white, 0.9);
   text-decoration: none;
   font-size: $font-size-sm;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-md;
-  transition: all $transition-fast;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.1);
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($white, 0.1);
+    background: rgba($white, 0.2);
     color: $white;
+    transform: translateX(-2px);
   }
 }
 
-// Balance Card
+// ============================================
+// Balance Card - Hero Section
+// ============================================
+
 .balanceCard {
-  max-width: 800px;
-  margin: -$spacing-lg auto $spacing-lg;
-  margin-left: auto;
-  margin-right: auto;
-  background: $white;
-  border-radius: $radius-xl;
-  padding: $spacing-lg;
-  box-shadow: $shadow-lg;
+  max-width: 900px;
+  margin: 0 auto $spacing-xl;
+  margin-left: $spacing-md;
+  margin-right: $spacing-md;
+  margin-top: $spacing-xl;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: $radius-2xl;
+  padding: $spacing-xl $spacing-2xl;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-left: $spacing-md;
-  margin-right: $spacing-md;
+  position: relative;
+  overflow: hidden;
 
-  @media (min-width: 840px) {
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+  }
+
+  @media (min-width: 940px) {
     margin-left: auto;
     margin-right: auto;
   }
@@ -93,143 +139,191 @@
 .balanceInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xs;
+  position: relative;
+  z-index: 1;
 }
 
 .balanceLabel {
   font-size: $font-size-sm;
-  color: $gray-600;
+  color: rgba($white, 0.9);
+  font-weight: $font-weight-medium;
 }
 
 .balanceAmount {
+  font-size: 42px;
+  font-weight: $font-weight-bold;
+  color: $white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.withdrawButton {
+  background: $white;
+  color: #059669;
+  border: none;
+  padding: $spacing-md $spacing-xl;
+  border-radius: $radius-xl;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    background: rgba($white, 0.5);
+    color: rgba(#059669, 0.5);
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ============================================
+// Main Content
+// ============================================
+
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 $spacing-md $spacing-2xl;
+}
+
+// ============================================
+// Period Selector - Modern Pills
+// ============================================
+
+.periodSelector {
+  display: flex;
+  background: $white;
+  border-radius: $radius-xl;
+  padding: 6px;
+  margin-bottom: $spacing-xl;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.periodButton {
+  flex: 1;
+  padding: $spacing-sm $spacing-md;
+  border: none;
+  background: transparent;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.active {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+    color: $white;
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+  }
+
+  &:hover:not(.active) {
+    background: $gray-100;
+    color: $gray-700;
+  }
+}
+
+// ============================================
+// Stats Row - Modern Cards
+// ============================================
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+
+.statCard {
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  text-align: center;
+  box-shadow: $card-shadow;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $hover-shadow;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+}
+
+.statCardGreen {
+  &::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+}
+
+.statCardBlue {
+  &::before {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+  }
+}
+
+.statIcon {
+  font-size: 36px;
+  filter: grayscale(0);
+}
+
+.statValue {
   font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
   color: $gray-900;
 }
 
-.withdrawButton {
-  background: $primary-color;
-  color: $white;
-  border: none;
-  padding: $spacing-sm $spacing-lg;
-  border-radius: $radius-lg;
-  font-weight: $font-weight-semibold;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover:not(:disabled) {
-    background: $primary-dark;
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    background: $gray-300;
-    cursor: not-allowed;
-  }
-}
-
-// Main content
-.main {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 $spacing-md $spacing-xl;
-}
-
-// Period Selector
-.periodSelector {
-  display: flex;
-  background: $white;
-  border-radius: $radius-lg;
-  padding: 4px;
-  margin-bottom: $spacing-lg;
-  box-shadow: $shadow-sm;
-}
-
-.periodButton {
-  flex: 1;
-  padding: $spacing-sm;
-  border: none;
-  background: transparent;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
-  color: $gray-600;
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &.active {
-    background: $primary-color;
-    color: $white;
-  }
-
-  &:hover:not(.active) {
-    background: $gray-100;
-  }
-}
-
-// Stats Row
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-md;
-  margin-bottom: $spacing-lg;
-}
-
-.statCard {
-  background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-md;
-  text-align: center;
-  box-shadow: $shadow-sm;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $spacing-xs;
-}
-
-.statCardGreen {
-  background: #ecfdf5;
-  border-left: 4px solid $success;
-}
-
-.statCardBlue {
-  background: #eff6ff;
-  border-left: 4px solid $info;
-}
-
-.statIcon {
-  font-size: 28px;
-}
-
-.statValue {
-  font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
-  color: $gray-900;
-}
-
 .statLabel {
-  font-size: $font-size-xs;
-  color: $gray-600;
+  font-size: $font-size-sm;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
 }
 
-// Chart Card
+// ============================================
+// Chart Card - Modern Design
+// ============================================
+
 .chartCard {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-lg;
-  box-shadow: $shadow-sm;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .chartHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 
   h3 {
-    font-size: $font-size-base;
-    font-weight: $font-weight-semibold;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
     color: $gray-900;
     margin: 0;
   }
@@ -239,31 +333,35 @@
   text-align: right;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .chartTotal {
-  font-size: $font-size-lg;
+  font-size: $font-size-xl;
   font-weight: $font-weight-bold;
-  color: $success;
+  color: #10b981;
 }
 
 .chartBookings {
   font-size: $font-size-xs;
   color: $gray-500;
+  font-weight: $font-weight-medium;
 }
 
-// Chart Component
+// ============================================
+// Chart Component - Modern Bars
+// ============================================
+
 .chartContainer {
-  margin-top: $spacing-md;
+  margin-top: $spacing-lg;
 }
 
 .barsContainer {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 140px;
-  padding-bottom: 30px;
+  height: 160px;
+  padding-bottom: 35px;
 
   &.rtl {
     flex-direction: row-reverse;
@@ -279,66 +377,87 @@
 }
 
 .barBackground {
-  height: 100px;
-  width: 24px;
-  background: $gray-100;
-  border-radius: 12px;
+  height: 120px;
+  width: 32px;
+  background: linear-gradient(180deg, $gray-100, $gray-50);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .bar {
   width: 100%;
-  background: rgba($primary-color, 0.4);
-  border-radius: 12px;
-  transition: height 0.3s ease;
+  background: linear-gradient(180deg, rgba(#3b82f6, 0.4), rgba(#2563eb, 0.3));
+  border-radius: 16px;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .barToday {
-  background: $primary-color;
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .dayLabel {
-  margin-top: $spacing-xs;
+  margin-top: $spacing-sm;
   font-size: $font-size-xs;
-  color: $gray-500;
-  font-weight: $font-weight-medium;
+  color: $gray-400;
+  font-weight: $font-weight-semibold;
 }
 
 .dayLabelActive {
-  color: $primary-color;
+  color: #3b82f6;
   font-weight: $font-weight-bold;
 }
 
 .amountLabel {
   position: absolute;
-  top: -18px;
-  font-size: 9px;
-  color: $gray-400;
-  font-weight: $font-weight-medium;
+  top: -22px;
+  font-size: 10px;
+  color: $gray-500;
+  font-weight: $font-weight-bold;
+  background: $white;
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// Details Card
+// ============================================
+// Details Card - Earnings Breakdown
+// ============================================
+
 .detailsCard {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-lg;
-  box-shadow: $shadow-sm;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 
   h3 {
-    font-size: $font-size-base;
-    font-weight: $font-weight-semibold;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
     color: $gray-900;
-    margin: 0 0 $spacing-md 0;
+    margin: 0 0 $spacing-lg 0;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, $secondary-color, #4ECDC4);
+      border-radius: 2px;
+    }
   }
 }
 
 .detailsRow {
   display: flex;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 .detailItem {
@@ -346,60 +465,78 @@
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xs;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-lg;
+  margin: 0 $spacing-xs;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:last-child {
+    margin-right: 0;
+  }
 }
 
 .detailLabel {
   font-size: $font-size-xs;
   color: $gray-500;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .detailValue {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
   color: $gray-900;
 
   &.negative {
-    color: $error;
+    color: #ef4444;
   }
 }
 
 .detailDivider {
-  width: 1px;
-  background: $gray-200;
-  margin: 0 $spacing-md;
+  display: none;
 }
 
 .netRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: $spacing-md;
-  border-top: 1px solid $gray-100;
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+  border-radius: $radius-xl;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .netLabel {
   font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: $gray-700;
 }
 
 .netValue {
-  font-size: $font-size-xl;
+  font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
-  color: $success;
+  color: #10b981;
 }
 
+// ============================================
 // History Section
+// ============================================
+
 .historySection {
-  margin-top: $spacing-lg;
+  margin-top: $spacing-xl;
 }
 
 .historyHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 .historyTitleRow {
@@ -408,44 +545,49 @@
   gap: $spacing-sm;
 
   h3 {
-    font-size: $font-size-base;
-    font-weight: $font-weight-semibold;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
     color: $gray-900;
     margin: 0;
   }
 }
 
 .historyIcon {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .historyCount {
   font-size: $font-size-xs;
-  color: $gray-500;
-  background: $gray-200;
-  padding: 2px $spacing-sm;
+  color: $gray-600;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  padding: $spacing-xs $spacing-md;
   border-radius: $radius-full;
+  font-weight: $font-weight-semibold;
 }
 
+// ============================================
 // Empty History
+// ============================================
+
 .emptyHistory {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-2xl;
+  border-radius: $radius-xl;
+  padding: $spacing-3xl;
   text-align: center;
-  box-shadow: $shadow-sm;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .emptyIcon {
-  font-size: 48px;
-  opacity: 0.5;
+  font-size: 64px;
+  opacity: 0.4;
   display: block;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 .emptyHistory p {
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
   color: $gray-700;
   margin: 0;
 }
@@ -453,25 +595,35 @@
 .emptySubtext {
   font-size: $font-size-sm;
   color: $gray-500;
-  margin-top: $spacing-xs;
+  margin-top: $spacing-sm;
   display: block;
 }
 
-// Transactions List
+// ============================================
+// Transactions List - Modern Cards
+// ============================================
+
 .transactionsList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: $spacing-md;
 }
 
 .transactionCard {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-md;
-  box-shadow: $shadow-sm;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  box-shadow: $card-shadow;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $hover-shadow;
+  }
 }
 
 .transactionLeft {
@@ -482,40 +634,41 @@
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: $radius-xl;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: $font-size-sm;
   font-weight: $font-weight-bold;
+  text-transform: uppercase;
 }
 
 .avatarPaid {
-  background: rgba($success, 0.1);
-  color: $success;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+  color: #059669;
 }
 
 .avatarPending {
-  background: rgba($warning, 0.1);
-  color: darken($warning, 15%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+  color: #b45309;
 }
 
 .transactionInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .clientName {
   font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: $gray-900;
 }
 
 .serviceName {
-  font-size: $font-size-xs;
+  font-size: $font-size-sm;
   color: $gray-600;
 }
 
@@ -525,11 +678,12 @@
   gap: $spacing-xs;
   font-size: $font-size-xs;
   color: $gray-400;
+  font-weight: $font-weight-medium;
 }
 
 .dot {
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   background: $gray-300;
   border-radius: 50%;
 }
@@ -538,90 +692,98 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 4px;
 }
 
 .transactionAmount {
-  font-size: $font-size-base;
+  font-size: $font-size-lg;
   font-weight: $font-weight-bold;
-  color: $success;
+  color: #10b981;
 }
 
 .transactionGross {
   font-size: $font-size-xs;
   color: $gray-400;
+  font-weight: $font-weight-medium;
 }
 
 .transactionTip {
   font-size: $font-size-xs;
-  color: $primary-color;
-  font-weight: $font-weight-semibold;
+  color: #f59e0b;
+  font-weight: $font-weight-bold;
 }
 
 .status {
   font-size: $font-size-xs;
-  padding: 2px $spacing-sm;
+  padding: $spacing-xs $spacing-md;
   border-radius: $radius-full;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
   margin-top: $spacing-xs;
 }
 
 .statusPending {
-  background: rgba($warning, 0.1);
-  color: darken($warning, 20%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+  color: #b45309;
 }
 
 .statusPaid {
-  background: rgba($success, 0.1);
-  color: darken($success, 20%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+  color: #059669;
 }
 
-// Toast
+// ============================================
+// Toast - Modern Notification
+// ============================================
+
 .toast {
   position: fixed;
-  bottom: $spacing-lg;
+  bottom: $spacing-xl;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-lg;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-xl;
+  border-radius: $radius-xl;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.success {
-    background: $success;
+    background: linear-gradient(135deg, #10b981, #059669);
     color: $white;
   }
 
   &.error {
-    background: $error;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
     color: $white;
   }
 
   button {
-    background: transparent;
+    background: rgba($white, 0.2);
     border: none;
     color: inherit;
     cursor: pointer;
-    padding: 4px;
-    opacity: 0.8;
+    padding: $spacing-xs;
+    border-radius: $radius-md;
+    opacity: 0.9;
+    transition: all 0.2s ease;
 
     &:hover {
       opacity: 1;
+      background: rgba($white, 0.3);
     }
   }
 }
 
 .toastIcon {
-  font-size: $font-size-lg;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
 }
 
 @keyframes slideUp {
   from {
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%) translateY(30px);
     opacity: 0;
   }
   to {
@@ -630,28 +792,101 @@
   }
 }
 
-// Responsive
+// ============================================
+// Responsive Styles
+// ============================================
+
 @media (max-width: 600px) {
+  .headerContent {
+    h1 {
+      font-size: $font-size-lg;
+    }
+  }
+
+  .backButton {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
+  }
+
   .balanceCard {
     flex-direction: column;
-    gap: $spacing-md;
+    gap: $spacing-lg;
     text-align: center;
+    padding: $spacing-lg;
+  }
+
+  .balanceAmount {
+    font-size: 32px;
   }
 
   .withdrawButton {
     width: 100%;
+    padding: $spacing-md;
+  }
+
+  .statsRow {
+    gap: $spacing-md;
+  }
+
+  .statCard {
+    padding: $spacing-md;
+  }
+
+  .statIcon {
+    font-size: 28px;
+  }
+
+  .statValue {
+    font-size: $font-size-xl;
+  }
+
+  .chartCard,
+  .detailsCard {
+    padding: $spacing-lg;
+  }
+
+  .barBackground {
+    width: 24px;
+    height: 100px;
+  }
+
+  .detailsRow {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .detailItem {
+    margin: 0;
+  }
+
+  .netRow {
+    flex-direction: column;
+    gap: $spacing-sm;
+    text-align: center;
   }
 
   .transactionCard {
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-sm;
+    gap: $spacing-md;
+    padding: $spacing-md;
   }
 
   .transactionRight {
     align-items: flex-start;
     width: 100%;
-    padding-top: $spacing-sm;
+    padding-top: $spacing-md;
     border-top: 1px solid $gray-100;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
+  .transactionAmount {
+    font-size: $font-size-base;
+  }
+
+  .status {
+    margin-top: 0;
   }
 }

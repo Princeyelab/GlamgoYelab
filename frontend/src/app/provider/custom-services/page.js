@@ -353,7 +353,7 @@ export default function CustomServicesPage() {
               </div>
             </div>
             <div className={styles.headerRight}>
-              <LanguageSwitcher compact />
+              <LanguageSwitcher compact dark />
               <ProviderNotificationDropdown />
             </div>
           </div>

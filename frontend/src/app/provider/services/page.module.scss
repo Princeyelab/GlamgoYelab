@@ -1,21 +1,39 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
+// ============================================
+// Modern Provider Services Page - Professional Design
+// ============================================
+
+$gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gradient-secondary: linear-gradient(135deg, $secondary-color 0%, darken($secondary-color, 15%) 100%);
+$gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+$card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+$hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+
 .servicesPage {
   min-height: 100vh;
-  background: $gray-50;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+// ============================================
+// Modern Header
+// ============================================
+
 .header {
-  background: $secondary-color;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
   padding: $spacing-md 0;
-  box-shadow: $shadow-md;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
 }
 
 .headerContent {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 $spacing-md;
+  padding: 0 $spacing-lg;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,14 +47,22 @@
   text-decoration: none;
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
+  letter-spacing: -0.5px;
+
+  &:hover {
+    opacity: 0.95;
+  }
 }
 
 .providerBadge {
-  background: rgba($white, 0.2);
-  padding: 2px $spacing-xs;
-  border-radius: $radius-sm;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+  padding: 4px $spacing-sm;
+  border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .headerActions {
@@ -50,16 +76,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   color: rgba($white, 0.9);
   font-size: $font-size-lg;
-  border-radius: 50%;
+  border-radius: $radius-lg;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba($white, 0.1);
+  backdrop-filter: blur(10px);
 
   &:hover {
-    background-color: rgba($white, 0.1);
+    background: rgba($white, 0.2);
+    transform: translateY(-2px);
   }
 }
 
@@ -67,12 +96,23 @@
   color: $white;
   text-decoration: none;
   font-size: $font-size-sm;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  transition: all $transition-normal;
+  font-weight: $font-weight-medium;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.1);
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  &::before {
+    content: '←';
+  }
 
   &:hover {
     background: rgba($white, 0.2);
+    transform: translateX(-2px);
   }
 }
 
@@ -80,51 +120,65 @@
   color: $white;
   text-decoration: none;
   font-weight: $font-weight-medium;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  transition: all $transition-normal;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.1);
 
   &:hover {
     background: rgba($white, 0.2);
-    text-decoration: underline;
+    transform: translateY(-1px);
   }
 }
 
 .logoutBtn {
-  background: rgba($white, 0.2);
-  border: none;
-  color: $white;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff8a8a;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
   cursor: pointer;
   font-size: $font-size-sm;
-  transition: background-color $transition-normal;
+  font-weight: $font-weight-medium;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($white, 0.3);
+    background: rgba(255, 107, 107, 0.3);
+    transform: translateY(-1px);
   }
 }
 
+// ============================================
+// Main Content
+// ============================================
+
 .main {
   padding: $spacing-xl 0;
-
-  @include md {
-    padding: $spacing-lg 0;
-  }
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: $spacing-lg;
+  padding-right: $spacing-lg;
 }
 
 .pageHeader {
   margin-bottom: $spacing-xl;
+  background: $white;
+  border-radius: $radius-2xl;
+  padding: $spacing-xl;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0,0,0,0.04);
 
   h1 {
     font-size: $font-size-3xl;
     font-weight: $font-weight-bold;
     color: $black;
     margin-bottom: $spacing-xs;
-
-    @include md {
-      font-size: $font-size-2xl;
-    }
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #1e3a5f, #4ECDC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
@@ -133,9 +187,15 @@
   color: $gray-600;
 }
 
+// ============================================
+// Loading State
+// ============================================
+
 .loading {
-  @include flex-center;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   gap: $spacing-md;
 
@@ -143,7 +203,7 @@
     width: 50px;
     height: 50px;
     border: 4px solid $gray-200;
-    border-top-color: $primary-color;
+    border-top-color: $secondary-color;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -153,34 +213,40 @@
   to { transform: rotate(360deg); }
 }
 
+// ============================================
+// Alerts
+// ============================================
+
 .errorAlert {
-  background-color: rgba($error, 0.1);
-  border: 1px solid $error;
-  border-radius: $radius-md;
+  background: linear-gradient(135deg, rgba($error, 0.1), rgba($error, 0.05));
+  border: 1px solid rgba($error, 0.3);
+  border-radius: $radius-xl;
   color: $error;
-  padding: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
 }
 
 .successAlert {
-  background-color: rgba($success, 0.1);
-  border: 1px solid $success;
-  border-radius: $radius-md;
-  color: $success;
-  padding: $spacing-sm;
+  background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.05));
+  border: 1px solid rgba($success, 0.3);
+  border-radius: $radius-xl;
+  color: darken($success, 10%);
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
 }
 
 .syncingAlert {
-  background-color: rgba($primary-color, 0.1);
-  border: 1px solid $primary-color;
-  border-radius: $radius-md;
+  background: linear-gradient(135deg, rgba($primary-color, 0.1), rgba($primary-color, 0.05));
+  border: 1px solid rgba($primary-color, 0.3);
+  border-radius: $radius-xl;
   color: $primary-color;
-  padding: $spacing-md;
+  padding: $spacing-md $spacing-lg;
   margin-bottom: $spacing-lg;
   text-align: center;
   font-size: $font-size-sm;
@@ -199,37 +265,48 @@
   }
 }
 
+// ============================================
+// Modern Pill Tabs
+// ============================================
+
 .tabs {
   display: flex;
-  gap: $spacing-sm;
+  padding: $spacing-sm;
+  gap: $spacing-xs;
+  background: $white;
+  border-radius: $radius-xl;
   margin-bottom: $spacing-xl;
-  border-bottom: 2px solid $gray-200;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0,0,0,0.04);
+  overflow-x: auto;
 
-  @include md {
-    overflow-x: auto;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
 .tab {
+  flex: 1;
   padding: $spacing-sm $spacing-lg;
-  background: none;
+  background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  color: $gray-600;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-500;
   cursor: pointer;
-  transition: all $transition-normal;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: $radius-lg;
   white-space: nowrap;
 
-  &:hover {
-    color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+  &:hover:not(.active) {
+    color: $gray-700;
+    background: rgba($secondary-color, 0.08);
   }
 
   &.active {
-    color: $primary-color;
-    border-bottom-color: $primary-color;
+    color: $white;
+    background: linear-gradient(135deg, #1e3a5f, #2d5a87);
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
   }
 }
 
@@ -241,16 +318,26 @@
   width: 100%;
 }
 
+// ============================================
+// Empty State
+// ============================================
+
 .emptyState {
-  @include flex-center;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: $spacing-3xl $spacing-xl;
   text-align: center;
   gap: $spacing-md;
+  background: $white;
+  border-radius: $radius-2xl;
+  box-shadow: $card-shadow;
 
   .emptyIcon {
-    font-size: 64px;
+    font-size: 72px;
     margin-bottom: $spacing-md;
+    opacity: 0.8;
   }
 
   h3 {
@@ -263,29 +350,56 @@
     font-size: $font-size-base;
     color: $gray-600;
     max-width: 500px;
+    line-height: 1.6;
   }
 }
 
+// ============================================
+// Services Grid - Modern Cards
+// ============================================
+
 .servicesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: $spacing-lg;
-
-  @include md {
-    grid-template-columns: 1fr;
-  }
+  align-items: stretch;
 }
 
 .serviceCard {
   background: $white;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-md;
+  border-radius: $radius-2xl;
+  box-shadow: $card-shadow;
   overflow: hidden;
-  transition: all $transition-normal;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0,0,0,0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, $secondary-color, #4ECDC4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
-    box-shadow: $shadow-xl;
-    transform: translateY(-4px);
+    transform: translateY(-8px);
+    box-shadow: $hover-shadow;
+
+    &::before {
+      opacity: 1;
+    }
+
+    .serviceImage img {
+      transform: scale(1.05);
+    }
   }
 }
 
@@ -294,11 +408,13 @@
   width: 100%;
   height: 200px;
   overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -307,6 +423,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+  flex: 1;
 }
 
 .serviceHeader {
@@ -322,33 +439,40 @@
   color: $black;
   margin: 0;
   flex: 1;
+  line-height: 1.3;
 }
 
 .categoryBadge {
-  background: rgba($primary-color, 0.1);
-  color: $primary-color;
+  background: linear-gradient(135deg, rgba($secondary-color, 0.15), rgba($secondary-color, 0.1));
+  color: darken($secondary-color, 10%);
   padding: $spacing-xs $spacing-sm;
   border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   white-space: nowrap;
+  border: 1px solid rgba($secondary-color, 0.2);
 }
 
 .serviceDescription {
   font-size: $font-size-sm;
-  color: $gray-700;
-  line-height: 1.5;
+  color: $gray-600;
+  line-height: 1.6;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc($font-size-sm * 1.6 * 2);
 }
 
 .serviceDetails {
   padding: $spacing-md;
-  background: $gray-50;
-  border-radius: $radius-md;
-  border: 1px solid $gray-200;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
-// Mode Prix Fixe
+// Fixed Price Info
 .fixedPriceInfo {
   display: flex;
   flex-direction: column;
@@ -362,15 +486,21 @@
 }
 
 .priceAmount {
-  font-size: $font-size-xl;
+  font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
-  color: $primary-color;
+  color: #059669;
+  background: linear-gradient(135deg, #059669, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .priceLabel {
   font-size: $font-size-xs;
-  color: $gray-600;
+  color: $gray-500;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: $font-weight-semibold;
 }
 
 .duration {
@@ -378,7 +508,11 @@
   align-items: center;
   gap: $spacing-xs;
   font-size: $font-size-sm;
-  color: $gray-700;
+  color: $gray-600;
+  background: rgba($white, 0.7);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
+  width: fit-content;
 }
 
 .durationIcon {
@@ -387,6 +521,214 @@
 
 .serviceActions {
   margin-top: auto;
+  padding-top: $spacing-sm;
+}
+
+// ============================================
+// Diploma Badge
+// ============================================
+
+.diplomaBadge {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  background: rgba($white, 0.95);
+  backdrop-filter: blur(10px);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-full;
+  font-size: $font-size-lg;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  z-index: 1;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+// ============================================
+// Modal - Modern Design
+// ============================================
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-md;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: $white;
+  border-radius: $radius-2xl;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.modalClose {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  background: $gray-100;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-full;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-600;
+  transition: all 0.2s ease;
+  z-index: 1;
+
+  &:hover {
+    background: $gray-200;
+    color: $black;
+    transform: rotate(90deg);
+  }
+}
+
+.modalHeader {
+  padding: $spacing-xl $spacing-xl $spacing-md;
+  text-align: center;
+  background: linear-gradient(180deg, rgba($secondary-color, 0.05), transparent);
+}
+
+.modalIcon {
+  font-size: 56px;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.modalHeader h2 {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0;
+}
+
+.modalBody {
+  padding: 0 $spacing-xl $spacing-xl;
+}
+
+.modalDescription {
+  font-size: $font-size-base;
+  color: $gray-600;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+  line-height: 1.6;
+}
+
+.modalError {
+  background: linear-gradient(135deg, rgba($error, 0.1), rgba($error, 0.05));
+  border: 1px solid rgba($error, 0.3);
+  color: $error;
+  padding: $spacing-md;
+  border-radius: $radius-xl;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.modalActions {
+  padding: $spacing-md $spacing-xl $spacing-xl;
+  display: flex;
+  gap: $spacing-md;
+  justify-content: flex-end;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border-top: 1px solid $gray-200;
+  margin-top: $spacing-md;
+  margin-left: -$spacing-xl;
+  margin-right: -$spacing-xl;
+  padding-left: $spacing-xl;
+  padding-right: $spacing-xl;
+
+  button {
+    min-width: 120px;
+  }
+}
+
+// ============================================
+// File Input - Modern Style
+// ============================================
+
+.fileInputWrapper {
+  margin-top: $spacing-md;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  border: 2px dashed $gray-300;
+  border-radius: $radius-xl;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #fafbfc, #f5f7fa);
+
+  &:hover {
+    border-color: $secondary-color;
+    background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($secondary-color, 0.02));
+    transform: translateY(-2px);
+  }
+
+  &.hasFile {
+    border-color: $success;
+    background: linear-gradient(135deg, rgba($success, 0.08), rgba($success, 0.04));
+    border-style: solid;
+  }
+}
+
+.fileIcon {
+  font-size: 36px;
+}
+
+.fileText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: $font-size-base;
+    color: $black;
+  }
+
+  span {
+    font-size: $font-size-xs;
+    color: $gray-500;
+  }
+}
+
+.fileInputHidden {
+  display: none;
 }
 
 // ============================================
@@ -413,26 +755,27 @@
 
   .backLink {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .profileLink {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .logoutBtn {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .main {
-    padding: $spacing-md 0;
+    padding: $spacing-md $spacing-sm;
   }
 
   .pageHeader {
     margin-bottom: $spacing-lg;
-    padding: 0 $spacing-sm;
+    padding: $spacing-md;
+    border-radius: $radius-xl;
 
     h1 {
       font-size: $font-size-xl;
@@ -445,28 +788,24 @@
 
   .tabs {
     margin-bottom: $spacing-lg;
-    padding: 0 $spacing-sm;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
+    padding: $spacing-xs;
+    border-radius: $radius-lg;
+    gap: 4px;
   }
 
   .tab {
-    padding: $spacing-sm $spacing-md;
-    font-size: $font-size-sm;
-    flex-shrink: 0;
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
+    flex: 0 0 auto;
   }
 
   .tabContent {
     min-height: 300px;
-    padding: 0 $spacing-sm;
   }
 
   .emptyState {
     padding: $spacing-xl $spacing-md;
+    border-radius: $radius-xl;
 
     .emptyIcon {
       font-size: 48px;
@@ -487,7 +826,7 @@
   }
 
   .serviceCard {
-    border-radius: $radius-lg;
+    border-radius: $radius-xl;
   }
 
   .serviceImage {
@@ -510,23 +849,21 @@
 
   .categoryBadge {
     font-size: 10px;
-    padding: 2px $spacing-xs;
+    padding: 3px $spacing-xs;
     align-self: flex-start;
   }
 
   .serviceDescription {
     font-size: $font-size-xs;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   .serviceDetails {
     padding: $spacing-sm;
   }
 
-  .priceDisplay {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: $spacing-xs;
+  .priceAmount {
+    font-size: $font-size-xl;
   }
 
   .duration {
@@ -538,11 +875,65 @@
       width: 100%;
     }
   }
+
+  // Modal mobile
+  .modal {
+    margin: $spacing-sm;
+    max-height: 85vh;
+    border-radius: $radius-xl;
+  }
+
+  .modalHeader {
+    padding: $spacing-lg $spacing-md $spacing-sm;
+  }
+
+  .modalIcon {
+    font-size: 40px;
+  }
+
+  .modalHeader h2 {
+    font-size: $font-size-lg;
+  }
+
+  .modalBody {
+    padding: 0 $spacing-md $spacing-md;
+  }
+
+  .modalDescription {
+    font-size: $font-size-sm;
+  }
+
+  .modalActions {
+    padding: $spacing-md;
+    flex-direction: column-reverse;
+    margin-left: -$spacing-md;
+    margin-right: -$spacing-md;
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .fileInputLabel {
+    padding: $spacing-md;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .fileIcon {
+    font-size: 28px;
+  }
 }
 
 @include tablet {
   .headerContent {
     padding: 0 $spacing-md;
+  }
+
+  .main {
+    padding: $spacing-lg;
   }
 
   .pageHeader {
@@ -561,206 +952,5 @@
 
   .serviceHeader {
     flex-direction: row;
-  }
-}
-
-// ============================================
-// Diploma Badge & Modal Styles
-// ============================================
-
-.diplomaBadge {
-  position: absolute;
-  top: $spacing-sm;
-  right: $spacing-sm;
-  background: rgba($white, 0.95);
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-full;
-  font-size: $font-size-lg;
-  box-shadow: $shadow-md;
-  z-index: 1;
-}
-
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba($black, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: $spacing-md;
-}
-
-.modal {
-  background: $white;
-  border-radius: $radius-xl;
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: $shadow-2xl;
-}
-
-.modalClose {
-  position: absolute;
-  top: $spacing-md;
-  right: $spacing-md;
-  background: $gray-100;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: $radius-full;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $gray-600;
-  transition: all $transition-normal;
-
-  &:hover {
-    background: $gray-200;
-    color: $black;
-  }
-}
-
-.modalHeader {
-  padding: $spacing-xl $spacing-xl $spacing-md;
-  text-align: center;
-}
-
-.modalIcon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: $spacing-md;
-}
-
-.modalHeader h2 {
-  font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
-  color: $black;
-  margin: 0;
-}
-
-.modalBody {
-  padding: 0 $spacing-xl $spacing-xl;
-}
-
-.modalDescription {
-  font-size: $font-size-base;
-  color: $gray-600;
-  text-align: center;
-  margin-bottom: $spacing-lg;
-  line-height: 1.5;
-}
-
-.modalError {
-  background: rgba($error, 0.1);
-  border: 1px solid $error;
-  color: $error;
-  padding: $spacing-sm;
-  border-radius: $radius-md;
-  margin-bottom: $spacing-md;
-  font-size: $font-size-sm;
-  text-align: center;
-}
-
-.modalActions {
-  padding: $spacing-md $spacing-xl $spacing-xl;
-  display: flex;
-  gap: $spacing-md;
-  justify-content: flex-end;
-
-  button {
-    min-width: 120px;
-  }
-}
-
-// File Input Styles
-.fileInputWrapper {
-  margin-top: $spacing-md;
-}
-
-.fileInputLabel {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-lg;
-  border: 2px dashed $gray-300;
-  border-radius: $radius-lg;
-  cursor: pointer;
-  transition: all $transition-normal;
-  background: $gray-50;
-
-  &:hover {
-    border-color: $primary-color;
-    background: rgba($primary-color, 0.05);
-  }
-
-  &.hasFile {
-    border-color: $success;
-    background: rgba($success, 0.05);
-    border-style: solid;
-  }
-}
-
-.fileIcon {
-  font-size: 32px;
-}
-
-.fileText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  strong {
-    font-size: $font-size-base;
-    color: $black;
-  }
-
-  span {
-    font-size: $font-size-xs;
-    color: $gray-500;
-  }
-}
-
-.fileInputHidden {
-  display: none;
-}
-
-// Mobile adjustments for modal
-@include mobile {
-  .modal {
-    margin: $spacing-md;
-    max-height: 85vh;
-  }
-
-  .modalHeader {
-    padding: $spacing-lg $spacing-lg $spacing-sm;
-  }
-
-  .modalBody {
-    padding: 0 $spacing-lg $spacing-lg;
-  }
-
-  .modalActions {
-    padding: $spacing-sm $spacing-lg $spacing-lg;
-    flex-direction: column;
-
-    button {
-      width: 100%;
-    }
-  }
-
-  .fileInputLabel {
-    padding: $spacing-md;
-  }
-
-  .fileIcon {
-    font-size: 24px;
   }
 }

@@ -63,7 +63,7 @@ export default function RefusedOrderModal({
         {/* Sub-message */}
         <p className={styles.subMessage}>
           {t('refusedOrderModal.subMessage') ||
-            'Souhaitez-vous réserver avec un autre prestataire disponible ?'}
+            'Votre commande a été annulée. Vous pouvez réserver avec un autre prestataire.'}
         </p>
 
         {/* Actions */}
@@ -75,7 +75,7 @@ export default function RefusedOrderModal({
             loading={loading}
             fullWidth
           >
-            {t('refusedOrderModal.rebookButton') || 'Réserver avec un autre prestataire'}
+            {t('refusedOrderModal.rebookButton') || 'Choisir un autre prestataire'}
           </Button>
           <Button
             variant="outline"
@@ -83,14 +83,14 @@ export default function RefusedOrderModal({
             onClick={handleClose}
             fullWidth
           >
-            {t('refusedOrderModal.cancelButton') || 'Non merci'}
+            {t('refusedOrderModal.cancelButton') || 'Fermer'}
           </Button>
         </div>
 
         {/* Info */}
         <p className={styles.info}>
           {t('refusedOrderModal.info') ||
-            'Votre commande restera disponible pour d\'autres prestataires à proximité.'}
+            'Vous serez redirigé vers la page de réservation pour choisir un autre prestataire.'}
         </p>
       </div>
     </div>

@@ -576,6 +576,7 @@ export const de = {
   'providerDashboard.activeOrders': 'Aktive Bestellungen',
   'providerDashboard.completedOrders': 'Abgeschlossene Bestellungen',
   'providerDashboard.yourEarnings': 'Deine Einnahmen',
+  'providerDashboard.viewDetails': 'Details ansehen',
   'providerDashboard.averageRating': 'Durchschnittliche Bewertung',
   'providerDashboard.tabAvailable': 'Verfuegbar',
   'providerDashboard.tabActive': 'Aktiv',
@@ -1088,6 +1089,8 @@ export const de = {
   'providerEarnings.noTransactions': 'Keine Transaktionen',
   'providerEarnings.pending': 'Ausstehend',
   'providerEarnings.paid': 'Bezahlt',
+  'providerEarnings.gross': 'brutto',
+  'providerEarnings.tips': 'Trinkgeld',
 
   // Order Detail Page
   'orderDetail.title': 'Bestelldetails',

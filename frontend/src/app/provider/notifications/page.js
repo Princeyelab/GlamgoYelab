@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import styles from './page.module.scss';
 import { useLanguage } from '@/contexts/LanguageContext';
 import apiClient from '@/lib/apiClient';
+import { translateBatch } from '@/lib/translationService';
 
 export default function ProviderNotificationsPage() {
   const router = useRouter();
-  const { t, isRTL, toArabicNumerals } = useLanguage();
+  const { t, isRTL, toArabicNumerals, language } = useLanguage();
   const [notificationsData, setNotificationsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -37,9 +38,37 @@ export default function ProviderNotificationsPage() {
       if (response.success && response.data) {
         // L'API retourne les notifications avec structure:
         // { id, type, title, message, data, read_at, created_at }
-        const notifications = Array.isArray(response.data)
+        let notifications = Array.isArray(response.data)
           ? response.data
           : (response.data.notifications || []);
+
+        // Traduire les titres et messages si la langue n'est pas français
+        const currentLang = localStorage.getItem('glamgo_language') || 'fr';
+        if (currentLang !== 'fr' && notifications.length > 0) {
+          try {
+            // Collecter tous les textes à traduire
+            const textsToTranslate = [];
+            notifications.forEach(n => {
+              if (n.title) textsToTranslate.push(n.title);
+              if (n.message) textsToTranslate.push(n.message);
+            });
+
+            if (textsToTranslate.length > 0) {
+              const translated = await translateBatch(textsToTranslate, currentLang.toUpperCase());
+
+              // Réassigner les traductions
+              let idx = 0;
+              notifications = notifications.map(n => ({
+                ...n,
+                title: n.title ? translated[idx++] : n.title,
+                message: n.message ? translated[idx++] : n.message,
+              }));
+            }
+          } catch (e) {
+            console.error('Translation error:', e);
+          }
+        }
+
         setNotificationsData(notifications);
       } else {
         setNotificationsData([]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.scss';
@@ -35,6 +35,11 @@ export default function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Blocage pending review
+  const [hasPendingReview, setHasPendingReview] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [checkingPendingReview, setCheckingPendingReview] = useState(true);
 
   // Textes traduits via DeepL
   const [translatedName, setTranslatedName] = useState('');
@@ -146,6 +151,36 @@ const [selectedFormula, setSelectedFormula] = useState(null);
       router.push(`/login?redirect=/booking/${params.id}`);
     }
   }, [user, authLoading, router, params.id, checkAuth]);
+
+  // Vérifier si l'utilisateur a une commande en attente d'évaluation
+  useEffect(() => {
+    const checkPendingReview = async () => {
+      if (!user) {
+        setCheckingPendingReview(false);
+        return;
+      }
+
+      try {
+        const response = await apiClient.getMyOrders();
+        if (response.success && response.data) {
+          const pendingReviewOrder = response.data.find(
+            order => order.status === 'completed_pending_review'
+          );
+
+          if (pendingReviewOrder) {
+            setHasPendingReview(true);
+            setPendingOrder(pendingReviewOrder);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking pending reviews:', err);
+      } finally {
+        setCheckingPendingReview(false);
+      }
+    };
+
+    checkPendingReview();
+  }, [user]);
 
   // Pré-remplir l'adresse avec celle du profil utilisateur
   useEffect(() => {
@@ -352,7 +387,7 @@ const [selectedFormula, setSelectedFormula] = useState(null);
     return maxDate.toISOString().split('T')[0];
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading || checkingPendingReview) {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
@@ -363,6 +398,22 @@ const [selectedFormula, setSelectedFormula] = useState(null);
 
   if (!user) {
     return null;
+  }
+
+  // Blocage si l'utilisateur a une évaluation en attente
+  if (hasPendingReview && pendingOrder) {
+    return (
+      <div className={styles.blockingOverlay} dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className={styles.blockingContent}>
+          <span className={styles.blockingIcon}>⭐</span>
+          <h2>{t('pendingReview.title')}</h2>
+          <p>{t('pendingReview.message')}</p>
+          <Link href={`/orders/${pendingOrder.id}`}>
+            <Button variant="primary">{t('pendingReview.goToReview')}</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!service) {

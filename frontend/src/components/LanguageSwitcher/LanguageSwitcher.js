@@ -19,7 +19,7 @@ const LANGUAGE_CONFIG = {
  * Language switcher dropdown component
  * Supports FR, AR, EN, ES, DE languages
  */
-export default function LanguageSwitcher({ compact = false }) {
+export default function LanguageSwitcher({ compact = false, dark = false }) {
   const { language, changeLanguage, t, supportedLanguages } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -58,7 +58,7 @@ export default function LanguageSwitcher({ compact = false }) {
   return (
     <div className={styles.wrapper} ref={dropdownRef}>
       <button
-        className={`${styles.switcher} ${compact ? styles.compact : ''} ${isOpen ? styles.open : ''}`}
+        className={`${styles.switcher} ${compact ? styles.compact : ''} ${dark ? styles.dark : ''} ${isOpen ? styles.open : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         title={t('language.switch')}
         aria-label="Select language"

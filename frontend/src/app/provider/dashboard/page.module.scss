@@ -1,21 +1,45 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
+// ============================================
+// Modern Provider Dashboard - Professional Design
+// ============================================
+
+// Custom modern variables
+$gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gradient-secondary: linear-gradient(135deg, $secondary-color 0%, darken($secondary-color, 15%) 100%);
+$gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+$gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+$gradient-dark: linear-gradient(135deg, #434343 0%, #000000 100%);
+$glass-bg: rgba(255, 255, 255, 0.95);
+$glass-border: rgba(255, 255, 255, 0.18);
+$modern-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+$card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+$hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+
 .dashboardPage {
   min-height: 100vh;
-  background: $gray-50;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+// ============================================
+// Modern Header with Glassmorphism
+// ============================================
+
 .header {
-  background: $secondary-color;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
   padding: $spacing-md 0;
-  box-shadow: $shadow-md;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
 }
 
 .headerContent {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 $spacing-md;
+  padding: 0 $spacing-lg;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,14 +53,22 @@
   text-decoration: none;
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
+  letter-spacing: -0.5px;
+
+  &:hover {
+    opacity: 0.95;
+  }
 }
 
 .providerBadge {
-  background: rgba($white, 0.2);
-  padding: 2px $spacing-xs;
-  border-radius: $radius-sm;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+  padding: 4px $spacing-sm;
+  border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .headerActions {
@@ -50,16 +82,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   color: rgba($white, 0.9);
   font-size: $font-size-lg;
-  border-radius: 50%;
+  border-radius: $radius-lg;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba($white, 0.1);
+  backdrop-filter: blur(10px);
 
   &:hover {
-    background-color: rgba($white, 0.1);
+    background: rgba($white, 0.2);
+    transform: translateY(-2px);
   }
 }
 
@@ -78,48 +113,51 @@
   color: $white;
   text-decoration: none;
   font-weight: $font-weight-medium;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  transition: all $transition-normal;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.1);
 
   &:hover {
     background: rgba($white, 0.2);
-    text-decoration: underline;
+    transform: translateY(-1px);
   }
 }
 
 .logoutBtn {
-  background: rgba($white, 0.2);
-  border: none;
-  color: $white;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff8a8a;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-lg;
   cursor: pointer;
   font-size: $font-size-sm;
-  transition: background-color $transition-normal;
+  font-weight: $font-weight-medium;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($white, 0.3);
+    background: rgba(255, 107, 107, 0.3);
+    transform: translateY(-1px);
   }
 }
 
-// Bouton déconnexion mobile - visible uniquement sur mobile
 .mobileLogoutBtn {
   display: none;
-  background: rgba($white, 0.2);
-  border: none;
-  color: $white;
-  width: 36px;
-  height: 36px;
-  border-radius: $radius-full;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff8a8a;
+  width: 42px;
+  height: 42px;
+  border-radius: $radius-lg;
   cursor: pointer;
   font-size: $font-size-lg;
-  transition: background-color $transition-normal;
+  transition: all 0.3s ease;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    background: rgba($white, 0.3);
+    background: rgba(255, 107, 107, 0.3);
   }
 
   @include mobile {
@@ -127,18 +165,40 @@
   }
 }
 
+// ============================================
+// Main Content Area
+// ============================================
+
 .main {
   padding: $spacing-xl 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: $spacing-lg;
+  padding-right: $spacing-lg;
 }
 
+// ============================================
+// Welcome Section - Modern Hero Style
+// ============================================
+
 .welcomeSection {
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-xl;
+  background: $white;
+  border-radius: $radius-2xl;
+  padding: $spacing-xl;
+  box-shadow: $card-shadow;
+  border: 1px solid rgba(0,0,0,0.04);
 
   h1 {
     font-size: $font-size-3xl;
     font-weight: $font-weight-bold;
     color: $black;
     margin-bottom: $spacing-xs;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #1e3a5f, #4ECDC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
@@ -146,7 +206,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: $spacing-md;
+  gap: $spacing-lg;
   flex-wrap: wrap;
 
   @include md {
@@ -166,38 +226,46 @@
   }
 }
 
+// Modern Availability Toggle
 .availabilityToggle {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-xs $spacing-sm;
-  background: $white;
-  border-radius: $radius-md;
-  box-shadow: $shadow-sm;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  border: 1px solid $gray-200;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
 }
 
 .availabilityLabel {
   font-weight: $font-weight-semibold;
-  font-size: $font-size-xs;
+  font-size: $font-size-sm;
   white-space: nowrap;
+  color: $gray-700;
 }
 
 .toggleButton {
   position: relative;
-  width: 44px;
-  height: 22px;
-  border-radius: 22px;
+  width: 56px;
+  height: 28px;
+  border-radius: 28px;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
 
   &.toggleActive {
-    background: $success;
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
   }
 
   &.toggleInactive {
-    background: $gray-400;
+    background: $gray-300;
   }
 
   &:disabled {
@@ -206,23 +274,23 @@
   }
 
   &:hover:not(:disabled) {
-    transform: scale(1.05);
+    transform: scale(1.02);
   }
 }
 
 .toggleSlider {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
   background: $white;
   border-radius: 50%;
-  transition: transform 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
   .toggleActive & {
-    transform: translateX(22px);
+    transform: translateX(28px);
   }
 
   .toggleInactive & {
@@ -232,11 +300,11 @@
 
 .availabilityWarning {
   margin-top: $spacing-md;
-  padding: $spacing-sm $spacing-md;
-  background: rgba($warning, 0.1);
-  border: 1px solid $warning;
-  border-radius: $radius-md;
-  color: darken($warning, 20%);
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: $radius-xl;
+  color: #92400e;
   font-size: $font-size-sm;
 
   strong {
@@ -246,8 +314,167 @@
   p {
     font-size: $font-size-base;
     color: $gray-600;
+    margin-top: $spacing-xs;
   }
 }
+
+// ============================================
+// Stats Grid - Modern Cards with Gradients
+// ============================================
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+
+  @include lg {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include md {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include sm {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.statCard {
+  background: $white;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  box-shadow: $card-shadow;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: $gradient-secondary;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $hover-shadow;
+
+    &::before {
+      opacity: 1;
+    }
+  }
+}
+
+.earningsCard {
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -30%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .statValue {
+    color: $white;
+    font-size: $font-size-2xl;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .statLabel {
+    color: rgba($white, 0.9);
+    font-weight: $font-weight-medium;
+  }
+
+  &:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 15px 40px rgba(5, 150, 105, 0.4);
+  }
+}
+
+.clickable {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $hover-shadow;
+  }
+}
+
+.viewMore {
+  font-size: $font-size-xs;
+  color: rgba($white, 0.8);
+  margin-top: $spacing-sm;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+
+  &::after {
+    content: '→';
+    transition: transform 0.3s ease;
+  }
+
+  .clickable:hover & {
+    color: $white;
+
+    &::after {
+      transform: translateX(4px);
+    }
+  }
+}
+
+.statValue {
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  color: #1e3a5f;
+  margin-bottom: $spacing-xs;
+  letter-spacing: -1px;
+}
+
+.statLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ============================================
+// Quick Actions - Modern Card Design
+// ============================================
 
 .quickActions {
   display: grid;
@@ -265,35 +492,63 @@
 }
 
 .quickActionCard {
-  background: linear-gradient(135deg, $white, $gray-50);
-  border: 2px solid $gray-200;
+  background: $white;
+  border: 1px solid rgba(0,0,0,0.06);
   border-radius: $radius-xl;
   padding: $spacing-lg;
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  transition: all $transition-normal;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: $card-shadow;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba($secondary-color, 0.05), rgba($primary-color, 0.05));
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
 
   &:hover {
-    border-color: $primary-color;
-    box-shadow: $shadow-lg;
-    transform: translateY(-2px);
+    transform: translateY(-6px);
+    box-shadow: $hover-shadow;
+    border-color: rgba($secondary-color, 0.3);
+
+    &::before {
+      opacity: 1;
+    }
 
     .quickActionIcon {
-      transform: scale(1.1);
+      transform: scale(1.15) rotate(-5deg);
+    }
+
+    .quickActionArrow {
+      transform: translateX(4px);
+      opacity: 1;
     }
   }
 }
 
 .quickActionIcon {
   font-size: 48px;
-  transition: transform $transition-normal;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
 }
 
 .quickActionContent {
   flex: 1;
+  position: relative;
+  z-index: 1;
 
   h3 {
     font-size: $font-size-lg;
@@ -304,143 +559,179 @@
 
   p {
     font-size: $font-size-sm;
-    color: $gray-600;
+    color: $gray-500;
     margin: 0;
+    line-height: 1.5;
   }
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: $spacing-md;
-  margin-bottom: $spacing-xl;
-
-  @include lg {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @include md {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include sm {
-    grid-template-columns: 1fr;
-  }
-}
-
-.statCard {
-  background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  box-shadow: $shadow-md;
-  text-align: center;
-}
-
-.earningsCard {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-
-  .statValue {
-    color: $white;
-    font-size: $font-size-2xl;
-  }
-
-  .statLabel {
-    color: rgba($white, 0.9);
-    font-weight: $font-weight-medium;
-  }
-}
-
-.clickable {
-  cursor: pointer;
-  transition: all $transition-fast;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: $shadow-lg;
-  }
-}
-
-.viewMore {
-  font-size: $font-size-xs;
-  color: rgba($white, 0.8);
-  margin-top: $spacing-xs;
-  transition: color $transition-fast;
-
-  .clickable:hover & {
-    color: $white;
-  }
-}
-
-.statValue {
-  font-size: $font-size-3xl;
-  font-weight: $font-weight-bold;
+.quickActionArrow {
+  font-size: $font-size-lg;
   color: $secondary-color;
-  margin-bottom: $spacing-xs;
+  opacity: 0;
+  transition: all 0.3s ease;
 }
 
-.statLabel {
-  font-size: $font-size-sm;
-  color: $gray-600;
-}
+// ============================================
+// Orders Section - Modern Container
+// ============================================
 
 .ordersSection {
   background: $white;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-md;
+  border-radius: $radius-2xl;
+  box-shadow: $card-shadow;
   overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
+// Modern Pill Tabs
 .tabs {
   display: flex;
+  padding: $spacing-md;
+  gap: $spacing-xs;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   border-bottom: 1px solid $gray-200;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tab {
   flex: 1;
-  padding: $spacing-md;
-  background: none;
+  padding: $spacing-sm $spacing-md;
+  background: transparent;
   border: none;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  color: $gray-600;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-500;
   cursor: pointer;
-  transition: all $transition-normal;
-  border-bottom: 3px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: $radius-lg;
+  white-space: nowrap;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
 
-  &:hover {
-    color: $secondary-color;
-    background: rgba($secondary-color, 0.05);
+  &:hover:not(.active) {
+    color: $gray-700;
+    background: rgba($secondary-color, 0.08);
   }
 
   &.active {
-    color: $secondary-color;
-    border-bottom-color: $secondary-color;
-    background: rgba($secondary-color, 0.05);
+    color: $white;
+    background: linear-gradient(135deg, #1e3a5f, #2d5a87);
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+
+    .tabBadge {
+      background: $white;
+      color: #1e3a5f;
+    }
   }
 }
 
+// Tab Badge Styles - Notification style
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: $font-weight-bold;
+  border-radius: $radius-full;
+  background: $gray-600;
+  color: $white;
+  line-height: 1;
+  animation: badgePop 0.3s ease;
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tabBadgeAvailable {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: $white;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  animation: badgePop 0.3s ease, badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 15px rgba(245, 158, 11, 0.7);
+  }
+}
+
+.tabBadgeActive {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: $white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.tabBadgeCompleted {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: $white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.tabBadgeCancelled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: $white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
 .ordersList {
-  padding: $spacing-md;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 }
 
 .ordersLoading,
 .noOrders {
   text-align: center;
-  padding: $spacing-xl;
-  color: $gray-500;
+  padding: $spacing-2xl;
+  color: $gray-400;
+
+  &::before {
+    content: '📋';
+    display: block;
+    font-size: 3rem;
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
 }
 
-.orderCard {
-  background: $gray-50;
-  border-radius: $radius-lg;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
+// ============================================
+// Order Cards - Modern Design
+// ============================================
 
-  &:last-child {
-    margin-bottom: 0;
+.orderCard {
+  background: linear-gradient(135deg, #fafbfc, #f5f7fa);
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  border: 1px solid rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    border-color: rgba($secondary-color, 0.2);
   }
 }
 
@@ -448,64 +739,83 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-md;
 }
 
 .orderId {
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $black;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: #1e3a5f;
+  background: rgba(30, 58, 95, 0.08);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
 }
 
+// Modern Status Badges
 .status {
-  padding: $spacing-xs $spacing-sm;
+  padding: $spacing-xs $spacing-md;
   border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .statusPending {
-  background-color: rgba($warning, 0.1);
-  color: darken($warning, 20%);
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
 }
 
 .statusAccepted {
-  background-color: rgba($info, 0.1);
-  color: darken($info, 20%);
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .statusOnWay {
-  background-color: rgba($secondary-color, 0.1);
-  color: $secondary-dark;
+  background: linear-gradient(135deg, #cffafe, #a5f3fc);
+  color: #0e7490;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
 }
 
 .statusArrived {
-  background-color: rgba($success, 0.1);
-  color: darken($success, 15%);
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .statusInProgress {
-  background-color: rgba($primary-color, 0.1);
-  color: $primary-dark;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #4338ca;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  animation: pulseStatus 2s ease-in-out infinite;
+}
+
+@keyframes pulseStatus {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 .statusCompleted {
-  background-color: rgba($success, 0.1);
-  color: darken($success, 20%);
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: $white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
 
 .statusCancelled {
-  background-color: rgba($error, 0.1);
-  color: $error;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .orderDetails {
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-md;
 }
 
 .serviceName {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: $black;
   margin-bottom: $spacing-sm;
 }
@@ -513,7 +823,11 @@
 .orderInfo {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-xs;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $radius-lg;
+  border: 1px solid rgba(0,0,0,0.04);
 
   @include sm {
     grid-template-columns: 1fr;
@@ -522,25 +836,32 @@
 
 .infoItem {
   font-size: $font-size-sm;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
 }
 
 .infoLabel {
-  color: $gray-600;
-  margin-right: $spacing-xs;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
 }
 
 .price {
   font-weight: $font-weight-bold;
-  color: $secondary-color;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px $spacing-xs;
+  border-radius: $radius-sm;
 }
 
 .notes {
   margin-top: $spacing-sm;
-  padding: $spacing-sm;
-  background: $white;
-  border-radius: $radius-sm;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-radius: $radius-lg;
   font-size: $font-size-sm;
   color: $gray-700;
+  border-left: 4px solid #f59e0b;
 }
 
 .orderActions {
@@ -549,21 +870,24 @@
   gap: $spacing-sm;
   justify-content: flex-end;
   align-items: center;
-  padding-top: $spacing-sm;
-  border-top: 1px solid $gray-200;
+  padding-top: $spacing-md;
+  border-top: 1px solid rgba(0,0,0,0.06);
 }
 
-// Timer countdown pour commandes pending
+// ============================================
+// Timer for Pending Orders
+// ============================================
+
 .timerContainer {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   border: 1px solid #93c5fd;
-  border-radius: $radius-lg;
-  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-xl;
+  padding: $spacing-md;
   width: 100%;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-md;
 }
 
 .timerUrgent {
@@ -574,29 +898,30 @@
 
 @keyframes pulseUrgent {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(#ef4444, 0.3);
+    box-shadow: 0 0 10px rgba(#ef4444, 0.3);
   }
   50% {
-    box-shadow: 0 0 15px rgba(#ef4444, 0.6);
+    box-shadow: 0 0 25px rgba(#ef4444, 0.6);
   }
 }
 
 .timerIcon {
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .timerContent {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .timerValue {
-  font-size: $font-size-xl;
+  font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
   color: #1e40af;
   font-family: 'SF Mono', 'Roboto Mono', monospace;
+  letter-spacing: 1px;
 }
 
 .timerValueUrgent {
@@ -606,21 +931,23 @@
 .timerLabel {
   font-size: $font-size-xs;
   color: $gray-600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .timerProgressContainer {
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: rgba($white, 0.5);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .timerProgress {
   height: 100%;
   background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 1s linear;
 }
 
@@ -631,31 +958,32 @@
 .preselectedBadge {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #92400e;
-  padding: 4px 10px;
+  padding: 6px 14px;
   border-radius: $radius-full;
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   white-space: nowrap;
   animation: pulseGlow 2s ease-in-out infinite;
   border: 1px solid #f59e0b;
+  box-shadow: 0 2px 10px rgba(#f59e0b, 0.3);
 }
 
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(#f59e0b, 0.3);
+    box-shadow: 0 2px 10px rgba(#f59e0b, 0.3);
   }
   50% {
-    box-shadow: 0 0 15px rgba(#f59e0b, 0.6);
+    box-shadow: 0 4px 20px rgba(#f59e0b, 0.6);
   }
 }
 
-// Boutons Accepter/Refuser
+// Action Buttons
 .orderActionButtons {
   display: flex;
-  gap: 8px;
+  gap: $spacing-sm;
   width: 100%;
 
   button {
@@ -666,28 +994,28 @@
 .refuseButton {
   color: #dc2626 !important;
   border-color: #dc2626 !important;
+  background: rgba(220, 38, 38, 0.05) !important;
 
   &:hover {
-    background: rgba(220, 38, 38, 0.1) !important;
+    background: rgba(220, 38, 38, 0.15) !important;
   }
 }
 
-// Onglet Annulées
+// Cancelled Tab
 .cancelledTab {
   &.active {
-    color: #dc2626 !important;
-    border-bottom-color: #dc2626 !important;
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
   }
 }
 
-// Infos commandes annulées
+// Cancelled Order Info
 .cancelledOrderInfo {
   width: 100%;
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border: 1px solid #fecaca;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   padding: $spacing-md;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-md;
 }
 
 .cancelledHeader {
@@ -698,27 +1026,27 @@
 }
 
 .cancelledIcon {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .cancelledTitle {
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-bold;
   color: #991b1b;
   font-size: $font-size-sm;
 }
 
 .cancelledDate {
   font-size: $font-size-xs;
-  color: $gray-600;
+  color: $gray-500;
   margin-bottom: $spacing-xs;
 }
 
 .cancelledReason {
   font-size: $font-size-sm;
   color: $gray-700;
-  padding: $spacing-xs $spacing-sm;
-  background: rgba($white, 0.6);
-  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($white, 0.7);
+  border-radius: $radius-lg;
   margin-bottom: $spacing-sm;
 }
 
@@ -726,15 +1054,15 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   border: 1px solid #10b981;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $spacing-sm $spacing-md;
   margin-top: $spacing-sm;
 }
 
 .compensationIcon {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .compensationText {
@@ -747,16 +1075,20 @@
   }
 }
 
+// ============================================
+// Loading States
+// ============================================
+
 .loading {
   text-align: center;
   padding: $spacing-2xl;
-  color: $gray-600;
+  color: $gray-500;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid $gray-300;
+  width: 48px;
+  height: 48px;
+  border: 4px solid $gray-200;
   border-top-color: $secondary-color;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -769,13 +1101,18 @@
   }
 }
 
+// ============================================
+// Chat Modal
+// ============================================
+
 .chatModal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba($black, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -785,20 +1122,32 @@
 
 .chatModalContent {
   background: $white;
-  border-radius: $radius-xl;
+  border-radius: $radius-2xl;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: $shadow-lg;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .chatModalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-md;
-  background: $secondary-color;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, #1e3a5f, #2d5a87);
   color: $white;
 
   h3 {
@@ -809,18 +1158,24 @@
 }
 
 .closeChat {
-  background: none;
+  background: rgba($white, 0.1);
   border: none;
   color: $white;
-  font-size: $font-size-xl;
+  font-size: $font-size-lg;
   cursor: pointer;
   padding: $spacing-xs;
+  border-radius: $radius-md;
   line-height: 1;
+  transition: all 0.2s ease;
 
   &:hover {
-    opacity: 0.8;
+    background: rgba($white, 0.2);
   }
 }
+
+// ============================================
+// Location Tracking
+// ============================================
 
 .locationActive {
   background: rgba($success, 0.1) !important;
@@ -834,7 +1189,7 @@
     box-shadow: 0 0 0 0 rgba($success, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba($success, 0);
+    box-shadow: 0 0 0 12px rgba($success, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba($success, 0);
@@ -842,13 +1197,14 @@
 }
 
 .locationError {
-  background: rgba($error, 0.1);
+  background: linear-gradient(135deg, rgba($error, 0.1), rgba($error, 0.05));
   color: $error;
   padding: $spacing-sm $spacing-md;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   margin-bottom: $spacing-md;
   font-size: $font-size-sm;
   text-align: center;
+  border: 1px solid rgba($error, 0.2);
 }
 
 .locationIndicator {
@@ -857,37 +1213,44 @@
   gap: $spacing-xs;
   font-size: $font-size-xs;
   color: darken($success, 20%);
-  background: rgba($success, 0.1);
+  background: linear-gradient(135deg, rgba($success, 0.15), rgba($success, 0.1));
   padding: $spacing-xs $spacing-sm;
   border-radius: $radius-full;
   margin-top: $spacing-xs;
 }
 
 .gpsDot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   background: $success;
   border-radius: 50%;
   animation: blink 1.5s infinite;
+  box-shadow: 0 0 8px rgba($success, 0.6);
 }
 
 @keyframes blink {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.4;
+    transform: scale(0.8);
   }
 }
 
-// Modal de complétion de commande
+// ============================================
+// Complete Order Modal
+// ============================================
+
 .completeModal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba($black, 0.6);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -897,31 +1260,20 @@
 
 .completeModalContent {
   background: $white;
-  border-radius: $radius-xl;
+  border-radius: $radius-2xl;
   width: 100%;
   max-width: 500px;
   overflow: hidden;
-  box-shadow: $shadow-lg;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .completeModalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-md;
-  background: $success;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: $white;
 
   h3 {
@@ -932,16 +1284,18 @@
 }
 
 .closeModal {
-  background: none;
+  background: rgba($white, 0.1);
   border: none;
   color: $white;
-  font-size: $font-size-xl;
+  font-size: $font-size-lg;
   cursor: pointer;
   padding: $spacing-xs;
+  border-radius: $radius-md;
   line-height: 1;
+  transition: all 0.2s ease;
 
   &:hover {
-    opacity: 0.8;
+    background: rgba($white, 0.2);
   }
 
   &:disabled {
@@ -951,77 +1305,88 @@
 }
 
 .completeModalBody {
-  padding: $spacing-lg;
+  padding: $spacing-xl;
 }
 
 .orderSummary {
-  background: $gray-50;
-  border-radius: $radius-md;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border: 1px solid rgba(0,0,0,0.04);
 
   .orderId {
     font-size: $font-size-sm;
-    color: $gray-600;
+    color: $gray-500;
     margin: 0 0 $spacing-xs;
+    background: none;
+    padding: 0;
   }
 
   .serviceName {
     font-size: $font-size-base;
-    font-weight: $font-weight-semibold;
+    font-weight: $font-weight-bold;
     color: $black;
     margin: 0 0 $spacing-xs;
   }
 
   .clientName {
     font-size: $font-size-sm;
-    color: $gray-700;
+    color: $gray-600;
     margin: 0 0 $spacing-xs;
   }
 
   .orderTotal {
-    font-size: $font-size-lg;
+    font-size: $font-size-xl;
     font-weight: $font-weight-bold;
-    color: $primary-color;
+    color: #1e3a5f;
     margin: 0;
   }
 
   .orderEarnings {
     font-size: $font-size-base;
     font-weight: $font-weight-semibold;
-    color: $success;
+    color: #059669;
     margin: $spacing-xs 0 0;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    &::before {
+      content: '💰';
+    }
   }
 }
 
 .confirmMessage {
   text-align: center;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 
   .checkIcon {
-    width: 60px;
-    height: 60px;
-    background: rgba($success, 0.1);
-    color: $success;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(#10b981, 0.15), rgba(#059669, 0.1));
+    color: #10b981;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     margin: 0 auto $spacing-md;
+    box-shadow: 0 8px 25px rgba(#10b981, 0.2);
   }
 
   p {
     margin: 0;
-    font-size: $font-size-base;
+    font-size: $font-size-lg;
     color: $black;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
   }
 
   .confirmHint {
     font-size: $font-size-sm;
-    color: $gray-600;
+    color: $gray-500;
     margin-top: $spacing-xs;
     font-weight: $font-weight-normal;
   }
@@ -1031,25 +1396,27 @@
   label {
     display: block;
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: $gray-700;
     margin-bottom: $spacing-xs;
   }
 
   .noteInput {
     width: 100%;
-    padding: $spacing-sm;
-    border: 1px solid $gray-300;
-    border-radius: $radius-md;
+    padding: $spacing-md;
+    border: 2px solid $gray-200;
+    border-radius: $radius-xl;
     font-size: $font-size-sm;
     font-family: inherit;
     resize: vertical;
-    transition: border-color $transition-normal;
+    transition: all 0.3s ease;
+    background: $gray-50;
 
     &:focus {
       outline: none;
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      border-color: $secondary-color;
+      box-shadow: 0 0 0 4px rgba($secondary-color, 0.1);
+      background: $white;
     }
 
     &::placeholder {
@@ -1061,57 +1428,56 @@
 .completeModalFooter {
   display: flex;
   gap: $spacing-sm;
-  padding: $spacing-md;
-  background: $gray-50;
+  padding: $spacing-lg;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   border-top: 1px solid $gray-200;
   justify-content: flex-end;
 }
 
 .waitingClient {
-  padding: $spacing-xs $spacing-sm;
-  background: rgba($warning, 0.1);
-  color: darken($warning, 20%);
-  border-radius: $radius-md;
+  padding: $spacing-xs $spacing-md;
+  background: linear-gradient(135deg, rgba($warning, 0.15), rgba($warning, 0.1));
+  color: #92400e;
+  border-radius: $radius-lg;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
 }
 
 .inProgressStatus {
-  padding: $spacing-xs $spacing-sm;
-  background: rgba($primary-color, 0.1);
+  padding: $spacing-xs $spacing-md;
+  background: linear-gradient(135deg, rgba($primary-color, 0.15), rgba($primary-color, 0.1));
   color: $primary-dark;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
 }
 
-// Statut en attente d'evaluation
+// Pending Review Status
 .statusPendingReview {
-  background-color: rgba(#ff9800, 0.15);
-  color: darken(#ff9800, 20%);
-  border: 1px dashed #ff9800;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px dashed #f59e0b;
 }
 
-// Section en attente d'evaluation client
 .pendingReviewStatus {
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  padding: $spacing-md;
+  padding: $spacing-lg;
   background: linear-gradient(135deg, rgba(#ff9800, 0.1), rgba(#ffc107, 0.1));
   border: 2px solid #ff9800;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   width: 100%;
 }
 
 .pendingReviewIcon {
-  font-size: 2rem;
+  font-size: 2.5rem;
   animation: pendingPulse 2s ease-in-out infinite;
 }
 
 @keyframes pendingPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(10deg); }
 }
 
 .pendingReviewText {
@@ -1119,7 +1485,7 @@
 
   strong {
     display: block;
-    color: darken(#ff9800, 15%);
+    color: #e65100;
     font-size: $font-size-base;
     margin-bottom: $spacing-xs;
   }
@@ -1131,7 +1497,9 @@
   }
 }
 
-// ========== Modal d'annulation prestataire ==========
+// ============================================
+// Cancel Order Modal
+// ============================================
 
 .cancelBtn {
   margin-top: $spacing-xs;
@@ -1143,7 +1511,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba($black, 0.6);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1153,20 +1522,20 @@
 
 .cancelModalContent {
   background: $white;
-  border-radius: $radius-xl;
+  border-radius: $radius-2xl;
   width: 100%;
   max-width: 500px;
   overflow: hidden;
-  box-shadow: $shadow-lg;
-  animation: slideIn 0.3s ease;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cancelModalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-md;
-  background: $error;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: $white;
 
   h3 {
@@ -1177,13 +1546,13 @@
 }
 
 .cancelModalBody {
-  padding: $spacing-lg;
+  padding: $spacing-xl;
 }
 
 .scheduledAt {
   font-size: $font-size-sm;
-  color: $gray-600;
-  margin: 0;
+  color: $gray-500;
+  margin: 0 0 $spacing-md;
 }
 
 .cancellationFee {
@@ -1191,12 +1560,12 @@
   align-items: flex-start;
   gap: $spacing-md;
   padding: $spacing-md;
-  border-radius: $radius-md;
-  margin-bottom: $spacing-md;
+  border-radius: $radius-xl;
+  margin-bottom: $spacing-lg;
 
   &.free {
-    background: rgba($success, 0.1);
-    border: 1px solid $success;
+    background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.05));
+    border: 1px solid rgba($success, 0.3);
 
     .feeInfo strong {
       color: $success;
@@ -1204,17 +1573,17 @@
   }
 
   &.warning {
-    background: rgba($warning, 0.1);
-    border: 1px solid $warning;
+    background: linear-gradient(135deg, rgba($warning, 0.15), rgba($warning, 0.1));
+    border: 1px solid rgba($warning, 0.4);
 
     .feeInfo strong {
-      color: darken($warning, 15%);
+      color: #b45309;
     }
   }
 
   &.danger {
-    background: rgba($error, 0.1);
-    border: 1px solid $error;
+    background: linear-gradient(135deg, rgba($error, 0.1), rgba($error, 0.05));
+    border: 1px solid rgba($error, 0.3);
 
     .feeInfo strong {
       color: $error;
@@ -1222,7 +1591,7 @@
   }
 
   &.critical {
-    background: rgba($error, 0.15);
+    background: linear-gradient(135deg, rgba($error, 0.15), rgba($error, 0.1));
     border: 2px solid $error;
 
     .feeInfo strong {
@@ -1233,7 +1602,7 @@
 }
 
 .feeIcon {
-  font-size: $font-size-2xl;
+  font-size: $font-size-3xl;
 }
 
 .feeInfo {
@@ -1249,16 +1618,17 @@
     margin: 0;
     font-size: $font-size-sm;
     color: $gray-600;
+    line-height: 1.5;
   }
 }
 
 .reasonSection {
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-lg;
 
   label {
     display: block;
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: $gray-800;
     margin-bottom: $spacing-xs;
   }
@@ -1270,64 +1640,80 @@
 
 .reasonSelect {
   width: 100%;
-  padding: $spacing-sm;
-  border: 2px solid $gray-300;
-  border-radius: $radius-md;
+  padding: $spacing-md;
+  border: 2px solid $gray-200;
+  border-radius: $radius-xl;
   font-size: $font-size-base;
   font-family: $font-family-primary;
   background: $white;
   cursor: pointer;
-  transition: all $transition-normal;
+  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
 
   &:focus {
     outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    border-color: $secondary-color;
+    box-shadow: 0 0 0 4px rgba($secondary-color, 0.1);
   }
 }
 
 .warningMessage {
-  background: rgba($warning, 0.1);
-  border-radius: $radius-md;
-  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, rgba($warning, 0.15), rgba($warning, 0.1));
+  border-radius: $radius-xl;
+  padding: $spacing-md;
+  border: 1px solid rgba($warning, 0.3);
 
   p {
     margin: 0;
     font-size: $font-size-sm;
-    color: darken($warning, 20%);
+    color: #92400e;
+    line-height: 1.5;
   }
 }
 
 .cancelModalFooter {
   display: flex;
   gap: $spacing-sm;
-  padding: $spacing-md;
-  background: $gray-50;
+  padding: $spacing-lg;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   border-top: 1px solid $gray-200;
   justify-content: flex-end;
 }
 
-// ========== Gains prestataire ==========
+// ============================================
+// Earnings Display
+// ============================================
 
 .earnings {
   font-weight: $font-weight-bold;
-  color: #22c55e;
-  background: rgba(#22c55e, 0.1);
-  padding: 2px $spacing-xs;
-  border-radius: $radius-sm;
+  color: #059669;
+  background: linear-gradient(135deg, rgba(#22c55e, 0.15), rgba(#16a34a, 0.1));
+  padding: 4px $spacing-sm;
+  border-radius: $radius-md;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-// ========== Section GPS Tracker ==========
+// ============================================
+// GPS Tracker Section
+// ============================================
 
 .gpsTrackerSection {
   margin: $spacing-md 0;
-  padding: $spacing-md;
-  background: rgba($info, 0.05);
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, rgba($info, 0.08), rgba($info, 0.04));
   border: 1px solid rgba($info, 0.2);
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
 }
 
-// ========== Toast notifications ==========
+// ============================================
+// Toast Notifications
+// ============================================
 
 .toast {
   position: fixed;
@@ -1335,13 +1721,14 @@
   right: $spacing-xl;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   padding: $spacing-md $spacing-lg;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  border-radius: $radius-xl;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
   z-index: 3000;
-  animation: slideInRight 0.3s ease;
-  max-width: 400px;
+  animation: toastSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 420px;
+  backdrop-filter: blur(10px);
 
   @include sm {
     left: $spacing-md;
@@ -1351,9 +1738,9 @@
   }
 }
 
-@keyframes slideInRight {
+@keyframes toastSlideIn {
   from {
-    transform: translateX(100%);
+    transform: translateX(120%);
     opacity: 0;
   }
   to {
@@ -1363,30 +1750,29 @@
 }
 
 .toast.success {
-  background: #22c55e;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: $white;
 }
 
 .toast.error {
-  background: $error;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: $white;
 }
 
 .toast.warning {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: $white;
 }
 
 .toastIcon {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
+  font-size: $font-size-xl;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   background: rgba($white, 0.2);
-  border-radius: $radius-full;
+  border-radius: $radius-lg;
   flex-shrink: 0;
 }
 
@@ -1394,26 +1780,30 @@
   flex: 1;
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .toastClose {
-  background: none;
+  background: rgba($white, 0.1);
   border: none;
   color: rgba($white, 0.8);
   font-size: $font-size-lg;
   cursor: pointer;
   padding: $spacing-xs;
+  border-radius: $radius-md;
   line-height: 1;
-  transition: color $transition-fast;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 
   &:hover {
+    background: rgba($white, 0.2);
     color: $white;
   }
 }
 
-// ========== Modal d'erreur - Commande active bloquante ==========
+// ============================================
+// Error Modal
+// ============================================
 
 .errorModal {
   position: fixed;
@@ -1421,7 +1811,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba($black, 0.7);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1432,17 +1823,17 @@
 
 .errorModalContent {
   background: $white;
-  border-radius: $radius-xl;
+  border-radius: $radius-2xl;
   width: 100%;
   max-width: 420px;
-  padding: $spacing-xl;
+  padding: $spacing-2xl;
   text-align: center;
-  box-shadow: $shadow-lg;
-  animation: slideIn 0.3s ease;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .errorModalIcon {
-  font-size: 4rem;
+  font-size: 5rem;
   margin-bottom: $spacing-md;
 }
 
@@ -1450,30 +1841,30 @@
   margin: 0 0 $spacing-md;
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
-  color: $error;
+  color: #dc2626;
 }
 
 .errorModalMessage {
   margin: 0 0 $spacing-md;
   font-size: $font-size-base;
   color: $gray-700;
-  line-height: 1.5;
-  background: rgba($error, 0.08);
+  line-height: 1.6;
+  background: linear-gradient(135deg, rgba($error, 0.08), rgba($error, 0.04));
   padding: $spacing-md;
-  border-radius: $radius-md;
+  border-radius: $radius-xl;
   border-left: 4px solid $error;
   text-align: left;
 }
 
 .errorModalHint {
-  margin: 0 0 $spacing-lg;
+  margin: 0 0 $spacing-xl;
   font-size: $font-size-sm;
   color: $gray-500;
   font-style: italic;
 }
 
 .errorModalButton {
-  min-width: 150px;
+  min-width: 160px;
 }
 
 @keyframes fadeIn {
@@ -1513,20 +1904,22 @@
 
   .profileLink {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .logoutBtn {
     font-size: $font-size-xs;
-    padding: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
   }
 
   .main {
-    padding: $spacing-md 0;
+    padding: $spacing-md $spacing-sm;
   }
 
   .welcomeSection {
     margin-bottom: $spacing-md;
+    padding: $spacing-md;
+    border-radius: $radius-xl;
 
     h1 {
       font-size: $font-size-xl;
@@ -1549,36 +1942,15 @@
   }
 
   .availabilityToggle {
-    width: auto;
-    justify-content: flex-start;
-    padding: $spacing-xs;
-    gap: $spacing-xs;
-  }
-
-  .availabilityLabel {
-    font-size: 10px;
-  }
-
-  .toggleButton {
-    width: 36px;
-    height: 18px;
-  }
-
-  .toggleSlider {
-    width: 14px;
-    height: 14px;
-    top: 2px;
-    left: 2px;
-  }
-
-  .toggleActive .toggleSlider {
-    transform: translateX(18px);
+    width: 100%;
+    justify-content: space-between;
+    padding: $spacing-sm;
   }
 
   .quickActions {
     grid-template-columns: 1fr;
     gap: $spacing-sm;
-    margin-bottom: $spacing-lg;
+    margin-bottom: $spacing-md;
   }
 
   .quickActionCard {
@@ -1602,11 +1974,12 @@
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: $spacing-sm;
-    margin-bottom: $spacing-lg;
+    margin-bottom: $spacing-md;
   }
 
   .statCard {
     padding: $spacing-md;
+    border-radius: $radius-lg;
   }
 
   .statValue {
@@ -1623,21 +1996,28 @@
     }
   }
 
-  .tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .ordersSection {
+    border-radius: $radius-xl;
+  }
 
-    &::-webkit-scrollbar {
-      display: none;
-    }
+  .tabs {
+    padding: $spacing-sm;
+    gap: 4px;
   }
 
   .tab {
-    padding: $spacing-sm;
-    font-size: $font-size-sm;
-    white-space: nowrap;
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
     flex: 0 0 auto;
-    min-width: 80px;
+    min-width: auto;
+    gap: 4px;
+  }
+
+  .tabBadge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 9px;
+    padding: 0 4px;
   }
 
   .ordersList {
@@ -1645,7 +2025,8 @@
   }
 
   .orderCard {
-    padding: $spacing-sm;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
   }
 
   .orderHeader {
@@ -1655,12 +2036,12 @@
   }
 
   .orderId {
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
   }
 
   .status {
     font-size: 10px;
-    padding: 2px $spacing-xs;
+    padding: 3px $spacing-xs;
   }
 
   .serviceName {
@@ -1670,6 +2051,7 @@
   .orderInfo {
     grid-template-columns: 1fr;
     gap: $spacing-xs;
+    padding: $spacing-sm;
   }
 
   .infoItem {
@@ -1688,11 +2070,11 @@
   .pendingReviewStatus {
     flex-direction: column;
     text-align: center;
-    padding: $spacing-sm;
+    padding: $spacing-md;
   }
 
   .pendingReviewIcon {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
 
   .pendingReviewText {
@@ -1711,12 +2093,13 @@
   .cancelModalContent {
     max-height: 95vh;
     margin: $spacing-xs;
+    border-radius: $radius-xl;
   }
 
   .chatModalHeader,
   .completeModalHeader,
   .cancelModalHeader {
-    padding: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
 
     h3 {
       font-size: $font-size-base;
@@ -1729,7 +2112,7 @@
   }
 
   .orderSummary {
-    padding: $spacing-sm;
+    padding: $spacing-md;
 
     .serviceName {
       font-size: $font-size-sm;
@@ -1742,9 +2125,9 @@
 
   .confirmMessage {
     .checkIcon {
-      width: 50px;
-      height: 50px;
-      font-size: 1.5rem;
+      width: 56px;
+      height: 56px;
+      font-size: 1.75rem;
     }
 
     p {
@@ -1755,7 +2138,7 @@
   .completeModalFooter,
   .cancelModalFooter {
     flex-direction: column-reverse;
-    padding: $spacing-sm;
+    padding: $spacing-md;
     gap: $spacing-xs;
 
     button {
@@ -1766,11 +2149,11 @@
   .cancellationFee {
     flex-direction: column;
     text-align: center;
-    padding: $spacing-sm;
+    padding: $spacing-md;
   }
 
   .feeIcon {
-    font-size: $font-size-xl;
+    font-size: $font-size-2xl;
   }
 
   .feeInfo {
@@ -1784,19 +2167,30 @@
   }
 
   .gpsTrackerSection {
-    padding: $spacing-sm;
+    padding: $spacing-md;
     margin: $spacing-sm 0;
   }
 
   .locationIndicator {
     font-size: 10px;
-    padding: 2px $spacing-xs;
+    padding: 3px $spacing-xs;
+  }
+
+  .toast {
+    bottom: $spacing-md;
+    left: $spacing-sm;
+    right: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
   }
 }
 
 @include tablet {
   .headerContent {
     padding: 0 $spacing-md;
+  }
+
+  .main {
+    padding: $spacing-lg;
   }
 
   .welcomeSection {

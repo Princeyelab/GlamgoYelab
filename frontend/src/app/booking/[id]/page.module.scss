@@ -488,6 +488,41 @@
   }
 }
 
+// Animations for success screen
+@keyframes springIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes checkPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba($success, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba($success, 0);
+  }
+}
+
 .error {
   text-align: center;
 
@@ -532,6 +567,7 @@
     font-weight: $font-weight-bold;
     color: $success;
     margin-bottom: $spacing-sm;
+    animation: fadeInUp 0.5s ease-out 0.3s both;
 
     // Mobile (base)
     font-size: $font-size-xl;
@@ -544,6 +580,15 @@
   p {
     color: $gray-600;
     margin-bottom: $spacing-xs;
+    animation: fadeInUp 0.5s ease-out 0.5s both;
+
+    &:nth-of-type(2) {
+      animation-delay: 0.6s;
+    }
+
+    &:nth-of-type(3) {
+      animation-delay: 0.7s;
+    }
   }
 }
 
@@ -555,6 +600,7 @@
   justify-content: center;
   color: $success;
   margin: 0 auto $spacing-lg;
+  animation: springIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), checkPulse 2s ease-in-out 0.8s;
 
   // Mobile (base)
   width: 60px;
@@ -846,5 +892,87 @@
       border-color: $primary-color;
       color: $primary-color;
     }
+  }
+}
+
+// ============================================
+// Pending Review Blocking Overlay
+// ============================================
+
+.blockingOverlay {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
+
+  // Mobile (base)
+  padding: $spacing-lg;
+
+  @include tablet-up {
+    padding: $spacing-xl;
+  }
+}
+
+.blockingContent {
+  background: $white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+
+  // Mobile (base)
+  padding: $spacing-xl;
+
+  @include tablet-up {
+    padding: $spacing-2xl;
+  }
+
+  h2 {
+    font-weight: $font-weight-bold;
+    color: $black;
+    margin-bottom: $spacing-sm;
+
+    // Mobile (base)
+    font-size: $font-size-xl;
+
+    @include tablet-up {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  p {
+    color: $gray-600;
+    margin-bottom: $spacing-lg;
+    line-height: 1.6;
+
+    // Mobile (base)
+    font-size: $font-size-sm;
+
+    @include tablet-up {
+      font-size: $font-size-base;
+    }
+  }
+}
+
+.blockingIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(#ff9500, 0.15), rgba(#ff6b00, 0.15));
+  border-radius: 50%;
+  margin: 0 auto $spacing-lg;
+  animation: pulse 2s ease-in-out infinite;
+
+  // Mobile (base)
+  width: 80px;
+  height: 80px;
+  font-size: 2.5rem;
+
+  @include tablet-up {
+    width: 100px;
+    height: 100px;
+    font-size: 3rem;
   }
 }
