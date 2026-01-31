@@ -46,8 +46,8 @@ $router->get('/api/categories', 'CategoryController', 'index');
 $router->get('/api/categories/{id}', 'CategoryController', 'show');
 $router->get('/api/categories/{id}/services', 'CategoryController', 'services');
 $router->get('/api/services', 'ServiceController', 'index');
-$router->get('/api/services/{id}', 'ServiceController', 'show');
 $router->get('/api/services/featured', 'ServiceController', 'featured');
+$router->get('/api/services/{id}', 'ServiceController', 'show');
 
 // Prestataires (consultation publique)
 $router->get('/api/providers', 'ProviderController', 'index');
