@@ -24,6 +24,110 @@ class ChatController extends Controller
     }
 
     /**
+     * GET /api/chat/conversations
+     * Liste toutes les conversations actives de l'utilisateur
+     */
+    public function getConversations(): void
+    {
+        $userId = $_SERVER['USER_ID'] ?? null;
+        $userType = $_SERVER['USER_TYPE'] ?? 'user';
+
+        if (!$userId) {
+            $this->error('Non authentifié', 401);
+            return;
+        }
+
+        try {
+            $db = $this->messageModel->getDatabase();
+
+            if ($userType === 'user') {
+                // Client: récupérer les commandes avec messages
+                $stmt = $db->prepare("
+                    SELECT DISTINCT
+                        o.id,
+                        o.status,
+                        o.created_at,
+                        o.provider_id,
+                        p.first_name as provider_first_name,
+                        p.last_name as provider_last_name,
+                        p.photo_url as provider_avatar,
+                        s.name as service_name,
+                        (SELECT COUNT(*) FROM messages m WHERE m.order_id = o.id AND m.is_read = false AND m.sender_type = 'provider') as unread_count,
+                        (SELECT content FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
+                        (SELECT created_at FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+                    FROM orders o
+                    LEFT JOIN providers p ON o.provider_id = p.id
+                    LEFT JOIN services s ON o.service_id = s.id
+                    WHERE o.user_id = ?
+                    AND o.provider_id IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM messages m WHERE m.order_id = o.id)
+                    ORDER BY last_message_at DESC
+                    LIMIT 50
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                // Provider: récupérer les commandes avec messages
+                $stmt = $db->prepare("
+                    SELECT DISTINCT
+                        o.id,
+                        o.status,
+                        o.created_at,
+                        o.user_id as client_id,
+                        u.first_name as client_first_name,
+                        u.last_name as client_last_name,
+                        u.avatar as client_avatar,
+                        s.name as service_name,
+                        (SELECT COUNT(*) FROM messages m WHERE m.order_id = o.id AND m.is_read = false AND m.sender_type = 'user') as unread_count,
+                        (SELECT content FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
+                        (SELECT created_at FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+                    FROM orders o
+                    LEFT JOIN users u ON o.user_id = u.id
+                    LEFT JOIN services s ON o.service_id = s.id
+                    WHERE o.provider_id = ?
+                    AND EXISTS (SELECT 1 FROM messages m WHERE m.order_id = o.id)
+                    ORDER BY last_message_at DESC
+                    LIMIT 50
+                ");
+                $stmt->execute([$userId]);
+            }
+
+            $conversations = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Formater les conversations
+            $formatted = array_map(function($conv) use ($userType) {
+                return [
+                    'id' => $conv['id'],
+                    'order_id' => $conv['id'],
+                    'status' => $conv['status'],
+                    'service_name' => $conv['service_name'],
+                    'other_party' => $userType === 'user' ? [
+                        'id' => $conv['provider_id'],
+                        'name' => trim(($conv['provider_first_name'] ?? '') . ' ' . ($conv['provider_last_name'] ?? '')),
+                        'avatar' => $conv['provider_avatar']
+                    ] : [
+                        'id' => $conv['client_id'],
+                        'name' => trim(($conv['client_first_name'] ?? '') . ' ' . ($conv['client_last_name'] ?? '')),
+                        'avatar' => $conv['client_avatar']
+                    ],
+                    'last_message' => $conv['last_message'],
+                    'last_message_at' => $conv['last_message_at'],
+                    'unread_count' => (int)$conv['unread_count'],
+                    'created_at' => $conv['created_at']
+                ];
+            }, $conversations);
+
+            $this->success([
+                'conversations' => $formatted,
+                'total' => count($formatted)
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Erreur getConversations: " . $e->getMessage());
+            $this->error('Erreur lors de la récupération des conversations', 500);
+        }
+    }
+
+    /**
      * GET /api/orders/{id}/messages
      * Recupere les messages d'une commande
      */

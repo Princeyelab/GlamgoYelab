@@ -127,6 +127,59 @@ class Provider extends Model
     }
 
     /**
+     * Récupère tous les prestataires actifs avec pagination
+     */
+    public function getAllActive(int $limit = 20, int $offset = 0, ?int $categoryId = null): array
+    {
+        $sql = "SELECT p.id, p.first_name, p.last_name, p.photo_url, p.bio, p.rating,
+                       p.total_reviews, p.is_available, p.is_verified, p.current_latitude,
+                       p.current_longitude, p.intervention_radius
+                FROM providers p
+                WHERE p.status = 'active' AND p.is_verified = TRUE";
+
+        $params = [];
+
+        if ($categoryId) {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM provider_services ps
+                JOIN services s ON ps.service_id = s.id
+                WHERE ps.provider_id = p.id AND s.category_id = ?
+            )";
+            $params[] = $categoryId;
+        }
+
+        $sql .= " ORDER BY p.rating DESC, p.total_reviews DESC LIMIT ? OFFSET ?";
+        $params[] = $limit;
+        $params[] = $offset;
+
+        return $this->query($sql, $params);
+    }
+
+    /**
+     * Trouve les prestataires à proximité d'une position
+     */
+    public function findNearby(float $latitude, float $longitude, float $radiusKm = 20, int $limit = 50): array
+    {
+        $sql = "SELECT p.id, p.first_name, p.last_name, p.photo_url, p.bio, p.rating,
+                       p.total_reviews, p.is_available, p.is_verified,
+                       p.current_latitude, p.current_longitude,
+                       (6371 * acos(cos(radians(?)) * cos(radians(p.current_latitude)) *
+                       cos(radians(p.current_longitude) - radians(?)) +
+                       sin(radians(?)) * sin(radians(p.current_latitude)))) AS distance
+                FROM providers p
+                WHERE p.status = 'active'
+                AND p.is_verified = TRUE
+                AND p.is_available = TRUE
+                AND p.current_latitude IS NOT NULL
+                AND p.current_longitude IS NOT NULL
+                HAVING distance <= ?
+                ORDER BY distance ASC
+                LIMIT ?";
+
+        return $this->query($sql, [$latitude, $longitude, $latitude, $radiusKm, $limit]);
+    }
+
+    /**
      * Connexion: met le prestataire en ligne
      */
     public function setOnline(int $providerId): bool

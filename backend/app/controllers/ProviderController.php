@@ -17,6 +17,60 @@ class ProviderController extends Controller
     }
 
     /**
+     * Liste tous les prestataires actifs (route publique)
+     * GET /api/providers
+     */
+    public function index(): void
+    {
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+        $categoryId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
+
+        $providers = $this->providerModel->getAllActive($limit, $offset, $categoryId);
+
+        $this->success($providers, 'Liste des prestataires');
+    }
+
+    /**
+     * Récupère un prestataire par ID (route publique)
+     * GET /api/providers/{id}
+     */
+    public function show(int $id): void
+    {
+        $provider = $this->providerModel->find($id);
+
+        if (!$provider) {
+            $this->error('Prestataire non trouvé', 404);
+        }
+
+        unset($provider['password']);
+
+        // Ajouter les services
+        $provider['services'] = $this->providerModel->getServices($id);
+
+        $this->success($provider, 'Prestataire récupéré');
+    }
+
+    /**
+     * Recherche les prestataires à proximité (route publique)
+     * GET /api/providers/nearby
+     */
+    public function nearby(): void
+    {
+        $latitude = isset($_GET['latitude']) ? (float)$_GET['latitude'] : null;
+        $longitude = isset($_GET['longitude']) ? (float)$_GET['longitude'] : null;
+        $radius = isset($_GET['radius']) ? (float)$_GET['radius'] : 20;
+
+        if (!$latitude || !$longitude) {
+            $this->error('Latitude et longitude requises', 400);
+        }
+
+        $providers = $this->providerModel->findNearby($latitude, $longitude, $radius);
+
+        $this->success($providers, 'Prestataires à proximité');
+    }
+
+    /**
      * Connexion d'un prestataire
      */
     public function login(): void

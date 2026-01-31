@@ -32,6 +32,8 @@ $router->post('/api/auth/login', 'AuthController', 'login');
 $router->post('/api/auth/logout', 'AuthController', 'logout');
 $router->post('/api/auth/forgot-password', 'AuthController', 'forgotPassword');
 $router->post('/api/auth/reset-password', 'AuthController', 'resetPassword');
+$router->get('/api/auth/me', 'AuthController', 'me')
+    ->middleware([AuthMiddleware::class]);
 
 // OAuth (routes à implémenter)
 $router->get('/api/auth/google', 'OAuthController', 'redirectToGoogle');
@@ -45,6 +47,12 @@ $router->get('/api/categories/{id}', 'CategoryController', 'show');
 $router->get('/api/categories/{id}/services', 'CategoryController', 'services');
 $router->get('/api/services', 'ServiceController', 'index');
 $router->get('/api/services/{id}', 'ServiceController', 'show');
+$router->get('/api/services/featured', 'ServiceController', 'featured');
+
+// Prestataires (consultation publique)
+$router->get('/api/providers', 'ProviderController', 'index');
+$router->get('/api/providers/nearby', 'ProviderController', 'nearby');
+$router->get('/api/providers/{id}', 'ProviderController', 'show');
 
 // =====================================================
 // Routes protégées (authentification requise)
@@ -76,6 +84,16 @@ $router->patch('/api/user/addresses/{id}/default', 'AddressController', 'setDefa
 $router->get('/api/user/referral-code', 'ReferralController', 'getCode')
     ->middleware([AuthMiddleware::class]);
 $router->post('/api/user/apply-referral', 'ReferralController', 'applyCode')
+    ->middleware([AuthMiddleware::class]);
+
+// Favoris
+$router->get('/api/favorites', 'FavoriteController', 'index')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/favorites', 'FavoriteController', 'add')
+    ->middleware([AuthMiddleware::class]);
+$router->delete('/api/favorites/{id}', 'FavoriteController', 'remove')
+    ->middleware([AuthMiddleware::class]);
+$router->post('/api/favorites/toggle', 'FavoriteController', 'toggle')
     ->middleware([AuthMiddleware::class]);
 
 // Commandes
@@ -149,6 +167,10 @@ $router->get('/api/orders/{id}/chat-status', 'ChatController', 'getChatStatus')
 
 // Nombre de messages non lus (global)
 $router->get('/api/chat/unread-count', 'ChatController', 'getUnreadCount')
+    ->middleware([AuthMiddleware::class]);
+
+// Liste des conversations
+$router->get('/api/chat/conversations', 'ChatController', 'getConversations')
     ->middleware([AuthMiddleware::class]);
 
 // Mise a jour presence (en ligne)

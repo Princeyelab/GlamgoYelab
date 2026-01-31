@@ -41,6 +41,56 @@ class ServiceController extends Controller
     }
 
     /**
+     * Récupère les services mis en avant
+     * GET /api/services/featured
+     */
+    public function featured(): void
+    {
+        // Récupérer les services avec le plus de commandes ou les mieux notés
+        $limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 20) : 10;
+
+        $db = \App\Core\Database::getInstance();
+
+        // Sélectionner les services les plus populaires (avec le plus de commandes)
+        $sql = "SELECT s.*, c.name as category_name, c.icon as category_icon,
+                       COUNT(o.id) as order_count
+                FROM services s
+                LEFT JOIN categories c ON s.category_id = c.id
+                LEFT JOIN orders o ON o.service_id = s.id
+                WHERE s.is_active = 1 OR s.is_active IS NULL
+                GROUP BY s.id
+                ORDER BY order_count DESC, s.price ASC
+                LIMIT ?";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$limit]);
+        $services = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Si pas assez de résultats, compléter avec les services par catégorie
+        if (count($services) < $limit) {
+            $existingIds = array_column($services, 'id');
+            $existingIdsStr = empty($existingIds) ? '0' : implode(',', $existingIds);
+
+            $remaining = $limit - count($services);
+            $sql2 = "SELECT s.*, c.name as category_name, c.icon as category_icon
+                     FROM services s
+                     LEFT JOIN categories c ON s.category_id = c.id
+                     WHERE s.id NOT IN ($existingIdsStr)
+                     AND (s.is_active = 1 OR s.is_active IS NULL)
+                     ORDER BY s.category_id, s.name
+                     LIMIT ?";
+
+            $stmt2 = $db->prepare($sql2);
+            $stmt2->execute([$remaining]);
+            $additionalServices = $stmt2->fetchAll(\PDO::FETCH_ASSOC);
+
+            $services = array_merge($services, $additionalServices);
+        }
+
+        $this->success($services);
+    }
+
+    /**
      * Récupère un service par ID
      * Supporte les services personnalisés avec ID préfixé "custom_"
      */

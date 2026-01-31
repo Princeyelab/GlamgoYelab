@@ -124,6 +124,44 @@ class AuthController extends Controller
      * Demande de réinitialisation de mot de passe (placeholder)
      */
     /**
+     * Récupérer l'utilisateur connecté
+     * GET /api/auth/me
+     */
+    public function me(): void
+    {
+        $userId = $this->getUserId();
+
+        if (!$userId) {
+            $this->error('Non authentifié', 401);
+        }
+
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            $this->error('Utilisateur non trouvé', 404);
+        }
+
+        unset($user['password']);
+
+        // Vérifier si l'utilisateur est aussi prestataire
+        $db = Database::getInstance();
+        $provider = $db->fetchOne(
+            "SELECT id, is_available, status FROM providers WHERE user_id = ?",
+            [$userId]
+        );
+
+        $user['is_provider'] = !empty($provider);
+        $user['account_type'] = !empty($provider) ? 'provider' : 'client';
+
+        if ($provider) {
+            $user['provider_id'] = $provider['id'];
+            $user['provider_status'] = $provider['status'];
+        }
+
+        $this->success(['user' => $user], 'Utilisateur récupéré');
+    }
+
+    /**
      * Déconnexion
      */
     public function logout(): void
