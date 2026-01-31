@@ -37,9 +37,7 @@ import {
 } from '../../src/lib/utils/contentModeration';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { translateMessage, hasTranslation, detectMessageLanguage, type MessageLanguage } from '../../src/lib/utils/messageTranslation';
-
-// Numero du support
-const SUPPORT_PHONE = '+212600000000'; // A remplacer par le vrai numero
+import { CONFIG } from '../../src/lib/constants/config';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -131,7 +129,7 @@ export default function ChatScreen() {
         },
         {
           text: `📱 ${t('orderChat.call')}`,
-          onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE}`),
+          onPress: () => Linking.openURL(`tel:${CONFIG.SUPPORT_PHONE}`),
         },
       ]
     );

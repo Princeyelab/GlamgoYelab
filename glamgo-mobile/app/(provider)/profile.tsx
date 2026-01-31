@@ -38,6 +38,7 @@ import {
   getProviderFormulas,
   BookingFormula,
 } from '../../src/lib/api/providerAPI';
+import { CONFIG } from '../../src/lib/constants/config';
 import { API_BASE_URL } from '../../src/lib/api/client';
 import { appEvents, EVENTS } from '../../src/lib/utils/eventEmitter';
 
@@ -246,7 +247,7 @@ export default function ProviderProfileScreen() {
         },
         {
           text: t('chat.call'),
-          onPress: () => router.push('tel:+212600000000' as any),
+          onPress: () => router.push(`tel:${CONFIG.SUPPORT_PHONE}` as any),
         },
       ]
     );
@@ -617,6 +618,16 @@ export default function ProviderProfileScreen() {
             </View>
             <Text style={[styles.quickActionLabel, { color: colors.error }]}>{t('auth.logout')}</Text>
           </TouchableOpacity>
+
+          {/* Diagnostic - Dev only */}
+          {__DEV__ && (
+            <TouchableOpacity style={styles.quickActionCard} onPress={() => router.push('/diagnostic')}>
+              <View style={[styles.quickActionIconBg, { backgroundColor: colors.gray[800] }]}>
+                <Text style={styles.quickActionIcon}>🔧</Text>
+              </View>
+              <Text style={styles.quickActionLabel}>Diagnostic</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

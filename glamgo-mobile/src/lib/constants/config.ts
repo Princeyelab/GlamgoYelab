@@ -45,6 +45,11 @@ export const CONFIG = {
   DEFAULT_COUNTRY: 'Maroc',
   MAX_SEARCH_RADIUS_KM: 50,
 
+  // === SUPPORT ===
+  // TODO: Remplacer par le vrai numero de support avant production
+  SUPPORT_PHONE: '+212600000000',
+  SUPPORT_EMAIL: 'support@glamgo.ma',
+
   // === DEBUG ===
   LOG_API_CALLS: isDev,
   LOG_REDUX_ACTIONS: isDev,

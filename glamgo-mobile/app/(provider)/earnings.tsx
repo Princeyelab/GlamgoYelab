@@ -382,28 +382,12 @@ export default function ProviderEarningsScreen() {
 
   const handleWithdraw = () => {
     hapticFeedback.medium();
+    // Fonctionnalité de retrait non implémentée côté backend
+    // Afficher un message informatif à l'utilisateur
     Alert.alert(
       t('providerEarnings.withdraw'),
-      `${t('providerEarnings.withdraw')} ${pendingAmount} DH ?`,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.confirm'),
-          onPress: async () => {
-            try {
-              await requestWithdrawal(pendingAmount);
-              hapticFeedback.success();
-              Alert.alert(t('common.success'), t('notifications.withdrawalSuccess'));
-              loadData(false); // Recharger les donnees
-            } catch (error) {
-              console.error('Erreur retrait:', error);
-              // Afficher le succes quand meme (fallback)
-              hapticFeedback.success();
-              Alert.alert(t('common.success'), t('notifications.withdrawalSuccess'));
-            }
-          },
-        },
-      ]
+      'Cette fonctionnalité sera bientôt disponible. Vos gains seront transférés automatiquement sur votre compte bancaire enregistré.',
+      [{ text: 'OK', style: 'default' }]
     );
   };
 

@@ -254,6 +254,16 @@ export default function ProfileScreen() {
           {t('auth.logout')}
         </Button>
 
+        {/* Diagnostic - Dev only */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.diagnosticButton}
+            onPress={() => router.push('/diagnostic')}
+          >
+            <Text style={styles.diagnosticButtonText}>🔧 Diagnostic API</Text>
+          </TouchableOpacity>
+        )}
+
         {/* App Version */}
         <Text style={styles.version}>GlamGo v1.0.0</Text>
       </View>
@@ -455,6 +465,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.gray[400],
     textAlign: 'center',
+  },
+  diagnosticButton: {
+    backgroundColor: colors.gray[800],
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  diagnosticButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
   },
   divider: {
     height: 1,

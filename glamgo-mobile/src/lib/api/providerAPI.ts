@@ -158,7 +158,7 @@ export const registerProvider = async (data: ProviderRegisterData): Promise<Prov
       type,
     } as any);
 
-    console.log('[ProviderAPI] Registering with profile photo:', filename);
+    if (__DEV__) console.log('[ProviderAPI] Registering with profile photo:', filename);
 
     const response = await apiClient.post<ProviderAuthResponse>(
       ENDPOINTS.PROVIDER.REGISTER,
@@ -227,16 +227,13 @@ export const loginProvider = async (credentials: { email: string; password: stri
  * Met le prestataire hors ligne (is_available = false)
  */
 export const logoutProvider = async (): Promise<void> => {
-  console.log('[ProviderAPI] logoutProvider called - will call', ENDPOINTS.PROVIDER.LOGOUT);
+  if (__DEV__) console.log('[ProviderAPI] logoutProvider called');
   try {
-    const response = await apiClient.post(ENDPOINTS.PROVIDER.LOGOUT);
-    console.log('[ProviderAPI] Logout API success:', response.status, response.data);
+    await apiClient.post(ENDPOINTS.PROVIDER.LOGOUT);
   } catch (error: any) {
-    console.error('[ProviderAPI] Logout API call failed:', error?.response?.status, error?.response?.data || error?.message);
+    // Silently ignore logout errors
   } finally {
-    console.log('[ProviderAPI] Clearing tokens...');
     await clearTokens();
-    console.log('[ProviderAPI] Tokens cleared');
   }
 };
 
@@ -339,7 +336,7 @@ export const uploadProviderDiploma = async (fileUri: string, category: string = 
   const match = /\.(\w+)$/.exec(filename);
   const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-  console.log('[ProviderAPI] Diploma upload - category:', category, 'URI:', normalizedUri);
+  if (__DEV__) console.log('[ProviderAPI] Diploma upload - category:', category);
 
   formData.append('diploma', {
     uri: normalizedUri,
@@ -360,7 +357,7 @@ export const uploadProviderDiploma = async (fileUri: string, category: string = 
     }
   );
 
-  console.log('[ProviderAPI] Diploma upload response:', JSON.stringify(response.data));
+  if (__DEV__) console.log('[ProviderAPI] Diploma upload success');
 
   const diplomaPath = response.data?.data?.diploma_path || response.data?.diploma_path || '';
   const responseCategory = response.data?.data?.category || category;
@@ -394,26 +391,15 @@ export const getProviderServices = async (): Promise<ProviderService[]> => {
  * Ajouter un service au profil prestataire
  */
 export const addProviderService = async (serviceId: number, customPrice?: number, customDuration?: number): Promise<ProviderService> => {
-  console.log('[ProviderAPI] addProviderService - serviceId:', serviceId);
-  console.log('[ProviderAPI] Endpoint:', ENDPOINTS.PROVIDER.ADD_SERVICE);
-
-  try {
-    const response = await apiClient.post<{ success: boolean; data: ProviderService }>(
-      ENDPOINTS.PROVIDER.ADD_SERVICE,
-      {
-        service_id: serviceId,
-        custom_price: customPrice,
-        custom_duration: customDuration,
-      }
-    );
-    console.log('[ProviderAPI] addProviderService - success for serviceId:', serviceId);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('[ProviderAPI] addProviderService - FAILED for serviceId:', serviceId);
-    console.error('[ProviderAPI] Error status:', error?.response?.status);
-    console.error('[ProviderAPI] Error data:', JSON.stringify(error?.response?.data));
-    throw error;
-  }
+  const response = await apiClient.post<{ success: boolean; data: ProviderService }>(
+    ENDPOINTS.PROVIDER.ADD_SERVICE,
+    {
+      service_id: serviceId,
+      custom_price: customPrice,
+      custom_duration: customDuration,
+    }
+  );
+  return response.data.data;
 };
 
 /**
@@ -439,17 +425,7 @@ export const addProviderServices = async (serviceIds: number[]): Promise<Provide
  * Note: Le backend attend le service_id (pas provider_service_id)
  */
 export const removeProviderService = async (serviceId: number): Promise<void> => {
-  const endpoint = ENDPOINTS.PROVIDER.REMOVE_SERVICE(serviceId);
-  console.log('[ProviderAPI] removeProviderService - serviceId:', serviceId, 'endpoint:', endpoint);
-  try {
-    await apiClient.delete(endpoint);
-    console.log('[ProviderAPI] removeProviderService - success for serviceId:', serviceId);
-  } catch (error: any) {
-    console.error('[ProviderAPI] removeProviderService - FAILED for serviceId:', serviceId);
-    console.error('[ProviderAPI] Error status:', error?.response?.status);
-    console.error('[ProviderAPI] Error data:', JSON.stringify(error?.response?.data));
-    throw error;
-  }
+  await apiClient.delete(ENDPOINTS.PROVIDER.REMOVE_SERVICE(serviceId));
 };
 
 // === COMMANDES ===
@@ -501,34 +477,20 @@ export const startOrder = async (orderId: number): Promise<ProviderOrder> => {
  * Change le statut en 'arrived' et notifie le client pour confirmation
  */
 export const arriveAtClient = async (orderId: number): Promise<ProviderOrder> => {
-  const endpoint = ENDPOINTS.PROVIDER.ARRIVE_ORDER(orderId);
-  console.log('[API] arriveAtClient - orderId:', orderId, 'endpoint:', endpoint);
-  try {
-    const response = await apiClient.patch<{ success: boolean; data: ProviderOrder }>(endpoint);
-    console.log('[API] arriveAtClient - response:', response.data);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('[API] arriveAtClient - error:', error);
-    console.error('[API] arriveAtClient - response data:', error?.response?.data);
-    throw error;
-  }
+  const response = await apiClient.patch<{ success: boolean; data: ProviderOrder }>(
+    ENDPOINTS.PROVIDER.ARRIVE_ORDER(orderId)
+  );
+  return response.data.data;
 };
 
 /**
  * Terminer une commande - appelle /complete-service pour passer en completed_pending_review
  */
 export const completeOrder = async (orderId: number): Promise<ProviderOrder> => {
-  const endpoint = ENDPOINTS.PROVIDER.COMPLETE_ORDER(orderId);
-  console.log('[API] completeOrder - orderId:', orderId, 'endpoint:', endpoint);
-  try {
-    const response = await apiClient.post<{ success: boolean; data: ProviderOrder }>(endpoint);
-    console.log('[API] completeOrder - response:', response.data);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('[API] completeOrder - error:', error);
-    console.error('[API] completeOrder - response data:', error?.response?.data);
-    throw error;
-  }
+  const response = await apiClient.post<{ success: boolean; data: ProviderOrder }>(
+    ENDPOINTS.PROVIDER.COMPLETE_ORDER(orderId)
+  );
+  return response.data.data;
 };
 
 /**
@@ -770,7 +732,7 @@ export const getProviderTransactions = async (): Promise<Transaction[]> => {
 export const requestWithdrawal = async (amount: number): Promise<{ success: boolean; message: string }> => {
   // TODO: Implementer l'endpoint backend /api/provider/withdraw
   // Pour l'instant, simuler le succes
-  console.log('[Provider] Demande de retrait:', amount, 'DH');
+  if (__DEV__) console.log('[Provider] Demande de retrait:', amount, 'DH');
 
   // Simuler un delai reseau
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1128,7 +1090,7 @@ export const uploadCustomServiceImages = async (serviceId: number, imageUris: st
     } as any);
   }
 
-  console.log('[ProviderAPI] Uploading', imageUris.length, 'images for service', serviceId);
+  if (__DEV__) console.log('[ProviderAPI] Uploading', imageUris.length, 'images for service', serviceId);
 
   const response = await apiClient.post<{
     success: boolean;
@@ -1138,7 +1100,6 @@ export const uploadCustomServiceImages = async (serviceId: number, imageUris: st
     timeout: 120000, // 2 minutes pour upload de fichiers
   });
 
-  console.log('[ProviderAPI] Upload response:', response.data);
   return response.data.data;
 };
 
