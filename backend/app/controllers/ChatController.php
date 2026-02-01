@@ -43,32 +43,44 @@ class ChatController extends Controller
             if ($userType === 'user') {
                 // Client: récupérer les commandes avec messages
                 $stmt = $db->prepare("
-                    SELECT DISTINCT
+                    SELECT
                         o.id,
                         o.status,
                         o.created_at,
                         o.provider_id,
                         p.first_name as provider_first_name,
                         p.last_name as provider_last_name,
-                        p.photo_url as provider_avatar,
+                        p.avatar as provider_avatar,
                         s.name as service_name,
-                        (SELECT COUNT(*) FROM messages m WHERE m.order_id = o.id AND m.is_read = false AND m.sender_type = 'provider') as unread_count,
-                        (SELECT content FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
-                        (SELECT created_at FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+                        COALESCE(unread.cnt, 0) as unread_count,
+                        last_msg.content as last_message,
+                        last_msg.created_at as last_message_at
                     FROM orders o
                     LEFT JOIN providers p ON o.provider_id = p.id
                     LEFT JOIN services s ON o.service_id = s.id
+                    LEFT JOIN LATERAL (
+                        SELECT COUNT(*) as cnt
+                        FROM messages m
+                        WHERE m.order_id = o.id AND m.is_read = FALSE AND m.sender_type = 'provider'
+                    ) unread ON true
+                    LEFT JOIN LATERAL (
+                        SELECT content, created_at
+                        FROM messages m
+                        WHERE m.order_id = o.id
+                        ORDER BY m.created_at DESC
+                        LIMIT 1
+                    ) last_msg ON true
                     WHERE o.user_id = ?
                     AND o.provider_id IS NOT NULL
                     AND EXISTS (SELECT 1 FROM messages m WHERE m.order_id = o.id)
-                    ORDER BY last_message_at DESC
+                    ORDER BY last_msg.created_at DESC NULLS LAST
                     LIMIT 50
                 ");
                 $stmt->execute([$userId]);
             } else {
                 // Provider: récupérer les commandes avec messages
                 $stmt = $db->prepare("
-                    SELECT DISTINCT
+                    SELECT
                         o.id,
                         o.status,
                         o.created_at,
@@ -77,15 +89,27 @@ class ChatController extends Controller
                         u.last_name as client_last_name,
                         u.avatar as client_avatar,
                         s.name as service_name,
-                        (SELECT COUNT(*) FROM messages m WHERE m.order_id = o.id AND m.is_read = false AND m.sender_type = 'user') as unread_count,
-                        (SELECT content FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
-                        (SELECT created_at FROM messages m WHERE m.order_id = o.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+                        COALESCE(unread.cnt, 0) as unread_count,
+                        last_msg.content as last_message,
+                        last_msg.created_at as last_message_at
                     FROM orders o
                     LEFT JOIN users u ON o.user_id = u.id
                     LEFT JOIN services s ON o.service_id = s.id
+                    LEFT JOIN LATERAL (
+                        SELECT COUNT(*) as cnt
+                        FROM messages m
+                        WHERE m.order_id = o.id AND m.is_read = FALSE AND m.sender_type = 'user'
+                    ) unread ON true
+                    LEFT JOIN LATERAL (
+                        SELECT content, created_at
+                        FROM messages m
+                        WHERE m.order_id = o.id
+                        ORDER BY m.created_at DESC
+                        LIMIT 1
+                    ) last_msg ON true
                     WHERE o.provider_id = ?
                     AND EXISTS (SELECT 1 FROM messages m WHERE m.order_id = o.id)
-                    ORDER BY last_message_at DESC
+                    ORDER BY last_msg.created_at DESC NULLS LAST
                     LIMIT 50
                 ");
                 $stmt->execute([$userId]);
