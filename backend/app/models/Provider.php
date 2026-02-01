@@ -131,11 +131,11 @@ class Provider extends Model
      */
     public function getAllActive(int $limit = 20, int $offset = 0, ?int $categoryId = null): array
     {
-        $sql = "SELECT p.id, p.first_name, p.last_name, p.photo_url, p.bio, p.rating,
+        $sql = "SELECT p.id, p.first_name, p.last_name, p.avatar, p.bio, p.rating,
                        p.total_reviews, p.is_available, p.is_verified, p.current_latitude,
-                       p.current_longitude, p.intervention_radius
+                       p.current_longitude, p.intervention_radius_km as intervention_radius
                 FROM providers p
-                WHERE p.status = 'active' AND p.is_verified = TRUE";
+                WHERE p.account_status = 'active'";
 
         $params = [];
 
@@ -160,19 +160,25 @@ class Provider extends Model
      */
     public function findNearby(float $latitude, float $longitude, float $radiusKm = 20, int $limit = 50): array
     {
-        $sql = "SELECT p.id, p.first_name, p.last_name, p.photo_url, p.bio, p.rating,
-                       p.total_reviews, p.is_available, p.is_verified,
-                       p.current_latitude, p.current_longitude,
-                       (6371 * acos(cos(radians(?)) * cos(radians(p.current_latitude)) *
-                       cos(radians(p.current_longitude) - radians(?)) +
-                       sin(radians(?)) * sin(radians(p.current_latitude)))) AS distance
-                FROM providers p
-                WHERE p.status = 'active'
-                AND p.is_verified = TRUE
-                AND p.is_available = TRUE
-                AND p.current_latitude IS NOT NULL
-                AND p.current_longitude IS NOT NULL
-                HAVING distance <= ?
+        // PostgreSQL version with distance filter in subquery
+        $sql = "SELECT * FROM (
+                    SELECT p.id, p.first_name, p.last_name, p.avatar, p.bio, p.rating,
+                           p.total_reviews, p.is_available, p.is_verified,
+                           p.current_latitude, p.current_longitude,
+                           (6371 * acos(
+                               LEAST(1, GREATEST(-1,
+                                   cos(radians(?)) * cos(radians(COALESCE(p.current_latitude, p.latitude))) *
+                                   cos(radians(COALESCE(p.current_longitude, p.longitude)) - radians(?)) +
+                                   sin(radians(?)) * sin(radians(COALESCE(p.current_latitude, p.latitude)))
+                               ))
+                           )) AS distance
+                    FROM providers p
+                    WHERE p.account_status = 'active'
+                    AND p.is_available = TRUE
+                    AND (p.current_latitude IS NOT NULL OR p.latitude IS NOT NULL)
+                    AND (p.current_longitude IS NOT NULL OR p.longitude IS NOT NULL)
+                ) AS subq
+                WHERE distance <= ?
                 ORDER BY distance ASC
                 LIMIT ?";
 
