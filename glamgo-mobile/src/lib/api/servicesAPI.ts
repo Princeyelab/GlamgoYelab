@@ -412,9 +412,12 @@ const transformServiceImages = (service: Service): Service => {
   // Construire le tableau d'images
   let images: string[] = [];
 
-  if (service.images && service.images.length > 0) {
+  if (Array.isArray(service.images) && service.images.length > 0) {
     // Si deja un tableau d'images, l'utiliser
     images = service.images.map(img => getImageUrl(img));
+  } else if (typeof service.images === 'string' && service.images) {
+    // Si c'est une string (URL unique), la convertir en tableau
+    images = [getImageUrl(service.images)];
   } else if (imageFromApi) {
     // Sinon, utiliser le champ 'image' de l'API
     images = [getImageUrl(imageFromApi)];
@@ -430,7 +433,7 @@ const transformServiceImages = (service: Service): Service => {
   const apiName = (service as any).name;
   const title = apiName || service.title || 'Service';
 
-  console.log('[transformService]', service.id, '- name:', apiName, '- title result:', title);
+  // Debug supprimé pour production
 
   return {
     ...service,
