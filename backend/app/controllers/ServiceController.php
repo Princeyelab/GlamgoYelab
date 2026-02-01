@@ -57,8 +57,8 @@ class ServiceController extends Controller
                 FROM services s
                 LEFT JOIN categories c ON s.category_id = c.id
                 LEFT JOIN orders o ON o.service_id = s.id
-                WHERE s.is_active = 1 OR s.is_active IS NULL
-                GROUP BY s.id
+                WHERE s.is_active = TRUE OR s.is_active IS NULL
+                GROUP BY s.id, c.name, c.icon
                 ORDER BY order_count DESC, s.price ASC
                 LIMIT ?";
 
@@ -76,7 +76,7 @@ class ServiceController extends Controller
                      FROM services s
                      LEFT JOIN categories c ON s.category_id = c.id
                      WHERE s.id NOT IN ($existingIdsStr)
-                     AND (s.is_active = 1 OR s.is_active IS NULL)
+                     AND (s.is_active = TRUE OR s.is_active IS NULL)
                      ORDER BY s.category_id, s.name
                      LIMIT ?";
 
