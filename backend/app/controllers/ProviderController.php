@@ -156,7 +156,7 @@ class ProviderController extends Controller
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'phone' => $data['phone'],
-            'is_verified' => 0,
+            'is_verified' => 1,
             'is_available' => 0
         ];
 
