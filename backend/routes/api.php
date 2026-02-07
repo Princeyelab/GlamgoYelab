@@ -27,6 +27,7 @@ $router->get('/api/force-offline', 'MigrationController', 'forceOffline');
 $router->get('/api/activate-providers', 'MigrationController', 'activateProviders');
 
 // Authentification
+$router->post('/api/auth/check-email', 'AuthController', 'checkEmail');
 $router->post('/api/auth/register', 'AuthController', 'register');
 $router->post('/api/auth/login', 'AuthController', 'login');
 $router->post('/api/auth/logout', 'AuthController', 'logout');
@@ -57,6 +58,10 @@ $router->get('/api/providers/{id}', 'ProviderController', 'show');
 // =====================================================
 // Routes protégées (authentification requise)
 // =====================================================
+
+// Changement de mot de passe (utilisateur connecte)
+$router->post('/api/user/change-password', 'AuthController', 'changePassword')
+    ->middleware([AuthMiddleware::class]);
 
 // Profil utilisateur
 $router->get('/api/user/profile', 'UserController', 'profile')
