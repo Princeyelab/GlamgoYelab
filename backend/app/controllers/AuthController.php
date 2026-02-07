@@ -212,7 +212,19 @@ class AuthController extends Controller
         }
 
         $email = strtolower(trim($data['email']));
+
+        // Chercher dans users ET providers
         $user = $this->userModel->findByEmail($email);
+        $accountType = 'user';
+
+        if (!$user) {
+            // Chercher dans la table providers
+            $db = Database::getInstance();
+            $stmt = $db->prepare("SELECT id, email, first_name, password FROM providers WHERE email = ? LIMIT 1");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $accountType = 'provider';
+        }
 
         // Par securite, toujours retourner succes meme si l'email n'existe pas
         if (!$user) {
@@ -233,7 +245,7 @@ class AuthController extends Controller
         $stmt = $db->prepare("DELETE FROM password_resets WHERE email = ?");
         $stmt->execute([$email]);
 
-        // Inserer le nouveau token
+        // Inserer le nouveau token (avec account_type pour savoir quelle table mettre a jour)
         $stmt = $db->prepare("INSERT INTO password_resets (email, token, expires_at, created_at) VALUES (?, ?, ?, NOW())");
         $stmt->execute([$email, hash('sha256', $token), $expiresAt]);
 
@@ -280,16 +292,32 @@ class AuthController extends Controller
             $this->error('Lien invalide ou expiré. Veuillez refaire une demande.', 400);
         }
 
-        // Trouver l'utilisateur
+        // Trouver l'utilisateur (users ou providers)
         $user = $this->userModel->findByEmail($email);
+        $isProvider = false;
+
+        if (!$user) {
+            // Chercher dans providers
+            $stmtP = $db->prepare("SELECT id, email FROM providers WHERE email = ? LIMIT 1");
+            $stmtP->execute([$email]);
+            $user = $stmtP->fetch(\PDO::FETCH_ASSOC);
+            $isProvider = true;
+        }
+
         if (!$user) {
             $this->error('Utilisateur non trouvé', 404);
         }
 
-        // Mettre a jour le mot de passe
-        $this->userModel->update($user['id'], [
-            'password' => Password::hash($data['password'])
-        ]);
+        // Mettre a jour le mot de passe dans la bonne table
+        $newPasswordHash = Password::hash($data['password']);
+        if ($isProvider) {
+            $stmtUp = $db->prepare("UPDATE providers SET password = ? WHERE id = ?");
+            $stmtUp->execute([$newPasswordHash, $user['id']]);
+        } else {
+            $this->userModel->update($user['id'], [
+                'password' => $newPasswordHash
+            ]);
+        }
 
         // Supprimer le token utilise
         $stmt = $db->prepare("DELETE FROM password_resets WHERE email = ?");

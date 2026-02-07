@@ -20,34 +20,84 @@ class Mailer
      */
     public static function send(string $to, string $subject, string $html): bool
     {
-        $from = getenv('MAIL_FROM') ?: 'onboarding@resend.dev';
+        $fromEmail = getenv('MAIL_FROM') ?: 'glamgo.noreply@gmail.com';
         $fromName = 'GlamGo';
 
-        // Essayer via Resend API si configuré
+        // Priorite 1: Brevo (envoie a tout le monde, 300/jour gratuit)
+        $brevoKey = getenv('BREVO_API_KEY');
+        if ($brevoKey) {
+            $result = self::sendViaBrevo($to, $subject, $html, $fromEmail, $fromName, $brevoKey);
+            if ($result) return true;
+        }
+
+        // Priorite 2: Resend (limite aux emails verifies en mode gratuit)
         $resendKey = getenv('RESEND_API_KEY');
         if ($resendKey) {
-            return self::sendViaResend($to, $subject, $html, $from, $fromName, $resendKey);
+            $resendFrom = getenv('RESEND_FROM') ?: 'onboarding@resend.dev';
+            $result = self::sendViaResend($to, $subject, $html, $resendFrom, $fromName, $resendKey);
+            if ($result) return true;
         }
 
         // Fallback: mail() natif PHP
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',
-            "From: {$fromName} <{$from}>",
-            "Reply-To: {$from}",
+            "From: {$fromName} <{$fromEmail}>",
+            "Reply-To: {$fromEmail}",
         ];
 
         $sent = @mail($to, $subject, $html, implode("\r\n", $headers));
 
         if (!$sent) {
-            error_log("[Mailer] mail() failed for {$to} - subject: {$subject}");
+            error_log("[Mailer] All methods failed for {$to} - subject: {$subject}");
         }
 
         return $sent;
     }
 
     /**
-     * Envoyer via Resend API (gratuit: 100 emails/jour)
+     * Envoyer via Brevo API (gratuit: 300 emails/jour, envoie a tout le monde)
+     */
+    private static function sendViaBrevo(string $to, string $subject, string $html, string $fromEmail, string $fromName, string $apiKey): bool
+    {
+        $data = json_encode([
+            'sender' => ['name' => $fromName, 'email' => $fromEmail],
+            'to' => [['email' => $to]],
+            'subject' => $subject,
+            'htmlContent' => $html,
+        ]);
+
+        $options = [
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\naccept: application/json\r\napi-key: {$apiKey}\r\n",
+                'content' => $data,
+                'timeout' => 15,
+                'ignore_errors' => true,
+            ],
+        ];
+
+        $context = stream_context_create($options);
+        $result = @file_get_contents('https://api.brevo.com/v3/smtp/email', false, $context);
+
+        if ($result === false) {
+            error_log("[Mailer] Brevo API connection failed for {$to}");
+            return false;
+        }
+
+        $response = json_decode($result, true);
+        if (isset($response['messageId'])) {
+            error_log("[Mailer] Email sent via Brevo to {$to} (messageId: {$response['messageId']})");
+            return true;
+        }
+
+        $errorMsg = $response['message'] ?? $result;
+        error_log("[Mailer] Brevo API error for {$to}: {$errorMsg}");
+        return false;
+    }
+
+    /**
+     * Envoyer via Resend API (fallback)
      */
     private static function sendViaResend(string $to, string $subject, string $html, string $from, string $fromName, string $apiKey): bool
     {
@@ -64,6 +114,7 @@ class Mailer
                 'header' => "Content-Type: application/json\r\nAuthorization: Bearer {$apiKey}\r\n",
                 'content' => $data,
                 'timeout' => 10,
+                'ignore_errors' => true,
             ],
         ];
 
@@ -75,8 +126,15 @@ class Mailer
             return false;
         }
 
-        error_log("[Mailer] Email sent via Resend to {$to}");
-        return true;
+        $response = json_decode($result, true);
+        if (isset($response['id'])) {
+            error_log("[Mailer] Email sent via Resend to {$to}");
+            return true;
+        }
+
+        $errorMsg = $response['message'] ?? $result;
+        error_log("[Mailer] Resend API error for {$to}: {$errorMsg}");
+        return false;
     }
 
     /**
