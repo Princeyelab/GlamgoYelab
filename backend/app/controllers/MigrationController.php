@@ -723,6 +723,32 @@ class MigrationController extends Controller
                 $results[] = "✓ Index deja existants";
             }
 
+            // Ajouter colonne category_ids pour support multi-catégorie
+            try {
+                $db->exec("ALTER TABLE provider_custom_services ADD COLUMN IF NOT EXISTS category_ids JSONB DEFAULT '[]'::jsonb");
+                $results[] = "✅ Colonne 'category_ids' ajoutee";
+            } catch (\PDOException $e) {
+                if (strpos($e->getMessage(), 'already exists') !== false ||
+                    strpos($e->getMessage(), 'existe déjà') !== false ||
+                    strpos($e->getMessage(), 'column') !== false) {
+                    $results[] = "✓ Colonne 'category_ids' existe deja";
+                } else {
+                    $results[] = "❌ Erreur category_ids: " . $e->getMessage();
+                }
+            }
+
+            // Migrer les données existantes : copier category_id dans category_ids si vide
+            try {
+                $db->exec("
+                    UPDATE provider_custom_services
+                    SET category_ids = jsonb_build_array(category_id)
+                    WHERE category_ids = '[]'::jsonb AND category_id IS NOT NULL
+                ");
+                $results[] = "✅ Données category_ids migrées";
+            } catch (\PDOException $e) {
+                $results[] = "⚠ Migration category_ids: " . $e->getMessage();
+            }
+
             $this->success([
                 'results' => $results
             ], 'Migration services personnalises terminee');
